@@ -4,6 +4,47 @@
 
 ---
 
+## [1.6.0] - 2026-05-14
+
+### Added
+
+#### New skill: `graphql`
+`skills/graphql/SKILL.md` — dedicated implementation skill for GraphQL APIs.
+
+Covers:
+- **Schema design**: type system rules, nullability conventions, custom scalars, input types, mutation payload pattern
+- **Operations**: query / mutation / subscription best practices (mutations must return the mutated resource)
+- **Resolvers**: thin-dispatcher pattern, context injection, service delegation
+- **DataLoader**: N+1 prevention — batching pattern, per-request instantiation, missing-key handling
+- **Pagination**: cursor-based (Relay spec) vs offset-based, when to use each
+- **Error handling**: union types for domain errors vs bubbling for unexpected errors
+- **Auth**: AuthN in HTTP middleware, AuthZ in resolvers or schema directives, field-level access
+- **Code generation**: `@graphql-codegen/cli` setup (typed resolvers + client hooks), CI check for stale output
+- **Server options**: Apollo Server, GraphQL Yoga, Pothos (Node); Strawberry / Ariadne (Python); gqlgen (Go); Hot Chocolate (.NET); Spring GraphQL / DGS (Java)
+- **Testing**: unit (resolver + mocked context), integration (full schema execution), schema snapshot + breaking-change detection with `graphql-inspector`
+- **Verification commands** for all stacks
+
+Path-scoped: auto-loaded on `**/*.graphql`, `**/*.gql`, `**/graphql.config.*`, `**/codegen.yml`, `**/codegen.yaml`.
+
+#### Routing — `graphql` added to all three root files
+All three routing tables (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) now have a dedicated row for GraphQL:
+
+- `api-design` row: narrowed to REST / OpenAPI contracts — GraphQL implementation removed.
+- New `graphql` row: schemas, resolvers, dataloaders, subscriptions, codegen.
+
+`skills/api-design/SKILL.md` description updated to clarify the split.
+
+### Changed
+
+#### Version bump
+- `KIT_VERSION` bumped to `1.6.0` in all four scripts: `install.ps1`, `install.sh`, `update.ps1`, `update.sh`.
+
+#### README skill table
+- `graphql` added to the Cross-cutting row.
+- `graphql` added to the `paths:`-carrying skills paragraph.
+
+---
+
 ## [1.5.0] - 2026-05-14
 
 ### Added

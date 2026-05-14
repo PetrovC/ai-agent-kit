@@ -48,7 +48,8 @@ Activate the relevant skill before editing:
 | Flutter (widgets, Riverpod / BLoC, Dart) | `$mobile-flutter` |
 | SQL / NoSQL schemas, migrations, queries (any engine) | `$database` |
 | Docker, Kubernetes, Terraform, CI/CD pipelines | `$infrastructure` |
-| REST / OpenAPI / GraphQL contracts, versioning, errors | `$api-design` |
+| REST / OpenAPI contracts, versioning, error contracts, API design | `$api-design` |
+| GraphQL schemas, resolvers, dataloaders, subscriptions, codegen | `$graphql` |
 | Module boundaries, layers, DDD, CQRS, design decisions | `$architecture` |
 | Adding/updating/reviewing tests | `$testing` |
 | PR review, branch review, quality check | `$code-review` |

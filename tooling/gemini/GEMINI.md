@@ -65,7 +65,8 @@ Read the relevant skill file before editing. Do not rely on inline summaries —
 | Flutter (widgets, Riverpod / BLoC, Dart) | `skills/mobile-flutter/SKILL.md` |
 | SQL / NoSQL schemas, migrations, queries (any engine) | `skills/database/SKILL.md` |
 | Docker, Kubernetes, Terraform, CI/CD pipelines | `skills/infrastructure/SKILL.md` |
-| REST / OpenAPI / GraphQL contracts, versioning, errors | `skills/api-design/SKILL.md` |
+| REST / OpenAPI contracts, versioning, error contracts, API design | `skills/api-design/SKILL.md` |
+| GraphQL schemas, resolvers, dataloaders, subscriptions, codegen | `skills/graphql/SKILL.md` |
 | Module boundaries, layers, DDD, CQRS, design | `skills/architecture/SKILL.md` |
 | Adding/updating/reviewing tests | `skills/testing/SKILL.md` |
 | PR review, quality check | `skills/code-review/SKILL.md` |
