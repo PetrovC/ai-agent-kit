@@ -4,6 +4,65 @@
 
 ---
 
+## [1.10.0] - 2026-05-14
+
+### Changed
+
+#### `code-review` skill — major expansion (114 → 240 lines)
+
+New sections added to cover everything that matters in a real PR review:
+
+| Section | What it covers |
+|---|---|
+| **PR size guidance** | >400 LOC = request a split; how to handle large/generated PRs |
+| **Async and concurrency checklist** | Missing awaits, fire-and-forget, race conditions, deadlocks, thread-safety, CancellationToken propagation, listener cleanup |
+| **Data and schema changes** | Reversibility, backward-compatibility, NOT NULL migration safety, CONCURRENT indexes, two-step renames, volume timing |
+| **Dependency changes** | License check, maintainability signals, version pinning, bundle size impact, duplication |
+| **Performance flags** | O(n²) loops, N+1 queries, missing pagination, missing cache, synchronous I/O on hot path |
+| **Review comment quality** | File:line format, why-it-matters + suggestion template, tone rules (suggest vs demand, no negative attribution) |
+
+Priority order expanded to 9 levels (added data safety and dependency changes).
+Final response format adds one-line merge verdict: "Ready to merge", "Needs changes (N blockers)", "Needs discussion".
+
+#### `vue` skill — major expansion (114 → 270 lines)
+
+Replaced bullet lists with full working code examples throughout:
+
+| Section | What was added |
+|---|---|
+| **`<script setup>` full pattern** | `defineProps<T>()`, `defineEmits<T>()`, `defineModel()` (Vue 3.4+), `computed()`, `watch()` in one coherent example |
+| **Composables** | `useLeaveBalance` with async fetch, `error`/`loading`/`balance` refs, timer cleanup in `onUnmounted()`, `MaybeRef<T>` usage |
+| **Pinia composition stores** | `defineStore` factory style, typed state/getters/actions, `storeToRefs()` usage in components |
+| **Vue Router 4** | Typed `RouteRecordRaw`, lazy-loaded routes, `router.beforeEach` auth guard, `useRouter()`/`useRoute()`, params as props |
+| **Provide / Inject (typed)** | `InjectionKey<T>` pattern for type-safe injection |
+| **Performance patterns** | `shallowRef`, `markRaw`, `v-memo`, `defineAsyncComponent`, warning on reactive large arrays |
+| **Nuxt 3 / SSR** | `useFetch`/`useAsyncData`, `<ClientOnly>`, `useState`, browser-only code guards |
+| **Anti-patterns table** | 7 common mistakes with concrete fixes |
+| **Paths extended** | Added `**/nuxt.config.*` |
+
+#### `angular` skill — major expansion (124 → 290 lines)
+
+Rewritten for Angular 17+ with full code examples:
+
+| Section | What was added |
+|---|---|
+| **Standalone component pattern** | `standalone: true`, `ChangeDetectionStrategy.OnPush`, `inject()`, complete `input()`/`output()`/`model()` signal APIs |
+| **Signals** | `signal()`, `computed()`, `effect()` with cleanup; signals vs RxJS decision table |
+| **RxJS interop** | `toSignal()` (auto-unsubscribes) and `toObservable()` with usage examples |
+| **New control flow** | `@if`/`@else if`/`@else`, `@for` with required `track`, `@empty`, `@switch` — replacing `*ngIf`/`*ngFor` |
+| **Deferrable views** | `@defer` with `on viewport`, `@loading`/`@placeholder`/`@error` blocks, when to use |
+| **Functional interceptors** | `HttpInterceptorFn`, `provideHttpClient(withInterceptors([...]))`, no class-based interceptors |
+| **Functional routing** | `loadComponent`, `CanActivateFn`, `ResolveFn`, `inject()` in guards/resolvers |
+| **Typed reactive forms** | `FormControl<Date \| null>`, `FormGroup<{...}>` for compile-time checked access |
+| **Testing with signal inputs** | `fixture.componentRef.setInput()` for signal-based `input()` props |
+| **Anti-patterns table** | 8 patterns to reject with fixes |
+
+### Changed (version)
+
+- `KIT_VERSION` bumped to `1.10.0` in all four scripts.
+
+---
+
 ## [1.9.0] - 2026-05-14
 
 ### Changed
