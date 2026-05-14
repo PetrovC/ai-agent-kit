@@ -3,6 +3,17 @@ name: mobile-rn
 description: >
   Use when modifying React Native code: Expo or bare RN, navigation,
   native modules, gesture handling, tests with Jest + RNTL, EAS builds.
+paths:
+  - "**/app.json"
+  - "**/app.config.*"
+  - "**/*.native.ts"
+  - "**/*.native.tsx"
+  - "**/metro.config.*"
+  - "**/eas.json"
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(npx:*)"
+  - "Bash(expo:*)"
 ---
 
 # React Native Skill

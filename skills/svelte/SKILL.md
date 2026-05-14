@@ -4,6 +4,15 @@ description: >
   Use when working with Svelte components, SvelteKit routes, stores,
   transitions/animations, form actions, server-side rendering, or
   any Svelte/SvelteKit project structure.
+paths:
+  - "**/*.svelte"
+  - "**/svelte.config.*"
+  - "**/vite.config.*"
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(pnpm:*)"
+  - "Bash(npx:*)"
+  - "Bash(vite:*)"
 ---
 
 # Svelte Skill

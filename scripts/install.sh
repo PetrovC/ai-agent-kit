@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.3.0"
+KIT_VERSION="1.4.0"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
@@ -161,7 +161,7 @@ ok ".kit-version"
 GITIGNORE="$TARGET/.gitignore"
 if [[ -f "$GITIGNORE" ]]; then
     MISSING=()
-    for entry in ".claude/settings.local.json" ".env" ".env.*"; do
+    for entry in ".claude/settings.local.json" "CLAUDE.local.md" ".env" ".env.*"; do
         grep -qF "$entry" "$GITIGNORE" || MISSING+=("$entry")
     done
     if [[ ${#MISSING[@]} -gt 0 ]]; then

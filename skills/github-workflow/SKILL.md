@@ -3,6 +3,12 @@ name: github-workflow
 description: >
   Use when working with GitHub issues, pull requests, branches, commits,
   CI/CD workflows, release processes, or branch strategies.
+paths:
+  - "**/.github/**"
+  - "**/.github/workflows/**"
+allowed-tools:
+  - "Bash(git:*)"
+  - "Bash(gh:*)"
 ---
 
 # GitHub Workflow Skill

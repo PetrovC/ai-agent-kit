@@ -1,10 +1,24 @@
 # .codex/config.toml
 # Project-level Codex configuration.
-# Personal config (model, profiles) goes in ~/.codex/config.toml
+# Personal config (model, profiles, API keys) goes in ~/.codex/config.toml
 
-approval_policy = "on-request"
-sandbox_mode    = "workspace-write"
-web_search      = "cached"
+# approval_policy controls when Codex asks for confirmation.
+#   suggest     — show proposed changes, require approval before applying (safe default)
+#   auto-edit   — apply file edits automatically, still ask before running shell commands
+#   full-auto   — fully autonomous: applies edits and runs commands without asking
+approval_policy = "suggest"
+
+# sandbox_mode controls filesystem and network access during execution.
+#   workspace-write — read/write within the project directory; no network (recommended)
+#   read-only       — no writes; useful for analysis / review tasks
+#   none            — unrestricted (only for trusted, fully supervised runs)
+sandbox_mode = "workspace-write"
+
+# web_search enables Codex to fetch URLs for context.
+#   cached   — results are cached to reduce latency and cost
+#   enabled  — always fetch fresh
+#   disabled — no web access
+web_search = "cached"
 
 [sandbox_workspace_write]
 network_access = false

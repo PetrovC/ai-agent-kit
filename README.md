@@ -59,6 +59,16 @@ Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
 
 Each skill lives in `skills/<name>/SKILL.md` and is lazy-loaded — only the relevant one is read for any given task.
 
+Language / framework skills (`dotnet`, `go`, `rust`, `python`, `node`, `angular`, `vue`, `svelte`,
+`react`, `mobile-flutter`, `mobile-rn`, `database`, `infrastructure`, `github-workflow`, `monorepo`,
+`dependencies`) carry `paths:` and `allowed-tools:` frontmatter so Claude Code can auto-suggest the
+skill when you open a matching file — no manual routing step needed in the project's CLAUDE.md.
+
+Cross-cutting skills (`architecture`, `security`, `testing`, `code-review`, `observability`,
+`messaging`, `error-handling`, `ai-dev`, `performance`, `accessibility`, `i18n`, `api-design`)
+have no `paths:` — they are invoked explicitly via the CLAUDE.md / AGENTS.md / GEMINI.md routing
+table or on demand.
+
 ## Prompts
 
 The `prompts/` folder holds copy-paste starting points for common tasks:
@@ -96,9 +106,12 @@ Each install stamps a `.kit-version` file in your project root. `update` reads i
 
 1. Scaffold it: `scripts/new-skill.sh --name <name>` (or `.ps1`).
 2. Fill the placeholders in `skills/<name>/SKILL.md`.
-3. Add a routing row in `tooling/{claude/CLAUDE.md, codex/AGENTS.md, gemini/GEMINI.md}`.
-4. Add an entry to `CHANGELOG.md` under `[Unreleased] -> Added`.
-5. Run the install or update script in your target projects to deploy.
+3. If the skill is path-scoped, add `paths:` (and optionally `allowed-tools:`) to the frontmatter
+   so Claude Code auto-loads it when matching files are opened.
+4. Add a routing row in `tooling/{claude/CLAUDE.md, codex/AGENTS.md, gemini/GEMINI.md}`
+   (still needed for Codex, Gemini, and Claude Code's explicit routing table).
+5. Add an entry to `CHANGELOG.md` under `[Unreleased] -> Added`.
+6. Run the install or update script in your target projects to deploy.
 
 ## Example: filled `docs/ai/`
 

@@ -33,7 +33,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.3.0"
+$KitVersion = "1.4.0"
 
 # -- Read installed version ------------------------------------------------
 $versionFile    = Join-Path $Target ".kit-version"

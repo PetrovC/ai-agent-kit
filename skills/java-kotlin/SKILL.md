@@ -4,6 +4,17 @@ description: >
   Use when modifying Java or Kotlin code: Spring Boot, Quarkus, Ktor,
   Kotlin coroutines, JPA/Hibernate, JUnit 5, Gradle/Maven, Android (Kotlin),
   or any JVM backend / service structure.
+paths:
+  - "**/*.java"
+  - "**/*.kt"
+  - "**/*.kts"
+  - "**/build.gradle"
+  - "**/build.gradle.kts"
+  - "**/pom.xml"
+  - "**/settings.gradle*"
+allowed-tools:
+  - "Bash(./gradlew:*)"
+  - "Bash(mvn:*)"
 ---
 
 # Java / Kotlin Skill

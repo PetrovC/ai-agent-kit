@@ -4,6 +4,14 @@ description: >
   Use when modifying React components, hooks, Next.js (app router or
   pages), Remix routes, state management, React Testing Library, or
   any React-based frontend project.
+paths:
+  - "**/*.jsx"
+  - "**/*.tsx"
+  - "**/next.config.*"
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(pnpm:*)"
+  - "Bash(npx:*)"
 ---
 
 # React Skill

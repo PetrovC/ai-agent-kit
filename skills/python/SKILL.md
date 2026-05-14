@@ -4,6 +4,18 @@ description: >
   Use when modifying Python code, FastAPI, Django, Flask, pytest,
   type-checked async code, dependency management (uv/poetry), or any
   Python backend / data project structure.
+paths:
+  - "**/*.py"
+  - "**/pyproject.toml"
+  - "**/requirements*.txt"
+  - "**/setup.py"
+  - "**/setup.cfg"
+allowed-tools:
+  - "Bash(python3:*)"
+  - "Bash(python:*)"
+  - "Bash(uv:*)"
+  - "Bash(pytest:*)"
+  - "Bash(ruff:*)"
 ---
 
 # Python Skill

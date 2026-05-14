@@ -4,6 +4,18 @@ description: >
   Use when modifying Node.js backend code: Express, NestJS, Fastify,
   Hono, server-side TypeScript, Vitest/Jest tests, package management
   (pnpm/npm), or any Node service structure.
+paths:
+  - "**/package.json"
+  - "**/*.js"
+  - "**/*.mjs"
+  - "**/*.cjs"
+  - "**/tsconfig*.json"
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(pnpm:*)"
+  - "Bash(yarn:*)"
+  - "Bash(node:*)"
+  - "Bash(npx:*)"
 ---
 
 # Node.js (Backend) Skill

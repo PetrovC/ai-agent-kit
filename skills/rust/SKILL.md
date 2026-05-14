@@ -4,6 +4,12 @@ description: >
   Use when modifying Rust code: cargo workspaces, async (tokio), error
   handling (Result, thiserror/anyhow), traits, tests, CLI or service
   structure.
+paths:
+  - "**/*.rs"
+  - "**/Cargo.toml"
+  - "**/Cargo.lock"
+allowed-tools:
+  - "Bash(cargo:*)"
 ---
 
 # Rust Skill

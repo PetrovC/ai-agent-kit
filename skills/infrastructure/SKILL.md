@@ -4,6 +4,18 @@ description: >
   Use when modifying Dockerfiles, docker-compose files, Kubernetes
   manifests, Terraform / OpenTofu, CI/CD pipelines (GitHub Actions,
   GitLab CI, Azure Pipelines), or any infrastructure-as-code.
+paths:
+  - "**/Dockerfile*"
+  - "**/*.tf"
+  - "**/*.tfvars"
+  - "**/docker-compose*.yml"
+  - "**/docker-compose*.yaml"
+  - "**/k8s/**"
+  - "**/helm/**"
+allowed-tools:
+  - "Bash(docker:*)"
+  - "Bash(kubectl:*)"
+  - "Bash(terraform:*)"
 ---
 
 # Infrastructure Skill

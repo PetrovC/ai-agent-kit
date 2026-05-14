@@ -4,6 +4,16 @@ description: >
   Use when working in a monorepo: Nx, Turborepo, pnpm / npm / yarn workspaces,
   Cargo workspaces, Go workspaces, Lerna, Bazel. Covers project structure,
   affected detection, build caching, dependency boundaries, CI matrix.
+paths:
+  - "**/nx.json"
+  - "**/turbo.json"
+  - "**/pnpm-workspace.yaml"
+  - "**/lerna.json"
+  - "**/.bazelrc"
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(pnpm:*)"
+  - "Bash(npx:*)"
 ---
 
 # Monorepo Skill
