@@ -4,6 +4,53 @@
 
 ---
 
+## [1.8.0] - 2026-05-14
+
+### Added
+
+#### New prompt: `performance-audit.md`
+Structured 4-step performance investigation: baseline → classify bottleneck (DB / network / app code / frontend / caching) → targeted fixes → re-measure. Enforces "measure first" discipline and requires actual numbers in the report.
+
+### Changed
+
+#### `security` skill — major expansion (142 → 260 lines)
+
+New sections added:
+
+| Section | What it covers |
+|---|---|
+| OWASP Top 10 quick reference | One-line countermeasure for each of the 10 risks |
+| Injection | Parameterized query examples in Python, TypeScript, .NET EF Core, Go, MongoDB |
+| XSS | DOMPurify usage, CSP baseline header, `HttpOnly` cookies |
+| CSRF | `SameSite=Strict`, CSRF token patterns, framework defaults |
+| Authentication | JWT pitfalls (`alg:none`, short expiry, no `localStorage`), bcrypt/Argon2, session fixation, account enumeration |
+| Authorization | Fail-closed pattern, ownership check in DB query, audit logging |
+| CORS | Allowlist origins, never wildcard for authenticated APIs |
+| Rate limiting | Per-user limits, 429 + `Retry-After`, fail-open on limiter errors |
+| SSRF | Allowlist + block private IPs + DNS rebinding mitigation |
+
+Verification section extended with `bandit` (Python static analysis) and secret-grep command.
+
+#### `react` skill — Next.js App Router coverage expanded
+
+The `## Next.js (App Router)` section grew from 6 bullets to full coverage:
+
+- **Server vs Client Components**: decision tree (when to add `'use client'`)
+- **Server Actions**: form mutation pattern, `useActionState`, input validation
+- **Route Handlers**: `GET` / `POST` examples, when to use vs Server Actions
+- **Middleware**: auth redirect pattern, `config.matcher`, performance constraints
+- **Special files table**: `loading.tsx`, `error.tsx`, `not-found.tsx`, `layout.tsx`, `template.tsx`
+- **Environment variables**: `NEXT_PUBLIC_*` vs server-only, `zod`-validated `env.ts` module
+- **Image + font optimization**: `next/image` props, `next/font`
+- **Auth pattern**: middleware + Server Component + Action layered verification
+- **Metadata**: static `export const metadata` vs dynamic `generateMetadata`
+
+### Changed (version)
+
+- `KIT_VERSION` bumped to `1.8.0` in all four scripts.
+
+---
+
 ## [1.7.0] - 2026-05-14
 
 ### Added

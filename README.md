@@ -116,6 +116,7 @@ The `prompts/` folder holds copy-paste starting points for common tasks:
 | `prompts/on-call.md` | Live incident investigation + post-mortem |
 | `prompts/dependency-update.md` | Safe single-package upgrade protocol |
 | `prompts/tech-debt.md` | Triage and prioritize technical debt |
+| `prompts/performance-audit.md` | Baseline → bottleneck → fix → re-measure |
 
 ### GitHub Actions templates
 
