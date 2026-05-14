@@ -113,6 +113,9 @@ The `prompts/` folder holds copy-paste starting points for common tasks:
 | `prompts/code-review.md` | Triage-style PR review |
 | `prompts/run-tests.md` | Run + report the relevant test slice |
 | `prompts/security-audit.md` | Targeted security pass |
+| `prompts/on-call.md` | Live incident investigation + post-mortem |
+| `prompts/dependency-update.md` | Safe single-package upgrade protocol |
+| `prompts/tech-debt.md` | Triage and prioritize technical debt |
 
 ### GitHub Actions templates
 

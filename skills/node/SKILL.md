@@ -1,21 +1,27 @@
 ---
 name: node
 description: >
-  Use when modifying Node.js backend code: Express, NestJS, Fastify,
-  Hono, server-side TypeScript, Vitest/Jest tests, package management
-  (pnpm/npm), or any Node service structure.
+  Use when modifying Node.js, Bun, or Deno backend code: Express, NestJS,
+  Fastify, Hono, Elysia, server-side TypeScript, Vitest/Jest tests, package
+  management (pnpm/npm/bun), or any JS/TS service structure.
 paths:
   - "**/package.json"
   - "**/*.js"
   - "**/*.mjs"
   - "**/*.cjs"
   - "**/tsconfig*.json"
+  - "**/bun.lockb"
+  - "**/bunfig.toml"
+  - "**/deno.json"
+  - "**/deno.jsonc"
 allowed-tools:
   - "Bash(npm:*)"
   - "Bash(pnpm:*)"
   - "Bash(yarn:*)"
   - "Bash(node:*)"
   - "Bash(npx:*)"
+  - "Bash(bun:*)"
+  - "Bash(deno:*)"
 ---
 
 # Node.js (Backend) Skill
@@ -144,6 +150,46 @@ describe('CreateOrder', () => {
     await expect(usecase.run({ sku: 'X' })).rejects.toThrow(OutOfStock);
   });
 });
+```
+
+---
+
+## Bun
+
+Bun is a drop-in Node.js replacement with a built-in test runner, bundler, and package manager.
+Apply all Node.js rules above. Additional specifics:
+
+- Replace `npm` / `pnpm` with `bun` in scripts: `bun install`, `bun run`, `bun test`.
+- Lockfile is `bun.lockb` (binary). Commit it. CI runs `bun install --frozen-lockfile`.
+- Built-in test runner: `Bun.test` / `bun:test` — compatible with Jest / Vitest API.
+- Native TypeScript execution: no `ts-node` or `tsx` needed. `bun run file.ts` works directly.
+- Drop-in Node APIs: `Bun.file()`, `Bun.serve()`, `Bun.password` — prefer these over npm packages for built-in functionality.
+- Config: `bunfig.toml` for registry overrides and install settings. Keep it minimal.
+
+```bash
+bun install --frozen-lockfile
+bun tsc --noEmit
+bun test
+bun run build
+```
+
+## Deno
+
+Deno 2 is Node/npm-compatible. Key differences from Node:
+
+- Explicit permissions: `deno run --allow-net --allow-read` — grant only what the process needs.
+- Native TypeScript, no `tsconfig.json` required (though supported).
+- `deno.json` / `deno.jsonc` replaces `package.json` for task running and import maps.
+- Imports: standard npm specifier (`npm:express`) or URL imports. Prefer `npm:` over URLs for stability.
+- Standard library: `jsr:@std/*` — use these instead of npm polyfills where possible.
+- Lockfile: `deno.lock` — commit it. CI: `deno install --frozen`.
+- Testing: `deno test` — built-in, uses `Deno.test(...)` or Jest-compatible via `npm:vitest`.
+
+```bash
+deno check main.ts
+deno lint
+deno fmt --check
+deno test --allow-all
 ```
 
 ---
