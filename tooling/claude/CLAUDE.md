@@ -56,7 +56,8 @@ Use the relevant skill when editing:
 | Flutter (widgets, Riverpod / BLoC, Dart) | `mobile-flutter` skill |
 | SQL / NoSQL schemas, migrations, queries (any engine) | `database` skill |
 | Docker, Kubernetes, Terraform, CI/CD pipelines | `infrastructure` skill |
-| REST / OpenAPI / GraphQL contracts, versioning, errors | `api-design` skill |
+| REST / OpenAPI contracts, versioning, error contracts, API design | `api-design` skill |
+| GraphQL schemas, resolvers, dataloaders, subscriptions, codegen | `graphql` skill |
 | Module boundaries, layers, DDD, CQRS, design | `architecture` skill |
 | Adding/updating/reviewing tests | `testing` skill |
 | PR review, quality check | `code-review` skill |

@@ -2,8 +2,9 @@
 name: api-design
 description: >
   Use when designing or modifying HTTP APIs (REST), OpenAPI specs,
-  GraphQL schemas, error contracts, pagination, versioning, idempotency,
-  or any externally consumed API surface.
+  error contracts, pagination, versioning, idempotency,
+  or any externally consumed REST/HTTP API surface.
+  For GraphQL implementation, use the graphql skill instead.
 ---
 
 # API Design Skill

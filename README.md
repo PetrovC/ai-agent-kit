@@ -54,7 +54,7 @@ Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
 | Frontend | `angular`, `vue`, `svelte`, `react` |
 | Mobile | `mobile-rn` (React Native), `mobile-flutter` |
 | Data | `database` (Postgres, MySQL, SQLite, MongoDB, Redis, ORM-agnostic) |
-| Cross-cutting | `architecture`, `testing`, `code-review`, `security`, `dependencies`, `api-design`, `infrastructure`, `github-workflow` |
+| Cross-cutting | `architecture`, `testing`, `code-review`, `security`, `dependencies`, `api-design`, `graphql`, `infrastructure`, `github-workflow` |
 | Operational | `observability`, `messaging`, `error-handling`, `monorepo` |
 | User-facing | `accessibility`, `i18n` |
 | AI / LLM | `ai-dev` (RAG, tool use, agents, prompt caching, evals) |
@@ -64,7 +64,7 @@ Each skill lives in `skills/<name>/SKILL.md` and is lazy-loaded — only the rel
 
 Language / framework skills (`dotnet`, `go`, `rust`, `python`, `node`, `angular`, `vue`, `svelte`,
 `react`, `mobile-flutter`, `mobile-rn`, `database`, `infrastructure`, `github-workflow`, `monorepo`,
-`dependencies`) carry `paths:` and `allowed-tools:` frontmatter so Claude Code can auto-suggest the
+`dependencies`, `graphql`) carry `paths:` frontmatter so Claude Code can auto-suggest the
 skill when you open a matching file — no manual routing step needed in the project's CLAUDE.md.
 
 Cross-cutting skills (`architecture`, `security`, `testing`, `code-review`, `observability`,
