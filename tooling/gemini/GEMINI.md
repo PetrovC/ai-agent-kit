@@ -12,6 +12,23 @@ and a team can safely evolve for years.
 
 ---
 
+## How to run
+
+Start Gemini CLI in this project:
+
+```bash
+gemini                              # interactive (default approval mode)
+gemini --approval-mode auto_edit    # auto-apply file edits, ask before shell commands
+gemini --approval-mode yolo         # fully autonomous — no prompts (use with care)
+```
+
+Approval modes:
+- **default** — confirms every action before applying.
+- **auto_edit** — applies file edits automatically; still asks before running commands.
+- **yolo** — no confirmations; use only in sandboxed / throw-away environments.
+
+---
+
 ## Context strategy
 
 Do not read every file. Read only what is needed, in this order:

@@ -4,6 +4,13 @@ description: >
   Use when modifying C#, .NET, ASP.NET Core, Entity Framework Core, xUnit,
   backend services, dependency injection, CQRS handlers, domain logic,
   application layer, or any backend project structure.
+paths:
+  - "**/*.cs"
+  - "**/*.csproj"
+  - "**/*.sln"
+  - "**/global.json"
+allowed-tools:
+  - "Bash(dotnet:*)"
 ---
 
 # .NET Skill

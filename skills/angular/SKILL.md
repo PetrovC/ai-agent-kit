@@ -3,6 +3,18 @@ name: angular
 description: >
   Use when modifying Angular frontend code: components, services, routing,
   signals, RxJS, HTTP client, forms, pipes, or Angular project structure.
+paths:
+  - "**/angular.json"
+  - "**/*.component.ts"
+  - "**/*.component.html"
+  - "**/*.component.scss"
+  - "**/*.module.ts"
+  - "**/*.service.ts"
+  - "**/*.spec.ts"
+allowed-tools:
+  - "Bash(ng:*)"
+  - "Bash(npm:*)"
+  - "Bash(npx:*)"
 ---
 
 # Angular Skill

@@ -12,11 +12,19 @@ and a team can safely evolve for years.
 
 ---
 
+## Personal overrides
+
+Create a `CLAUDE.local.md` file in the project root (gitignored) for developer-specific
+preferences — local paths, personal aliases, preferred verbosity, machine-specific tools.
+It is merged with this file automatically by Claude Code. Do not commit it.
+
+---
+
 ## Context strategy
 
 Do not read every file. Read only what is needed, in this order:
 
-1. This file.
+1. This file (and `CLAUDE.local.md` if present).
 2. The current GitHub issue or task description.
 3. `docs/ai/PROJECT.md` when product or domain context is needed.
 4. `docs/ai/ARCHITECTURE.md` when the task touches modules, boundaries, or design.

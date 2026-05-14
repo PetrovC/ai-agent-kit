@@ -4,6 +4,64 @@
 
 ---
 
+## [1.4.0] - 2026-05-14
+
+### Added
+
+#### `paths:` and `allowed-tools:` frontmatter on 17 path-scoped skills (A1 + A2)
+All language/framework skills now carry Claude Code native path-routing metadata.
+When a file matching the pattern is opened, Claude Code auto-suggests the skill — no
+manual routing entry needed in the project's CLAUDE.md.
+
+Skills updated and their trigger patterns:
+
+| Skill | Paths | Tools |
+|---|---|---|
+| `dotnet` | `**/*.cs`, `**/*.csproj`, `**/*.sln`, `**/global.json` | `dotnet` |
+| `java-kotlin` | `**/*.java`, `**/*.kt`, `**/*.kts`, `**/build.gradle*`, `**/pom.xml` | `./gradlew`, `mvn` |
+| `python` | `**/*.py`, `**/pyproject.toml`, `**/requirements*.txt` | `python3`, `uv`, `pytest`, `ruff` |
+| `node` | `**/package.json`, `**/*.js`, `**/*.mjs`, `**/*.cjs` | `npm`, `pnpm`, `node`, `npx` |
+| `go` | `**/*.go`, `**/go.mod` | `go` |
+| `rust` | `**/*.rs`, `**/Cargo.toml` | `cargo` |
+| `angular` | `**/angular.json`, `**/*.component.ts/html/scss`, `**/*.module.ts` | `ng`, `npm` |
+| `vue` | `**/*.vue`, `**/vite.config.*` | `npm`, `pnpm`, `vite`, `vue-tsc` |
+| `svelte` | `**/*.svelte`, `**/svelte.config.*` | `npm`, `pnpm`, `vite` |
+| `react` | `**/*.jsx`, `**/*.tsx`, `**/next.config.*` | `npm`, `pnpm` |
+| `mobile-flutter` | `**/*.dart`, `**/pubspec.yaml` | `flutter`, `dart` |
+| `mobile-rn` | `**/app.json`, `**/*.native.ts/tsx`, `**/metro.config.*` | `npm`, `expo` |
+| `database` | `**/*.sql`, `**/migrations/**`, `**/schema.prisma` | — |
+| `infrastructure` | `**/Dockerfile*`, `**/*.tf`, `**/docker-compose*` | `docker`, `kubectl`, `terraform` |
+| `github-workflow` | `**/.github/**` | `git`, `gh` |
+| `monorepo` | `**/nx.json`, `**/turbo.json`, `**/pnpm-workspace.yaml` | `npm`, `pnpm` |
+| `dependencies` | all manifest files (`package.json`, `*.csproj`, `Cargo.toml`, `go.mod`, `pom.xml`, …) | — |
+
+Cross-cutting skills (`architecture`, `security`, `testing`, `code-review`, `observability`,
+`messaging`, `error-handling`, `ai-dev`, `performance`, `accessibility`, `i18n`, `api-design`)
+have no paths — they are loaded explicitly via CLAUDE.md routing.
+
+#### `CLAUDE.local.md` support (B2)
+- `CLAUDE.md` now documents that developers can create a `CLAUDE.local.md` in the project root
+  for personal, gitignored preferences (local paths, aliases, verbosity level).
+- `install.ps1` and `install.sh` gitignore hint now includes `CLAUDE.local.md` alongside
+  `.claude/settings.local.json`, `.env`, `.env.*`.
+
+#### Gemini CLI approval mode documentation (B4)
+- `GEMINI.md` now has a `## How to run` section documenting `--approval-mode default|auto_edit|yolo`
+  with a one-line description of each mode.
+
+### Changed
+
+#### `tooling/codex/config.toml` — Rust CLI alignment (B6)
+- `approval_policy` renamed from `"on-request"` to `"suggest"` (Rust CLI canonical value).
+- Inline comments added for every key documenting all valid values
+  (`suggest`, `auto-edit`, `full-auto` for approval; `workspace-write`, `read-only`, `none` for sandbox).
+- `web_search` comment documents `cached|enabled|disabled`.
+
+#### Version bump
+- `KIT_VERSION` bumped to `1.4.0` in `install.ps1`, `install.sh`, `update.ps1`, `update.sh`.
+
+---
+
 ## [1.3.0] - 2026-05-14
 
 ### Added

@@ -4,6 +4,17 @@ description: >
   Use whenever a new package, library, NuGet, npm module, or any third-party
   code is about to be added or updated — regardless of language, scope, or size.
   Also use when reviewing a PR that introduces a dependency.
+paths:
+  - "**/package.json"
+  - "**/package-lock.json"
+  - "**/yarn.lock"
+  - "**/pnpm-lock.yaml"
+  - "**/*.csproj"
+  - "**/Cargo.toml"
+  - "**/go.mod"
+  - "**/pyproject.toml"
+  - "**/pom.xml"
+  - "**/requirements*.txt"
 ---
 
 # Dependencies Skill

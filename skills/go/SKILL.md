@@ -3,6 +3,12 @@ name: go
 description: >
   Use when modifying Go code, modules, HTTP services, CLIs, table-driven
   tests, error handling, or any Go service / library structure.
+paths:
+  - "**/*.go"
+  - "**/go.mod"
+  - "**/go.sum"
+allowed-tools:
+  - "Bash(go:*)"
 ---
 
 # Go Skill

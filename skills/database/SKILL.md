@@ -5,6 +5,11 @@ description: >
   data access layers, transactions, or anything touching persistence.
   Covers Postgres, MySQL, SQLite, MongoDB, Redis, and ORM patterns
   (EF Core, Prisma, SQLAlchemy, sqlx, Drizzle, TypeORM, GORM).
+paths:
+  - "**/*.sql"
+  - "**/migrations/**"
+  - "**/schema.prisma"
+  - "**/prisma/**"
 ---
 
 # Database Skill

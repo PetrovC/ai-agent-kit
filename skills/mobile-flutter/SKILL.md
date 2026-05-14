@@ -4,6 +4,13 @@ description: >
   Use when modifying Flutter code: widgets, state management
   (Riverpod / BLoC), navigation (go_router), tests (flutter_test +
   mocktail), platform channels, build / release flow.
+paths:
+  - "**/*.dart"
+  - "**/pubspec.yaml"
+  - "**/pubspec.lock"
+allowed-tools:
+  - "Bash(flutter:*)"
+  - "Bash(dart:*)"
 ---
 
 # Flutter Skill

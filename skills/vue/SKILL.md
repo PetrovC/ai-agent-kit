@@ -3,6 +3,16 @@ name: vue
 description: >
   Use when modifying Vue 3 frontend code: components, composables, Pinia stores,
   Vue Router, script setup, TypeScript, or Vue project structure.
+paths:
+  - "**/*.vue"
+  - "**/vite.config.*"
+  - "**/vitest.config.*"
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(pnpm:*)"
+  - "Bash(npx vitest:*)"
+  - "Bash(vite:*)"
+  - "Bash(vue-tsc:*)"
 ---
 
 # Vue Skill

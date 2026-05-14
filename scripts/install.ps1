@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.3.0"
+$KitVersion = "1.4.0"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 $ValidTools = @("codex", "claude", "gemini")
@@ -156,7 +156,7 @@ Write-Ok ".kit-version"
 $gitignore = Join-Path $Target ".gitignore"
 if (Test-Path $gitignore) {
     $content = Get-Content $gitignore -Raw
-    $entries = @(".claude/settings.local.json", ".env", ".env.*")
+    $entries = @(".claude/settings.local.json", "CLAUDE.local.md", ".env", ".env.*")
     $missing = $entries | Where-Object { $content -notmatch [regex]::Escape($_) }
     if ($missing.Count -gt 0) {
         Write-Step ".gitignore - add these entries if not already present:"
