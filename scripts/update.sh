@@ -12,7 +12,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.4.0"
+KIT_VERSION="1.5.0"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -159,7 +159,10 @@ fi
 if contains "claude"; then
     compare_and_update "$KIT_ROOT/tooling/claude/CLAUDE.md"     "$TARGET/CLAUDE.md"
     compare_and_update "$KIT_ROOT/tooling/claude/settings.json" "$TARGET/.claude/settings.json"
+    compare_and_update "$KIT_ROOT/tooling/claude/.mcp.json"     "$TARGET/.mcp.json"
     update_dir         "$KIT_ROOT/tooling/claude/agents"        "$TARGET/.claude/agents"
+    update_dir         "$KIT_ROOT/tooling/claude/hooks"         "$TARGET/.claude/hooks"
+    update_dir         "$KIT_ROOT/tooling/claude/rules"         "$TARGET/.claude/rules"
 fi
 
 # ── Update Gemini tooling ──────────────────────────────────────────────────

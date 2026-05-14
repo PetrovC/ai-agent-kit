@@ -1,0 +1,51 @@
+# Codex — Automated PR review workflow
+#
+# Runs Codex to review pull requests on @codex mentions.
+# Copy to .github/workflows/codex-pr-review.yml in your project.
+#
+# SETUP:
+#   1. Add OPENAI_API_KEY as a repository secret.
+#   2. Ensure the workflow has write access to pull requests.
+#
+# USAGE:
+#   Comment "@codex review" on any PR to trigger a code review.
+#   Codex reads AGENTS.md and the relevant skill from .agents/skills/.
+#
+# DOCS: https://github.com/openai/codex-action
+
+name: Codex PR Review
+
+on:
+  pull_request_review_comment:
+    types: [created]
+  issue_comment:
+    types: [created]
+
+jobs:
+  codex-review:
+    name: Codex code review
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.comment.body, '@codex') &&
+      github.event.issue.pull_request != null
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Codex review
+        uses: openai/codex-action@v1
+        with:
+          api_key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: |
+            Review the changes in this pull request.
+            Focus on: correctness, security, regressions, missing tests, architecture compliance.
+            Read AGENTS.md and docs/ai/ARCHITECTURE.md before reviewing.
+            Format your output with sections: Blockers, Important, Minor.
+          model: "o4-mini"
+          approval_policy: "never"

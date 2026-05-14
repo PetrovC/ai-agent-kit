@@ -17,10 +17,13 @@ ai-agent-kit/
 ├── tooling/              <- Tool-specific wrappers (Codex / Claude / Gemini)
 │   ├── codex/agents/     <- Codex subagent definitions (.toml)
 │   ├── claude/agents/    <- Claude subagent definitions (.md)
+│   ├── claude/hooks/     <- Lifecycle hook scripts (format, guard, notify, summarize)
+│   ├── claude/rules/     <- Path-scoped rules (commits, tests, migrations, env)
 │   └── gemini/agents/    <- Gemini subagent definitions (.md)
 ├── project-template/     <- docs/ai/ templates to fill per project
 ├── prompts/              <- Reusable prompt templates
-└── scripts/              <- Install / update scripts
+│   └── github-actions/   <- Copy-paste GitHub Actions workflow files
+└── scripts/              <- Install / update / uninstall / validate scripts
 ```
 
 ## Quick start (5 minutes)
@@ -69,6 +72,34 @@ Cross-cutting skills (`architecture`, `security`, `testing`, `code-review`, `obs
 have no `paths:` — they are invoked explicitly via the CLAUDE.md / AGENTS.md / GEMINI.md routing
 table or on demand.
 
+## Hooks
+
+Four lifecycle hook scripts are installed into `.claude/hooks/` for Claude Code:
+
+| Script | Event | What it does |
+|---|---|---|
+| `format-on-save.sh` | `PostToolUse(Edit\|Write)` | Runs your project's formatter (prettier / ruff / gofmt / rustfmt / dotnet format) on every file Claude writes |
+| `pre-bash-guard.sh` | `PreToolUse(Bash)` | Blocks `git push --force`, `git reset --hard`, recursive `rm -rf` outside `/tmp`, and SQL `DROP` without an approval comment |
+| `notify-done.sh` | `Stop` | Desktop notification when Claude finishes a session (macOS, Linux, Windows) |
+| `session-summary.sh` | `PreCompact` | Saves a git status + diff snapshot to `.claude/session-log/` before context is compacted |
+
+Hooks are referenced in `settings.json` and installed automatically by `install.sh` / `install.ps1`.
+
+## Rules
+
+Four path-scoped rule files are installed into `.claude/rules/` — Claude Code loads them automatically when you open a matching file:
+
+| File | Triggers on | Enforces |
+|---|---|---|
+| `commit-style.md` | `.github/`, `.gitignore` | Conventional Commits, no force-push, one concern per commit |
+| `test-naming.md` | `*.test.*`, `*.spec.*`, `tests/` | No `.only`, no skip without issue link, deterministic tests |
+| `migration-safety.md` | `migrations/`, `*.sql`, `schema.prisma` | Reversible migrations, CONCURRENT indexes, no one-step column rename |
+| `env-safety.md` | `.env*`, `config/`, `appsettings*.json` | No hardcoded secrets, `.env.example` required |
+
+## MCP servers
+
+A `.mcp.json` template is installed at your project root with commented examples for GitHub, filesystem, Postgres, Notion, and Linear MCP servers. Fill in the `${ENV_VAR}` placeholders and uncomment the servers you use.
+
 ## Prompts
 
 The `prompts/` folder holds copy-paste starting points for common tasks:
@@ -82,6 +113,19 @@ The `prompts/` folder holds copy-paste starting points for common tasks:
 | `prompts/code-review.md` | Triage-style PR review |
 | `prompts/run-tests.md` | Run + report the relevant test slice |
 | `prompts/security-audit.md` | Targeted security pass |
+
+### GitHub Actions templates
+
+The `prompts/github-actions/` folder has ready-to-copy workflow files for AI-assisted CI:
+
+| File | Action | Use case |
+|---|---|---|
+| `claude-code.yml` | `anthropics/claude-code-action@v1` | @claude in issues / PRs / reviews |
+| `codex-pr-review.yml` | `openai/codex-action@v1` | @codex in PR comments |
+| `gemini-pr-review.yml` | `google-github-actions/run-gemini-cli@v0` | @gemini review in PR comments |
+| `gemini-issue-triage.yml` | `google-github-actions/run-gemini-cli@v0` | Auto-triage new issues |
+
+Copy these to `.github/workflows/` in your project (they are **not** installed automatically).
 
 Prompts are **not** copied into your project by the install script — open them in the kit and paste into your agent.
 

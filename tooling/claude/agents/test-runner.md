@@ -8,6 +8,11 @@ tools:
   - Read
 model: claude-haiku-4-5-20251001
 maxTurns: 10
+disallowedTools:
+  - Edit
+  - Write
+  - NotebookEdit
+permissionMode: default
 ---
 
 You are a test runner agent.

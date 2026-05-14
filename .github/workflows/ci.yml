@@ -33,7 +33,16 @@ jobs:
             "/tmp/smoke-target/CLAUDE.md"
             "/tmp/smoke-target/GEMINI.md"
             "/tmp/smoke-target/.kit-version"
+            "/tmp/smoke-target/.mcp.json"
             "/tmp/smoke-target/.claude/settings.json"
+            "/tmp/smoke-target/.claude/hooks/format-on-save.sh"
+            "/tmp/smoke-target/.claude/hooks/pre-bash-guard.sh"
+            "/tmp/smoke-target/.claude/hooks/notify-done.sh"
+            "/tmp/smoke-target/.claude/hooks/session-summary.sh"
+            "/tmp/smoke-target/.claude/rules/commit-style.md"
+            "/tmp/smoke-target/.claude/rules/test-naming.md"
+            "/tmp/smoke-target/.claude/rules/migration-safety.md"
+            "/tmp/smoke-target/.claude/rules/env-safety.md"
             "/tmp/smoke-target/.codex/config.toml"
             "/tmp/smoke-target/docs/ai/PROJECT.md"
           )
@@ -43,6 +52,16 @@ jobs:
               exit 1
             fi
             echo "OK: $f"
+          done
+
+      - name: Verify hook scripts are executable
+        run: |
+          for f in /tmp/smoke-target/.claude/hooks/*.sh; do
+            if [[ ! -x "$f" ]]; then
+              echo "NOT EXECUTABLE: $f"
+              exit 1
+            fi
+            echo "EXECUTABLE: $f"
           done
 
       - name: Dry-run update (no changes expected)
@@ -69,8 +88,13 @@ jobs:
         run: |
           $target = "$env:RUNNER_TEMP\smoke-target"
           $files = @(
-            "AGENTS.md", "CLAUDE.md", "GEMINI.md", ".kit-version",
-            ".claude\settings.json", ".codex\config.toml", "docs\ai\PROJECT.md"
+            "AGENTS.md", "CLAUDE.md", "GEMINI.md", ".kit-version", ".mcp.json",
+            ".claude\settings.json",
+            ".claude\hooks\format-on-save.sh", ".claude\hooks\pre-bash-guard.sh",
+            ".claude\hooks\notify-done.sh", ".claude\hooks\session-summary.sh",
+            ".claude\rules\commit-style.md", ".claude\rules\test-naming.md",
+            ".claude\rules\migration-safety.md", ".claude\rules\env-safety.md",
+            ".codex\config.toml", "docs\ai\PROJECT.md"
           )
           $missing = $false
           foreach ($f in $files) {
@@ -111,6 +135,34 @@ jobs:
           for f in skills/*/SKILL.md; do
             if ! grep -q "Final response requirements" "$f"; then
               echo "MISSING 'Final response requirements' in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+  lint-rules:
+    name: Rules structure check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every rule file must have a paths frontmatter key
+        run: |
+          errors=0
+          for f in tooling/claude/rules/*.md; do
+            if ! grep -q "^paths:" "$f"; then
+              echo "MISSING 'paths:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Verify hook scripts exist and are executable
+        run: |
+          errors=0
+          for f in tooling/claude/hooks/*.sh; do
+            if [[ ! -x "$f" ]]; then
+              echo "NOT EXECUTABLE: $f"
               errors=$((errors+1))
             fi
           done

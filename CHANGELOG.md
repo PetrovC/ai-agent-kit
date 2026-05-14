@@ -4,6 +4,100 @@
 
 ---
 
+## [1.5.0] - 2026-05-14
+
+### Added
+
+#### Claude Code hooks (4 scripts in `tooling/claude/hooks/`)
+Ready-to-use lifecycle hook scripts installed into `.claude/hooks/` by the install/update scripts.
+
+| Script | Event | Mode | Purpose |
+|---|---|---|---|
+| `format-on-save.sh` | `PostToolUse(Edit\|Write)` | async | Runs the project's formatter (prettier, ruff, gofmt, rustfmt, dotnet format) on every saved file |
+| `pre-bash-guard.sh` | `PreToolUse(Bash)` | blocking | Blocks `git push --force`, `git reset --hard`, recursive `rm -rf` outside tmp, SQL `DROP` without an approval marker |
+| `notify-done.sh` | `Stop` | async | Desktop notification when Claude finishes (macOS: osascript/terminal-notifier; Linux: notify-send; Windows: PowerShell toast) |
+| `session-summary.sh` | `PreCompact` | async | Saves a git status + diff snapshot to `.claude/session-log/` before context compaction |
+
+`settings.json` updated to reference the real scripts (replaces the placeholder `echo` commands).
+`install.sh` runs `chmod +x` on all `.sh` hook files after installation.
+
+#### Claude Code rules (4 files in `tooling/claude/rules/`)
+Path-scoped lightweight rule files — auto-loaded by Claude Code when a matching file is opened.
+
+| File | Trigger paths | Coverage |
+|---|---|---|
+| `commit-style.md` | `**/.github/**`, `.gitignore`, `.gitattributes` | Conventional Commits, no force-push, one concern per commit |
+| `test-naming.md` | `**/*.test.*`, `**/*.spec.*`, `**/tests/**` | No `.only`, no skip without issue link, deterministic tests |
+| `migration-safety.md` | `**/migrations/**`, `**/*.sql`, `**/schema.prisma` | Reversible migrations, CONCURRENT indexes, no one-step column rename |
+| `env-safety.md` | `**/.env*`, `**/config/**`, `**/appsettings*.json` | No hardcoded secrets, `.env.example` required, rotate leaked secrets |
+
+#### `.mcp.json` project template (`tooling/claude/.mcp.json`)
+Versioned MCP server configuration template installed at the project root (`.mcp.json`).
+Includes commented examples for GitHub, filesystem, Postgres, Notion, and Linear servers with `${ENV_VAR}` expansion placeholders.
+
+#### GitHub Actions workflow templates (`prompts/github-actions/`)
+Four copy-paste CI workflow files — not installed automatically; copy to `.github/workflows/` in your project.
+
+| File | Action used | Trigger |
+|---|---|---|
+| `claude-code.yml` | `anthropics/claude-code-action@v1` | `@claude` mention in issues / PRs / reviews |
+| `codex-pr-review.yml` | `openai/codex-action@v1` | `@codex` mention in PR comments |
+| `gemini-pr-review.yml` | `google-github-actions/run-gemini-cli@v0` | `@gemini review` in PR comments |
+| `gemini-issue-triage.yml` | `google-github-actions/run-gemini-cli@v0` | New issue opened |
+
+#### Claude agent `disallowedTools` + `permissionMode` frontmatter
+All five Claude subagents now carry explicit safety guards:
+- `architect`, `code-reviewer`, `codebase-investigator`: `disallowedTools: [Edit, Write, Bash, NotebookEdit]` — read-only enforcement on top of the existing `tools:` whitelist.
+- `security-reviewer`: `disallowedTools: [Edit, Write, NotebookEdit]` — keeps Bash for audit commands, blocks writes.
+- `test-runner`: `disallowedTools: [Edit, Write, NotebookEdit]` — can run tests, cannot modify source files.
+- All five: `permissionMode: default`.
+
+#### CI: new `lint-rules` job
+Checks every file in `tooling/claude/rules/` has a `paths:` frontmatter key, and that every `tooling/claude/hooks/*.sh` has the executable bit set (mode `100755` in git).
+
+#### CI: expanded smoke-test file coverage
+Both `smoke-install` (bash) and `smoke-install-windows` (PowerShell) jobs now verify `.mcp.json`, all four hook scripts, and all four rule files are present after install.
+Bash job additionally checks that hook scripts are executable after install.
+
+### Fixed
+
+#### `tooling/codex/config.toml` — `approval_policy` regression (introduced in v1.4.0)
+- v1.4.0 changed `approval_policy` to `"suggest"` (incorrect — not a valid Rust CLI value).
+- Reverted to `"on-request"` (confirmed correct per `global-config-template.toml` and official docs).
+- Updated inline comment to show all valid values: `on-request | auto-approve | never`.
+- Updated `sandbox_mode` inline comment: `workspace-write | read-only | danger-full-access` (removes the invalid `"none"` value listed in v1.4.0).
+
+#### `tooling/codex/config.toml` — TOML structure: `project_doc_max_bytes` at wrong level
+- `project_doc_max_bytes = 32768` was placed after the `[sandbox_workspace_write]` section header, making it a sub-key of that section instead of a root-level config key.
+- Moved before the `[sandbox_workspace_write]` header.
+
+#### `tooling/gemini/settings.json` — complete schema rewrite
+The previous schema used keys that no longer exist in the current Gemini CLI. Full rewrite to the current schema:
+
+| Old key | New key |
+|---|---|
+| `autoAccept` | `general.defaultApprovalMode` |
+| `sandbox.enabled` | `tools.sandbox` |
+| `tools.webSearch` | removed (use `tools.allowed`) |
+| `tools.codeExecution` | removed |
+| `tools.allowlist` | `tools.allowed` |
+| `tools.excludelist` | `tools.exclude` |
+| — | `general.checkpointing.enabled` (new) |
+| — | `skills.enabled` (new) |
+| — | `security.environmentVariableRedaction` (new) |
+
+### Changed
+
+#### Version bump
+- `KIT_VERSION` bumped to `1.5.0` in all four scripts: `install.ps1`, `install.sh`, `update.ps1`, `update.sh`.
+
+#### Install / update / uninstall scripts — Claude section expanded
+- `install.sh` / `install.ps1`: now install `.mcp.json`, `hooks/`, and `rules/`.
+- `update.sh` / `update.ps1`: now update `.mcp.json`, `hooks/`, and `rules/` using MD5 diff.
+- `uninstall.sh` / `uninstall.ps1`: now remove `.mcp.json`, `.claude/hooks/`, and `.claude/rules/`.
+
+---
+
 ## [1.4.0] - 2026-05-14
 
 ### Added

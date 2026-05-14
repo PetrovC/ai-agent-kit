@@ -10,6 +10,12 @@ tools:
   - Grep
 model: claude-sonnet-4-6
 maxTurns: 20
+disallowedTools:
+  - Edit
+  - Write
+  - Bash
+  - NotebookEdit
+permissionMode: default
 ---
 
 You are a strict but pragmatic code reviewer.

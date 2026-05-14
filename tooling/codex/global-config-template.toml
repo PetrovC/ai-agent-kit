@@ -9,8 +9,8 @@ model                  = "o4-mini"          # or o3, gpt-4.1, etc.
 model_reasoning_effort = "medium"
 model_reasoning_summary = "concise"
 
-approval_policy = "on-request"
-sandbox_mode    = "workspace-write"
+approval_policy = "on-request"     # on-request | auto-approve | never
+sandbox_mode    = "workspace-write" # workspace-write | read-only | danger-full-access
 
 web_search       = "cached"
 allow_login_shell = false

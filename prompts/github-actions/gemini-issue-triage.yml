@@ -1,0 +1,60 @@
+# Gemini CLI — Automated issue triage workflow
+#
+# Runs Gemini CLI to triage and label new GitHub issues automatically.
+# Copy to .github/workflows/gemini-issue-triage.yml in your project.
+#
+# SETUP:
+#   1. Same Google Cloud auth as gemini-pr-review.yml.
+#   2. The workflow needs write access to issues (for labels).
+#
+# WHAT IT DOES:
+#   - Reads the new issue body
+#   - Reads docs/ai/PROJECT.md and GEMINI.md for context
+#   - Classifies the issue (bug / feature / question / docs)
+#   - Posts a structured triage comment
+#   - (Optional) Adds labels if configured
+#
+# DOCS: https://github.com/google-github-actions/run-gemini-cli
+
+name: Gemini Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    name: Triage new issue
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Triage issue with Gemini
+        uses: google-github-actions/run-gemini-cli@v0
+        with:
+          prompt: |
+            Triage this GitHub issue for our project.
+            Read docs/ai/PROJECT.md for product context.
+            Issue title: ${{ github.event.issue.title }}
+            Issue body: ${{ github.event.issue.body }}
+
+            Respond with:
+            1. Type: bug | feature | question | docs | duplicate
+            2. Priority: high | medium | low (based on user impact)
+            3. Affected area: which module/skill/component
+            4. Suggested next step: one sentence
+            5. Missing information (if any): what would help resolve this faster
+          flags: "--approval-mode yolo"
+          version: "latest"

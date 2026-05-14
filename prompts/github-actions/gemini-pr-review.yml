@@ -1,0 +1,59 @@
+# Gemini CLI — Automated PR review workflow
+#
+# Runs Gemini CLI to review pull requests on @gemini mentions.
+# Copy to .github/workflows/gemini-pr-review.yml in your project.
+#
+# SETUP:
+#   1. Create a Google Cloud service account with Vertex AI permissions.
+#   2. Configure Workload Identity Federation for keyless auth, or
+#      add GOOGLE_API_KEY as a repository secret for simple API-key mode.
+#   3. Ensure the workflow has write access to pull requests.
+#
+# USAGE:
+#   Comment "@gemini review" on any PR to trigger a code review.
+#
+# DOCS: https://github.com/google-github-actions/run-gemini-cli
+
+name: Gemini PR Review
+
+on:
+  pull_request_review_comment:
+    types: [created]
+  issue_comment:
+    types: [created]
+
+jobs:
+  gemini-review:
+    name: Gemini code review
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.comment.body, '@gemini') &&
+      github.event.issue.pull_request != null
+
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write  # needed for Workload Identity
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          # Alternative: use GOOGLE_API_KEY secret instead of Workload Identity
+
+      - name: Run Gemini review
+        uses: google-github-actions/run-gemini-cli@v0
+        with:
+          prompt: |
+            Review the git diff of this pull request.
+            Read GEMINI.md and docs/ai/ARCHITECTURE.md before reviewing.
+            Focus on: correctness, security, regressions, missing tests.
+            Format output with sections: Blockers, Important, Minor.
+          flags: "--approval-mode yolo"
+          version: "latest"
