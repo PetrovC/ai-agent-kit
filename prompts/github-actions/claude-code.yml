@@ -1,0 +1,60 @@
+# Claude Code — GitHub Actions workflow
+#
+# Triggers Claude Code on @claude mentions in issues and PR comments.
+# Copy to .github/workflows/claude-code.yml in your project.
+#
+# SETUP:
+#   1. Install the Claude GitHub App: https://github.com/apps/claude
+#      (or add ANTHROPIC_API_KEY as a repository secret for API-key mode)
+#   2. Grant the workflow write access to issues and PRs.
+#   3. Optionally restrict which users can trigger Claude (see allowed_users).
+#
+# USAGE:
+#   @claude fix the failing test in auth_service_test.go
+#   @claude review this PR for security issues
+#   @claude implement the feature described in this issue
+#
+# DOCS: https://github.com/anthropics/claude-code-action
+
+name: Claude Code
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  claude:
+    name: Run Claude Code
+    runs-on: ubuntu-latest
+    # Only trigger on @claude mentions
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+          # Limit max turns to prevent runaway sessions (default: 10)
+          claude_args: "--max-turns 20"
+
+          # Optional: restrict to specific users
+          # allowed_users: "user1,user2,org/team"
+
+          # Optional: add project context to every session
+          # claude_args: "--append-system-prompt 'Always read docs/ai/ARCHITECTURE.md first.'"
