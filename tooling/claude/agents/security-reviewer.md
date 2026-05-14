@@ -10,6 +10,11 @@ tools:
   - Bash
 model: claude-sonnet-4-6
 maxTurns: 15
+disallowedTools:
+  - Edit
+  - Write
+  - NotebookEdit
+permissionMode: default
 ---
 
 You are a security reviewer.

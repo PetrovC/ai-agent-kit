@@ -3,15 +3,15 @@
 # Personal config (model, profiles, API keys) goes in ~/.codex/config.toml
 
 # approval_policy controls when Codex asks for confirmation.
-#   suggest     — show proposed changes, require approval before applying (safe default)
-#   auto-edit   — apply file edits automatically, still ask before running shell commands
-#   full-auto   — fully autonomous: applies edits and runs commands without asking
-approval_policy = "suggest"
+#   on-request    — show proposed changes, require approval before applying (safe default)
+#   auto-approve  — apply changes automatically without asking
+#   never         — fully autonomous; no confirmations (CI / supervised runs only)
+approval_policy = "on-request"
 
 # sandbox_mode controls filesystem and network access during execution.
-#   workspace-write — read/write within the project directory; no network (recommended)
-#   read-only       — no writes; useful for analysis / review tasks
-#   none            — unrestricted (only for trusted, fully supervised runs)
+#   workspace-write    — read/write within the project directory; no network (recommended)
+#   read-only          — no writes; useful for analysis / review tasks
+#   danger-full-access — unrestricted (only for fully supervised runs)
 sandbox_mode = "workspace-write"
 
 # web_search enables Codex to fetch URLs for context.
@@ -20,8 +20,8 @@ sandbox_mode = "workspace-write"
 #   disabled — no web access
 web_search = "cached"
 
-[sandbox_workspace_write]
-network_access = false
-
 # Cap per-doc size loaded into context to prevent runaway files (~32 KB ≈ 8k tokens).
 project_doc_max_bytes = 32768
+
+[sandbox_workspace_write]
+network_access = false

@@ -117,10 +117,13 @@ if ($ToolList -contains "codex") {
 if ($ToolList -contains "claude") {
     Step "Removing Claude Code tooling"
     Remove-KitPath (Join-Path $Target "CLAUDE.md")
+    Remove-KitPath (Join-Path $Target ".mcp.json")
     Remove-KitPath (Join-Path $Target ".claude\settings.json")
     Remove-KitPath (Join-Path $Target ".claude\agents")
+    Remove-KitPath (Join-Path $Target ".claude\hooks")
+    Remove-KitPath (Join-Path $Target ".claude\rules")
     Remove-KitPath (Join-Path $Target ".claude\skills")
-    # Clean up .claude/ only if nothing else is in it (preserves settings.local.json, hooks, etc.)
+    # Clean up .claude/ only if nothing else is in it (preserves settings.local.json, etc.)
     $claudeDir = Join-Path $Target ".claude"
     if ((Test-Path $claudeDir) -and (Get-ChildItem -Path $claudeDir -Force | Measure-Object).Count -eq 0) {
         Remove-KitPath $claudeDir

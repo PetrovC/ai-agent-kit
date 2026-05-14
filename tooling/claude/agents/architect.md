@@ -9,6 +9,12 @@ tools:
   - Grep
 model: claude-sonnet-4-6
 maxTurns: 15
+disallowedTools:
+  - Edit
+  - Write
+  - Bash
+  - NotebookEdit
+permissionMode: default
 ---
 
 You are a pragmatic software architect.

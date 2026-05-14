@@ -119,10 +119,13 @@ fi
 if contains "claude"; then
     step "Removing Claude Code tooling"
     remove_path "$TARGET/CLAUDE.md"
+    remove_path "$TARGET/.mcp.json"
     remove_path "$TARGET/.claude/settings.json"
     remove_path "$TARGET/.claude/agents"
+    remove_path "$TARGET/.claude/hooks"
+    remove_path "$TARGET/.claude/rules"
     remove_path "$TARGET/.claude/skills"
-    # Clean up .claude/ only if nothing else remains (preserves settings.local.json, hooks, etc.)
+    # Clean up .claude/ only if nothing else remains (preserves settings.local.json, etc.)
     if [[ -d "$TARGET/.claude" ]] && [[ -z "$(ls -A "$TARGET/.claude" 2>/dev/null)" ]]; then
         remove_path "$TARGET/.claude"
     fi
