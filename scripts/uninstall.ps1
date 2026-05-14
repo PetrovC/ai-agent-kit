@@ -61,6 +61,13 @@ if ([string]::IsNullOrWhiteSpace($Tools)) {
 
 $ToolList = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
+$ValidTools = @("codex", "claude", "gemini")
+$invalid    = @($ToolList | Where-Object { $ValidTools -notcontains $_ })
+if ($invalid.Count -gt 0) {
+    Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, gemini"
+    exit 1
+}
+
 # -- Helpers ---------------------------------------------------------------
 function Step([string]$msg)    { Write-Host "`n> $msg" -ForegroundColor Cyan }
 function Removed([string]$msg) { Write-Host "  [removed] $msg" -ForegroundColor Red }

@@ -33,7 +33,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.2.0"
+$KitVersion = "1.3.0"
 
 # -- Read installed version ------------------------------------------------
 $versionFile    = Join-Path $Target ".kit-version"
@@ -67,6 +67,13 @@ if ([string]::IsNullOrWhiteSpace($Tools)) {
 }
 
 $ToolList = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
+
+$ValidTools = @("codex", "claude", "gemini")
+$invalid    = @($ToolList | Where-Object { $ValidTools -notcontains $_ })
+if ($invalid.Count -gt 0) {
+    Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, gemini"
+    exit 1
+}
 
 Write-Host "Kit version: $KitVersion"
 Write-Host "Target     : $Target"

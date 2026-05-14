@@ -47,14 +47,15 @@ Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
 
 | Layer | Skills |
 |---|---|
-| Backend languages | `dotnet`, `python`, `node`, `go`, `rust` |
-| Frontend | `angular`, `vue`, `react` |
+| Backend languages | `dotnet`, `java-kotlin`, `python`, `node`, `go`, `rust` |
+| Frontend | `angular`, `vue`, `svelte`, `react` |
 | Mobile | `mobile-rn` (React Native), `mobile-flutter` |
 | Data | `database` (Postgres, MySQL, SQLite, MongoDB, Redis, ORM-agnostic) |
 | Cross-cutting | `architecture`, `testing`, `code-review`, `security`, `dependencies`, `api-design`, `infrastructure`, `github-workflow` |
 | Operational | `observability`, `messaging`, `error-handling`, `monorepo` |
 | User-facing | `accessibility`, `i18n` |
 | AI / LLM | `ai-dev` (RAG, tool use, agents, prompt caching, evals) |
+| Performance | `performance` (profiling, benchmarking, Core Web Vitals, query optimization) |
 
 Each skill lives in `skills/<name>/SKILL.md` and is lazy-loaded — only the relevant one is read for any given task.
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # new-skill.sh — Scaffold a new skill under skills/<name>/SKILL.md
 #
-# Creates the skill file with the standard structure all existing skills follow.
-# Reminds you to update the routing tables in CLAUDE.md / AGENTS.md / GEMINI.md.
+# Creates the skill file with the standard structure all existing skills follow,
+# and inserts a TODO placeholder row into all three routing tables.
 #
 # Usage:
 #   ./new-skill.sh --name <name> [--description "<one-line>"]
@@ -44,6 +44,9 @@ fi
 
 mkdir -p "$SKILL_DIR"
 
+# Title: kebab-case → Title Case
+TITLE="$(echo "$NAME" | sed 's/-/ /g' | awk '{ for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2) }1')"
+
 cat > "$SKILL_FILE" <<EOF
 ---
 name: $NAME
@@ -51,7 +54,7 @@ description: >
   $DESCRIPTION
 ---
 
-# $(echo "$NAME" | sed 's/-/ /g' | awk '{ for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2) }1') Skill
+# $TITLE Skill
 
 ## Goal
 
@@ -98,14 +101,52 @@ Always report:
 - Any new dependency: name, version, **license (MIT only — see \`dependencies\` skill)**.
 EOF
 
+# ── Insert placeholder routing rows ────────────────────────────────────────
+# Uses Python (available on all target platforms) to insert rows before known
+# anchors in each routing table. Prints a warning and skips on failure.
+
+insert_routing_row() {
+    local file="$1"
+    local row="$2"
+    local anchor="$3"
+    python3 - "$file" "$row" "$anchor" <<'PYEOF'
+import sys
+
+filepath, row, anchor = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(filepath, 'r', encoding='utf-8') as f:
+    content = f.read()
+idx = content.find(anchor)
+if idx == -1:
+    print(f"  [warn] anchor not found in {filepath} — add the row manually", file=sys.stderr)
+    sys.exit(0)
+content = content[:idx] + '\n' + row + content[idx:]
+with open(filepath, 'w', encoding='utf-8') as f:
+    f.write(content)
+PYEOF
+}
+
+CLAUDE_ROW="| TODO: describe when to use $NAME | \`$NAME\` skill |"
+AGENTS_ROW="| TODO: describe when to use $NAME | \`\$$NAME\` |"
+GEMINI_ROW="| TODO: describe when to use $NAME | \`skills/$NAME/SKILL.md\` |"
+
+# Anchor: the blank line + --- that ends the skill routing table
+ANCHOR_CLAUDE_GEMINI=$'\n\n---\n\n## Subagent routing'
+ANCHOR_AGENTS=$'\n\nActivate only the skills relevant to the current task.'
+
+insert_routing_row "$KIT_ROOT/tooling/claude/CLAUDE.md"   "$CLAUDE_ROW" "$ANCHOR_CLAUDE_GEMINI"
+insert_routing_row "$KIT_ROOT/tooling/codex/AGENTS.md"    "$AGENTS_ROW" "$ANCHOR_AGENTS"
+insert_routing_row "$KIT_ROOT/tooling/gemini/GEMINI.md"   "$GEMINI_ROW" "$ANCHOR_CLAUDE_GEMINI"
+
+# ── Done ───────────────────────────────────────────────────────────────────
 echo "+--------------------------------------+"
 echo "|        new-skill scaffolded          |"
 echo "+--------------------------------------+"
 echo "  Created: skills/$NAME/SKILL.md"
+echo "  Routing: TODO row added to CLAUDE.md, AGENTS.md, GEMINI.md"
 echo ""
 echo "Next steps:"
 echo "  1. Edit skills/$NAME/SKILL.md and fill the placeholders."
-echo "  2. Add a routing row in:"
+echo "  2. Replace the TODO routing rows with a real description in:"
 echo "       tooling/claude/CLAUDE.md"
 echo "       tooling/codex/AGENTS.md"
 echo "       tooling/gemini/GEMINI.md"

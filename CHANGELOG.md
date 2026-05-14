@@ -4,6 +4,72 @@
 
 ---
 
+## [1.3.0] - 2026-05-14
+
+### Added
+
+#### New skill: `svelte`
+- `skills/svelte/SKILL.md` — covers Svelte 5 and SvelteKit.
+- Project structure: `src/lib/`, `src/routes/`, `src/lib/server/` layout.
+- Reactivity model: compile-time rules, reassignment semantics, `$:` statements.
+- Components: TypeScript, prop typing, event forwarding, `onMount` vs init guards.
+- Stores: `writable`, `readable`, `derived` — when to use each; placement in `src/lib/stores/`.
+- SvelteKit data loading: `+page.server.ts` (server-only) vs `+page.ts` (universal).
+- Form actions: progressive-enhancement pattern with `use:enhance`, `fail()`, `redirect()`.
+- Testing: Vitest + `@testing-library/svelte` for components; Playwright for E2E.
+- Routing added to all three root files (CLAUDE.md, AGENTS.md, GEMINI.md).
+
+#### New skill: `performance`
+- `skills/performance/SKILL.md` — cross-stack profiling, benchmarking, and optimization.
+- Universal rule: measure first, optimize the bottleneck, re-measure.
+- Backend: profiling commands for .NET, Python, Go, Node, Rust; slow-query diagnosis with `EXPLAIN ANALYZE`; N+1 ORM patterns per stack; cache-aside pattern.
+- Frontend: Core Web Vitals targets (LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1); bundle analysis; code splitting; virtualization.
+- HTTP: compression, cache headers, pagination strategy.
+- Benchmarking tools table: k6, wrk, BenchmarkDotNet, criterion, pytest-benchmark, Lighthouse CI.
+- "What NOT to do" section covering common premature-optimization traps.
+- Routing added to all three root files.
+
+#### GitHub Actions CI (`.github/workflows/ci.yml`)
+- `validate-example` job: runs `validate.sh` against `examples/filled-project` on every push/PR.
+- `smoke-install` job (Ubuntu): installs the kit into a temp directory, verifies all expected files exist, runs dry-run update and uninstall.
+- `smoke-install-windows` job (Windows): same smoke test using `install.ps1`, `update.ps1`, `uninstall.ps1`.
+- `lint-skills` job: checks every `skills/*/` directory has a `SKILL.md` and that every skill has a "Final response requirements" section.
+
+### Fixed
+
+#### `validate.ps1` — STOP pattern precision
+- Pattern was `"STOP"` (matches any word containing "STOP", e.g., "restart").
+- Now aligned with `validate.sh`: uses `"^> .*STOP|⚠️.*STOP"` to match only template STOP notice lines.
+
+#### Tool name validation in all scripts
+- `install.ps1`, `install.sh`, `update.ps1`, `update.sh`, `uninstall.ps1`, `uninstall.sh` now reject unknown tool names early with a clear error message.
+- Prevents silent no-ops from typos like `--tools cluade` or `--tools Codex`.
+
+#### `README.md` — skill table gaps
+- `java-kotlin` (added in v1.2.0) was missing from the Backend languages row.
+- `svelte` and `performance` added to their respective rows.
+
+#### `tooling/claude/settings.json` — WebFetch allowlist
+- Added Java/Kotlin documentation domains missing after v1.2.0's `java-kotlin` skill: `kotlinlang.org`, `docs.spring.io`, `docs.gradle.org`, `maven.apache.org`, `junit.org`.
+
+### Changed
+
+#### `scripts/new-skill.ps1` and `new-skill.sh` — routing auto-insert
+- Both scripts now insert a TODO placeholder row into all three routing tables (CLAUDE.md, AGENTS.md, GEMINI.md) immediately after scaffolding the skill file.
+- Uses Python (bash) and `.Replace()` (PowerShell) to find the known anchor and insert before it.
+- Prints a warning and skips gracefully if the anchor is not found.
+- "Next steps" output now says to *replace* the TODO row rather than *add* a row.
+
+#### `scripts/install.ps1` and `install.sh` — done output
+- "Next steps" section now includes step 4: run `validate` to confirm templates are filled.
+- Added a "Starter prompts" section listing the 5 most useful prompts with their purpose.
+- "Later, to pull in kit updates…" line moved after the prompts list.
+
+#### Version bump
+- `KIT_VERSION` bumped to `1.3.0` in `install.ps1`, `install.sh`, `update.ps1`, `update.sh`.
+
+---
+
 ## [1.2.0] - 2026-05-14
 
 ### Added

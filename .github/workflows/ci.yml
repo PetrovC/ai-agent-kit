@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [master, "audit/**", "feat/**", "fix/**"]
+  pull_request:
+
+jobs:
+  validate-example:
+    name: Validate filled example
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate examples/filled-project
+        run: bash scripts/validate.sh --target examples/filled-project
+
+  smoke-install:
+    name: Smoke install (bash)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kit into temp project
+        run: |
+          mkdir -p /tmp/smoke-target
+          bash scripts/install.sh --target /tmp/smoke-target --tools codex,claude,gemini
+
+      - name: Verify expected files exist
+        run: |
+          files=(
+            "/tmp/smoke-target/AGENTS.md"
+            "/tmp/smoke-target/CLAUDE.md"
+            "/tmp/smoke-target/GEMINI.md"
+            "/tmp/smoke-target/.kit-version"
+            "/tmp/smoke-target/.claude/settings.json"
+            "/tmp/smoke-target/.codex/config.toml"
+            "/tmp/smoke-target/docs/ai/PROJECT.md"
+          )
+          for f in "${files[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              echo "MISSING: $f"
+              exit 1
+            fi
+            echo "OK: $f"
+          done
+
+      - name: Dry-run update (no changes expected)
+        run: bash scripts/update.sh --target /tmp/smoke-target --dry-run
+
+      - name: Dry-run uninstall
+        run: bash scripts/uninstall.sh --target /tmp/smoke-target --dry-run
+
+  smoke-install-windows:
+    name: Smoke install (PowerShell)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kit into temp project
+        shell: pwsh
+        run: |
+          $target = "$env:RUNNER_TEMP\smoke-target"
+          New-Item -ItemType Directory -Path $target -Force | Out-Null
+          .\scripts\install.ps1 -Target $target -Tools "codex,claude,gemini"
+
+      - name: Verify expected files exist
+        shell: pwsh
+        run: |
+          $target = "$env:RUNNER_TEMP\smoke-target"
+          $files = @(
+            "AGENTS.md", "CLAUDE.md", "GEMINI.md", ".kit-version",
+            ".claude\settings.json", ".codex\config.toml", "docs\ai\PROJECT.md"
+          )
+          $missing = $false
+          foreach ($f in $files) {
+            $path = Join-Path $target $f
+            if (Test-Path $path) { Write-Host "OK: $f" }
+            else { Write-Host "MISSING: $f"; $missing = $true }
+          }
+          if ($missing) { exit 1 }
+
+      - name: Dry-run update
+        shell: pwsh
+        run: .\scripts\update.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun
+
+      - name: Dry-run uninstall
+        shell: pwsh
+        run: .\scripts\uninstall.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun
+
+  lint-skills:
+    name: Skill structure check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every skill must have a SKILL.md
+        run: |
+          errors=0
+          for dir in skills/*/; do
+            if [[ ! -f "${dir}SKILL.md" ]]; then
+              echo "MISSING SKILL.md in: $dir"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Every SKILL.md must have a Final response requirements section
+        run: |
+          errors=0
+          for f in skills/*/SKILL.md; do
+            if ! grep -q "Final response requirements" "$f"; then
+              echo "MISSING 'Final response requirements' in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1

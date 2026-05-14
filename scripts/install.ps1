@@ -35,8 +35,15 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.2.0"
+$KitVersion = "1.3.0"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
+
+$ValidTools = @("codex", "claude", "gemini")
+$invalid    = @($ToolList | Where-Object { $ValidTools -notcontains $_ })
+if ($invalid.Count -gt 0) {
+    Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, gemini"
+    exit 1
+}
 
 # -- Helpers ---------------------------------------------------------------
 function Write-Step([string]$msg) {
@@ -166,7 +173,15 @@ Write-Host "Next steps:"
 Write-Host "  1. Fill in docs/ai/PROJECT.md      <- describe your product"
 Write-Host "  2. Fill in docs/ai/COMMANDS.md     <- add your build/test commands"
 Write-Host "  3. Fill in docs/ai/ARCHITECTURE.md"
-Write-Host "  4. Commit everything (except .claude/settings.local.json and secrets)"
+Write-Host "  4. Run validate.ps1 to confirm all templates are filled"
+Write-Host "  5. Commit everything (except .claude/settings.local.json and secrets)"
 Write-Host ""
-Write-Host "Later, to pull in kit updates without overwriting your local edits:"
+Write-Host "Starter prompts (open in the kit, paste into your agent):"
+Write-Host "  prompts/daily-ticket.md     <- start a GitHub issue"
+Write-Host "  prompts/feature-planning.md <- plan a multi-file feature"
+Write-Host "  prompts/bug-fix.md          <- reproduce and fix a bug"
+Write-Host "  prompts/code-review.md      <- triage-style PR review"
+Write-Host "  prompts/security-audit.md   <- targeted security pass"
+Write-Host ""
+Write-Host "To pull in kit updates without overwriting your local edits:"
 Write-Host "  .\scripts\update.ps1 -Target `"$Target`""

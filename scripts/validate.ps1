@@ -67,7 +67,7 @@ Write-Host ""
 Write-Host "> Templates still showing STOP notice (must be filled)"
 $stopFound = $false
 Get-ChildItem -Path $DocsAi -Filter "*.md" -File | ForEach-Object {
-    if (Select-String -Path $_.FullName -Pattern "STOP" -Quiet) {
+    if (Select-String -Path $_.FullName -Pattern "^> .*STOP|⚠️.*STOP" -Quiet) {
         Warn "$($_.Name) still contains a STOP notice"
         $stopFound = $true
     }

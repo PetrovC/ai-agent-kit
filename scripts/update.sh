@@ -12,7 +12,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.2.0"
+KIT_VERSION="1.3.0"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -68,6 +68,16 @@ if [[ -z "$TOOLS" ]]; then
 fi
 
 IFS=',' read -ra TOOL_LIST <<< "$TOOLS"
+
+VALID_TOOLS=("codex" "claude" "gemini")
+for t in "${TOOL_LIST[@]}"; do
+    valid=false
+    for v in "${VALID_TOOLS[@]}"; do [[ "$t" == "$v" ]] && valid=true && break; done
+    if [[ "$valid" == "false" ]]; then
+        echo "Error: unknown tool '$t'. Valid options: codex, claude, gemini"
+        exit 1
+    fi
+done
 
 echo "Kit version: $KIT_VERSION"
 echo "Target     : $TARGET"
