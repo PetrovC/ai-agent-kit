@@ -12,6 +12,27 @@ and a team can safely evolve for years.
 
 ---
 
+## How to run Codex CLI
+
+```bash
+codex                              # interactive, on-request approval (default)
+codex --approval-policy auto-approve  # applies file edits without asking (still prompts for shell)
+codex --approval-policy never         # fully autonomous; no confirmations (CI / supervised only)
+```
+
+Useful options:
+- `--profile deep` — switch to the `deep` reasoning profile (high effort, slower, more thorough).
+- `--profile readonly` — read-only sandbox; safe for exploration without any writes.
+- `--model o4-mini` — override the model for this session.
+- `--no-project-doc` — skip loading project docs (faster for quick one-off tasks).
+
+Codex reads this file at startup along with `.codex/config.toml` for project-level settings.
+Skills are activated via `$skill-name` in the routing table below.
+
+**Reference:** [github.com/openai/codex](https://github.com/openai/codex) · GitHub Action: [github.com/openai/codex-action](https://github.com/openai/codex-action)
+
+---
+
 ## Context strategy
 
 Do not read every file. Read only what is needed, in this order:

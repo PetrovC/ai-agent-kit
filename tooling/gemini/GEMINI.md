@@ -27,6 +27,18 @@ Approval modes:
 - **auto_edit** — applies file edits automatically; still asks before running commands.
 - **yolo** — no confirmations; use only in sandboxed / throw-away environments.
 
+Useful flags:
+- `--model gemini-2.5-pro` — override the model for this session.
+- `--checkpointing` — enable automatic checkpointing so Gemini can resume after an error or long pause.
+- `--debug` — verbose output showing tool calls and model reasoning.
+
+Gemini CLI reads this file at startup. Skills are loaded explicitly: identify the relevant skill path from the routing table below, then read that file before editing.
+
+**References:**
+- Source: [github.com/google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli)
+- Docs: [google-gemini.github.io/gemini-cli/docs](https://google-gemini.github.io/gemini-cli/docs)
+- GitHub Action: [github.com/google-github-actions/run-gemini-cli](https://github.com/google-github-actions/run-gemini-cli)
+
 ---
 
 ## Context strategy

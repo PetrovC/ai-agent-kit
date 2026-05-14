@@ -4,6 +4,64 @@
 
 ---
 
+## [1.11.0] - 2026-05-15
+
+### Changed
+
+#### `README.md` — major documentation pass
+
+The README was restructured to explain **what each component is, which AI tool uses it, and why it's useful**. A new "How each feature maps to each tool" section was added covering:
+
+- **Skills** — how they load differently per tool: Claude Code auto-loads via `paths:` frontmatter, Codex activates via `$skill-name`, Gemini reads via explicit file path
+- **Hooks** — Claude Code only (lifecycle events, exit code 2 = block); explanation of why Codex/Gemini use approval modes instead
+- **Rules** — Claude Code only (path-triggered auto-load); explanation of how they differ from skills
+- **MCP servers** — Claude Code full support, Gemini emerging, Codex not supported; link to MCP spec
+- **Subagents** — format and invocation per tool (`.md` / `.toml` / `.md`, different invocation syntax)
+
+A new **"Official resources"** table near the top links all 7 official tool repositories and documentation sites:
+
+| Resource | URL |
+|---|---|
+| Claude Code source | [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code) |
+| All Anthropic repos | [github.com/orgs/anthropics/repositories](https://github.com/orgs/anthropics/repositories) |
+| Codex CLI source | [github.com/openai/codex](https://github.com/openai/codex) |
+| Codex GitHub Action | [github.com/openai/codex-action](https://github.com/openai/codex-action) |
+| Gemini CLI source | [github.com/google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) |
+| Gemini CLI docs | [google-gemini.github.io/gemini-cli/docs](https://google-gemini.github.io/gemini-cli/docs) |
+| Gemini GitHub Action | [github.com/google-github-actions/run-gemini-cli](https://github.com/google-github-actions/run-gemini-cli) |
+
+#### `tooling/claude/CLAUDE.md` — added "How to run Claude Code" section
+
+Added a missing `## How to run Claude Code` section (equivalent to what GEMINI.md already had) covering:
+- `claude` (interactive) vs `claude --dangerously-skip-permissions` (CI/autonomous)
+- `--model`, `--continue`, `--print` flags
+- How Claude Code loads this file at startup and lazy-loads rules and skills
+- Link to [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code)
+
+#### `tooling/codex/AGENTS.md` — added "How to run Codex CLI" section
+
+Added a new `## How to run Codex CLI` section covering:
+- `--approval-policy` modes (default `on-request`, `auto-approve`, `never`)
+- `--profile` switching (readonly, standard, deep, review)
+- `--model`, `--no-project-doc` flags
+- How Codex reads this file and `.codex/config.toml`
+- Links to [github.com/openai/codex](https://github.com/openai/codex) and the GitHub Action
+
+#### `tooling/gemini/GEMINI.md` — expanded "How to run" section
+
+Extended the existing section with:
+- `--checkpointing` flag (resume after error or long pause)
+- `--debug` flag (verbose tool call output)
+- `--model` override flag
+- How Gemini loads skills via explicit file reads
+- Reference links (source, docs, GitHub Action)
+
+### Changed (version)
+
+- `KIT_VERSION` bumped to `1.11.0` in all four scripts.
+
+---
+
 ## [1.10.0] - 2026-05-14
 
 ### Changed

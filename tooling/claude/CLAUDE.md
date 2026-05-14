@@ -12,6 +12,25 @@ and a team can safely evolve for years.
 
 ---
 
+## How to run Claude Code
+
+```bash
+claude                           # interactive, default permission mode — confirms risky actions
+claude --dangerously-skip-permissions  # fully autonomous; no confirmations (CI / supervised only)
+```
+
+Useful flags:
+- `--model claude-opus-4-7` — override the model for this session.
+- `--continue` — resume the previous session in this directory.
+- `--print "task"` — non-interactive single-shot mode (for scripts and CI).
+
+Claude Code reads this file at startup, then auto-loads any `.claude/rules/*.md` whose `paths:`
+frontmatter matches the files you open. Skills are lazy-loaded via the routing table below.
+
+**Reference:** [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code)
+
+---
+
 ## Personal overrides
 
 Create a `CLAUDE.local.md` file in the project root (gitignored) for developer-specific
