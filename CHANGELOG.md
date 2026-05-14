@@ -4,6 +4,37 @@
 
 ---
 
+## [1.7.0] - 2026-05-14
+
+### Added
+
+#### 3 new operational prompts
+
+| File | When to use |
+|---|---|
+| `prompts/on-call.md` | Structured 5-step incident investigation: triage → scope → root cause → mitigate → post-mortem write-up |
+| `prompts/dependency-update.md` | Safe single-package upgrade: changelog review → license check → baseline test → update → audit |
+| `prompts/tech-debt.md` | Codebase-wide tech debt triage: outdated deps, layer violations, dead code, missing tests, oversized units — sorted by risk × effort |
+
+Prompts are in `prompts/` — not installed into projects. Open in the kit and paste into your agent.
+
+#### Bun and Deno runtime support in `node` skill
+
+`skills/node/SKILL.md` updated:
+
+- **Paths extended**: `**/bun.lockb`, `**/bunfig.toml`, `**/deno.json`, `**/deno.jsonc` — skill now auto-loads for Bun and Deno projects.
+- **`allowed-tools` extended**: `Bash(bun:*)`, `Bash(deno:*)`.
+- **New `## Bun` section**: drop-in replacement specifics — `bun install --frozen-lockfile`, built-in test runner, native TypeScript execution, `Bun.file()` / `Bun.serve()`, `bunfig.toml`.
+- **New `## Deno` section**: Node-compatible Deno 2 — permission flags, `deno.json`, `jsr:@std/*`, `npm:` specifiers, `deno check / lint / fmt / test`.
+- Description updated to include Bun, Deno, Elysia, and Hono.
+
+### Changed
+
+#### Version bump
+- `KIT_VERSION` bumped to `1.7.0` in all four scripts: `install.ps1`, `install.sh`, `update.ps1`, `update.sh`.
+
+---
+
 ## [1.6.0] - 2026-05-14
 
 ### Added
