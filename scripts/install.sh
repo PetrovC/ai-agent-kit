@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.2.0"
+KIT_VERSION="1.3.0"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
@@ -40,6 +40,16 @@ if [[ ! -d "$TARGET" ]]; then
 fi
 
 IFS=',' read -ra TOOL_LIST <<< "$TOOLS"
+
+VALID_TOOLS=("codex" "claude" "gemini")
+for t in "${TOOL_LIST[@]}"; do
+    valid=false
+    for v in "${VALID_TOOLS[@]}"; do [[ "$t" == "$v" ]] && valid=true && break; done
+    if [[ "$valid" == "false" ]]; then
+        echo "Error: unknown tool '$t'. Valid options: codex, claude, gemini"
+        exit 1
+    fi
+done
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 step() { echo -e "\n\033[36m> $1\033[0m"; }
@@ -170,7 +180,15 @@ echo "Next steps:"
 echo "  1. Fill in docs/ai/PROJECT.md      <- describe your product"
 echo "  2. Fill in docs/ai/COMMANDS.md     <- add your build/test commands"
 echo "  3. Fill in docs/ai/ARCHITECTURE.md"
-echo "  4. Commit everything (except .claude/settings.local.json and secrets)"
+echo "  4. Run validate.sh to confirm all templates are filled"
+echo "  5. Commit everything (except .claude/settings.local.json and secrets)"
 echo ""
-echo "Later, to pull in kit updates without overwriting your local edits:"
+echo "Starter prompts (open in the kit, paste into your agent):"
+echo "  prompts/daily-ticket.md     <- start a GitHub issue"
+echo "  prompts/feature-planning.md <- plan a multi-file feature"
+echo "  prompts/bug-fix.md          <- reproduce and fix a bug"
+echo "  prompts/code-review.md      <- triage-style PR review"
+echo "  prompts/security-audit.md   <- targeted security pass"
+echo ""
+echo "To pull in kit updates without overwriting your local edits:"
 echo "  ./scripts/update.sh --target $TARGET"

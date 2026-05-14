@@ -52,6 +52,16 @@ fi
 
 IFS=',' read -ra TOOL_LIST <<< "$TOOLS"
 
+VALID_TOOLS=("codex" "claude" "gemini")
+for t in "${TOOL_LIST[@]}"; do
+    valid=false
+    for v in "${VALID_TOOLS[@]}"; do [[ "$t" == "$v" ]] && valid=true && break; done
+    if [[ "$valid" == "false" ]]; then
+        echo "Error: unknown tool '$t'. Valid options: codex, claude, gemini"
+        exit 1
+    fi
+done
+
 # ── Helpers ────────────────────────────────────────────────────────────────
 step()   { echo -e "\n\033[36m> $1\033[0m"; }
 removed(){ echo -e "  \033[31m[removed]\033[0m $1"; }

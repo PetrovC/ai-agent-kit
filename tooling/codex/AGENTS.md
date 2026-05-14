@@ -42,6 +42,7 @@ Activate the relevant skill before editing:
 | Rust (cargo, tokio, services, CLIs) | `$rust` |
 | Angular components, services, routing, signals | `$angular` |
 | Vue components, composables, Pinia, Vite | `$vue` |
+| Svelte components, SvelteKit routes, stores, form actions | `$svelte` |
 | React, Next.js, Remix, hooks, RSC | `$react` |
 | React Native (Expo or bare RN) | `$mobile-rn` |
 | Flutter (widgets, Riverpod / BLoC, Dart) | `$mobile-flutter` |
@@ -61,6 +62,7 @@ Activate the relevant skill before editing:
 | Accessibility (WCAG, ARIA, keyboard, screen readers) | `$accessibility` |
 | Internationalization (translation, ICU, RTL, formats) | `$i18n` |
 | LLM apps, RAG, tool use, agents, prompt caching, evals | `$ai-dev` |
+| Profiling, benchmarking, query plans, Core Web Vitals, caching strategy | `$performance` |
 
 Activate only the skills relevant to the current task.
 Do not activate all skills by default.

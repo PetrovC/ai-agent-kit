@@ -3,8 +3,8 @@
     Scaffold a new skill under skills/<name>/SKILL.md.
 
 .DESCRIPTION
-    Creates the skill file with the standard structure all existing skills follow.
-    Reminds you to update routing tables and CHANGELOG.
+    Creates the skill file with the standard structure all existing skills follow,
+    and inserts a TODO placeholder row into all three routing tables.
 
 .PARAMETER Name
     Skill name in kebab-case (lowercase letters, digits, hyphens).
@@ -13,7 +13,7 @@
     One-sentence description of when to use this skill.
 
 .EXAMPLE
-    .\new-skill.ps1 -Name "kotlin"
+    .\new-skill.ps1 -Name "graphql-server"
     .\new-skill.ps1 -Name "graphql-server" -Description "Use when building GraphQL servers with Apollo or Yoga."
 #>
 
@@ -108,14 +108,35 @@ Always report:
 
 Set-Content -Path $skillFile -Value $body -Encoding utf8
 
+# ── Insert placeholder routing rows ────────────────────────────────────────
+function Insert-RoutingRow([string]$file, [string]$row, [string]$anchor) {
+    $content = Get-Content $file -Raw -Encoding utf8
+    $idx = $content.IndexOf($anchor)
+    if ($idx -lt 0) {
+        Write-Host "  [warn] anchor not found in $file — add the row manually" -ForegroundColor Yellow
+        return
+    }
+    $newContent = $content.Substring(0, $idx) + "`n" + $row + $content.Substring($idx)
+    Set-Content -Path $file -Value $newContent -Encoding utf8 -NoNewline
+}
+
+$anchorClaudeGemini = "`n`n---`n`n## Subagent routing"
+$anchorAgents       = "`n`nActivate only the skills relevant to the current task."
+
+Insert-RoutingRow (Join-Path $KitRoot "tooling\claude\CLAUDE.md") "| TODO: describe when to use $Name | ``$Name`` skill |" $anchorClaudeGemini
+Insert-RoutingRow (Join-Path $KitRoot "tooling\codex\AGENTS.md")  "| TODO: describe when to use $Name | ``$`$Name`` |"    $anchorAgents
+Insert-RoutingRow (Join-Path $KitRoot "tooling\gemini\GEMINI.md") "| TODO: describe when to use $Name | ``skills/$Name/SKILL.md`` |" $anchorClaudeGemini
+
+# ── Done ───────────────────────────────────────────────────────────────────
 Write-Host "+--------------------------------------+" -ForegroundColor Green
 Write-Host "|        new-skill scaffolded          |" -ForegroundColor Green
 Write-Host "+--------------------------------------+" -ForegroundColor Green
 Write-Host "  Created: skills/$Name/SKILL.md"
+Write-Host "  Routing: TODO row added to CLAUDE.md, AGENTS.md, GEMINI.md"
 Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. Edit skills/$Name/SKILL.md and fill the placeholders."
-Write-Host "  2. Add a routing row in:"
+Write-Host "  2. Replace the TODO routing rows with a real description in:"
 Write-Host "       tooling/claude/CLAUDE.md"
 Write-Host "       tooling/codex/AGENTS.md"
 Write-Host "       tooling/gemini/GEMINI.md"

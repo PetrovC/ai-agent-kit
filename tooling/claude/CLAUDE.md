@@ -42,6 +42,7 @@ Use the relevant skill when editing:
 | Rust (cargo, tokio, services, CLIs) | `rust` skill |
 | Angular components, services, routing, signals | `angular` skill |
 | Vue components, composables, Pinia | `vue` skill |
+| Svelte components, SvelteKit routes, stores, form actions | `svelte` skill |
 | React, Next.js, Remix, hooks, RSC | `react` skill |
 | React Native (Expo or bare RN) | `mobile-rn` skill |
 | Flutter (widgets, Riverpod / BLoC, Dart) | `mobile-flutter` skill |
@@ -61,6 +62,7 @@ Use the relevant skill when editing:
 | Accessibility (WCAG, ARIA, keyboard, screen readers) | `accessibility` skill |
 | Internationalization (translation, ICU, RTL, formats) | `i18n` skill |
 | LLM apps, RAG, tool use, agents, prompt caching, evals | `ai-dev` skill |
+| Profiling, benchmarking, query plans, Core Web Vitals, caching strategy | `performance` skill |
 
 ---
 

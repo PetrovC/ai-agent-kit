@@ -42,6 +42,7 @@ Read the relevant skill file before editing. Do not rely on inline summaries —
 | Rust (cargo, tokio, services, CLIs) | `skills/rust/SKILL.md` |
 | Angular components, services, routing, signals | `skills/angular/SKILL.md` |
 | Vue components, composables, Pinia | `skills/vue/SKILL.md` |
+| Svelte components, SvelteKit routes, stores, form actions | `skills/svelte/SKILL.md` |
 | React, Next.js, Remix, hooks, RSC | `skills/react/SKILL.md` |
 | React Native (Expo or bare RN) | `skills/mobile-rn/SKILL.md` |
 | Flutter (widgets, Riverpod / BLoC, Dart) | `skills/mobile-flutter/SKILL.md` |
@@ -61,6 +62,7 @@ Read the relevant skill file before editing. Do not rely on inline summaries —
 | Accessibility (WCAG, ARIA, keyboard, screen readers) | `skills/accessibility/SKILL.md` |
 | Internationalization (translation, ICU, RTL, formats) | `skills/i18n/SKILL.md` |
 | LLM apps, RAG, tool use, agents, prompt caching, evals | `skills/ai-dev/SKILL.md` |
+| Profiling, benchmarking, query plans, Core Web Vitals, caching strategy | `skills/performance/SKILL.md` |
 
 ---
 

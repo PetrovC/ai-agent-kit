@@ -36,7 +36,12 @@
       "WebFetch(domain:kubernetes.io)",
       "WebFetch(domain:developer.hashicorp.com)",
       "WebFetch(domain:graphql.org)",
-      "WebFetch(domain:nodejs.org)"
+      "WebFetch(domain:nodejs.org)",
+      "WebFetch(domain:kotlinlang.org)",
+      "WebFetch(domain:docs.spring.io)",
+      "WebFetch(domain:docs.gradle.org)",
+      "WebFetch(domain:maven.apache.org)",
+      "WebFetch(domain:junit.org)"
     ],
     "deny": [
       "Bash(git push --force:*)",
