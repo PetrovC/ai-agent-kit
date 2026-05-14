@@ -156,6 +156,127 @@ Rules:
 - **Errors as tool results**: when a tool fails, return the error as a tool_result; let the model recover. Don't throw.
 - **Audit log**: log every tool call with inputs / outputs.
 
+### tool_choice modes
+
+```python
+# Force a specific tool (structured output shortcut)
+tool_choice={"type": "tool", "name": "extract_order"}
+
+# Require at least one tool call, model picks which
+tool_choice={"type": "any"}
+
+# Model decides (default)
+tool_choice={"type": "auto"}
+```
+
+Use `{"type": "tool", "name": "..."}` when you need guaranteed structured output — it is more
+reliable than JSON mode because the schema is enforced by the tool's `input_schema`.
+
+---
+
+## Extended thinking (Claude 3.7+ / Claude 4)
+
+Extended thinking lets the model reason internally before answering. Use it for:
+- Complex multi-step reasoning (math, logic, planning).
+- Tasks where accuracy matters more than latency.
+- Problems that require weighing competing constraints.
+
+```python
+response = client.messages.create(
+    model="claude-opus-4-7",
+    max_tokens=16000,
+    thinking={"type": "enabled", "budget_tokens": 10000},
+    messages=[{"role": "user", "content": "Plan the database schema for..."}]
+)
+
+# Response has two content blocks:
+# [0] ThinkingBlock  — internal reasoning (do not display to users)
+# [1] TextBlock      — final answer
+thinking = response.content[0].thinking   # string, for debugging only
+answer   = response.content[1].text
+```
+
+**Rules:**
+- `budget_tokens` must be < `max_tokens`. Start at 5 000–10 000; increase only if quality needs it.
+- Do **not** show the thinking block to end users — it is internal scratch-work.
+- Extended thinking disables prompt caching on the thinking portion. Cache the system prompt separately.
+- Not available on Haiku. Use Sonnet for moderate reasoning, Opus for maximum depth.
+- Include thinking blocks in multi-turn history if you continue the conversation.
+
+---
+
+## MCP — Model Context Protocol
+
+MCP is a standard protocol for giving agents access to external tools, data sources, and APIs
+via a server that the agent queries at runtime.
+
+**When to use MCP:**
+- Your agent needs to access a database, file system, or API that changes at runtime.
+- You want to reuse tools across multiple agents or projects.
+- You are building Claude Code skills or hooks that need external context.
+
+**Server types:**
+| Type | Transport | Use for |
+|---|---|---|
+| `stdio` | stdin/stdout | Local tools (filesystem, shell, local DB) |
+| `http` (SSE) | HTTP | Remote services, shared team servers |
+
+**Configuration (`.mcp.json` at project root):**
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/project"],
+      "type": "stdio"
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${DATABASE_URL}"],
+      "type": "stdio"
+    }
+  }
+}
+```
+
+**Writing a minimal MCP server (Node.js):**
+```typescript
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+const server = new Server({ name: "my-tools", version: "1.0.0" }, {
+  capabilities: { tools: {} }
+});
+
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: [{
+    name: "get_user",
+    description: "Fetch a user by ID",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string" } },
+      required: ["id"]
+    }
+  }]
+}));
+
+server.setRequestHandler(CallToolRequestSchema, async (req) => {
+  if (req.params.name === "get_user") {
+    const user = await db.users.findById(req.params.arguments.id);
+    return { content: [{ type: "text", text: JSON.stringify(user) }] };
+  }
+  throw new Error("Unknown tool");
+});
+
+await server.connect(new StdioServerTransport());
+```
+
+**MCP security rules:**
+- MCP servers have full access to whatever resources they connect to — treat them like code.
+- Never give an MCP server credentials it doesn't need.
+- `stdio` servers run as child processes; vet the package before using `npx -y`.
+- HTTP MCP servers must use authentication (Bearer token or mTLS).
+
 ---
 
 ## Agents
