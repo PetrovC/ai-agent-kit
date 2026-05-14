@@ -4,6 +4,43 @@
 
 ---
 
+## [1.9.0] - 2026-05-14
+
+### Changed
+
+#### `architecture` skill — major rewrite (126 → 260 lines)
+
+Replaced thin bullet-list with concrete, runnable TypeScript examples throughout:
+
+| Section | What was added |
+|---|---|
+| **Layer boundaries** | Non-negotiable dependency rules (Domain → no deps, Application → Domain only, Infrastructure → ports, Interfaces → Application only) with a common-violations checklist |
+| **When to use each pattern** | Decision table: layered / CQRS / domain events / event sourcing / microservice / modular monolith with default recommendation |
+| **DDD — Entities vs Value Objects** | `Order` aggregate with two invariant checks (`PENDING` guard, max 20 items), domain event collection; `Money` value object (immutable, `Object.freeze`, currency equality) |
+| **Aggregate rules** | One repository per root, consistency boundary, cross-aggregate via events or app services, keep aggregates small |
+| **Domain events** | Dispatch pattern: raise in aggregate → save → publish → clear events |
+| **CQRS** | Full TypeScript write-side (`ShipOrderCommand` + `ShipOrderHandler`) and read-side (`GetOrderDashboardHandler` with direct SQL, no domain objects) |
+| **Hexagonal / Ports & Adapters** | `OrderRepository` and `EmailService` ports in Application; `PostgresOrderRepository` / `SendGridEmailService` adapters in Infrastructure; `InMemoryOrderRepository` fake for unit tests |
+| **Modular monolith** | Directory layout, module communication rules (public interfaces / events only), private DB tables per module |
+| **Bounded contexts** | Separate models, explicit DTOs, anti-corruption layers, `docs/ai/ARCHITECTURE.md` |
+| **Decision rule for abstractions** | Three triggers (real duplication / meaningful boundary / testability); no speculative abstractions |
+| **Verification** | `ARCHITECTURE.md` / `DECISIONS.md` check, cross-layer dependency check, integration test requirement |
+| **Final response format** | 8-field structured response (business capability → current state → proposed change → layers → deps → not over-engineered → reversibility → validation) |
+
+#### `ai-dev` skill — three new sections (Extended thinking, `tool_choice` modes, MCP)
+
+| Section | What was added |
+|---|---|
+| **`tool_choice` modes** | `{"type": "tool", "name": "..."}` for forced structured output, `{"type": "any"}` to require a call, `{"type": "auto"}` (default) — with note that force-tool is more reliable than JSON mode |
+| **Extended thinking** | `thinking: {"type": "enabled", "budget_tokens": N}` usage; `ThinkingBlock` vs `TextBlock` in response; rules: budget < max_tokens, don't show thinking to users, cache system prompt separately, include thinking blocks in multi-turn history, not available on Haiku |
+| **MCP — Model Context Protocol** | When to use (runtime external tools/data, tool reuse across agents, Claude Code skills); stdio vs HTTP/SSE table; `.mcp.json` config example (filesystem, postgres); full TypeScript MCP server implementation (`ListTools` + `CallTool` handlers with `StdioServerTransport`); four security rules |
+
+### Changed (version)
+
+- `KIT_VERSION` bumped to `1.9.0` in all four scripts.
+
+---
+
 ## [1.8.0] - 2026-05-14
 
 ### Added
