@@ -1,0 +1,14 @@
+{
+  "theme": "Default",
+  "autoAccept": false,
+  "context": {
+    "fileName": ["GEMINI.md"]
+  },
+  "sandbox": {
+    "enabled": true
+  },
+  "tools": {
+    "webSearch": false,
+    "codeExecution": true
+  }
+}

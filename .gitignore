@@ -1,0 +1,26 @@
+# Local / OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Secrets
+.env
+.env.*
+*.local.json
+*.local.toml
+
+# Node (if scripts use it later)
+node_modules/
+
+# Python (if scripts use it later)
+__pycache__/
+*.pyc
+
+# AI
+.claude/

@@ -1,0 +1,13 @@
+# .codex/config.toml
+# Project-level Codex configuration.
+# Personal config (model, profiles) goes in ~/.codex/config.toml
+
+approval_policy = "on-request"
+sandbox_mode    = "workspace-write"
+web_search      = "cached"
+
+[sandbox_workspace_write]
+network_access = false
+
+# Cap per-doc size loaded into context to prevent runaway files (~32 KB ≈ 8k tokens).
+project_doc_max_bytes = 32768

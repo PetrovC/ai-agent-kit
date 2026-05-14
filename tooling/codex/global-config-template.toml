@@ -1,0 +1,59 @@
+# ~/.codex/config.toml
+# ─────────────────────────────────────────────────────────────────────────────
+# PERSONAL Codex configuration — copy this to ~/.codex/config.toml
+# This is NOT committed to any repo. It holds your personal preferences.
+# Project-level overrides go in <project>/.codex/config.toml
+# ─────────────────────────────────────────────────────────────────────────────
+
+model                  = "o4-mini"          # or o3, gpt-4.1, etc.
+model_reasoning_effort = "medium"
+model_reasoning_summary = "concise"
+
+approval_policy = "on-request"
+sandbox_mode    = "workspace-write"
+
+web_search       = "cached"
+allow_login_shell = false
+file_opener      = "vscode"
+
+# ── Profiles ─────────────────────────────────────────────────────────────────
+# Usage:
+#   codex --profile readonly    → explore without risk
+#   codex --profile standard    → normal daily work
+#   codex --profile deep        → complex refactor / architecture
+#   codex --profile review      → PR review, read-only
+
+[profiles.readonly]
+approval_policy        = "never"
+sandbox_mode           = "read-only"
+model_reasoning_effort = "low"
+model_reasoning_summary = "concise"
+web_search             = "disabled"
+
+[profiles.standard]
+approval_policy        = "on-request"
+sandbox_mode           = "workspace-write"
+model_reasoning_effort = "medium"
+model_reasoning_summary = "concise"
+web_search             = "cached"
+
+[profiles.deep]
+approval_policy        = "on-request"
+sandbox_mode           = "workspace-write"
+model_reasoning_effort = "high"
+model_reasoning_summary = "concise"
+web_search             = "cached"
+
+[profiles.review]
+approval_policy        = "never"
+sandbox_mode           = "read-only"
+model_reasoning_effort = "medium"
+model_reasoning_summary = "concise"
+web_search             = "disabled"
+
+# ── Sandbox options ───────────────────────────────────────────────────────────
+[sandbox_workspace_write]
+network_access = false
+
+[windows]
+sandbox = "elevated"

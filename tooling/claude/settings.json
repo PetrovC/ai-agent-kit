@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet:*)",
+      "Bash(npm:*)",
+      "Bash(ng:*)",
+      "Bash(vue-tsc:*)",
+      "Bash(vite:*)",
+      "Bash(vitest:*)",
+      "Bash(npx vitest:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git branch:*)",
+      "WebFetch(domain:docs.microsoft.com)",
+      "WebFetch(domain:learn.microsoft.com)",
+      "WebFetch(domain:vuejs.org)",
+      "WebFetch(domain:angular.dev)",
+      "WebFetch(domain:vitest.dev)",
+      "WebFetch(domain:npmjs.com)",
+      "WebFetch(domain:docs.python.org)",
+      "WebFetch(domain:packaging.python.org)",
+      "WebFetch(domain:pkg.go.dev)",
+      "WebFetch(domain:go.dev)",
+      "WebFetch(domain:doc.rust-lang.org)",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:react.dev)",
+      "WebFetch(domain:nextjs.org)",
+      "WebFetch(domain:docs.flutter.dev)",
+      "WebFetch(domain:api.flutter.dev)",
+      "WebFetch(domain:expo.dev)",
+      "WebFetch(domain:docs.docker.com)",
+      "WebFetch(domain:kubernetes.io)",
+      "WebFetch(domain:developer.hashicorp.com)",
+      "WebFetch(domain:graphql.org)",
+      "WebFetch(domain:nodejs.org)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -fd:*)",
+      "Bash(rm -rf:*)"
+    ]
+  }
+}

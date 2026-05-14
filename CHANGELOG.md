@@ -1,0 +1,216 @@
+# Changelog
+
+## [Unreleased]
+
+---
+
+## [1.2.0] - 2026-05-14
+
+### Added
+
+#### New skill: `java-kotlin`
+- `skills/java-kotlin/SKILL.md` — covers Java and Kotlin on the JVM.
+- Project structure: Clean Architecture layers adapted to Spring Boot / Ktor.
+- Language guidance: Kotlin as modern default, Java for existing codebases, interop rules.
+- Kotlin idioms: null safety, data classes, value classes, sealed classes, extension functions, coroutines, Flow.
+- Spring Boot 3.x: controllers, `@ConfigurationProperties`, `@RestControllerAdvice`.
+- JPA/Hibernate: entity mapping, Kotlin `noArg`/`allOpen` plugins, Flyway migrations.
+- Build tools: Gradle Kotlin DSL (preferred) and Maven.
+- Testing: JUnit 5 + MockK (Kotlin) / Mockito (Java) + Testcontainers (no H2).
+- Code quality: detekt + ktlint for Kotlin, checkstyle for Java.
+- Package and runtime maintenance section (same proactive protocol as dotnet).
+
+#### Routing
+- `java-kotlin` skill added to routing tables in `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`.
+
+### Fixed
+
+#### Template `project-template/ARCHITECTURE.md`
+- Removed .NET-specific layer names (Domain/Application/Infrastructure/Interfaces) as hard defaults.
+- Added multi-stack layer name examples for .NET, Python, Go, Rust, Node.
+- Layers are now placeholders (`<Layer 1>`, etc.) — teams fill in their actual names.
+
+#### `prompts/security-audit.md`
+- Added missing vulnerability check commands: `pip-audit` (Python), `cargo audit` (Rust), `govulncheck ./...` (Go).
+
+#### `skills/architecture/SKILL.md`
+- Added `## Verification` section (all other skills had one; architecture was the only exception).
+
+#### `skills/code-review/SKILL.md`
+- Removed .NET-specific EF Core reference from the SQL injection check line.
+
+#### `scripts/uninstall.ps1` / `uninstall.sh`
+- Updated header comment to accurately describe surgical removal behavior.
+
+### Changed
+
+#### Version bump
+- `KIT_VERSION` bumped to `1.2.0` in `install.ps1`, `install.sh`, `update.ps1`, `update.sh`.
+
+---
+
+## [1.1.0] - 2026-05-14
+
+### Added
+
+#### Proactive maintenance behavior (all 3 root files)
+- New `## Proactive maintenance` section in `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`.
+- Agents must surface outdated packages, runtime upgrades, deprecated APIs, and transitive CVEs — never apply silently.
+- Explicit approval required before any out-of-scope maintenance change.
+- "One concern per PR" rule enforced for maintenance items.
+
+#### `.NET` skill — package and runtime maintenance section
+- `## Package and runtime maintenance` section added to `skills/dotnet/SKILL.md`.
+- Covers NuGet update protocol, `dotnet list package --outdated / --vulnerable`, .NET runtime upgrade checklist, LTS-only upgrade rule.
+
+#### `security` skill — multi-stack rewrite
+- Input validation, authentication, and verification sections now cover .NET, Python, Node, Go, and Rust.
+- Stack-specific patterns in tables for each area.
+- Verification commands extended: `npm audit`, `pip-audit`, `cargo audit`, `govulncheck`.
+
+### Changed
+
+#### Version bump
+- `KIT_VERSION` bumped to `1.1.0` in `install.ps1`, `install.sh`, `update.ps1`, `update.sh`.
+
+#### Agent model versions (Claude)
+- All Sonnet agents updated from `claude-sonnet-4-5` to `claude-sonnet-4-6`.
+- Test-runner agent updated from `claude-haiku-4-5` to `claude-haiku-4-5-20251001`.
+
+#### WebFetch allowlist expanded
+- `tooling/claude/settings.json` now covers documentation domains for all skills:
+  `docs.python.org`, `packaging.python.org`, `pkg.go.dev`, `go.dev`, `doc.rust-lang.org`,
+  `docs.rs`, `react.dev`, `nextjs.org`, `docs.flutter.dev`, `api.flutter.dev`,
+  `expo.dev`, `docs.docker.com`, `kubernetes.io`, `developer.hashicorp.com`,
+  `graphql.org`, `nodejs.org`.
+
+#### Cross-tool alignment (CLAUDE.md, GEMINI.md)
+- Engineering principles aligned with AGENTS.md: "One concern per PR", "Add abstractions only when...", "Avoid unrelated formatting changes".
+- Security rules aligned: added "Never print...", "Do not read `.env`...", added CSP to the list.
+- GEMINI.md context strategy: added step 6 (read relevant skill file), added "Do not scan entire repo" note.
+
+### Fixed
+
+#### Uninstall scripts — surgical removal
+- `uninstall.ps1` and `uninstall.sh` no longer delete the entire `.claude/`, `.gemini/` or `.codex/` directories.
+- Now removes only kit-installed files: root `.md`, `settings.json`, `agents/`, `skills/`.
+- Parent directories are cleaned up only if empty — preserving `settings.local.json`, custom hooks, etc.
+
+#### `validate.sh` — STOP pattern precision
+- `grep -q "STOP"` replaced with `grep -qE '^> .*STOP|⚠️.*STOP'` to avoid false positives on words containing "STOP".
+
+---
+
+## [1.0.0] - 2026-05-14
+
+### Added
+
+#### New skills
+- `python` — FastAPI / Django / pytest / uv / ruff / mypy / SQLAlchemy.
+- `node` — Express / NestJS / Fastify, strict TypeScript, Vitest / Jest, pnpm.
+- `go` — modules, errors with `%w`, contexts, table-driven tests, net/http + chi.
+- `rust` — cargo workspaces, thiserror / anyhow, tokio, axum, sqlx.
+- `react` — hooks, Next.js App Router, Remix, RTL + userEvent, MSW.
+- `mobile-rn` — Expo + bare RN, React Navigation, Reanimated, EAS, Detox / Maestro.
+- `mobile-flutter` — Riverpod / BLoC, go_router, mocktail, flutter_test.
+- `infrastructure` — Docker, Kubernetes, Terraform / OpenTofu, GitHub Actions.
+- `api-design` — REST, OpenAPI, GraphQL, RFC 7807 problem details, idempotency.
+- `dependencies` — MIT-only enforcement, 20-line native rule, anti-overkill list.
+
+#### Skill rewrites
+- `database` — extended from EF Core-only to multi-engine (Postgres, MySQL, SQLite, MongoDB, Redis, ORM-agnostic).
+- `testing` — added frontend testing section (Vitest, Vue Test Utils, Angular TestBed) and per-language examples (pytest, go test, cargo test, JUnit, Jest).
+
+#### Operational scripts
+- `scripts/update.sh` — bash equivalent of `update.ps1` with MD5 diff and version drift warning.
+- `scripts/validate.sh` and `scripts/validate.ps1` — post-install check that `docs/ai/` templates have been filled (no `STOP` notices or `<!-- placeholder -->` left).
+- `scripts/uninstall.sh` and `scripts/uninstall.ps1` — cleanly remove kit files from a project (preserves `docs/ai/`).
+- `scripts/new-skill.sh` and `scripts/new-skill.ps1` — scaffold a new skill following the standard template.
+- Version drift detection in `update.sh` / `update.ps1` — warns when installed `.kit-version` differs from source kit version.
+
+#### Codex parity
+- New `tooling/codex/agents/security-reviewer.toml` — closes the gap with Claude / Gemini.
+
+#### Routing additions in CLAUDE.md, AGENTS.md, GEMINI.md
+- Entries for all 10 new / rewritten skills.
+- `dependencies` skill routing on "adding, updating, or replacing any library/package".
+
+#### Project templates
+- `STOP` notices on top of every `project-template/*.md` to prevent agents from reading empty templates.
+
+#### Filled example
+- `examples/filled-project/docs/ai/` — concrete reference of what filled templates look like.
+
+#### Prompts
+- `prompts/run-tests.md` — start a focused test pass.
+- `prompts/security-audit.md` — targeted security review.
+
+### Changed
+
+#### Install / update semantics (clarified and tested)
+- `install` now **always overwrites kit files** (skills, tooling configs, subagents, root `.md`). The `-Force` / `--force` flag has been removed — overwriting is the default and only mode.
+- `install` continues to **never overwrite `docs/ai/`** — project content is always preserved.
+- `update` is the MD5-diff-based path: only files that are missing or whose content differs are touched.
+
+#### Subagent naming consistency (Codex)
+- `codebase-explorer.toml` → `codebase-investigator.toml` to match Claude / Gemini.
+- All `name = "..."` fields in Codex agents normalized to kebab-case
+  (`code-reviewer`, `codebase-investigator`, `security-reviewer`, `test-runner`).
+
+#### Subagent enrichment
+- All five subagents in all three tools now include a "Context to read first" section pointing to `docs/ai/*` and the relevant skill file.
+
+#### Engineering principles (all 3 root files)
+- "Do not add dependencies without justification" upgraded to **"MIT license only. Avoid library bloat — if it can be done in ~20 lines of native code, do not pull a package."**
+
+#### Definition of Done (all 3 root files)
+- "covered by tests when practical" replaced by **"If tests are not added, state explicitly why and what should be tested manually."**
+
+#### Gemini token budget
+- Removed `includeDirectories: ["docs/ai"]` from `tooling/gemini/settings.json` — avoids loading all project docs into every session (~4 400 tokens saved per session).
+
+#### Codex sandbox
+- `project_doc_max_bytes = 32768` enabled in `tooling/codex/config.toml` (cap per-doc context size).
+
+#### Claude permissions
+- `WebFetch(domain:*)` deny replaced with an allowlist of documentation domains (docs.microsoft.com, learn.microsoft.com, vuejs.org, angular.dev, vitest.dev, npmjs.com).
+- Added `vue-tsc`, `vite`, `vitest`, `npx vitest` to the bash allowlist.
+- Added `git push --force-with-lease` and `git clean -fd` to deny (parity with `--force` and `reset --hard`).
+- Branch-specific push restrictions (e.g. "deny push to main") cannot be expressed in the permission matcher (the `:*` wildcard only works at end-of-pattern). Enforcement of "no direct push to main / dev" stays in the `## Git rules` section of CLAUDE.md and at the GitHub branch-protection level.
+
+#### CLAUDE.md
+- Added `## Git rules` section (already present in AGENTS.md, missing here).
+
+### Fixed
+
+#### Install / update scripts
+- `install.ps1` rewritten in ASCII — UTF-8 box-drawing characters were corrupting under Windows PowerShell 5.1 (Windows-1252 default reader).
+- `update.ps1` rewritten in ASCII (same root cause).
+- Gemini installer now copies `skills/` to `.gemini/skills/` — previously skipped, which broke the new GEMINI.md routing.
+- `validate.ps1` strict-mode bug on `Select-String` returning a single object (not an array).
+
+#### Repo hygiene
+- Removed garbage directory `./{skills/{dotnet,angular,...}}` (result of an unexpanded bash brace expansion).
+- Removed `./agents/` at repo root — duplicated `tooling/<tool>/agents/`, never installed by the scripts.
+- Structural consistency: all skills now end with a "Final response requirements" section.
+
+### Documentation
+- README rewritten to reflect the new layout (`agents/` removed, mobile + transverse skills listed).
+- README now includes:
+  - Skill coverage table (backend / frontend / mobile / data / cross-cutting).
+  - `prompts/` directory description with usage notes.
+  - Install vs update semantics table.
+  - `validate` script row.
+
+---
+
+## [1.0.0] - 2026-05-14
+
+### Added
+- Initial kit structure: skills, agents, tooling, project-template, prompts, scripts.
+- Skills: dotnet, angular, vue, architecture, testing, code-review, database, security, github-workflow.
+- Agents: codebase-investigator, code-reviewer, test-runner, architect, security-reviewer.
+- Tooling adapters: Codex, Claude Code, Gemini CLI.
+- Install scripts: PowerShell and Bash.
+- Project template: PROJECT.md, ARCHITECTURE.md, DECISIONS.md, ROADMAP.md, COMMANDS.md, TESTING.md, GLOSSARY.md.
+- Prompt templates: daily-ticket, feature-planning, code-review, bug-fix, refactor.
