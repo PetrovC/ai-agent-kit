@@ -1,6 +1,7 @@
 name        = "security-reviewer"
 description = "Security reviewer. Use when changes touch authentication, authorization, input validation, secrets, CORS, CSRF, data access, or a new dependency."
 
+model                  = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode           = "read-only"
 

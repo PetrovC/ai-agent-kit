@@ -1,6 +1,7 @@
 name        = "code-reviewer"
 description = "Code reviewer. Use before finalizing changes that touch more than 2 files or shared behavior. Reviews for correctness, security, regressions, and missing tests."
 
+model                  = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode           = "read-only"
 
