@@ -6,7 +6,7 @@ description: >
 kind: local
 tools:
   - read_file
-  - grep_search
+  - search_file_content
   - list_directory
 model: gemini-2.5-flash
 temperature: 0.1

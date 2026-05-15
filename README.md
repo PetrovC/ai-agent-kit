@@ -164,9 +164,9 @@ Each agent is tuned for **task-appropriate cost** — the cheap models do the ch
 
 | Agent | Task | Claude | Codex effort | Gemini |
 |---|---|---|---|---|
-| `architect` | Deep design reasoning (rare, high stakes) | `claude-opus-4-7` | `high` | `gemini-2.5-pro` |
-| `security-reviewer` | Vulnerability analysis (high stakes) | `claude-opus-4-7` | `high` | `gemini-2.5-pro` |
-| `code-reviewer` | PR review (balanced) | `claude-sonnet-4-6` | `high` | `gemini-2.5-pro` |
+| `architect` | Deep design reasoning (rare, high stakes) | `claude-opus-4-7` | `high` | `gemini-3.1-pro-preview` |
+| `security-reviewer` | Vulnerability analysis (high stakes) | `claude-opus-4-7` | `high` | `gemini-3.1-pro-preview` |
+| `code-reviewer` | PR review (balanced) | `claude-sonnet-4-6` | `high` | `gemini-3.1-pro-preview` |
 | `codebase-investigator` | Grep / glob / read (frequent, simple) | `claude-haiku-4-5` | `medium` | `gemini-2.5-flash` |
 | `test-runner` | Run tests + summarize (frequent, simple) | `claude-haiku-4-5` | `low` | `gemini-2.5-flash` |
 

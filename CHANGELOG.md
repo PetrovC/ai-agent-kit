@@ -4,6 +4,56 @@
 
 ---
 
+## [1.16.1] - 2026-05-15
+
+Content-coherence audit (file contents vs official schemas, field by field).
+Most config was already correct; this fixes one real bug and several drifts.
+
+### Fixed
+
+#### 🔴 marketplace.json `source: "."` was not a valid form
+
+The plugin marketplace spec requires a relative `source` to **start with `./`**
+and resolve to a sub-directory, or be a `{source: github|url|...}` object.
+`"."` is neither — `/plugin install ai-agent-kit@ai-agent-kit` would fail to
+resolve the plugin. Changed to the documented GitHub source form:
+`{ "source": "github", "repo": "PetrovC/ai-agent-kit" }` (works for both
+git-added and URL-added marketplaces). **The v1.16.0 plugin did not install;
+this fixes it.**
+
+#### 🟠 gemini-extension.json version drift
+
+Was pinned at `1.15.0` while the kit was `1.16.0` (no CI guard, unlike
+plugin.json). Bumped to match and `lint-plugin-manifest` now enforces
+`gemini-extension.json` version == `KIT_VERSION` too, plus validates the
+marketplace `source` is a documented form.
+
+#### 🟠 Gemini high-stakes agents were silently downgraded
+
+`architect` / `code-reviewer` / `security-reviewer` were pinned to
+`gemini-2.5-pro`. Since v1.14.1 the default is `gemini-3.1-pro-preview`, so
+these high-stakes agents ran on an **older** model than the session default —
+the inverse of the original "use the most capable model" intent. Re-pinned to
+`gemini-3.1-pro-preview`. The cheap `gemini-2.5-flash` agents
+(`codebase-investigator`, `test-runner`) are intentionally left as-is: the pin
+is a deliberate cost choice and no Gemini-3 flash CLI model ID was
+documentation-confirmed at audit time (not guessing one into the repo).
+
+#### 🟡 Wrong Gemini tool names in agent frontmatter
+
+Agents referenced `grep_search` and `run_terminal_command`, which are not real
+Gemini CLI tools — the actual names are `search_file_content` and
+`run_shell_command`. A misnamed tool is silently not pre-authorized (no hard
+failure) but it defeated the intended allow-list. Corrected across all agents;
+`GEMINI.md` `--model` example and the README model table updated to match.
+
+#### 🟡 Stray `mcpServers: {}` in Claude settings.json
+
+Claude's canonical MCP location is `.mcp.json`; a raw `mcpServers` map is not a
+documented `settings.json` key (it was empty, zero effect). Removed.
+
+---
+
 ## [1.16.0] - 2026-05-15
 
 ### Added

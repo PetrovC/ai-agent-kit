@@ -6,9 +6,9 @@ description: >
 kind: local
 tools:
   - read_file
-  - grep_search
+  - search_file_content
   - list_directory
-model: gemini-2.5-pro
+model: gemini-3.1-pro-preview
 temperature: 0.2
 max_turns: 20
 ---
