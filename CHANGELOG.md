@@ -31,13 +31,13 @@ marketplace `source` is a documented form.
 #### 🟠 Gemini high-stakes agents were silently downgraded
 
 `architect` / `code-reviewer` / `security-reviewer` were pinned to
-`gemini-2.5-pro`. Since v1.14.1 the default is `gemini-3.1-pro-preview`, so
-these high-stakes agents ran on an **older** model than the session default —
-the inverse of the original "use the most capable model" intent. Re-pinned to
-`gemini-3.1-pro-preview`. The cheap `gemini-2.5-flash` agents
-(`codebase-investigator`, `test-runner`) are intentionally left as-is: the pin
-is a deliberate cost choice and no Gemini-3 flash CLI model ID was
-documentation-confirmed at audit time (not guessing one into the repo).
+`gemini-2.5-pro` — an **older** model than the v1.14.1 session default, the
+inverse of the original "use the most capable model" intent. Re-pinned to
+**`gemini-3.1-pro`** (the current GA id; the `-preview` suffix is also dropped
+from the `settings.json` default and the `GEMINI.md` example so every reference
+is consistent). The cheap `gemini-2.5-flash` agents (`codebase-investigator`,
+`test-runner`) are intentionally left as-is: the pin is a deliberate cost
+choice and no Gemini-3 flash CLI model id is confirmed (not guessing one in).
 
 #### 🟡 Wrong Gemini tool names in agent frontmatter
 
