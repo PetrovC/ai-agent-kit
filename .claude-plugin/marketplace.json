@@ -1,0 +1,13 @@
+{
+  "name": "ai-agent-kit",
+  "owner": {
+    "name": "Constantin Petrov"
+  },
+  "plugins": [
+    {
+      "name": "ai-agent-kit",
+      "source": ".",
+      "description": "30 tool-agnostic engineering skills for Claude Code (stacks: dotnet, python, react, go, rust… + cross-cutting: architecture, security, testing, performance…). Opt-in skills layer; the install script remains the canonical path for full multi-tool setup."
+    }
+  ]
+}
