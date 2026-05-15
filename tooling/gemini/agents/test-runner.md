@@ -5,7 +5,7 @@ description: >
   pass or fail. Runs filtered tests and returns an actionable report.
 kind: local
 tools:
-  - run_terminal_command
+  - run_shell_command
   - read_file
 model: gemini-2.5-flash
 temperature: 0.1

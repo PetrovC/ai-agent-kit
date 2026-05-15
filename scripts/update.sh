@@ -12,7 +12,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.16.0"
+KIT_VERSION="1.16.1"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
