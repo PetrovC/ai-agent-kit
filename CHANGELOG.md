@@ -4,6 +4,110 @@
 
 ---
 
+## [1.15.0] - 2026-05-15
+
+Final of the v1.15.0 capability-parity series (rc1 → rc3 → this). The fourth
+audit found the kit was *correct* but had **capability asymmetry** across the
+three tools; this series closed it:
+
+- **rc1** — Codex lifecycle hooks (the hardened guard now protects Codex too)
+- **rc2** — Codex MCP / `shell_environment_policy` / `history` in config.toml
+- **rc3** — Gemini custom commands (11 `.toml`) + extension scaffold
+- **this** — Gemini GitHub Action: Dispatch + Assistant workflows, new inputs
+
+### Added
+
+#### Gemini Action: Dispatch + Assistant workflows
+
+The `run-gemini-cli` action documents four workflow templates; the kit shipped
+two (PR Review, Issue Triage). Added the other two:
+
+- `prompts/github-actions/gemini-dispatch.yml` — central router: `@gemini-cli
+  /review` → review, `/triage` → triage, free text → assistant.
+- `prompts/github-actions/gemini-assistant.yml` — standalone conversational
+  Q&A agent on `@gemini-cli` mentions.
+
+#### Newer `run-gemini-cli` inputs documented
+
+All four Gemini workflows now reference the newer optional inputs as commented
+hints: `gemini_debug` (verbose logging), `upload_artifacts` (run logs as a
+workflow artifact), `use_pnpm` (install the CLI via pnpm).
+
+### Net result
+
+All three tools now have parity on: hooks, slash commands, MCP config, and
+GitHub Action workflow coverage. Deferred to a separate future PR (unchanged):
+Claude plugin packaging + `marketplace.json`, LSP servers, background monitors.
+
+---
+
+## [1.15.0-rc3] - 2026-05-15
+
+Part 3 of the v1.15.0 series. Stacked on rc2. Closes the Gemini command gap.
+
+### Added
+
+#### Gemini custom commands (parity with Claude slash commands)
+
+The eleven workflow prompts existed as Claude slash commands since v1.14.0 but
+had no Gemini equivalent (deferred then — the TOML schema was undocumented; it
+is now). Ships `tooling/gemini/commands/*.toml`:
+
+- Same eleven workflows (bug-fix, code-review, daily-ticket, dependency-update,
+  feature-planning, on-call, performance-audit, refactor, run-tests,
+  security-audit, tech-debt).
+- Each has `description` + `prompt`, using Gemini's `{{args}}` placeholder
+  (the Gemini analog of Claude's `$ARGUMENTS`).
+- Installed into `<project>/.gemini/commands/`; handled by
+  install/update/uninstall (sh + ps1).
+
+#### `gemini-extension.json` scaffold
+
+A minimal extension manifest (`tooling/gemini/gemini-extension.json`, name +
+version + `contextFileName`) is provided as a **reference scaffold** for teams
+that want to package and distribute the kit via `gemini extensions install`.
+Not installed by default — the kit's primary path stays project-level
+(consistent with deferring Claude plugin packaging to a separate future PR).
+
+### Docs + CI
+
+- `GEMINI.md` gains a "Slash commands" section + extension note.
+- `README.md` structure updated.
+- CI: every `tooling/gemini/commands/*.toml` must declare `prompt` + `description`
+  and parse with `tomllib`; `gemini-extension.json` must be valid JSON with
+  name + version; smoke-install verifies representative command files.
+
+---
+
+## [1.15.0-rc2] - 2026-05-15
+
+Part 2 of the v1.15.0 series (capability parity). Stacked on rc1.
+
+### Added
+
+#### Codex `config.toml`: MCP servers, env policy, history
+
+The kit documented MCP for Claude (`.mcp.json`) and Gemini (`settings.json`)
+but **not Codex**, even though Codex supports `[mcp_servers.<name>]`. Also added
+the security/ops sections Codex offers that the kit ignored:
+
+- **`[shell_environment_policy]`** — `inherit = "all"` with an `exclude` list
+  (`*_SECRET`/`*_TOKEN`/`*_KEY`/`*_PASSWORD`/`OPENAI_*`/`ANTHROPIC_*`/`AWS_*`/`GCP_*`).
+  Keeps secrets out of subprocess env — the Codex equivalent of Gemini's
+  `advanced.excludedEnvVars`. Previously Codex subprocesses inherited every var.
+- **`[history]`** — `persistence = "save-all"`, `max_bytes = 10 MiB` so a long
+  session can't fill the disk. Documented `persistence = "none"` for sensitive repos.
+- **`[mcp_servers.*]`** — commented stdio + HTTP examples (GitHub, filesystem,
+  Linear), mirroring the `.mcp.example.jsonc` pattern.
+- **`notify`** — commented; the kit prefers the `Stop` hook, but the config.toml
+  form is documented as the alternative.
+
+`AGENTS.md` gains a "Project config" section. CI: new `Codex .toml files must
+parse` step (Python `tomllib` on the Ubuntu runner) guards the config against
+syntax regressions.
+
+---
+
 ## [1.15.0-rc1] - 2026-05-15
 
 Fourth audit pass. The kit was *correct* after 1.14.1; this series closes

@@ -1,0 +1,59 @@
+# Gemini CLI — General-purpose assistant
+#
+# On-demand conversational agent. Trigger by commenting "@gemini-cli" on any
+# issue or PR with a free-form request (e.g. "@gemini-cli explain how auth works").
+# Copy to .github/workflows/gemini-assistant.yml in your project.
+#
+# Use the Dispatch workflow instead if you want /review and /triage routing in
+# the same entry point. This assistant is the standalone Q&A variant.
+#
+# SETUP:
+#   1. Same Google Cloud auth (WIF) or GEMINI_API_KEY secret as the others.
+#   2. Grant the workflow write access to issues and pull requests.
+#
+# DOCS: https://github.com/google-github-actions/run-gemini-cli
+
+name: Gemini Assistant
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  assistant:
+    name: Gemini assistant
+    runs-on: ubuntu-latest
+    if: contains(github.event.comment.body, '@gemini-cli')
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Run Gemini assistant
+        uses: google-github-actions/run-gemini-cli@v0
+        with:
+          # Alternative: gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_cli_version: "latest"
+          # gemini_debug: false
+          # upload_artifacts: false
+          prompt: |
+            You are an on-demand assistant for this repository. Read GEMINI.md
+            and docs/ai/PROJECT.md for context before answering.
+
+            Request from the comment:
+            ${{ github.event.comment.body }}
+
+            Answer concisely and factually. Use the relevant skill from the
+            routing table if the question is stack-specific. If the request
+            asks for a code change, propose a plan rather than pushing commits.

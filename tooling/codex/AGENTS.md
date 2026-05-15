@@ -67,6 +67,23 @@ Hooks resolve from (closest wins): `~/.codex/hooks.json`, `~/.codex/config.toml`
 
 ---
 
+## Project config (`.codex/config.toml`)
+
+Beyond approval/sandbox, the kit's `config.toml` sets:
+
+- **`[shell_environment_policy]`** — `inherit = "all"` but `exclude` scrubs
+  `*_SECRET`/`*_TOKEN`/`*_KEY`/`*_PASSWORD`/`OPENAI_*`/`ANTHROPIC_*`/`AWS_*`/`GCP_*`
+  from subprocess env. Codex equivalent of Gemini's `advanced.excludedEnvVars`.
+- **`[history]`** — `persistence = "save-all"`, `max_bytes = 10 MiB`. Set
+  `persistence = "none"` for repos that must not persist transcripts.
+- **`[mcp_servers.<name>]`** — commented stdio + HTTP examples (GitHub,
+  filesystem, Linear). Codex's MCP config, mirroring Claude's `.mcp.json` and
+  Gemini's `settings.json` `mcpServers`. See [Codex MCP docs](https://developers.openai.com/codex/mcp).
+- **`notify`** — commented; the kit prefers the `Stop` hook form. Uncomment to
+  use the config.toml notification mechanism instead.
+
+---
+
 ## Context strategy
 
 Do not read every file. Read only what is needed, in this order:

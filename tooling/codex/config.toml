@@ -26,3 +26,54 @@ project_doc_max_bytes = 32768
 
 [sandbox_workspace_write]
 network_access = false
+
+# ── Environment policy ────────────────────────────────────────────────────────
+# Controls which environment variables are exposed to subprocesses Codex spawns.
+# This is the Codex equivalent of Gemini's advanced.excludedEnvVars and exists to
+# keep secrets out of tool subprocesses. `inherit = "all"` keeps the dev workflow
+# working (PATH etc.) while `exclude` scrubs common secret-bearing patterns.
+[shell_environment_policy]
+inherit = "all"
+exclude = [
+    "*_SECRET",
+    "*_TOKEN",
+    "*_KEY",
+    "*_PASSWORD",
+    "OPENAI_*",
+    "ANTHROPIC_*",
+    "AWS_*",
+    "GCP_*",
+]
+
+# ── Session history ───────────────────────────────────────────────────────────
+# Persist transcripts but cap the on-disk size so a long session can't fill the
+# disk. Set persistence = "none" for sensitive repos that must not store history.
+[history]
+persistence = "save-all"
+max_bytes = 10485760  # 10 MiB
+
+# ── Completion notification (optional) ────────────────────────────────────────
+# Uncomment to run a program when a turn finishes (parity with the Claude
+# notify-done hook). The kit ships the hook form in .codex/hooks.json instead;
+# this top-level `notify` is the config.toml alternative if you prefer it.
+# notify = ["bash", ".codex/hooks/notify-done.sh"]
+
+# ── MCP servers ───────────────────────────────────────────────────────────────
+# Codex supports Model Context Protocol servers (stdio + HTTP). Uncomment and
+# configure per project. This mirrors Claude's .mcp.json and Gemini's
+# settings.json mcpServers. Docs: https://developers.openai.com/codex/mcp
+#
+# stdio (local process):
+# [mcp_servers.github]
+# command = "npx"
+# args = ["-y", "@modelcontextprotocol/server-github"]
+# env = { GITHUB_PERSONAL_ACCESS_TOKEN = "${GITHUB_TOKEN}" }
+#
+# [mcp_servers.filesystem]
+# command = "npx"
+# args = ["-y", "@modelcontextprotocol/server-filesystem", "."]
+#
+# HTTP (remote):
+# [mcp_servers.linear]
+# url = "https://mcp.linear.app/sse"
+# bearer_token_env_var = "LINEAR_API_KEY"

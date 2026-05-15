@@ -58,3 +58,7 @@ jobs:
             4. Suggested next step: one sentence
             5. Missing information (if any): what would help resolve this faster
           gemini_cli_version: "latest"
+          # Optional newer inputs (uncomment as needed):
+          # gemini_debug: false       — verbose logging for troubleshooting
+          # upload_artifacts: false   — upload run logs as a workflow artifact
+          # use_pnpm: false           — install the CLI via pnpm instead of npm

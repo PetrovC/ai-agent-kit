@@ -57,6 +57,12 @@ jobs:
             Focus on: correctness, security, regressions, missing tests.
             Format output with sections: Blockers, Important, Minor.
           gemini_cli_version: "latest"
+          # Optional newer inputs:
+          #   gemini_debug: true        — verbose logging for troubleshooting
+          #   upload_artifacts: true    — upload run logs as a workflow artifact
+          #   use_pnpm: true            — install the CLI via pnpm instead of npm
+          # gemini_debug: false
+          # upload_artifacts: false
           # Approval mode is configured via the `settings` input (JSON merged into .gemini/settings.json)
           # or via the CLI flag inside the prompt-runner. The action runs non-interactively, so all
           # tool calls are auto-approved by default.

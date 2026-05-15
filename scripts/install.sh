@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.15.0-rc1"
+KIT_VERSION="1.15.0"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
@@ -149,6 +149,7 @@ if contains "gemini"; then
     copy_file "$KIT_ROOT/tooling/gemini/.geminiignore"  "$TARGET/.geminiignore"
     copy_file "$KIT_ROOT/tooling/gemini/settings.json"  "$TARGET/.gemini/settings.json"
     copy_dir  "$KIT_ROOT/tooling/gemini/agents"         "$TARGET/.gemini/agents"
+    copy_dir  "$KIT_ROOT/tooling/gemini/commands"       "$TARGET/.gemini/commands"
 fi
 
 # ── Project template (docs/ai/) — preserved if it exists ───────────────────
