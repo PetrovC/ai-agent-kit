@@ -12,7 +12,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.15.0-rc2"
+KIT_VERSION="1.15.0-rc3"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -197,6 +197,7 @@ if contains "gemini"; then
     compare_and_update "$KIT_ROOT/tooling/gemini/.geminiignore"  "$TARGET/.geminiignore"
     compare_and_update "$KIT_ROOT/tooling/gemini/settings.json"  "$TARGET/.gemini/settings.json"
     update_dir         "$KIT_ROOT/tooling/gemini/agents"         "$TARGET/.gemini/agents"
+    update_dir         "$KIT_ROOT/tooling/gemini/commands"       "$TARGET/.gemini/commands"
 fi
 
 # NOTE: docs/ai/ is intentionally NOT updated — it contains project-specific content.

@@ -54,6 +54,8 @@ jobs:
             "/tmp/smoke-target/.codex/hooks/notify-done.sh"
             "/tmp/smoke-target/.agents/skills/architect/SKILL.md"
             "/tmp/smoke-target/.agents/skills/security-reviewer/SKILL.md"
+            "/tmp/smoke-target/.gemini/commands/bug-fix.toml"
+            "/tmp/smoke-target/.gemini/commands/security-audit.toml"
             "/tmp/smoke-target/docs/ai/PROJECT.md"
           )
           for f in "${files[@]}"; do
@@ -109,6 +111,7 @@ jobs:
             ".codex\config.toml", ".codex\hooks.json",
             ".codex\hooks\pre-bash-guard.sh", ".codex\hooks\format-on-save.sh", ".codex\hooks\notify-done.sh",
             ".agents\skills\architect\SKILL.md", ".agents\skills\security-reviewer\SKILL.md",
+            ".gemini\commands\bug-fix.toml", ".gemini\commands\security-audit.toml",
             "docs\ai\PROJECT.md"
           )
           $missing = $false
@@ -407,6 +410,40 @@ jobs:
             fi
           done
           [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Each Gemini command .toml must declare prompt + description
+        run: |
+          errors=0
+          for f in tooling/gemini/commands/*.toml; do
+            if [[ ! -f "$f" ]]; then continue; fi
+            if ! grep -qE '^prompt[[:space:]]*=' "$f"; then
+              echo "MISSING 'prompt =' in: $f"
+              errors=$((errors+1))
+            fi
+            if ! grep -qE '^description[[:space:]]*=' "$f"; then
+              echo "MISSING 'description =' in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Gemini command .toml files must parse
+        run: |
+          errors=0
+          for f in tooling/gemini/commands/*.toml; do
+            if ! python3 -c "import tomllib,sys; tomllib.load(open('$f','rb'))"; then
+              echo "INVALID TOML: $f"
+              errors=$((errors+1))
+            else
+              echo "OK: $f"
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: gemini-extension.json must be valid JSON with name + version
+        run: |
+          python3 -c "import json; d=json.load(open('tooling/gemini/gemini-extension.json')); assert d.get('name') and d.get('version'), 'name/version required'"
+          echo "OK: gemini-extension.json"
 
   verify-webfetch-domains:
     name: Claude WebFetch domain sanity check

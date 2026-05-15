@@ -140,6 +140,7 @@ if ($ToolList -contains "gemini") {
     Remove-KitPath (Join-Path $Target ".geminiignore")
     Remove-KitPath (Join-Path $Target ".gemini\settings.json")
     Remove-KitPath (Join-Path $Target ".gemini\agents")
+    Remove-KitPath (Join-Path $Target ".gemini\commands")
     Remove-KitPath (Join-Path $Target ".gemini\skills")
     # Clean up empty .gemini/
     $geminiDir = Join-Path $Target ".gemini"

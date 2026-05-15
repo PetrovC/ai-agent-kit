@@ -141,6 +141,7 @@ if contains "gemini"; then
     remove_path "$TARGET/.geminiignore"
     remove_path "$TARGET/.gemini/settings.json"
     remove_path "$TARGET/.gemini/agents"
+    remove_path "$TARGET/.gemini/commands"
     remove_path "$TARGET/.gemini/skills"
     # Clean up empty .gemini/
     if [[ -d "$TARGET/.gemini" ]] && [[ -z "$(ls -A "$TARGET/.gemini" 2>/dev/null)" ]]; then

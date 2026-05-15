@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.15.0-rc2"
+$KitVersion = "1.15.0-rc3"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 $ValidTools = @("codex", "claude", "gemini")
@@ -139,6 +139,7 @@ if ($ToolList -contains "gemini") {
     Copy-KitFile (Join-Path $KitRoot "tooling\gemini\.geminiignore") (Join-Path $Target ".geminiignore")
     Copy-KitFile (Join-Path $KitRoot "tooling\gemini\settings.json") (Join-Path $Target ".gemini\settings.json")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\agents")   (Join-Path $Target ".gemini\agents")
+    Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\commands") (Join-Path $Target ".gemini\commands")
 }
 
 # -- Project template (docs/ai/) - preserved if it exists ------------------

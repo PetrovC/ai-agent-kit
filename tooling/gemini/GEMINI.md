@@ -116,6 +116,34 @@ subagent based on the task description in each file's frontmatter.
 
 ---
 
+## Slash commands
+
+The kit ships eleven workflow prompts as Gemini custom commands in
+`.gemini/commands/*.toml`. Type `/` to autocomplete; pass the relevant input as
+the argument (injected at `{{args}}`).
+
+| Command | Use for | Argument |
+|---|---|---|
+| `/bug-fix` | Reproduce, root-cause, fix, regression test | issue number |
+| `/code-review` | Triage-style review of a branch or diff | branch (optional) |
+| `/daily-ticket` | Standard issue workflow | issue number |
+| `/dependency-update` | Single-package update | pkg old new |
+| `/feature-planning` | Plan-only, no code | issue number |
+| `/on-call` | Live-incident playbook | symptoms |
+| `/performance-audit` | Baseline → bottleneck → fix | what is slow |
+| `/refactor` | Behaviour-preserving refactor | what to refactor |
+| `/run-tests` | Run suite + report | (none) |
+| `/security-audit` | Triage by severity | scope (optional) |
+| `/tech-debt` | Triage-only debt scan | (none) |
+
+A `gemini-extension.json` scaffold is also provided in the kit (not installed by
+default) for teams that want to distribute the kit as an installable Gemini
+extension via `gemini extensions install`.
+
+**Reference:** [Gemini custom commands](https://google-gemini.github.io/gemini-cli/docs/cli/custom-commands.html)
+
+---
+
 ## Proactive maintenance
 
 While working on a task, you may notice things outside the current scope that should be improved (outdated packages, deprecated APIs, runtime version upgrades).

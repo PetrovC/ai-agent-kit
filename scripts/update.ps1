@@ -33,7 +33,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.15.0-rc2"
+$KitVersion = "1.15.0-rc3"
 
 # -- Read installed version ------------------------------------------------
 $versionFile    = Join-Path $Target ".kit-version"
@@ -173,6 +173,7 @@ if ($ToolList -contains "gemini") {
     Compare-And-Update (Join-Path $KitRoot "tooling\gemini\.geminiignore")  (Join-Path $Target ".geminiignore")
     Compare-And-Update (Join-Path $KitRoot "tooling\gemini\settings.json")  (Join-Path $Target ".gemini\settings.json")
     Update-Directory   (Join-Path $KitRoot "tooling\gemini\agents")         (Join-Path $Target ".gemini\agents")
+    Update-Directory   (Join-Path $KitRoot "tooling\gemini\commands")       (Join-Path $Target ".gemini\commands")
 }
 
 # NOTE: docs/ai/ is intentionally NOT updated - it contains project-specific content.

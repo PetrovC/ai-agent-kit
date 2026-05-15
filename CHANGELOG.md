@@ -4,6 +4,44 @@
 
 ---
 
+## [1.15.0-rc3] - 2026-05-15
+
+Part 3 of the v1.15.0 series. Stacked on rc2. Closes the Gemini command gap.
+
+### Added
+
+#### Gemini custom commands (parity with Claude slash commands)
+
+The eleven workflow prompts existed as Claude slash commands since v1.14.0 but
+had no Gemini equivalent (deferred then — the TOML schema was undocumented; it
+is now). Ships `tooling/gemini/commands/*.toml`:
+
+- Same eleven workflows (bug-fix, code-review, daily-ticket, dependency-update,
+  feature-planning, on-call, performance-audit, refactor, run-tests,
+  security-audit, tech-debt).
+- Each has `description` + `prompt`, using Gemini's `{{args}}` placeholder
+  (the Gemini analog of Claude's `$ARGUMENTS`).
+- Installed into `<project>/.gemini/commands/`; handled by
+  install/update/uninstall (sh + ps1).
+
+#### `gemini-extension.json` scaffold
+
+A minimal extension manifest (`tooling/gemini/gemini-extension.json`, name +
+version + `contextFileName`) is provided as a **reference scaffold** for teams
+that want to package and distribute the kit via `gemini extensions install`.
+Not installed by default — the kit's primary path stays project-level
+(consistent with deferring Claude plugin packaging to a separate future PR).
+
+### Docs + CI
+
+- `GEMINI.md` gains a "Slash commands" section + extension note.
+- `README.md` structure updated.
+- CI: every `tooling/gemini/commands/*.toml` must declare `prompt` + `description`
+  and parse with `tomllib`; `gemini-extension.json` must be valid JSON with
+  name + version; smoke-install verifies representative command files.
+
+---
+
 ## [1.15.0-rc2] - 2026-05-15
 
 Part 2 of the v1.15.0 series (capability parity). Stacked on rc1.
