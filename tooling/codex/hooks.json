@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".codex/hooks/pre-bash-guard.sh",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/pre-bash-guard.sh\"'",
             "statusMessage": "Checking command safety"
           }
         ]
@@ -14,11 +14,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|Patch",
+        "matcher": "apply_patch",
         "hooks": [
           {
             "type": "command",
-            "command": ".codex/hooks/format-on-save.sh"
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/format-on-save.sh\"'"
           }
         ]
       }
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".codex/hooks/notify-done.sh"
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/notify-done.sh\"'"
           }
         ]
       }

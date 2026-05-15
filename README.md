@@ -110,18 +110,26 @@ Skills are the core of the kit. Each skill is a Markdown file with actionable pa
 
 All three approaches achieve the same result: the agent loads expert context for the current task without reading 30 skill files upfront.
 
-### Hooks *(Claude Code only)*
+### Hooks *(Claude Code + Codex CLI)*
 
-Hooks are shell scripts that Claude Code runs automatically at specific lifecycle events. They are defined in `.claude/settings.json` and installed into `.claude/hooks/`.
+Hooks are shell scripts run automatically at lifecycle events. Claude Code
+wires them via `.claude/settings.json` (installed into `.claude/hooks/`);
+Codex via `.codex/hooks.json` (installed into `.codex/hooks/`). Both use the
+same model: stdin JSON, exit code 2 = block.
 
 ```
-PreToolUse(Bash)    → pre-bash-guard.sh    → blocks dangerous commands (force-push, rm -rf, SQL DROP)
-PostToolUse(Edit)   → format-on-save.sh    → runs your formatter (prettier / ruff / gofmt / etc.)
-Stop                → notify-done.sh       → desktop notification when a session ends
-PreCompact          → session-summary.sh   → saves a git diff snapshot before context is compacted
+Claude  PreToolUse(Bash)        → pre-bash-guard.sh   → blocks force-push, rm -rf, SQL DROP
+        PostToolUse(Edit|Write) → format-on-save.sh   → runs your formatter
+        Stop                    → notify-done.sh      → desktop notification
+        PreCompact              → session-summary.sh  → git diff snapshot before compaction
+Codex   PreToolUse(Bash)        → pre-bash-guard.sh   → same hardened guard
+        PostToolUse(edit)       → format-on-save.sh   → formats changed files
+        Stop                    → notify-done.sh      → desktop notification
 ```
 
-Codex and Gemini have no equivalent hook system — safety and formatting are handled by their approval modes and external CI.
+Codex has no `PreCompact` event, so `session-summary` is Claude-only. Gemini
+has no hook system — safety/formatting there rely on its approval modes and CI.
+See the detailed Hooks section further down for the exact behaviour.
 
 ### Rules *(Claude Code only)*
 

@@ -25,7 +25,7 @@ Valid `approval_policy` values: `untrusted` | `on-failure` | `on-request` | `nev
 Useful options:
 - `--profile deep` — switch to the `deep` reasoning profile (high effort, slower, more thorough).
 - `--profile readonly` — read-only sandbox; safe for exploration without any writes.
-- `--model o4-mini` — override the model for this session.
+- `--model gpt-5.5` — override the model for this session (current recommended; falls back to gpt-5.4).
 - `--no-project-doc` — skip loading project docs (faster for quick one-off tasks).
 
 Codex reads this file at startup along with `.codex/config.toml` for project-level settings.

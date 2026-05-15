@@ -4,6 +4,74 @@
 
 ---
 
+## [1.16.2] - 2026-05-15
+
+Acted on a third-party audit focused on GitHub Actions workflows + Codex hooks
+(the kit's weakest area — the workflow templates had never been validated as
+actually-runnable). All findings verified against the official docs first.
+
+### Fixed — workflows
+
+- **`codex-pr-review.yml`**: `safety-strategy: "block"` was invalid. The
+  codex-action accepts only `drop-sudo | unprivileged-user | read-only |
+  unsafe`. Set to `read-only`. (Self-introduced in v1.13.1 from an inaccurate
+  doc read — a fair catch.)
+- **`codex-pr-review.yml`**: it ran Codex but never surfaced the result. Added
+  an `actions/github-script` step that posts `steps.codex.outputs.final-message`
+  as a PR comment (the documented pattern; codex-action does not auto-comment).
+- **`codex-pr-review.yml` + `gemini-pr-review.yml`**: the `if:` gated on
+  `github.event.issue.pull_request`, which doesn't exist on
+  `pull_request_review_comment` events — that trigger never fired. Split the
+  condition by `github.event_name`.
+- **All comment-triggered workflows** (codex/gemini pr-review, gemini dispatch
+  + assistant, claude-code): added an `author_association ∈ {OWNER, MEMBER,
+  COLLABORATOR}` gate. Previously any commenter could invoke the agent (cost +
+  prompt-injection abuse vector).
+- **All Gemini workflows**: WIF auth was a hard step while comments said
+  `GEMINI_API_KEY` was an option — contradictory. Reworked to API-key as the
+  one-secret default, WIF as a clearly-commented opt-in block (id-token,
+  auth step, `use_vertex_ai`).
+
+### Fixed — Codex hooks
+
+- **`hooks.json`**: commands were bare relative paths (`.codex/hooks/...`).
+  Per the Codex docs, repo-local hooks must resolve from the git root (hooks
+  run with the session cwd, so a subdir start broke them). Now
+  `bash -c 'exec "$(git rev-parse --show-toplevel)/.codex/hooks/..."'`.
+  Verified working from a subdirectory.
+- **`hooks.json` matcher**: PostToolUse used Claude-style `Edit|Write|Patch`;
+  Codex's edit tool is `apply_patch`. Corrected.
+- **`format-on-save.sh`**: it parsed `tool_input.file_path`, but Codex's
+  `apply_patch` reports `tool_input.command` — the formatter was a silent
+  no-op. Reworked to be payload-agnostic: formats files git reports as
+  uncommitted (idempotent, robust).
+
+### Fixed — config / docs
+
+- **`tooling/claude/settings.json`**: `attribution.commit/pr` were booleans;
+  the Claude schema defines them as **strings** (attribution text, or `""` to
+  hide). Removed the block entirely — the default already includes attribution,
+  which is the kit's intent. No behaviour change.
+- **`README.md`**: removed the "Codex and Gemini have no equivalent hook
+  system" line that contradicted the dedicated Hooks section (Codex has had
+  hooks since v1.15.0). Section now states Claude + Codex parity.
+- **`AGENTS.md`**: `--model o4-mini` example → `gpt-5.5` (matches the rest of
+  the kit since v1.14.1).
+
+### Added — CI
+
+Two jobs that catch these classes of error going forward:
+- `lint-workflow-semantics`: valid `safety-strategy`, no
+  `issue.pull_request` misuse on review-comment triggers, codex review posts
+  `final-message`, comment-triggered workflows filter `author_association`.
+- `lint-codex-hooks`: hook commands resolve from git root (no bare relative),
+  and README stays coherent on Codex hook support.
+
+`lint-plugin-manifest` also now version-checks `gemini-extension.json` and the
+marketplace `source` form (carried from v1.16.1).
+
+---
+
 ## [1.16.1] - 2026-05-15
 
 Content-coherence audit (file contents vs official schemas, field by field).

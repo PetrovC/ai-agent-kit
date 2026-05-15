@@ -7,9 +7,13 @@
 # Use the Dispatch workflow instead if you want /review and /triage routing in
 # the same entry point. This assistant is the standalone Q&A variant.
 #
-# SETUP:
-#   1. Same Google Cloud auth (WIF) or GEMINI_API_KEY secret as the others.
+# SETUP (default — API key, one secret):
+#   1. Add GEMINI_API_KEY as a repository secret.
 #   2. Grant the workflow write access to issues and pull requests.
+#
+# SETUP (alternative — WIF, keyless):
+#   Uncomment the auth step + use_vertex_ai, add the GCP secrets,
+#   uncomment id-token: write, and drop gemini_api_key.
 #
 # DOCS: https://github.com/google-github-actions/run-gemini-cli
 
@@ -23,27 +27,34 @@ jobs:
   assistant:
     name: Gemini assistant
     runs-on: ubuntu-latest
-    if: contains(github.event.comment.body, '@gemini-cli')
+    # Only repo insiders may trigger the agent (cost + prompt-injection abuse).
+    if: |
+      contains(github.event.comment.body, '@gemini-cli') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
 
     permissions:
       contents: read
       issues: write
       pull-requests: write
-      id-token: write
+      # id-token: write   # uncomment for the WIF alternative below
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      # --- WIF alternative (keyless). Uncomment + use_vertex_ai below,
+      #     remove gemini_api_key, to use Workload Identity. ---
+      # - name: Authenticate to Google Cloud
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      #     service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Run Gemini assistant
         uses: google-github-actions/run-gemini-cli@v0
         with:
-          # Alternative: gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          # WIF alternative: remove gemini_api_key above and set:
+          # use_vertex_ai: true
           gemini_cli_version: "latest"
           # gemini_debug: false
           # upload_artifacts: false
@@ -57,3 +68,4 @@ jobs:
             Answer concisely and factually. Use the relevant skill from the
             routing table if the question is stack-specific. If the request
             asks for a code change, propose a plan rather than pushing commits.
+            Post your answer as a comment.

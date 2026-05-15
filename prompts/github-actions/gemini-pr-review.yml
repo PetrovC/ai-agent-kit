@@ -3,14 +3,16 @@
 # Runs Gemini CLI to review pull requests on @gemini mentions.
 # Copy to .github/workflows/gemini-pr-review.yml in your project.
 #
-# SETUP:
-#   1. Create a Google Cloud service account with Vertex AI permissions.
-#   2. Configure Workload Identity Federation for keyless auth, or
-#      add GOOGLE_API_KEY as a repository secret for simple API-key mode.
-#   3. Ensure the workflow has write access to pull requests.
+# SETUP (default — API key, one secret):
+#   1. Add GEMINI_API_KEY as a repository secret (from Google AI Studio).
+#   2. Ensure the workflow has write access to pull requests.
 #
-# USAGE:
-#   Comment "@gemini review" on any PR to trigger a code review.
+# SETUP (alternative — Workload Identity Federation, keyless):
+#   Uncomment the "Authenticate to Google Cloud" step and use_vertex_ai,
+#   add GCP_WORKLOAD_IDENTITY_PROVIDER + GCP_SERVICE_ACCOUNT secrets,
+#   uncomment id-token: write, and drop gemini_api_key.
+#
+# USAGE: comment "@gemini review" on any PR.
 #
 # DOCS: https://github.com/google-github-actions/run-gemini-cli
 
@@ -26,46 +28,51 @@ jobs:
   gemini-review:
     name: Gemini code review
     runs-on: ubuntu-latest
+    # `github.event.issue.pull_request` only exists on issue_comment events.
+    # pull_request_review_comment events are always on a PR.
     if: |
       contains(github.event.comment.body, '@gemini') &&
-      github.event.issue.pull_request != null
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+      (
+        (github.event_name == 'issue_comment' && github.event.issue.pull_request != null) ||
+        github.event_name == 'pull_request_review_comment'
+      )
 
     permissions:
       contents: read
       pull-requests: write
-      id-token: write  # needed for Workload Identity
+      # id-token: write   # uncomment for the WIF alternative below
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-          # Alternative: use GOOGLE_API_KEY secret instead of Workload Identity
+      # --- WIF alternative (keyless). Uncomment this block + use_vertex_ai
+      #     below, and remove gemini_api_key, to use Workload Identity. ---
+      # - name: Authenticate to Google Cloud
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      #     service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Run Gemini review
         uses: google-github-actions/run-gemini-cli@v0
         with:
-          # Alternative: pass `gemini_api_key: ${{ secrets.GEMINI_API_KEY }}` if you skip WIF auth above.
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          # WIF alternative: remove gemini_api_key above and set:
+          # use_vertex_ai: true
           prompt: |
             Review the git diff of this pull request.
             Read GEMINI.md and docs/ai/ARCHITECTURE.md before reviewing.
             Focus on: correctness, security, regressions, missing tests.
             Format output with sections: Blockers, Important, Minor.
+            Post your review as a PR comment.
           gemini_cli_version: "latest"
-          # Optional newer inputs:
-          #   gemini_debug: true        — verbose logging for troubleshooting
-          #   upload_artifacts: true    — upload run logs as a workflow artifact
-          #   use_pnpm: true            — install the CLI via pnpm instead of npm
-          # gemini_debug: false
-          # upload_artifacts: false
-          # Approval mode is configured via the `settings` input (JSON merged into .gemini/settings.json)
-          # or via the CLI flag inside the prompt-runner. The action runs non-interactively, so all
-          # tool calls are auto-approved by default.
+          # Optional newer inputs (uncomment as needed):
+          # gemini_debug: false       — verbose logging for troubleshooting
+          # upload_artifacts: false   — upload run logs as a workflow artifact
+          # use_pnpm: false           — install the CLI via pnpm instead of npm
           settings: |
             {
               "general": { "checkpointing": { "enabled": false } }
