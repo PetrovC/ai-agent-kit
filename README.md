@@ -112,13 +112,15 @@ env-safety.md       → .env*, config/, appsettings → No hardcoded secrets, .e
 
 Codex and Gemini follow the same principles, but they're embedded directly in `AGENTS.md` / `GEMINI.md` rather than as auto-loaded files.
 
-### MCP servers *(Claude Code primary, Gemini CLI partial)*
+### MCP servers *(all three tools)*
 
-MCP (Model Context Protocol) is an open standard for giving agents access to external tools and data at runtime — databases, APIs, file systems, custom tools. The `.mcp.json` template installed at the project root contains commented examples for GitHub, filesystem, Postgres, Notion, and Linear.
+MCP (Model Context Protocol) is an open standard for giving agents access to external tools and data at runtime — databases, APIs, file systems, custom tools. All three CLIs support it, with different config locations:
 
-- **Claude Code** fully supports MCP servers (stdio and HTTP/SSE transports).
-- **Gemini CLI** has emerging MCP support — check the [official docs](https://google-gemini.github.io/gemini-cli/docs) for the current status.
-- **Codex CLI** does not currently support MCP; tools are provided via the built-in shell sandbox.
+- **Claude Code** — `.mcp.json` at the project root (strict JSON, stdio + HTTP/SSE transports). The kit installs an empty `{"mcpServers":{}}` plus a commented `.mcp.example.jsonc` reference with GitHub / filesystem / Postgres / Notion / Linear blocks to copy from. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
+- **Gemini CLI** — `mcpServers` block in `.gemini/settings.json`. See [the MCP server docs](https://google-gemini.github.io/gemini-cli/docs/tools/mcp-server.html).
+- **Codex CLI** — `[mcp_servers.<name>]` tables in `.codex/config.toml`. See [the Codex MCP docs](https://developers.openai.com/codex/mcp).
+
+> Note: `.mcp.json` must be **strict JSON** — Claude Code rejects comments. Edit `.mcp.example.jsonc` for reference, then paste comment-free blocks into `.mcp.json`.
 
 ### Subagents / Agents
 

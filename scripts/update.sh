@@ -12,7 +12,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.14.0"
+KIT_VERSION="1.14.1"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -181,7 +181,8 @@ fi
 if contains "claude"; then
     compare_and_update "$KIT_ROOT/tooling/claude/CLAUDE.md"     "$TARGET/CLAUDE.md"
     compare_and_update "$KIT_ROOT/tooling/claude/settings.json" "$TARGET/.claude/settings.json"
-    compare_and_update "$KIT_ROOT/tooling/claude/.mcp.json"     "$TARGET/.mcp.json"
+    compare_and_update "$KIT_ROOT/tooling/claude/.mcp.json"          "$TARGET/.mcp.json"
+    compare_and_update "$KIT_ROOT/tooling/claude/.mcp.example.jsonc" "$TARGET/.mcp.example.jsonc"
     update_dir         "$KIT_ROOT/tooling/claude/agents"        "$TARGET/.claude/agents"
     update_dir         "$KIT_ROOT/tooling/claude/commands"      "$TARGET/.claude/commands"
     update_dir         "$KIT_ROOT/tooling/claude/hooks"         "$TARGET/.claude/hooks"

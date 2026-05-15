@@ -120,6 +120,7 @@ if contains "claude"; then
     step "Removing Claude Code tooling"
     remove_path "$TARGET/CLAUDE.md"
     remove_path "$TARGET/.mcp.json"
+    remove_path "$TARGET/.mcp.example.jsonc"
     remove_path "$TARGET/.claude/settings.json"
     remove_path "$TARGET/.claude/agents"
     remove_path "$TARGET/.claude/commands"
