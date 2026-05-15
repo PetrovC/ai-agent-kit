@@ -233,6 +233,80 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
+  lint-codex-approval-policy:
+    name: Codex approval_policy values must be valid
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Each approval_policy line must use a value the Rust CLI accepts
+        run: |
+          errors=0
+          # Valid values per https://developers.openai.com/codex/cli/config
+          # (also see github.com/openai/codex/blob/main/docs/config.md)
+          while IFS= read -r line; do
+            value=$(echo "$line" | sed -E 's/.*approval_policy[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/')
+            case "$value" in
+              untrusted|on-failure|on-request|never) ;;
+              *)
+                echo "INVALID approval_policy value: $value"
+                errors=$((errors+1))
+                ;;
+            esac
+          done < <(grep -hE '^[[:space:]]*approval_policy[[:space:]]*=' tooling/codex/*.toml)
+          [[ "$errors" -eq 0 ]] || exit 1
+
+  lint-codex-skills:
+    name: Codex skills must follow SKILL.md format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Each Codex subagent skill must have name + description frontmatter
+        run: |
+          errors=0
+          for f in tooling/codex/skills/*/SKILL.md; do
+            if [[ ! -f "$f" ]]; then continue; fi
+            if ! grep -qE '^name:[[:space:]]' "$f"; then
+              echo "MISSING 'name:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+            if ! grep -qE '^description:' "$f"; then
+              echo "MISSING 'description:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: No leftover .codex/agents/*.toml files should be tracked
+        run: |
+          if [[ -d "tooling/codex/agents" ]]; then
+            echo "Legacy directory tooling/codex/agents/ should be removed (replaced by tooling/codex/skills/)"
+            exit 1
+          fi
+
+  lint-gemini-subagents:
+    name: Gemini subagents must follow .gemini/agents/*.md format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Each Gemini subagent must have name + description frontmatter
+        run: |
+          errors=0
+          for f in tooling/gemini/agents/*.md; do
+            if [[ ! -f "$f" ]]; then continue; fi
+            if ! grep -qE '^name:[[:space:]]' "$f"; then
+              echo "MISSING 'name:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+            if ! grep -qE '^description:' "$f"; then
+              echo "MISSING 'description:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
   verify-webfetch-domains:
     name: Claude WebFetch domain sanity check
     runs-on: ubuntu-latest

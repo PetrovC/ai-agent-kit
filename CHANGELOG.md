@@ -4,6 +4,71 @@
 
 ---
 
+## [1.14.0-rc1] - 2026-05-15
+
+### BREAKING — Codex subagents migrated from `.toml` to official `SKILL.md` format
+
+The Rust Codex CLI does not read `.codex/agents/*.toml`. The five subagents we shipped there
+(architect, code-reviewer, codebase-investigator, security-reviewer, test-runner) lived in a
+directory Codex never opened — they were effectively dead config.
+
+The official Codex spec puts skills under `.agents/skills/<name>/SKILL.md` with markdown +
+`name`/`description` frontmatter and invokes them via `/skills` or `$name`. The kit now
+ships them as proper skills:
+
+- Source moved from `tooling/codex/agents/<name>.toml` → `tooling/codex/skills/<name>/SKILL.md`.
+- Install target moved from `<project>/.codex/agents/` → `<project>/.agents/skills/`.
+- Per-skill `model` and `model_reasoning_effort` are dropped (not in the official spec — Codex uses the session model).
+
+**Migration:** `update.sh` / `update.ps1` automatically delete the five legacy
+`.codex/agents/*.toml` files (and the directory if empty) on first run after upgrading.
+Users running a custom subagent in `.codex/agents/` are preserved.
+
+### Changed
+
+#### Gemini `settings.json` aligned with official schema
+
+Five keys we shipped don't exist in the Gemini CLI settings schema and were silently ignored:
+
+- `general.defaultApprovalMode` — approval mode is a CLI flag (`--approval-mode`), not a settings key.
+- `tools.sandboxNetworkAccess` — not in the schema.
+- `tools.discovery.command/callCommand` — the official keys are flat: `tools.discoveryCommand` and `tools.callCommand`. We don't actually need either, so the section is removed.
+- `skills.enabled` — Gemini has no native "skills" concept (the kit's tool-agnostic skills are just files Gemini reads).
+- `security.environmentVariableRedaction.*` — replaced by the official `advanced.excludedEnvVars` flat list.
+
+The redaction list (`*_SECRET`, `*_TOKEN`, `*_KEY`, `*_PASSWORD`, `OPENAI_*`, `ANTHROPIC_*`)
+is preserved under the correct key.
+
+#### Claude `settings.json`: deprecated `includeCoAuthoredBy` → `attribution`
+
+The official settings schema marks `includeCoAuthoredBy` as deprecated. Replaced with:
+```json
+"attribution": { "commit": true, "pr": true }
+```
+Co-authoring is still enabled for both commits and PRs.
+
+#### Documentation: Gemini subagents are now native
+
+`GEMINI.md` previously routed to `@codebase-investigator`-style mentions as a convention.
+Since April 2026 the Gemini CLI supports `@name` subagents natively (`.gemini/agents/*.md` with `name`/`description` frontmatter — which is already how this kit ships them). The doc now states this explicitly and links to the upstream subagent guide.
+
+#### Documentation: Codex AGENTS.md cascade
+
+`AGENTS.md` now documents the three-level cascade Codex applies:
+1. `~/.codex/AGENTS.override.md` then `~/.codex/AGENTS.md` (global).
+2. `AGENTS.override.md` / `AGENTS.md` from the git root down to the working directory.
+3. Files closer to cwd take precedence; total content capped at `project_doc_max_bytes` (32 KiB).
+
+### Added
+
+#### CI: three new lint jobs
+
+- `lint-codex-approval-policy` — fails if any `approval_policy = "..."` in `tooling/codex/*.toml` is not one of `untrusted | on-failure | on-request | never`.
+- `lint-codex-skills` — every `tooling/codex/skills/*/SKILL.md` must have `name:` and `description:` frontmatter; fails if `tooling/codex/agents/` (legacy) still exists.
+- `lint-gemini-subagents` — every `tooling/gemini/agents/*.md` must have `name:` and `description:` frontmatter.
+
+---
+
 ## [1.13.1] - 2026-05-15
 
 ### Fixed

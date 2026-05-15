@@ -98,7 +98,8 @@ Read the relevant skill file before editing. Do not rely on inline summaries —
 
 ## Subagent routing
 
-Delegate noisy or specialized work:
+Gemini CLI has native subagent support (April 2026+). Custom subagents live in
+`.gemini/agents/*.md` and are invoked by `@name`. This kit ships five:
 
 | Situation | Use subagent |
 |---|---|
@@ -107,6 +108,11 @@ Delegate noisy or specialized work:
 | Test output is large | `@test-runner` |
 | Task affects architecture | `@architect` |
 | Security-sensitive change | `@security-reviewer` |
+
+You can also let the main agent delegate automatically — it will pick the right
+subagent based on the task description in each file's frontmatter.
+
+**Reference:** [geminicli.com/docs/core/subagents](https://geminicli.com/docs/core/subagents/)
 
 ---
 

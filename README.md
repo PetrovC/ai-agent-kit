@@ -30,7 +30,7 @@ The tools this kit targets, and their official documentation:
 ai-agent-kit/
 ├── skills/               <- Tool-agnostic rules per stack/language/concern
 ├── tooling/              <- Tool-specific wrappers (Codex / Claude / Gemini)
-│   ├── codex/agents/     <- Codex subagent definitions (.toml)
+│   ├── codex/skills/     <- Codex subagent skills (SKILL.md, installed into .agents/skills/)
 │   ├── claude/agents/    <- Claude subagent definitions (.md)
 │   ├── claude/hooks/     <- Lifecycle hook scripts (format, guard, notify, summarize)
 │   ├── claude/rules/     <- Path-scoped rules (commits, tests, migrations, env)
@@ -121,13 +121,13 @@ MCP (Model Context Protocol) is an open standard for giving agents access to ext
 
 ### Subagents / Agents
 
-All three tools support spawning specialized agents for focused sub-tasks (exploration, code review, security scan, test run, architecture). The kit ships five pre-configured agents in each `tooling/<tool>/agents/` directory.
+All three tools support spawning specialized agents for focused sub-tasks (exploration, code review, security scan, test run, architecture). The kit ships five pre-configured agents per tool.
 
-| Tool | Format | Invocation |
-|---|---|---|
-| **Claude Code** | `.md` files in `.claude/agents/` | `claude --agent architect` or the agent tool in the main session |
-| **Codex CLI** | `.toml` files in `.codex/agents/` | Referenced from `AGENTS.md` subagent routing table |
-| **Gemini CLI** | `.md` files in `.gemini/agents/` | Referenced from `GEMINI.md` with `@agent-name` syntax |
+| Tool | Format | Location | Invocation |
+|---|---|---|---|
+| **Claude Code** | `.md` (frontmatter `name`/`description`/`tools`) | `.claude/agents/` | Agent tool in the main session |
+| **Codex CLI** | `SKILL.md` (frontmatter `name`/`description`) | `.agents/skills/` | `/skills` or `$name` in the prompt |
+| **Gemini CLI** | `.md` (frontmatter `name`/`description`/optional `tools`/`model`) | `.gemini/agents/` | `@agent-name` (native since April 2026) |
 
 Subagents protect the main context window from noisy output (test logs, large diffs, exploration results).
 

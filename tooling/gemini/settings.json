@@ -8,7 +8,6 @@
   },
 
   "general": {
-    "defaultApprovalMode": "default",
     "checkpointing": {
       "enabled": true
     }
@@ -16,26 +15,22 @@
 
   "tools": {
     "sandbox": false,
-    "sandboxNetworkAccess": false,
+    "core": [],
     "allowed": [],
-    "exclude": [],
-    "discovery": {
-      "command": null,
-      "callCommand": null
-    }
-  },
-
-  "skills": {
-    "enabled": true
-  },
-
-  "security": {
-    "environmentVariableRedaction": {
-      "enabled": true,
-      "blocked": ["*_SECRET", "*_TOKEN", "*_KEY", "*_PASSWORD", "OPENAI_*", "ANTHROPIC_*"]
-    }
+    "exclude": []
   },
 
   "mcpServers": {
+  },
+
+  "advanced": {
+    "excludedEnvVars": [
+      "*_SECRET",
+      "*_TOKEN",
+      "*_KEY",
+      "*_PASSWORD",
+      "OPENAI_*",
+      "ANTHROPIC_*"
+    ]
   }
 }
