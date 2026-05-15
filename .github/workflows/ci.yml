@@ -48,6 +48,10 @@ jobs:
             "/tmp/smoke-target/.claude/commands/code-review.md"
             "/tmp/smoke-target/.claude/commands/feature-planning.md"
             "/tmp/smoke-target/.codex/config.toml"
+            "/tmp/smoke-target/.codex/hooks.json"
+            "/tmp/smoke-target/.codex/hooks/pre-bash-guard.sh"
+            "/tmp/smoke-target/.codex/hooks/format-on-save.sh"
+            "/tmp/smoke-target/.codex/hooks/notify-done.sh"
             "/tmp/smoke-target/.agents/skills/architect/SKILL.md"
             "/tmp/smoke-target/.agents/skills/security-reviewer/SKILL.md"
             "/tmp/smoke-target/docs/ai/PROJECT.md"
@@ -62,7 +66,7 @@ jobs:
 
       - name: Verify hook scripts are executable
         run: |
-          for f in /tmp/smoke-target/.claude/hooks/*.sh; do
+          for f in /tmp/smoke-target/.claude/hooks/*.sh /tmp/smoke-target/.codex/hooks/*.sh; do
             if [[ ! -x "$f" ]]; then
               echo "NOT EXECUTABLE: $f"
               exit 1
@@ -102,7 +106,8 @@ jobs:
             ".claude\rules\migration-safety.md", ".claude\rules\env-safety.md",
             ".claude\commands\bug-fix.md", ".claude\commands\code-review.md",
             ".claude\commands\feature-planning.md",
-            ".codex\config.toml",
+            ".codex\config.toml", ".codex\hooks.json",
+            ".codex\hooks\pre-bash-guard.sh", ".codex\hooks\format-on-save.sh", ".codex\hooks\notify-done.sh",
             ".agents\skills\architect\SKILL.md", ".agents\skills\security-reviewer\SKILL.md",
             "docs\ai\PROJECT.md"
           )
@@ -170,7 +175,7 @@ jobs:
       - name: Verify hook scripts exist and are executable
         run: |
           errors=0
-          for f in tooling/claude/hooks/*.sh; do
+          for f in tooling/claude/hooks/*.sh tooling/codex/hooks/*.sh; do
             if [[ ! -x "$f" ]]; then
               echo "NOT EXECUTABLE: $f"
               errors=$((errors+1))
@@ -181,30 +186,35 @@ jobs:
       - name: pre-bash-guard blocks destructive commands and allows safe ones
         shell: bash
         run: |
-          g=tooling/claude/hooks/pre-bash-guard.sh
           fail=0
-          expect() { # <expected-exit> <label> <json>
-            local got=0
-            # The guard exits 2 when it blocks. Capture that without letting
-            # `set -e` abort the step (|| keeps the exit status handled).
-            echo "$3" | bash "$g" >/dev/null 2>&1 || got=$?
-            if [[ "$got" -ne "$1" ]]; then
-              echo "FAIL ($got != $1): $2"
-              fail=1
-            else
-              echo "ok: $2"
-            fi
+          run_matrix() { # <guard-path>
+            local g="$1"
+            echo "── matrix against $g ──"
+            expect() { # <expected-exit> <label> <json>
+              local got=0
+              # The guard exits 2 when it blocks. Capture that without letting
+              # `set -e` abort the step (|| keeps the exit status handled).
+              echo "$3" | bash "$g" >/dev/null 2>&1 || got=$?
+              if [[ "$got" -ne "$1" ]]; then
+                echo "FAIL ($got != $1): $2"
+                fail=1
+              else
+                echo "ok: $2"
+              fi
+            }
+            expect 2 "force-push"        '{"tool_input":{"command":"git push --force origin main"}}'
+            expect 2 "reset --hard"      '{"tool_input":{"command":"git reset --hard HEAD~3"}}'
+            expect 2 "rm -rf /etc"       '{"tool_input":{"command":"rm -rf /etc"}}'
+            expect 2 "rm -rf parent"     '{"tool_input":{"command":"rm -rf ../../etc"}}'
+            expect 2 "rm -rf home"       '{"tool_input":{"command":"rm -rf ~"}}'
+            expect 2 "DROP TABLE"        '{"tool_input":{"command":"psql -c \"DROP TABLE users\""}}'
+            expect 0 "git status"        '{"tool_input":{"command":"git status"}}'
+            expect 0 "rm -rf /tmp/x"     '{"tool_input":{"command":"rm -rf /tmp/x"}}'
+            expect 0 "rm -rf local dir"  '{"tool_input":{"command":"rm -rf node_modules"}}'
+            expect 0 "npm test"          '{"tool_input":{"command":"npm test"}}'
           }
-          expect 2 "force-push"        '{"tool_input":{"command":"git push --force origin main"}}'
-          expect 2 "reset --hard"      '{"tool_input":{"command":"git reset --hard HEAD~3"}}'
-          expect 2 "rm -rf /etc"       '{"tool_input":{"command":"rm -rf /etc"}}'
-          expect 2 "rm -rf parent"     '{"tool_input":{"command":"rm -rf ../../etc"}}'
-          expect 2 "rm -rf home"       '{"tool_input":{"command":"rm -rf ~"}}'
-          expect 2 "DROP TABLE"        '{"tool_input":{"command":"psql -c \"DROP TABLE users\""}}'
-          expect 0 "git status"        '{"tool_input":{"command":"git status"}}'
-          expect 0 "rm -rf /tmp/x"     '{"tool_input":{"command":"rm -rf /tmp/x"}}'
-          expect 0 "rm -rf local dir"  '{"tool_input":{"command":"rm -rf node_modules"}}'
-          expect 0 "npm test"          '{"tool_input":{"command":"npm test"}}'
+          run_matrix tooling/claude/hooks/pre-bash-guard.sh
+          run_matrix tooling/codex/hooks/pre-bash-guard.sh
           [[ "$fail" -eq 0 ]] || exit 1
 
   lint-yaml:

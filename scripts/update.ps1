@@ -33,7 +33,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.14.1"
+$KitVersion = "1.15.0-rc1"
 
 # -- Read installed version ------------------------------------------------
 $versionFile    = Join-Path $Target ".kit-version"
@@ -126,6 +126,8 @@ if ($ToolList -contains "gemini") { Update-Directory (Join-Path $KitRoot "skills
 if ($ToolList -contains "codex") {
     Compare-And-Update (Join-Path $KitRoot "tooling\codex\AGENTS.md")   (Join-Path $Target "AGENTS.md")
     Compare-And-Update (Join-Path $KitRoot "tooling\codex\config.toml") (Join-Path $Target ".codex\config.toml")
+    Compare-And-Update (Join-Path $KitRoot "tooling\codex\hooks.json")  (Join-Path $Target ".codex\hooks.json")
+    Update-Directory   (Join-Path $KitRoot "tooling\codex\hooks")       (Join-Path $Target ".codex\hooks")
     # Codex skills (5 subagents) merge into shared .agents/skills/
     Update-Directory   (Join-Path $KitRoot "tooling\codex\skills")      (Join-Path $Target ".agents\skills")
 

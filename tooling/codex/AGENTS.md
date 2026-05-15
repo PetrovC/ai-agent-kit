@@ -45,6 +45,28 @@ Use `AGENTS.override.md` for temporary or sub-directory exceptions without distu
 
 ---
 
+## Lifecycle hooks
+
+This kit ships `.codex/hooks.json` wiring three safety/QoL hooks (mirrors the
+Claude Code setup so behaviour is consistent across tools):
+
+| Event | Hook | Purpose |
+|---|---|---|
+| `PreToolUse` (Bash) | `pre-bash-guard.sh` | Blocks force-push, `git reset --hard`, `rm -rf` on absolute/home/parent paths, and unapproved SQL `DROP`. Exit 2 = blocked. |
+| `PostToolUse` (Edit/Write/Patch) | `format-on-save.sh` | Best-effort formatter (prettier/ruff/gofmt/rustfmt/dotnet) on the edited file. |
+| `Stop` | `notify-done.sh` | Desktop notification when a turn finishes. |
+
+The guard parses the hook stdin JSON via a probed jq → python3 → sed chain, so
+it never fails open if an interpreter is missing or broken. Codex has no
+`PreCompact` event, so the Claude `session-summary` hook has no Codex equivalent.
+
+Hooks resolve from (closest wins): `~/.codex/hooks.json`, `~/.codex/config.toml`,
+`<repo>/.codex/hooks.json`, `<repo>/.codex/config.toml`.
+
+**Reference:** [Codex hooks docs](https://developers.openai.com/codex/hooks)
+
+---
+
 ## Context strategy
 
 Do not read every file. Read only what is needed, in this order:

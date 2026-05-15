@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.14.1"
+KIT_VERSION="1.15.0-rc1"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
@@ -118,9 +118,13 @@ if contains "codex"; then
     step "Installing Codex tooling"
     copy_file "$KIT_ROOT/tooling/codex/AGENTS.md"   "$TARGET/AGENTS.md"
     copy_file "$KIT_ROOT/tooling/codex/config.toml" "$TARGET/.codex/config.toml"
+    copy_file "$KIT_ROOT/tooling/codex/hooks.json"  "$TARGET/.codex/hooks.json"
+    copy_dir  "$KIT_ROOT/tooling/codex/hooks"       "$TARGET/.codex/hooks"
     # Codex-specific skills (the 5 subagents) merge into the shared .agents/skills/
     # directory alongside the tool-agnostic skills already installed above.
     copy_dir  "$KIT_ROOT/tooling/codex/skills"      "$TARGET/.agents/skills"
+    # Make hook scripts executable
+    find "$TARGET/.codex/hooks" -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
 fi
 
 # ── Claude ─────────────────────────────────────────────────────────────────

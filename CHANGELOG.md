@@ -4,6 +4,41 @@
 
 ---
 
+## [1.15.0-rc1] - 2026-05-15
+
+Fourth audit pass. The kit was *correct* after 1.14.1; this series closes
+**capability asymmetry** between the three tools (Claude had hooks/commands/MCP;
+Codex and Gemini lagged). This RC is part 1 of the v1.15.0 series.
+
+### Added
+
+#### Codex lifecycle hooks (parity with Claude)
+
+Codex supports `hooks.json` with the same event model as Claude
+(`PreToolUse`/`PostToolUse`/`Stop`, stdin JSON, exit 2 = block). The kit shipped
+four Claude hooks but **zero** for Codex — the hardened `rm -rf` / force-push /
+`DROP` guard only protected Claude sessions.
+
+Now ships `tooling/codex/hooks.json` + `tooling/codex/hooks/`:
+
+| Event | Hook | Notes |
+|---|---|---|
+| `PreToolUse` (Bash) | `pre-bash-guard.sh` | Same hardened guard as Claude (probed jq→python3→sed parse, no fail-open) |
+| `PostToolUse` (Edit/Write/Patch) | `format-on-save.sh` | Robust file_path parse (same Windows-stub-safe approach) |
+| `Stop` | `notify-done.sh` | Desktop notification |
+
+Codex has no `PreCompact` event, so the Claude `session-summary` hook has no
+Codex equivalent (documented in `AGENTS.md`).
+
+- `install` / `update` / `uninstall` (sh + ps1) handle `.codex/hooks.json` and
+  `.codex/hooks/`, scripts marked executable.
+- `AGENTS.md` gains a "Lifecycle hooks" section.
+- CI: smoke-install verifies the Codex hook files; the behavioral guard matrix
+  now runs against **both** the Claude and Codex guards (10 cases each);
+  executable check covers `tooling/codex/hooks/*.sh`.
+
+---
+
 ## [1.14.1] - 2026-05-15
 
 Follow-up from a second independent audit. Three of the four "priority" items it
