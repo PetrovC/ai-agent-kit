@@ -1,0 +1,71 @@
+# Gemini CLI — Dispatch router
+#
+# Central entry point for @gemini-cli comment commands. Routes:
+#   @gemini-cli /review   -> code review
+#   @gemini-cli /triage   -> issue triage
+#   @gemini-cli <text>    -> general assistant
+# Copy to .github/workflows/gemini-dispatch.yml in your project.
+#
+# SETUP:
+#   1. Same Google Cloud auth (WIF) or GEMINI_API_KEY secret as the other workflows.
+#   2. Grant the workflow write access to issues and pull requests.
+#
+# DOCS: https://github.com/google-github-actions/run-gemini-cli
+#       examples/workflows/gemini-dispatch in that repo
+
+name: Gemini Dispatch
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  dispatch:
+    name: Route @gemini-cli command
+    runs-on: ubuntu-latest
+    if: contains(github.event.comment.body, '@gemini-cli')
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          # Alternative: pass gemini_api_key below instead of WIF.
+
+      - name: Run Gemini dispatch
+        uses: google-github-actions/run-gemini-cli@v0
+        with:
+          # Alternative: gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_cli_version: "latest"
+          # gemini_debug: false
+          # upload_artifacts: false
+          prompt: |
+            You are the dispatch router for this repository. Read GEMINI.md first.
+
+            The triggering comment was:
+            ${{ github.event.comment.body }}
+
+            Routing rules:
+            - If it contains "/review": review the PR diff for correctness,
+              security, regressions, and missing tests. Output sections:
+              Blockers, Important, Minor.
+            - If it contains "/triage": classify the issue (bug/feature/
+              question/docs), set priority, name the affected area, suggest a
+              next step.
+            - Otherwise: treat the remaining text as a direct request and
+              answer it using the repo context and the relevant skill.
+
+            Be concise and actionable. Post your answer as a comment.

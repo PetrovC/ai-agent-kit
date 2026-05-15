@@ -4,6 +4,43 @@
 
 ---
 
+## [1.15.0] - 2026-05-15
+
+Final of the v1.15.0 capability-parity series (rc1 → rc3 → this). The fourth
+audit found the kit was *correct* but had **capability asymmetry** across the
+three tools; this series closed it:
+
+- **rc1** — Codex lifecycle hooks (the hardened guard now protects Codex too)
+- **rc2** — Codex MCP / `shell_environment_policy` / `history` in config.toml
+- **rc3** — Gemini custom commands (11 `.toml`) + extension scaffold
+- **this** — Gemini GitHub Action: Dispatch + Assistant workflows, new inputs
+
+### Added
+
+#### Gemini Action: Dispatch + Assistant workflows
+
+The `run-gemini-cli` action documents four workflow templates; the kit shipped
+two (PR Review, Issue Triage). Added the other two:
+
+- `prompts/github-actions/gemini-dispatch.yml` — central router: `@gemini-cli
+  /review` → review, `/triage` → triage, free text → assistant.
+- `prompts/github-actions/gemini-assistant.yml` — standalone conversational
+  Q&A agent on `@gemini-cli` mentions.
+
+#### Newer `run-gemini-cli` inputs documented
+
+All four Gemini workflows now reference the newer optional inputs as commented
+hints: `gemini_debug` (verbose logging), `upload_artifacts` (run logs as a
+workflow artifact), `use_pnpm` (install the CLI via pnpm).
+
+### Net result
+
+All three tools now have parity on: hooks, slash commands, MCP config, and
+GitHub Action workflow coverage. Deferred to a separate future PR (unchanged):
+Claude plugin packaging + `marketplace.json`, LSP servers, background monitors.
+
+---
+
 ## [1.15.0-rc3] - 2026-05-15
 
 Part 3 of the v1.15.0 series. Stacked on rc2. Closes the Gemini command gap.

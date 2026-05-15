@@ -263,6 +263,8 @@ The `prompts/github-actions/` folder has ready-to-copy workflow files for AI-ass
 | `codex-pr-review.yml` | `openai/codex-action@v1` | `@codex` in PR comments |
 | `gemini-pr-review.yml` | `google-github-actions/run-gemini-cli@v0` | `@gemini` review in PR comments |
 | `gemini-issue-triage.yml` | `google-github-actions/run-gemini-cli@v0` | Auto-triage new issues |
+| `gemini-dispatch.yml` | `google-github-actions/run-gemini-cli@v0` | `@gemini-cli /review` \| `/triage` \| free text — central router |
+| `gemini-assistant.yml` | `google-github-actions/run-gemini-cli@v0` | `@gemini-cli` free-form Q&A on issues / PRs |
 
 Copy these to `.github/workflows/` in your project (they are **not** installed automatically).
 
