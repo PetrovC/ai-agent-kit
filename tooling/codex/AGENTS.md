@@ -29,9 +29,19 @@ Useful options:
 - `--no-project-doc` — skip loading project docs (faster for quick one-off tasks).
 
 Codex reads this file at startup along with `.codex/config.toml` for project-level settings.
-Skills are activated via `$skill-name` in the routing table below.
+Skills live in `.agents/skills/<name>/SKILL.md` and are activated via `/skills` or by typing `$` in the prompt.
 
-**Reference:** [github.com/openai/codex](https://github.com/openai/codex) · GitHub Action: [github.com/openai/codex-action](https://github.com/openai/codex-action)
+## Configuration cascade
+
+Codex merges AGENTS.md files from broad to narrow:
+
+1. `~/.codex/AGENTS.override.md` then `~/.codex/AGENTS.md` (global).
+2. Each `AGENTS.override.md` / `AGENTS.md` walking from the git repo root down to the working directory.
+3. Files closer to the working directory take precedence; total merged content is capped by `project_doc_max_bytes` (32 KiB by default).
+
+Use `AGENTS.override.md` for temporary or sub-directory exceptions without disturbing the main file.
+
+**Reference:** [github.com/openai/codex](https://github.com/openai/codex) · [Codex AGENTS.md guide](https://developers.openai.com/codex/guides/agents-md) · GitHub Action: [github.com/openai/codex-action](https://github.com/openai/codex-action)
 
 ---
 

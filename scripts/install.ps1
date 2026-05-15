@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.13.1"
+$KitVersion = "1.14.0-rc1"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 $ValidTools = @("codex", "claude", "gemini")
@@ -112,7 +112,9 @@ if ($ToolList -contains "codex") {
     Write-Step "Installing Codex tooling"
     Copy-KitFile (Join-Path $KitRoot "tooling\codex\AGENTS.md")   (Join-Path $Target "AGENTS.md")
     Copy-KitFile (Join-Path $KitRoot "tooling\codex\config.toml") (Join-Path $Target ".codex\config.toml")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\codex\agents") (Join-Path $Target ".codex\agents")
+    # Codex-specific skills (the 5 subagents) merge into the shared .agents/skills/
+    # directory alongside the tool-agnostic skills already installed above.
+    Copy-KitDirectory (Join-Path $KitRoot "tooling\codex\skills") (Join-Path $Target ".agents\skills")
 }
 
 # -- Claude ----------------------------------------------------------------

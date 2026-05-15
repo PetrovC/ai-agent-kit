@@ -33,7 +33,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.13.1"
+$KitVersion = "1.14.0-rc1"
 
 # -- Read installed version ------------------------------------------------
 $versionFile    = Join-Path $Target ".kit-version"
@@ -126,7 +126,31 @@ if ($ToolList -contains "gemini") { Update-Directory (Join-Path $KitRoot "skills
 if ($ToolList -contains "codex") {
     Compare-And-Update (Join-Path $KitRoot "tooling\codex\AGENTS.md")   (Join-Path $Target "AGENTS.md")
     Compare-And-Update (Join-Path $KitRoot "tooling\codex\config.toml") (Join-Path $Target ".codex\config.toml")
-    Update-Directory   (Join-Path $KitRoot "tooling\codex\agents")      (Join-Path $Target ".codex\agents")
+    # Codex skills (5 subagents) merge into shared .agents/skills/
+    Update-Directory   (Join-Path $KitRoot "tooling\codex\skills")      (Join-Path $Target ".agents\skills")
+
+    # -- v1.14 migration: remove legacy .codex/agents/*.toml --------------
+    # The Rust Codex CLI does not read this directory. Files are leftover from
+    # pre-1.14 kit versions. Delete them so they don't sit stale in user repos.
+    $legacyCodexAgents = Join-Path $Target ".codex\agents"
+    if (Test-Path $legacyCodexAgents) {
+        foreach ($legacy in @("architect", "code-reviewer", "codebase-investigator", "security-reviewer", "test-runner")) {
+            $legacyFile = Join-Path $legacyCodexAgents "$legacy.toml"
+            if (Test-Path $legacyFile) {
+                $Changes.Add("REMOVED  .codex/agents/$legacy.toml (legacy)")
+                if (-not $DryRun) {
+                    Remove-Item $legacyFile -Force
+                }
+            }
+        }
+        # Remove the now-empty directory (only if empty - preserve user-added files).
+        if (-not $DryRun) {
+            $remaining = @(Get-ChildItem $legacyCodexAgents -Force -ErrorAction SilentlyContinue)
+            if ($remaining.Count -eq 0) {
+                Remove-Item $legacyCodexAgents -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
 }
 
 # -- Update Claude tooling -------------------------------------------------

@@ -12,7 +12,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.13.1"
+KIT_VERSION="1.14.0-rc1"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -152,7 +152,29 @@ contains "gemini" && update_dir "$KIT_ROOT/skills" "$TARGET/.gemini/skills"
 if contains "codex"; then
     compare_and_update "$KIT_ROOT/tooling/codex/AGENTS.md"   "$TARGET/AGENTS.md"
     compare_and_update "$KIT_ROOT/tooling/codex/config.toml" "$TARGET/.codex/config.toml"
-    update_dir         "$KIT_ROOT/tooling/codex/agents"      "$TARGET/.codex/agents"
+    # Codex skills (5 subagents) merge into shared .agents/skills/
+    update_dir         "$KIT_ROOT/tooling/codex/skills"      "$TARGET/.agents/skills"
+
+    # ── v1.14 migration: remove legacy .codex/agents/*.toml ──────────────
+    # The Rust Codex CLI does not read this directory. Files are leftover from
+    # pre-1.14 kit versions that used custom TOML subagents. We delete them so
+    # users don't keep stale, never-loaded files in their repos.
+    LEGACY_CODEX_AGENTS_DIR="$TARGET/.codex/agents"
+    if [[ -d "$LEGACY_CODEX_AGENTS_DIR" ]]; then
+        for legacy in architect code-reviewer codebase-investigator security-reviewer test-runner; do
+            legacy_file="$LEGACY_CODEX_AGENTS_DIR/$legacy.toml"
+            if [[ -f "$legacy_file" ]]; then
+                CHANGES+=("REMOVED  .codex/agents/$legacy.toml (legacy)")
+                if [[ "$DRY_RUN" == "false" ]]; then
+                    rm -f "$legacy_file"
+                fi
+            fi
+        done
+        # Remove the now-empty directory (only if empty — preserve user-added files).
+        if [[ "$DRY_RUN" == "false" ]] && [[ -z "$(ls -A "$LEGACY_CODEX_AGENTS_DIR" 2>/dev/null)" ]]; then
+            rmdir "$LEGACY_CODEX_AGENTS_DIR" 2>/dev/null || true
+        fi
+    fi
 fi
 
 # ── Update Claude tooling ──────────────────────────────────────────────────
