@@ -4,6 +4,50 @@
 
 ---
 
+## [1.12.0] - 2026-05-15
+
+### Added
+
+#### Three new CI jobs (`lint-yaml`, `routing-consistency`, `verify-webfetch-domains`)
+
+Closes **C1** from the original kit audit.
+
+| Job | What it validates |
+|---|---|
+| `lint-yaml` | Every `*.yml` / `*.yaml` file in the repo parses with `yq`. GitHub Actions templates in `prompts/github-actions/` and `.github/workflows/` must declare both `on` and `jobs` keys. |
+| `routing-consistency` | Every skill directory under `skills/` must have a row in **all three** routing tables: `tooling/claude/CLAUDE.md` (`` `<skill>` skill ``), `tooling/codex/AGENTS.md` (`` `$<skill>` ``), and `tooling/gemini/GEMINI.md` (`skills/<skill>/SKILL.md`). Catches drift when a new skill is added but routing tables are not updated. |
+| `verify-webfetch-domains` | Each `WebFetch(domain:...)` entry in `tooling/claude/settings.json` must be a plain hostname — no wildcards (`*`, `*.example.com`), no schemes (`http://`, `https://`), valid DNS character set. |
+
+These jobs run on every push and pull request, alongside the existing `lint-skills` and `lint-rules` checks.
+
+### Changed
+
+#### `tooling/gemini/settings.json` — enabled checkpointing, added tool discovery placeholder
+
+Closes **C3** from the original kit audit.
+
+- `general.checkpointing.enabled` flipped from `false` to **`true`** — Gemini CLI now writes session checkpoints by default, allowing resume after an error or long pause (`gemini --checkpointing` is the runtime flag, see GEMINI.md).
+- New `tools.discovery` block with `command` / `callCommand` placeholders for projects that expose custom tools via Gemini's tool discovery mechanism. Set to `null` by default — projects fill these to register external tools at startup.
+
+#### `tooling/claude/settings.json` — project-level defaults
+
+Closes **B3** from the original kit audit.
+
+Four top-level fields added so installed projects ship with safe, explicit defaults:
+
+| Field | Value | Why |
+|---|---|---|
+| `model` | `"claude-sonnet-4-6"` | Pins the default model for the project. Override per-session with `claude --model ...`. |
+| `outputStyle` | `"default"` | Explicit baseline — projects can switch to `"concise"` for less verbose output. |
+| `includeCoAuthoredBy` | `true` | Ensures Claude-assisted commits carry a `Co-Authored-By: Claude` trailer for attribution. |
+| `cleanupPeriodDays` | `30` | Bounded retention for Claude Code's local logs and session data. |
+
+### Changed (version)
+
+- `KIT_VERSION` bumped to `1.12.0` in all four scripts.
+
+---
+
 ## [1.11.0] - 2026-05-15
 
 ### Changed

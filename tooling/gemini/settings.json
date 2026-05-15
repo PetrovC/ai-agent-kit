@@ -10,7 +10,7 @@
   "general": {
     "defaultApprovalMode": "default",
     "checkpointing": {
-      "enabled": false
+      "enabled": true
     }
   },
 
@@ -18,7 +18,11 @@
     "sandbox": false,
     "sandboxNetworkAccess": false,
     "allowed": [],
-    "exclude": []
+    "exclude": [],
+    "discovery": {
+      "command": null,
+      "callCommand": null
+    }
   },
 
   "skills": {
