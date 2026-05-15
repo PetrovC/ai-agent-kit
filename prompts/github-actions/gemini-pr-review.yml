@@ -50,10 +50,17 @@ jobs:
       - name: Run Gemini review
         uses: google-github-actions/run-gemini-cli@v0
         with:
+          # Alternative: pass `gemini_api_key: ${{ secrets.GEMINI_API_KEY }}` if you skip WIF auth above.
           prompt: |
             Review the git diff of this pull request.
             Read GEMINI.md and docs/ai/ARCHITECTURE.md before reviewing.
             Focus on: correctness, security, regressions, missing tests.
             Format output with sections: Blockers, Important, Minor.
-          flags: "--approval-mode yolo"
-          version: "latest"
+          gemini_cli_version: "latest"
+          # Approval mode is configured via the `settings` input (JSON merged into .gemini/settings.json)
+          # or via the CLI flag inside the prompt-runner. The action runs non-interactively, so all
+          # tool calls are auto-approved by default.
+          settings: |
+            {
+              "general": { "checkpointing": { "enabled": false } }
+            }

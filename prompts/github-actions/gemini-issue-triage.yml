@@ -44,6 +44,7 @@ jobs:
       - name: Triage issue with Gemini
         uses: google-github-actions/run-gemini-cli@v0
         with:
+          # Alternative: pass `gemini_api_key: ${{ secrets.GEMINI_API_KEY }}` if you skip WIF auth above.
           prompt: |
             Triage this GitHub issue for our project.
             Read docs/ai/PROJECT.md for product context.
@@ -56,5 +57,4 @@ jobs:
             3. Affected area: which module/skill/component
             4. Suggested next step: one sentence
             5. Missing information (if any): what would help resolve this faster
-          flags: "--approval-mode yolo"
-          version: "latest"
+          gemini_cli_version: "latest"
