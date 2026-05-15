@@ -47,5 +47,5 @@ jobs:
             Focus on: correctness, security, regressions, missing tests, architecture compliance.
             Read AGENTS.md and docs/ai/ARCHITECTURE.md before reviewing.
             Format your output with sections: Blockers, Important, Minor.
-          model: "o4-mini"
+          model: "gpt-5.5"
           approval_policy: "never"

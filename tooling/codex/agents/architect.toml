@@ -1,6 +1,7 @@
 name        = "architect"
 description = "Architecture analyst. Use when a task may affect layer boundaries, dependency direction, or introduces a new pattern. Returns a concise design assessment."
 
+model                  = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode           = "read-only"
 
