@@ -106,6 +106,8 @@ if contains "codex"; then
     step "Removing Codex tooling"
     remove_path "$TARGET/AGENTS.md"
     remove_path "$TARGET/.codex/config.toml"
+    remove_path "$TARGET/.codex/hooks.json"
+    remove_path "$TARGET/.codex/hooks"
     remove_path "$TARGET/.codex/agents"
     remove_path "$TARGET/.agents/skills"
     # Clean up empty directories

@@ -12,7 +12,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.14.1"
+KIT_VERSION="1.15.0-rc1"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -152,6 +152,8 @@ contains "gemini" && update_dir "$KIT_ROOT/skills" "$TARGET/.gemini/skills"
 if contains "codex"; then
     compare_and_update "$KIT_ROOT/tooling/codex/AGENTS.md"   "$TARGET/AGENTS.md"
     compare_and_update "$KIT_ROOT/tooling/codex/config.toml" "$TARGET/.codex/config.toml"
+    compare_and_update "$KIT_ROOT/tooling/codex/hooks.json"  "$TARGET/.codex/hooks.json"
+    update_dir         "$KIT_ROOT/tooling/codex/hooks"       "$TARGET/.codex/hooks"
     # Codex skills (5 subagents) merge into shared .agents/skills/
     update_dir         "$KIT_ROOT/tooling/codex/skills"      "$TARGET/.agents/skills"
 

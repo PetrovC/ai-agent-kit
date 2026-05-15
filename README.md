@@ -31,6 +31,7 @@ ai-agent-kit/
 ├── skills/               <- Tool-agnostic rules per stack/language/concern
 ├── tooling/              <- Tool-specific wrappers (Codex / Claude / Gemini)
 │   ├── codex/skills/     <- Codex subagent skills (SKILL.md, installed into .agents/skills/)
+│   ├── codex/hooks/      <- Codex lifecycle hooks (guard, format, notify) + hooks.json
 │   ├── claude/agents/    <- Claude subagent definitions (.md)
 │   ├── claude/commands/  <- Claude slash commands (.md, installed into .claude/commands/)
 │   ├── claude/hooks/     <- Lifecycle hook scripts (format, guard, notify, summarize)
@@ -177,18 +178,34 @@ have no `paths:` — they are invoked explicitly via the routing table or on dem
 
 ---
 
-## Hooks *(Claude Code only)*
+## Hooks *(Claude Code + Codex CLI)*
 
-Four lifecycle hook scripts are installed into `.claude/hooks/` for Claude Code:
+Lifecycle hook scripts run automatically at tool events. Claude Code wires them
+via `.claude/settings.json`; Codex via `.codex/hooks.json`. Both use the same
+model (stdin JSON, exit 2 = block).
+
+**Claude Code** — installed into `.claude/hooks/`:
 
 | Script | Event | What it does |
 |---|---|---|
-| `format-on-save.sh` | `PostToolUse(Edit\|Write)` | Runs your project's formatter (prettier / ruff / gofmt / rustfmt / dotnet format) on every file Claude writes |
-| `pre-bash-guard.sh` | `PreToolUse(Bash)` | Blocks `git push --force`, `git reset --hard`, recursive `rm -rf` outside `/tmp`, and SQL `DROP` without an approval comment |
-| `notify-done.sh` | `Stop` | Desktop notification when Claude finishes a session (macOS, Linux, Windows) |
+| `format-on-save.sh` | `PostToolUse(Edit\|Write)` | Runs your project's formatter (prettier / ruff / gofmt / rustfmt / dotnet format) on every file written |
+| `pre-bash-guard.sh` | `PreToolUse(Bash)` | Blocks `git push --force`, `git reset --hard`, recursive `rm -rf` on absolute/home/parent paths, and SQL `DROP` without an approval comment |
+| `notify-done.sh` | `Stop` | Desktop notification when a session finishes (macOS, Linux, Windows) |
 | `session-summary.sh` | `PreCompact` | Saves a git status + diff snapshot to `.claude/session-log/` before context is compacted |
 
-Hooks are referenced in `settings.json` and installed automatically by `install.sh` / `install.ps1`.
+**Codex CLI** — installed into `.codex/hooks/` (wired by `.codex/hooks.json`):
+
+| Script | Event | What it does |
+|---|---|---|
+| `pre-bash-guard.sh` | `PreToolUse(Bash)` | Same hardened guard as Claude |
+| `format-on-save.sh` | `PostToolUse(Edit\|Write\|Patch)` | Same formatter dispatch |
+| `notify-done.sh` | `Stop` | Desktop notification |
+
+Codex has no `PreCompact` event, so `session-summary` is Claude-only. The guard
+parses hook input via a probed `jq → python3 → sed` chain so it never fails open
+if an interpreter is missing or broken (e.g. the Windows python3 stub).
+
+All hooks are installed automatically by `install.sh` / `install.ps1`.
 
 A `PreToolUse` hook returning **exit code 2** blocks the tool call and feeds its stderr back to Claude as a refusal message. All other hooks are async (fire-and-forget) and do not block the agent.
 

@@ -103,6 +103,8 @@ if ($ToolList -contains "codex") {
     Step "Removing Codex tooling"
     Remove-KitPath (Join-Path $Target "AGENTS.md")
     Remove-KitPath (Join-Path $Target ".codex\config.toml")
+    Remove-KitPath (Join-Path $Target ".codex\hooks.json")
+    Remove-KitPath (Join-Path $Target ".codex\hooks")
     Remove-KitPath (Join-Path $Target ".codex\agents")
     Remove-KitPath (Join-Path $Target ".agents\skills")
     # Clean up empty directories
