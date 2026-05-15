@@ -325,6 +325,20 @@ jobs:
           done < <(grep -hE '^[[:space:]]*approval_policy[[:space:]]*=' tooling/codex/*.toml)
           [[ "$errors" -eq 0 ]] || exit 1
 
+      - name: Codex .toml files must parse
+        run: |
+          # Ubuntu runners ship Python 3.11+ which has tomllib in the stdlib.
+          errors=0
+          for f in tooling/codex/*.toml; do
+            if ! python3 -c "import tomllib,sys; tomllib.load(open('$f','rb'))"; then
+              echo "INVALID TOML: $f"
+              errors=$((errors+1))
+            else
+              echo "OK: $f"
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
   lint-codex-skills:
     name: Codex skills must follow SKILL.md format
     runs-on: ubuntu-latest

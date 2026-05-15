@@ -4,6 +4,35 @@
 
 ---
 
+## [1.15.0-rc2] - 2026-05-15
+
+Part 2 of the v1.15.0 series (capability parity). Stacked on rc1.
+
+### Added
+
+#### Codex `config.toml`: MCP servers, env policy, history
+
+The kit documented MCP for Claude (`.mcp.json`) and Gemini (`settings.json`)
+but **not Codex**, even though Codex supports `[mcp_servers.<name>]`. Also added
+the security/ops sections Codex offers that the kit ignored:
+
+- **`[shell_environment_policy]`** — `inherit = "all"` with an `exclude` list
+  (`*_SECRET`/`*_TOKEN`/`*_KEY`/`*_PASSWORD`/`OPENAI_*`/`ANTHROPIC_*`/`AWS_*`/`GCP_*`).
+  Keeps secrets out of subprocess env — the Codex equivalent of Gemini's
+  `advanced.excludedEnvVars`. Previously Codex subprocesses inherited every var.
+- **`[history]`** — `persistence = "save-all"`, `max_bytes = 10 MiB` so a long
+  session can't fill the disk. Documented `persistence = "none"` for sensitive repos.
+- **`[mcp_servers.*]`** — commented stdio + HTTP examples (GitHub, filesystem,
+  Linear), mirroring the `.mcp.example.jsonc` pattern.
+- **`notify`** — commented; the kit prefers the `Stop` hook, but the config.toml
+  form is documented as the alternative.
+
+`AGENTS.md` gains a "Project config" section. CI: new `Codex .toml files must
+parse` step (Python `tomllib` on the Ubuntu runner) guards the config against
+syntax regressions.
+
+---
+
 ## [1.15.0-rc1] - 2026-05-15
 
 Fourth audit pass. The kit was *correct* after 1.14.1; this series closes
