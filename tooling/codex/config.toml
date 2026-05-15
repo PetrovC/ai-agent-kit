@@ -3,9 +3,10 @@
 # Personal config (model, profiles, API keys) goes in ~/.codex/config.toml
 
 # approval_policy controls when Codex asks for confirmation.
-#   on-request    — show proposed changes, require approval before applying (safe default)
-#   auto-approve  — apply changes automatically without asking
-#   never         — fully autonomous; no confirmations (CI / supervised runs only)
+#   untrusted   — ask for any command that isn't pre-allowlisted (most paranoid)
+#   on-failure  — only ask when a sandboxed command fails
+#   on-request  — show proposed changes, require approval before applying (safe default)
+#   never       — fully autonomous; no confirmations (CI / supervised runs only)
 approval_policy = "on-request"
 
 # sandbox_mode controls filesystem and network access during execution.

@@ -41,11 +41,19 @@ jobs:
       - name: Run Codex review
         uses: openai/codex-action@v1
         with:
-          api_key: ${{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt: |
             Review the changes in this pull request.
             Focus on: correctness, security, regressions, missing tests, architecture compliance.
             Read AGENTS.md and docs/ai/ARCHITECTURE.md before reviewing.
             Format your output with sections: Blockers, Important, Minor.
-          model: "gpt-5.5"
-          approval_policy: "never"
+          # Pin a model explicitly. See https://developers.openai.com/codex for the current list.
+          # Omit to use the action's default.
+          # model: "gpt-5-codex"
+
+          # Read-only sandbox is the safe default for review jobs (no writes, no network).
+          sandbox: "read-only"
+
+          # safety-strategy controls how the action handles destructive operations.
+          # Options: "ask" | "allow" | "block". Use "block" for review-only workflows.
+          safety-strategy: "block"

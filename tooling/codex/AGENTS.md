@@ -16,9 +16,11 @@ and a team can safely evolve for years.
 
 ```bash
 codex                              # interactive, on-request approval (default)
-codex --approval-policy auto-approve  # applies file edits without asking (still prompts for shell)
+codex --approval-policy on-failure    # only ask when a sandboxed command fails
 codex --approval-policy never         # fully autonomous; no confirmations (CI / supervised only)
 ```
+
+Valid `approval_policy` values: `untrusted` | `on-failure` | `on-request` | `never`.
 
 Useful options:
 - `--profile deep` — switch to the `deep` reasoning profile (high effort, slower, more thorough).

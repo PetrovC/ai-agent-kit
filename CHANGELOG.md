@@ -4,6 +4,33 @@
 
 ---
 
+## [1.13.1] - 2026-05-15
+
+### Fixed
+
+#### GitHub Actions workflow templates — invalid inputs
+
+Three of the four templates in `prompts/github-actions/` passed inputs that don't exist in
+the current upstream actions, so they would fail at workflow startup.
+
+| File | Wrong input | Correct input |
+|---|---|---|
+| `codex-pr-review.yml` | `api_key:` | `openai-api-key:` |
+| `codex-pr-review.yml` | `approval_policy: "never"` | removed (use `sandbox: "read-only"` + `safety-strategy: "block"`) |
+| `codex-pr-review.yml` | `model: "gpt-5.5"` | commented out (non-existent model; let action default decide) |
+| `gemini-pr-review.yml` | `flags: "--approval-mode yolo"` | removed (the action runs non-interactively; approval-mode CLI flag is irrelevant) |
+| `gemini-pr-review.yml` | `version:` | `gemini_cli_version:` |
+| `gemini-issue-triage.yml` | same as above | same fixes |
+
+#### Codex `approval_policy` — invalid values documented
+
+`AGENTS.md`, `tooling/codex/config.toml`, and `tooling/codex/global-config-template.toml`
+documented `auto-approve` and `suggest` as valid values. The Rust Codex CLI accepts only
+`untrusted` | `on-failure` | `on-request` | `never`. Comments and the CLI usage example
+have been corrected. Runtime values (`"on-request"`) were already valid — no behavior change.
+
+---
+
 ## [1.13.0] - 2026-05-15
 
 ### Changed
