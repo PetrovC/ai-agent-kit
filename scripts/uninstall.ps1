@@ -120,6 +120,7 @@ if ($ToolList -contains "claude") {
     Remove-KitPath (Join-Path $Target ".mcp.json")
     Remove-KitPath (Join-Path $Target ".claude\settings.json")
     Remove-KitPath (Join-Path $Target ".claude\agents")
+    Remove-KitPath (Join-Path $Target ".claude\commands")
     Remove-KitPath (Join-Path $Target ".claude\hooks")
     Remove-KitPath (Join-Path $Target ".claude\rules")
     Remove-KitPath (Join-Path $Target ".claude\skills")

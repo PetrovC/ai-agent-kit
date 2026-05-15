@@ -122,6 +122,7 @@ if contains "claude"; then
     remove_path "$TARGET/.mcp.json"
     remove_path "$TARGET/.claude/settings.json"
     remove_path "$TARGET/.claude/agents"
+    remove_path "$TARGET/.claude/commands"
     remove_path "$TARGET/.claude/hooks"
     remove_path "$TARGET/.claude/rules"
     remove_path "$TARGET/.claude/skills"

@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.14.0-rc1"
+KIT_VERSION="1.14.0"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
@@ -130,6 +130,7 @@ if contains "claude"; then
     copy_file "$KIT_ROOT/tooling/claude/settings.json"  "$TARGET/.claude/settings.json"
     copy_file "$KIT_ROOT/tooling/claude/.mcp.json"      "$TARGET/.mcp.json"
     copy_dir  "$KIT_ROOT/tooling/claude/agents"         "$TARGET/.claude/agents"
+    copy_dir  "$KIT_ROOT/tooling/claude/commands"       "$TARGET/.claude/commands"
     copy_dir  "$KIT_ROOT/tooling/claude/hooks"          "$TARGET/.claude/hooks"
     copy_dir  "$KIT_ROOT/tooling/claude/rules"          "$TARGET/.claude/rules"
     # Make hook scripts executable
