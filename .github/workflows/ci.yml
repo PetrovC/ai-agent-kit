@@ -167,3 +167,100 @@ jobs:
             fi
           done
           [[ "$errors" -eq 0 ]] || exit 1
+
+  lint-yaml:
+    name: YAML syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        run: sudo snap install yq
+
+      - name: Validate every YAML file parses
+        run: |
+          errors=0
+          while IFS= read -r f; do
+            if ! yq eval '.' "$f" > /dev/null 2>&1; then
+              echo "INVALID YAML: $f"
+              yq eval '.' "$f" 2>&1 | head -5
+              errors=$((errors+1))
+            else
+              echo "OK: $f"
+            fi
+          done < <(find . -type f \( -name "*.yml" -o -name "*.yaml" \) -not -path "./node_modules/*" -not -path "./.git/*")
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: GitHub Actions workflow templates must declare 'on' and 'jobs'
+        run: |
+          errors=0
+          for f in prompts/github-actions/*.yml .github/workflows/*.yml; do
+            [[ -f "$f" ]] || continue
+            if ! yq eval 'has("on") and has("jobs")' "$f" | grep -q "^true$"; then
+              echo "MISSING 'on' or 'jobs' in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+  routing-consistency:
+    name: Skill routing consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every skill must appear in all three routing tables
+        run: |
+          errors=0
+          for dir in skills/*/; do
+            skill=$(basename "$dir")
+            # Claude — `<skill>` skill
+            if ! grep -qE "\`${skill}\`[[:space:]]+skill" tooling/claude/CLAUDE.md; then
+              echo "MISSING from tooling/claude/CLAUDE.md: $skill"
+              errors=$((errors+1))
+            fi
+            # Codex — `$<skill>` (fixed-string match avoids regex back-reference parsing)
+            codex_pattern="\`\$${skill}\`"
+            if ! grep -qF "$codex_pattern" tooling/codex/AGENTS.md; then
+              echo "MISSING from tooling/codex/AGENTS.md: \$$skill"
+              errors=$((errors+1))
+            fi
+            # Gemini — skills/<skill>/SKILL.md
+            if ! grep -qE "skills/${skill}/SKILL\.md" tooling/gemini/GEMINI.md; then
+              echo "MISSING from tooling/gemini/GEMINI.md: skills/$skill/SKILL.md"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+  verify-webfetch-domains:
+    name: Claude WebFetch domain sanity check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: WebFetch entries must be domain-scoped HTTPS, not wildcards or schemes
+        run: |
+          errors=0
+          # Extract WebFetch(domain:...) entries; verify each domain is a plausible hostname.
+          domains=$(jq -r '.permissions.allow[] | select(startswith("WebFetch(domain:"))' tooling/claude/settings.json \
+                    | sed -E 's/^WebFetch\(domain:([^)]+)\)$/\1/')
+          while IFS= read -r d; do
+            [[ -z "$d" ]] && continue
+            if [[ "$d" == "*" || "$d" == *"*"* ]]; then
+              echo "WILDCARD DOMAIN (too broad): $d"
+              errors=$((errors+1))
+            elif [[ "$d" == http://* || "$d" == https://* ]]; then
+              echo "DOMAIN SHOULD NOT INCLUDE SCHEME: $d"
+              errors=$((errors+1))
+            elif [[ ! "$d" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ ]]; then
+              echo "INVALID DOMAIN FORMAT: $d"
+              errors=$((errors+1))
+            else
+              echo "OK: $d"
+            fi
+          done <<< "$domains"
+          [[ "$errors" -eq 0 ]] || exit 1
