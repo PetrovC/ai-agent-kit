@@ -4,6 +4,67 @@
 
 ---
 
+## [1.14.1] - 2026-05-15
+
+Follow-up from a second independent audit. Three of the four "priority" items it
+raised were already fixed in 1.13.1 (Codex/Gemini Action inputs, Codex
+`auto-approve`). These six were genuinely missed and are fixed here.
+
+### Fixed
+
+#### `.mcp.json` was JSONC — Claude Code requires strict JSON
+
+`tooling/claude/.mcp.json` shipped with `//` comments and commented-out example
+servers. Claude Code rejects comments in `.mcp.json`, so the file could fail to
+load. Now:
+
+- `.mcp.json` is strict, empty: `{"mcpServers":{}}`.
+- A new `.mcp.example.jsonc` carries the commented GitHub/filesystem/Postgres/
+  Notion/Linear reference blocks. Installed alongside `.mcp.json`.
+- New CI job `lint-mcp-json-strict` fails if `.mcp.json` ever regains comments.
+
+#### `pre-bash-guard.sh` silently allowed everything without a working parser
+
+The hook extracted the command via `python3`. On Windows the App-Execution-Alias
+stub resolves on PATH, prints "Python was not found", and **exits 0** — so
+`command -v` and exit-code checks both pass while the command string comes back
+empty and every destructive-command guard is skipped silently.
+
+Now each parser (`jq`, then `python3`) is *probed* with a known input and only
+used if it returns the expected value; a dependency-free `sed` extraction is the
+always-available final fallback. Also fixed a pre-existing bug: the `rm -rf`
+guard used a PCRE negative lookahead `(?!...)` that `grep -E` does not support,
+so `rm -rf /etc` was never blocked. Rewritten to block absolute / home /
+parent-traversal targets while allowing temp and local relative paths. New CI
+job runs an 10-case behavioral matrix against the hook.
+
+#### `git checkout:*` permission was too broad
+
+`Bash(git checkout:*)` allowed `git checkout -- file` and `git checkout .`,
+which overwrite uncommitted work without confirmation. Replaced the broad allow
+with `Bash(git checkout -b:*)` + `Bash(git switch:*)` (safe branch operations),
+and added `git checkout -- ` / `git checkout .` to the deny list.
+
+#### README MCP section was out of date
+
+It claimed Codex does not support MCP and Gemini's support was "emerging". Both
+now have documented MCP config (`[mcp_servers.*]` in Codex `config.toml`,
+`mcpServers` in Gemini `settings.json`). Section rewritten with the correct
+per-tool config locations and the strict-JSON caveat.
+
+### Changed
+
+#### Default models refreshed
+
+- Codex `global-config-template.toml`: `o4-mini` → `gpt-5.5` (fallback `gpt-5.4`).
+- Gemini `settings.json`: `gemini-2.5-pro` → `gemini-3.1-pro-preview`.
+
+The intentionally task-tuned per-agent models from 1.13.0 are **not** touched —
+re-tuning agents against the new defaults is tracked as a separate follow-up so
+the "one concern per PR" rule holds.
+
+---
+
 ## [1.14.0] - 2026-05-15
 
 ### Added

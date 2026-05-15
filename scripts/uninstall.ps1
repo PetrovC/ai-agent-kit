@@ -118,6 +118,7 @@ if ($ToolList -contains "claude") {
     Step "Removing Claude Code tooling"
     Remove-KitPath (Join-Path $Target "CLAUDE.md")
     Remove-KitPath (Join-Path $Target ".mcp.json")
+    Remove-KitPath (Join-Path $Target ".mcp.example.jsonc")
     Remove-KitPath (Join-Path $Target ".claude\settings.json")
     Remove-KitPath (Join-Path $Target ".claude\agents")
     Remove-KitPath (Join-Path $Target ".claude\commands")

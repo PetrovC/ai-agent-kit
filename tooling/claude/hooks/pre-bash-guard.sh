@@ -15,12 +15,42 @@
 set -euo pipefail
 
 INPUT=$(cat)
-CMD=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" 2>/dev/null || true)
 
 block() {
     echo "$1" >&2
     exit 2
 }
+
+# Extract the command string from the hook JSON input.
+#
+# We must never silently allow a command just because a parser is missing or
+# broken. `command -v python3` is NOT reliable: on Windows the App-Execution-Alias
+# stub resolves on PATH, prints "Python was not found", and exits 0 — so neither
+# a presence check nor an exit-code check catches it. So each parser is *probed*
+# with a known input and only used if it returns the expected value. The final
+# fallback is a dependency-free sed extraction that always runs.
+parse_with_jq() {
+    command -v jq >/dev/null 2>&1 || return 1
+    [ "$(printf '{"tool_input":{"command":"_ok_"}}' | jq -r '.tool_input.command // ""' 2>/dev/null)" = "_ok_" ] || return 1
+    printf '%s' "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null
+}
+parse_with_python() {
+    command -v python3 >/dev/null 2>&1 || return 1
+    local probe
+    probe=$(printf '{"tool_input":{"command":"_ok_"}}' | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_input',{}).get('command',''))" 2>/dev/null) || return 1
+    [ "$probe" = "_ok_" ] || return 1
+    printf '%s' "$INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_input',{}).get('command',''))" 2>/dev/null
+}
+parse_with_sed() {
+    # Dependency-free best-effort: pull the first "command":"..." string value.
+    # Handles \" escaping inside the value. Good enough to catch the destructive
+    # patterns below; never silently unavailable.
+    printf '%s' "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\(\([^"\\]\|\\.\)*\)".*/\1/p'
+}
+
+CMD=$(parse_with_jq || true)
+[ -n "${CMD:-}" ] || CMD=$(parse_with_python || true)
+[ -n "${CMD:-}" ] || CMD=$(parse_with_sed || true)
 
 # Block force-push to shared branches
 if echo "$CMD" | grep -qE 'git push.*(--force|-f)'; then
@@ -32,9 +62,16 @@ if echo "$CMD" | grep -qE 'git reset --hard'; then
     block "BLOCKED: git reset --hard can destroy uncommitted work. Use git stash or explicit approval."
 fi
 
-# Block recursive delete of non-temp paths
-if echo "$CMD" | grep -qE 'rm\s+-[a-z]*r[a-z]*\s+/(?!tmp|var/tmp)'; then
-    block "BLOCKED: recursive rm on non-temp path requires explicit approval."
+# Block recursive+force delete on risky targets.
+# grep -E (POSIX ERE) has no negative lookahead, so: detect the rm -rf shape,
+# then block if the target is an absolute path or contains parent traversal
+# (..), unless it is explicitly under /tmp or /var/tmp.
+if echo "$CMD" | grep -qE 'rm[[:space:]]+-([a-z]*r[a-z]*f|[a-z]*f[a-z]*r)|rm[[:space:]]+-[rf][[:space:]]+-[rf]'; then
+    if echo "$CMD" | grep -qE 'rm[[:space:]]+-[a-zA-Z]+([[:space:]]+[^[:space:]]+)*[[:space:]]+(/tmp/|/var/tmp/)'; then
+        : # explicitly allowed temp target
+    elif echo "$CMD" | grep -qE 'rm[[:space:]]+-[a-zA-Z]+([[:space:]]+--)?[[:space:]]+(/|~|\.\.)'; then
+        block "BLOCKED: recursive force-delete (rm -rf) on an absolute path, home, or parent-traversal target requires explicit approval."
+    fi
 fi
 
 # Block DROP TABLE / DROP DATABASE without explicit approval marker

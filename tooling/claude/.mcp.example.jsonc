@@ -1,0 +1,56 @@
+// .mcp.json — Model Context Protocol server configuration for Claude Code.
+//
+// This is a JSONC reference file (JSON with comments). To use it:
+//   1. Copy the relevant block(s) below into the real `.mcp.json` at your project root.
+//   2. STRIP the comments — `.mcp.json` must be strict JSON or Claude Code will reject it.
+//   3. Set the required env vars before launching Claude Code.
+//
+// Docs: https://code.claude.com/docs/en/mcp
+
+{
+  "mcpServers": {
+    // ── Stdio servers (local process) ─────────────────────────────────────────
+
+    // "github": {
+    //   "type": "stdio",
+    //   "command": "npx",
+    //   "args": ["-y", "@modelcontextprotocol/server-github"],
+    //   "env": {
+    //     "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+    //   }
+    // },
+
+    // "filesystem": {
+    //   "type": "stdio",
+    //   "command": "npx",
+    //   "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
+    // },
+
+    // "postgres": {
+    //   "type": "stdio",
+    //   "command": "npx",
+    //   "args": ["-y", "@modelcontextprotocol/server-postgres"],
+    //   "env": {
+    //     "POSTGRES_CONNECTION_STRING": "${DATABASE_URL}"
+    //   }
+    // },
+
+    // ── HTTP/SSE servers (remote) ─────────────────────────────────────────────
+
+    // "notion": {
+    //   "type": "http",
+    //   "url": "https://mcp.notion.so/sse",
+    //   "headers": {
+    //     "Authorization": "Bearer ${NOTION_TOKEN}"
+    //   }
+    // },
+
+    // "linear": {
+    //   "type": "http",
+    //   "url": "https://mcp.linear.app/sse",
+    //   "headers": {
+    //     "Authorization": "Bearer ${LINEAR_API_KEY}"
+    //   }
+    // }
+  }
+}

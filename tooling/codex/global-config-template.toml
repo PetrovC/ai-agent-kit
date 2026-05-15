@@ -5,7 +5,9 @@
 # Project-level overrides go in <project>/.codex/config.toml
 # ─────────────────────────────────────────────────────────────────────────────
 
-model                  = "o4-mini"          # or o3, gpt-4.1, etc.
+# Current recommended Codex model is gpt-5.5 (fall back to gpt-5.4 if unavailable).
+# See https://developers.openai.com/codex/models for the live list.
+model                  = "gpt-5.5"
 model_reasoning_effort = "medium"
 model_reasoning_summary = "concise"
 
