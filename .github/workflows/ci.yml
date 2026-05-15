@@ -179,12 +179,15 @@ jobs:
           [[ "$errors" -eq 0 ]] || exit 1
 
       - name: pre-bash-guard blocks destructive commands and allows safe ones
+        shell: bash
         run: |
           g=tooling/claude/hooks/pre-bash-guard.sh
           fail=0
           expect() { # <expected-exit> <label> <json>
-            echo "$3" | bash "$g" >/dev/null 2>&1
-            local got=$?
+            local got=0
+            # The guard exits 2 when it blocks. Capture that without letting
+            # `set -e` abort the step (|| keeps the exit status handled).
+            echo "$3" | bash "$g" >/dev/null 2>&1 || got=$?
             if [[ "$got" -ne "$1" ]]; then
               echo "FAIL ($got != $1): $2"
               fail=1
