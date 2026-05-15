@@ -7,7 +7,7 @@ kind: local
 tools:
   - run_terminal_command
   - read_file
-model: inherit
+model: gemini-2.5-flash
 temperature: 0.1
 max_turns: 10
 ---

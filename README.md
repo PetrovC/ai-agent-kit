@@ -131,6 +131,20 @@ All three tools support spawning specialized agents for focused sub-tasks (explo
 
 Subagents protect the main context window from noisy output (test logs, large diffs, exploration results).
 
+#### Model selection strategy
+
+Each agent is tuned for **task-appropriate cost** — the cheap models do the cheap work, the expensive models do the expensive work. The five shipped agents are wired as follows:
+
+| Agent | Task | Claude | Codex effort | Gemini |
+|---|---|---|---|---|
+| `architect` | Deep design reasoning (rare, high stakes) | `claude-opus-4-7` | `high` | `gemini-2.5-pro` |
+| `security-reviewer` | Vulnerability analysis (high stakes) | `claude-opus-4-7` | `high` | `gemini-2.5-pro` |
+| `code-reviewer` | PR review (balanced) | `claude-sonnet-4-6` | `high` | `gemini-2.5-pro` |
+| `codebase-investigator` | Grep / glob / read (frequent, simple) | `claude-haiku-4-5` | `medium` | `gemini-2.5-flash` |
+| `test-runner` | Run tests + summarize (frequent, simple) | `claude-haiku-4-5` | `low` | `gemini-2.5-flash` |
+
+**Rationale:** the two most frequently spawned agents (`codebase-investigator`, `test-runner`) handle work that doesn't require deep reasoning — searching the codebase, running shell commands, summarizing output. Using a small model for those tasks saves ~10× per invocation. The two highest-stakes agents (`architect`, `security-reviewer`) use the most capable model because the cost of a wrong call is much higher than the cost of the call itself. Override per project by editing the `model:` line in each agent file.
+
 ---
 
 ## Skill coverage
