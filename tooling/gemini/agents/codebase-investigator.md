@@ -8,9 +8,9 @@ tools:
   - read_file
   - grep_search
   - list_directory
-model: inherit
+model: gemini-2.5-flash
 temperature: 0.1
-max_turns: 20
+max_turns: 15
 ---
 
 You are a read-only codebase investigator.

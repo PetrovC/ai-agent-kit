@@ -4,6 +4,41 @@
 
 ---
 
+## [1.13.0] - 2026-05-15
+
+### Changed
+
+#### Agent model tuning — task-appropriate cost across all 15 agent files
+
+Each of the 5 shipped agents (×3 tools = 15 files) had its model and effort level audited against its actual workload. The two most-frequently-spawned agents (`codebase-investigator`, `test-runner`) handle grep / read / shell-exec work that doesn't require deep reasoning — using a small model saves roughly an order of magnitude per invocation. The two highest-stakes agents (`architect`, `security-reviewer`) were upgraded to the most capable tier because the cost of a wrong call there is much higher than the call itself.
+
+| Agent | Tool | Before | After | Why |
+|---|---|---|---|---|
+| `architect` | Claude | `claude-sonnet-4-6` | **`claude-opus-4-7`** | High-stakes, infrequent — pay for depth |
+| `architect` | Gemini | `inherit` | **`gemini-2.5-pro`** | Explicit to avoid silent downgrade if user sets `gemini-2.5-flash` as default |
+| `security-reviewer` | Claude | `claude-sonnet-4-6` | **`claude-opus-4-7`** | Wrong call = exploitable vulnerability shipped |
+| `security-reviewer` | Gemini | `inherit` | **`gemini-2.5-pro`** | Same reason as Claude |
+| `code-reviewer` | Gemini | `inherit` + `max_turns: 25` | **`gemini-2.5-pro`** + `max_turns: 20` | Explicit model; normalize to Claude's `maxTurns: 20` |
+| `codebase-investigator` | Claude | `claude-sonnet-4-6` | **`claude-haiku-4-5`** | Only does `Read` / `Glob` / `Grep` — Sonnet was overkill |
+| `codebase-investigator` | Gemini | `inherit` + `max_turns: 20` | **`gemini-2.5-flash`** + `max_turns: 15` | Same — search task, cheap model |
+| `test-runner` | Claude | `claude-haiku-4-5-20251001` | **`claude-haiku-4-5`** | Drop date suffix → auto-rolls to latest patch |
+| `test-runner` | Gemini | `inherit` | **`gemini-2.5-flash`** | Shell exec + summarize, cheap is fine |
+| `test-runner` | Codex | `model_reasoning_effort: medium` | **`low`** | No reasoning needed — just run + summarize |
+
+`maxTurns` / `max_turns` normalized across the three tools per agent (was diverging up to 25 in Gemini vs 15-20 elsewhere).
+
+### Added
+
+#### Model selection strategy section in README
+
+New section under "Subagents / Agents" documents the cost rationale: cheap models for frequent / simple tasks, capable models for rare / high-stakes tasks. Includes a per-agent table showing the chosen model on each of the three tools. Projects can override per-agent by editing the `model:` line in the agent file.
+
+### Changed (version)
+
+- `KIT_VERSION` bumped to `1.13.0` in all four scripts.
+
+---
+
 ## [1.12.0] - 2026-05-15
 
 ### Added

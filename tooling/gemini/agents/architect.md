@@ -8,7 +8,7 @@ tools:
   - read_file
   - grep_search
   - list_directory
-model: inherit
+model: gemini-2.5-pro
 temperature: 0.2
 max_turns: 15
 ---
