@@ -285,6 +285,89 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
+  lint-workflow-semantics:
+    name: GitHub Actions workflow semantics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Workflow templates must be semantically correct
+        run: |
+          python3 - <<'PY'
+          import glob, re, sys
+          errs = []
+          GH = "prompts/github-actions"
+
+          def read(p): return open(p, encoding="utf-8").read()
+
+          # 1. codex-action safety-strategy must be a valid value.
+          valid_ss = {"drop-sudo", "unprivileged-user", "read-only", "unsafe"}
+          for f in glob.glob(f"{GH}/*.yml"):
+              for m in re.finditer(r'safety-strategy:\s*"?([a-z-]+)"?', read(f)):
+                  if m.group(1) not in valid_ss:
+                      errs.append(f"{f}: invalid safety-strategy '{m.group(1)}' (valid: {sorted(valid_ss)})")
+
+          # 2. Any workflow that triggers on pull_request_review_comment must NOT
+          #    gate solely on github.event.issue.pull_request (doesn't exist there).
+          for f in glob.glob(f"{GH}/*.yml"):
+              t = read(f)
+              if "pull_request_review_comment:" in t and "github.event.issue.pull_request" in t:
+                  if "github.event_name == 'pull_request_review_comment'" not in t:
+                      errs.append(f"{f}: uses github.event.issue.pull_request but also triggers on "
+                                  "pull_request_review_comment without an event_name split")
+
+          # 3. codex-pr-review must post the final-message (codex-action doesn't auto-comment).
+          cpr = f"{GH}/codex-pr-review.yml"
+          t = read(cpr)
+          if "final-message" not in t or "github-script" not in t:
+              errs.append(f"{cpr}: missing a step that posts steps.*.outputs.final-message")
+
+          # 4. Comment-triggered agent workflows must filter by author_association.
+          for f in glob.glob(f"{GH}/*.yml"):
+              t = read(f)
+              if "issue_comment:" in t or "pull_request_review_comment:" in t:
+                  if "author_association" not in t:
+                      errs.append(f"{f}: comment-triggered but no author_association filter")
+
+          if errs:
+              print("\n".join(errs)); sys.exit(1)
+          print("OK: workflow semantics valid")
+          PY
+
+  lint-codex-hooks:
+    name: Codex hooks resolve from git root
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: hooks.json commands must not use fragile relative paths
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          h = json.load(open("tooling/codex/hooks.json"))
+          errs = []
+          for event, groups in h.get("hooks", {}).items():
+              for g in groups:
+                  for hk in g.get("hooks", []):
+                      cmd = hk.get("command", "")
+                      if cmd.startswith(".codex/"):
+                          errs.append(f"{event}: bare relative command '{cmd}' "
+                                      "(must resolve from git root)")
+                      elif "git rev-parse --show-toplevel" not in cmd:
+                          errs.append(f"{event}: command does not resolve from git root: {cmd!r}")
+          if errs:
+              print("\n".join(errs)); sys.exit(1)
+          print("OK: codex hooks resolve from git root")
+          PY
+
+      - name: README hooks section must not contradict Codex hook support
+        run: |
+          if grep -q "Codex and Gemini have no equivalent hook system" README.md; then
+            echo "README still claims Codex has no hooks (contradicts the Hooks section)"
+            exit 1
+          fi
+          echo "OK: README hooks coherent"
+
   lint-plugin-manifest:
     name: Claude plugin + marketplace manifests valid
     runs-on: ubuntu-latest

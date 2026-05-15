@@ -1,10 +1,6 @@
 {
   "model": "claude-sonnet-4-6",
   "outputStyle": "default",
-  "attribution": {
-    "commit": true,
-    "pr": true
-  },
   "cleanupPeriodDays": 30,
   "permissions": {
     "allow": [

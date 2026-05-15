@@ -1,18 +1,15 @@
 # Gemini CLI — Automated issue triage workflow
 #
-# Runs Gemini CLI to triage and label new GitHub issues automatically.
+# Runs Gemini CLI to triage new GitHub issues automatically.
 # Copy to .github/workflows/gemini-issue-triage.yml in your project.
 #
-# SETUP:
-#   1. Same Google Cloud auth as gemini-pr-review.yml.
-#   2. The workflow needs write access to issues (for labels).
+# SETUP (default — API key, one secret):
+#   1. Add GEMINI_API_KEY as a repository secret.
+#   2. The workflow needs write access to issues (for labels/comments).
 #
-# WHAT IT DOES:
-#   - Reads the new issue body
-#   - Reads docs/ai/PROJECT.md and GEMINI.md for context
-#   - Classifies the issue (bug / feature / question / docs)
-#   - Posts a structured triage comment
-#   - (Optional) Adds labels if configured
+# SETUP (alternative — WIF, keyless):
+#   Uncomment the auth step + use_vertex_ai, add the GCP secrets,
+#   uncomment id-token: write, and drop gemini_api_key.
 #
 # DOCS: https://github.com/google-github-actions/run-gemini-cli
 
@@ -30,21 +27,25 @@ jobs:
     permissions:
       contents: read
       issues: write
-      id-token: write
+      # id-token: write   # uncomment for the WIF alternative below
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      # --- WIF alternative (keyless). Uncomment + use_vertex_ai below,
+      #     remove gemini_api_key, to use Workload Identity. ---
+      # - name: Authenticate to Google Cloud
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      #     service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Triage issue with Gemini
         uses: google-github-actions/run-gemini-cli@v0
         with:
-          # Alternative: pass `gemini_api_key: ${{ secrets.GEMINI_API_KEY }}` if you skip WIF auth above.
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          # WIF alternative: remove gemini_api_key above and set:
+          # use_vertex_ai: true
           prompt: |
             Triage this GitHub issue for our project.
             Read docs/ai/PROJECT.md for product context.
@@ -57,6 +58,8 @@ jobs:
             3. Affected area: which module/skill/component
             4. Suggested next step: one sentence
             5. Missing information (if any): what would help resolve this faster
+
+            Post your triage as a comment on the issue.
           gemini_cli_version: "latest"
           # Optional newer inputs (uncomment as needed):
           # gemini_debug: false       — verbose logging for troubleshooting
