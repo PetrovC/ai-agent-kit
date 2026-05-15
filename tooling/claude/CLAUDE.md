@@ -55,6 +55,13 @@ Type `/` in Claude Code to autocomplete; pick one and pass the relevant argument
 `.mcp.json` at the project root configures Model Context Protocol servers. Empty by default —
 add servers per project. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
 
+## Plugin marketplace (opt-in)
+
+The kit is also published as a Claude plugin marketplace shipping the 30 skills:
+`/plugin marketplace add PetrovC/ai-agent-kit` then `/plugin install ai-agent-kit@ai-agent-kit`.
+This is the skills slice only — the install script remains canonical for the full
+multi-tool setup (Codex + Gemini + hooks + commands + `docs/ai/`).
+
 ## Personal overrides
 
 Create a `CLAUDE.local.md` file in the project root (gitignored) for developer-specific

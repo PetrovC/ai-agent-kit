@@ -28,6 +28,7 @@ The tools this kit targets, and their official documentation:
 
 ```
 ai-agent-kit/
+├── .claude-plugin/       <- Claude plugin + marketplace manifests (opt-in, skills only)
 ├── skills/               <- Tool-agnostic rules per stack/language/concern
 ├── tooling/              <- Tool-specific wrappers (Codex / Claude / Gemini)
 │   ├── codex/skills/     <- Codex subagent skills (SKILL.md, installed into .agents/skills/)
@@ -50,6 +51,12 @@ ai-agent-kit/
 
 ## Quick start (5 minutes)
 
+### Option A — install script (canonical, all 3 tools)
+
+The script is the only path that configures **all three tools** (Codex + Claude
++ Gemini), installs hooks/commands, and scaffolds `docs/ai/` — Codex in
+particular has no marketplace mechanism, so files must be placed in the repo.
+
 ```powershell
 # Windows
 .\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude
@@ -59,6 +66,21 @@ ai-agent-kit/
 ```
 
 Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
+
+### Option B — Claude plugin marketplace (opt-in, skills only)
+
+If you only use Claude Code and just want the **30 skills** (no Codex/Gemini
+config, no `docs/ai/` scaffolding), install via the plugin marketplace:
+
+```text
+/plugin marketplace add PetrovC/ai-agent-kit
+/plugin install ai-agent-kit@ai-agent-kit
+```
+
+Skills become available namespaced (`/ai-agent-kit:dotnet`, …) and `paths:`
+auto-loading still works. This does **not** replace the script — it's the
+skills slice only, for the single-tool case. For hooks, slash commands, Codex,
+Gemini, or `docs/ai/`, use Option A.
 
 ---
 

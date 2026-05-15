@@ -4,6 +4,54 @@
 
 ---
 
+## [1.16.0] - 2026-05-15
+
+### Added
+
+#### Claude plugin marketplace (opt-in, skills-only) — backlog item delivered
+
+The deferred "packaging" backlog item, done the non-invasive way. The kit is now
+also a Claude plugin marketplace:
+
+```
+/plugin marketplace add PetrovC/ai-agent-kit
+/plugin install ai-agent-kit@ai-agent-kit
+```
+
+- `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` at repo root.
+- The plugin ships the **30 skills** with **zero duplication**: the repo's
+  existing `skills/<name>/SKILL.md` layout already matches the plugin spec
+  exactly, so `source: "."` works as-is. No skill is copied or restructured —
+  "one skill written once" is preserved.
+- Skills install namespaced (`/ai-agent-kit:dotnet`, …); `paths:` auto-loading
+  still works.
+
+This is **additive and opt-in**. The install script remains the canonical path
+and is unchanged:
+
+- Codex has **no** marketplace/plugin mechanism — it reads `.agents/skills/`,
+  `AGENTS.md`, `.codex/config.toml`, `.codex/hooks.json` from the repo, so files
+  must be physically placed there. Only the script does that.
+- The plugin does not ship commands/hooks/Codex/Gemini config or scaffold
+  `docs/ai/` (those aren't a single-tool skills concern). The script does.
+
+So: plugin = the skills slice for single-tool Claude users; script = full
+multi-tool bootstrap + project-doc scaffolding. They solve different layers and
+coexist.
+
+### CI
+
+`lint-plugin-manifest` — validates both manifests are valid JSON with required
+fields, and enforces that `plugin.json` `version` matches `KIT_VERSION` so
+marketplace users and script users never drift apart.
+
+### Still deferred
+
+LSP servers and background monitors (plugin-only extras) remain backlog — not
+needed for the skills-distribution use case.
+
+---
+
 ## [1.15.0] - 2026-05-15
 
 Final of the v1.15.0 capability-parity series (rc1 → rc3 → this). The fourth
