@@ -31,6 +31,30 @@ frontmatter matches the files you open. Skills are lazy-loaded via the routing t
 
 ---
 
+## Slash commands
+
+The kit ships eleven reusable workflow prompts as slash commands under `.claude/commands/`.
+Type `/` in Claude Code to autocomplete; pick one and pass the relevant argument.
+
+| Command | Use for | Argument |
+|---|---|---|
+| `/bug-fix` | Reproduce, root-cause, fix, regression test | issue number |
+| `/code-review` | Triage-style review of a branch or diff | branch (optional) |
+| `/daily-ticket` | Standard issue workflow with skill + subagent routing | issue number |
+| `/dependency-update` | Single-package update with license + test + audit | pkg, old, new |
+| `/feature-planning` | Plan-only, no code, before a large feature | issue number |
+| `/on-call` | Live-incident playbook — triage, mitigate, post-mortem | symptoms |
+| `/performance-audit` | Baseline → bottleneck → fix → re-measure | what is slow |
+| `/refactor` | Behaviour-preserving refactor with tests green | what to refactor |
+| `/run-tests` | Run the suite and report — does not fix failures | (none) |
+| `/security-audit` | Find real exploitable issues, triage by severity | scope (optional) |
+| `/tech-debt` | Triage-only debt scan across categories | (none) |
+
+## MCP servers
+
+`.mcp.json` at the project root configures Model Context Protocol servers. Empty by default —
+add servers per project. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
+
 ## Personal overrides
 
 Create a `CLAUDE.local.md` file in the project root (gitignored) for developer-specific

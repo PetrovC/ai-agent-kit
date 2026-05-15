@@ -48,6 +48,9 @@ jobs:
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         with:
+          # Direct Anthropic API. For AWS Bedrock or Google Vertex AI, omit this and
+          # pass the relevant cloud env vars instead — see:
+          # https://github.com/anthropics/claude-code-action/blob/main/docs/cloud-providers.md
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
           # Limit max turns to prevent runaway sessions (default: 10)
@@ -58,3 +61,9 @@ jobs:
 
           # Optional: add project context to every session
           # claude_args: "--append-system-prompt 'Always read docs/ai/ARCHITECTURE.md first.'"
+
+          # Optional: custom trigger phrase (default: @claude)
+          # trigger_phrase: "@claude"
+
+          # Optional: scope tools to what's needed for review/automation
+          # allowed_tools: "github,files"

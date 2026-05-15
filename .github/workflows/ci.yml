@@ -43,7 +43,12 @@ jobs:
             "/tmp/smoke-target/.claude/rules/test-naming.md"
             "/tmp/smoke-target/.claude/rules/migration-safety.md"
             "/tmp/smoke-target/.claude/rules/env-safety.md"
+            "/tmp/smoke-target/.claude/commands/bug-fix.md"
+            "/tmp/smoke-target/.claude/commands/code-review.md"
+            "/tmp/smoke-target/.claude/commands/feature-planning.md"
             "/tmp/smoke-target/.codex/config.toml"
+            "/tmp/smoke-target/.agents/skills/architect/SKILL.md"
+            "/tmp/smoke-target/.agents/skills/security-reviewer/SKILL.md"
             "/tmp/smoke-target/docs/ai/PROJECT.md"
           )
           for f in "${files[@]}"; do
@@ -94,7 +99,11 @@ jobs:
             ".claude\hooks\notify-done.sh", ".claude\hooks\session-summary.sh",
             ".claude\rules\commit-style.md", ".claude\rules\test-naming.md",
             ".claude\rules\migration-safety.md", ".claude\rules\env-safety.md",
-            ".codex\config.toml", "docs\ai\PROJECT.md"
+            ".claude\commands\bug-fix.md", ".claude\commands\code-review.md",
+            ".claude\commands\feature-planning.md",
+            ".codex\config.toml",
+            ".agents\skills\architect\SKILL.md", ".agents\skills\security-reviewer\SKILL.md",
+            "docs\ai\PROJECT.md"
           )
           $missing = $false
           foreach ($f in $files) {
@@ -284,6 +293,24 @@ jobs:
             echo "Legacy directory tooling/codex/agents/ should be removed (replaced by tooling/codex/skills/)"
             exit 1
           fi
+
+  lint-claude-commands:
+    name: Claude slash commands must have description frontmatter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Each .claude/commands/*.md must declare a description
+        run: |
+          errors=0
+          for f in tooling/claude/commands/*.md; do
+            if [[ ! -f "$f" ]]; then continue; fi
+            if ! grep -qE '^description:' "$f"; then
+              echo "MISSING 'description:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
 
   lint-gemini-subagents:
     name: Gemini subagents must follow .gemini/agents/*.md format

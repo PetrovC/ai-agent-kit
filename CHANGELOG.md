@@ -4,6 +4,50 @@
 
 ---
 
+## [1.14.0] - 2026-05-15
+
+### Added
+
+#### Claude slash commands — eleven workflow prompts available as `/<name>`
+
+The eleven prompts under `prompts/` (bug-fix, code-review, daily-ticket, dependency-update,
+feature-planning, on-call, performance-audit, refactor, run-tests, security-audit, tech-debt)
+are now installed as Claude Code slash commands at `.claude/commands/<name>.md`.
+
+Each command:
+- Has a `description:` and (where applicable) `argument-hint:` frontmatter so it shows up
+  correctly in the `/` autocomplete menu.
+- Uses `$ARGUMENTS` (or `$ARGUMENTS[N]` for positional) instead of `[BRACKETED]` placeholders,
+  so users can type `/bug-fix 1234` directly.
+
+Per the official upstream docs, custom commands and skills are unified in Claude Code:
+`.claude/commands/<name>.md` is equivalent to `.claude/skills/<name>/SKILL.md`. The kit uses
+the simpler `commands/` form to avoid collisions with the 29 tool-agnostic skills that already
+land in `.claude/skills/` after install.
+
+Codex and Gemini do not have an equivalent native slash-command system (Gemini's custom
+commands TOML format is still incomplete in the public docs), so the canonical `prompts/`
+files stay as the reference source for those tools.
+
+### Changed
+
+#### `claude-code.yml` workflow — document Bedrock / Vertex AI auth alternatives
+
+The template now points to `claude-code-action`'s `docs/cloud-providers.md` and includes
+commented-out lines for the most common optional inputs (`trigger_phrase`, `allowed_tools`).
+
+#### `CLAUDE.md` — new "Slash commands" and "MCP servers" sections
+
+Inline reference for the eleven commands and a pointer to `.mcp.json` for MCP server config.
+
+### CI
+
+`lint-claude-commands` — every `tooling/claude/commands/*.md` must declare a `description:`
+frontmatter line. Smoke install now verifies three representative command files and two
+codex skill files are laid down by the installer.
+
+---
+
 ## [1.14.0-rc1] - 2026-05-15
 
 ### BREAKING — Codex subagents migrated from `.toml` to official `SKILL.md` format

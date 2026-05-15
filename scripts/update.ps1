@@ -33,7 +33,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.14.0-rc1"
+$KitVersion = "1.14.0"
 
 # -- Read installed version ------------------------------------------------
 $versionFile    = Join-Path $Target ".kit-version"
@@ -159,6 +159,7 @@ if ($ToolList -contains "claude") {
     Compare-And-Update (Join-Path $KitRoot "tooling\claude\settings.json") (Join-Path $Target ".claude\settings.json")
     Compare-And-Update (Join-Path $KitRoot "tooling\claude\.mcp.json")     (Join-Path $Target ".mcp.json")
     Update-Directory   (Join-Path $KitRoot "tooling\claude\agents")        (Join-Path $Target ".claude\agents")
+    Update-Directory   (Join-Path $KitRoot "tooling\claude\commands")      (Join-Path $Target ".claude\commands")
     Update-Directory   (Join-Path $KitRoot "tooling\claude\hooks")         (Join-Path $Target ".claude\hooks")
     Update-Directory   (Join-Path $KitRoot "tooling\claude\rules")         (Join-Path $Target ".claude\rules")
 }

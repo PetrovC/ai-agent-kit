@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.14.0-rc1"
+$KitVersion = "1.14.0"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 $ValidTools = @("codex", "claude", "gemini")
@@ -124,6 +124,7 @@ if ($ToolList -contains "claude") {
     Copy-KitFile (Join-Path $KitRoot "tooling\claude\settings.json") (Join-Path $Target ".claude\settings.json")
     Copy-KitFile (Join-Path $KitRoot "tooling\claude\.mcp.json")     (Join-Path $Target ".mcp.json")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\agents")   (Join-Path $Target ".claude\agents")
+    Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\commands") (Join-Path $Target ".claude\commands")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\hooks")    (Join-Path $Target ".claude\hooks")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\rules")    (Join-Path $Target ".claude\rules")
 }

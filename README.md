@@ -32,11 +32,12 @@ ai-agent-kit/
 ├── tooling/              <- Tool-specific wrappers (Codex / Claude / Gemini)
 │   ├── codex/skills/     <- Codex subagent skills (SKILL.md, installed into .agents/skills/)
 │   ├── claude/agents/    <- Claude subagent definitions (.md)
+│   ├── claude/commands/  <- Claude slash commands (.md, installed into .claude/commands/)
 │   ├── claude/hooks/     <- Lifecycle hook scripts (format, guard, notify, summarize)
 │   ├── claude/rules/     <- Path-scoped rules (commits, tests, migrations, env)
 │   └── gemini/agents/    <- Gemini subagent definitions (.md)
 ├── project-template/     <- docs/ai/ templates to fill per project
-├── prompts/              <- Reusable prompt templates
+├── prompts/              <- Reference prompt templates (canonical source for slash commands)
 │   └── github-actions/   <- Copy-paste GitHub Actions workflow files
 └── scripts/              <- Install / update / uninstall / validate scripts
 ```
