@@ -4,6 +4,42 @@
 
 ---
 
+## [1.16.8] - 2026-05-16
+
+Holistic confirmation pass (language coverage, agent parity, token efficiency,
+best-practice enforcement, doc freshness). The kit is sound; two stale README
+claims fixed.
+
+### Verified sound (no change)
+
+- **Language coverage:** 30 skills span every major backend (dotnet,
+  java-kotlin, python, node, go, rust), frontend (angular, vue, svelte,
+  react), mobile (rn, flutter), data, infra, and cross-cutting concern —
+  **all 30 routed in CLAUDE.md, AGENTS.md and GEMINI.md** (parity verified).
+- **Agent parity:** the same 5 agents exist in all 3 tools with the same
+  roles. Model tiering is consistent: high-stakes (`architect`,
+  `security-reviewer`, `code-reviewer`) → top model (Claude `opus-4-7` /
+  Gemini `3.1-pro`); routine (`codebase-investigator`, `test-runner`) → cheap
+  model (Claude `haiku-4-5` / Gemini `2.5-flash`).
+- **Token efficiency:** short routers (~216-241 lines), lazy-loaded skills
+  (only the relevant ~250-line skill loads, never all 30), cheap models on the
+  high-frequency agents. Not a token sink by design.
+- **Best practices:** every one of the 30 skills carries a CI-enforced "Final
+  response requirements" section; path-scoped rules + the destructive-command
+  guard apply on every tool.
+
+### Fixed (README drift)
+
+- Model-strategy table listed `code-reviewer` on `claude-sonnet-4-6`; the
+  actual `tooling/claude/agents/code-reviewer.md` pins `claude-opus-4-7`.
+  Table corrected.
+- Removed the stale **"Codex effort"** column: since the v1.14 migration of
+  Codex agents to the official `SKILL.md` spec (`name`+`description` only),
+  Codex skills do **not** pin a per-skill model/effort — they run on the
+  session model. Replaced with an explicit note so the doc matches reality.
+
+---
+
 ## [1.16.7] - 2026-05-16
 
 Production-readiness pass: every install/update/uninstall path executed
