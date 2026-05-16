@@ -5,7 +5,7 @@ description: >
   usages of a method or class, or when a broad file scan would pollute the
   main context window. Returns a concise summary — not raw file dumps.
 tools: Read, Glob, Grep
-model: claude-haiku-4-5
+model: claude-opus-4-7
 maxTurns: 15
 permissionMode: default
 ---

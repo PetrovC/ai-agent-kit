@@ -175,30 +175,31 @@ Subagents protect the main context window from noisy output (test logs, large di
 
 #### Model selection strategy
 
-Each agent is tuned for **task-appropriate cost** — the cheap models do the cheap work, the expensive models do the expensive work. The five shipped agents are wired as follows:
+All five agents run on the **most capable model** so every report —
+investigation, test summary, review, design — is high quality and directly
+actionable. Uniform tier, no exceptions:
 
 | Agent | Task | Claude | Gemini |
 |---|---|---|---|
-| `architect` | Deep design reasoning (rare, high stakes) | `claude-opus-4-7` | `gemini-3.1-pro` |
-| `security-reviewer` | Vulnerability analysis (high stakes) | `claude-opus-4-7` | `gemini-3.1-pro` |
-| `code-reviewer` | PR review (high stakes) | `claude-opus-4-7` | `gemini-3.1-pro` |
-| `codebase-investigator` | Grep / glob / read (frequent, simple) | `claude-haiku-4-5` | `gemini-2.5-flash` |
-| `test-runner` | Run tests + summarize (frequent, simple) | `claude-haiku-4-5` | `gemini-2.5-flash` |
+| `architect` | Deep design reasoning | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `security-reviewer` | Vulnerability analysis | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `code-reviewer` | PR review | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `codebase-investigator` | Map usages / affected area | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `test-runner` | Run tests + summarize | `claude-opus-4-7` | `gemini-3.1-pro` |
 
 **Codex** does not pin a model per skill — the official Codex skill spec is
 `SKILL.md` with `name` + `description` only, so the five Codex agent-skills run
 on the **session model** (set in `~/.codex/config.toml` or `--model`). The
-behavioural role is identical across all three tools; only Claude and Gemini
-support per-agent model tiering.
+behavioural role is identical across all three tools.
 
-**Rationale:** the two most frequently spawned agents (`codebase-investigator`,
-`test-runner`) handle work that doesn't require deep reasoning — searching the
-codebase, running shell commands, summarizing output. Using a small model there
-saves ~10× per invocation (this is the kit's main token-efficiency lever,
-alongside lazy-loaded skills and short routers). The three highest-stakes
-agents (`architect`, `security-reviewer`, `code-reviewer`) use the most capable
-model because the cost of a wrong call dwarfs the cost of the call. Override
-per project by editing the `model:` line in each agent file.
+**Rationale:** earlier versions used cheap models (`haiku`/`flash`) for the
+high-frequency `codebase-investigator` and `test-runner` to save tokens — but
+in practice their reports weren't consistently actionable. Report quality wins:
+all agents now use the top model. Token efficiency still comes from
+**lazy-loaded skills** and **short routers**, not from down-tiering agents.
+Override per project by editing the `model:` line in each agent file (e.g. set
+`claude-haiku-4-5` / `gemini-2.5-flash` on the read-only agents if you prefer
+the cost trade-off).
 
 ---
 
