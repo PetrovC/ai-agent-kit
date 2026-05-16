@@ -53,16 +53,16 @@ ai-agent-kit/
 
 ### Option A — install script (canonical, all 3 tools)
 
-The script is the only path that configures **all three tools** (Codex + Claude
-+ Gemini), installs hooks/commands, and scaffolds `docs/ai/` — Codex in
+The script is the only path that configures all three tools (Codex, Claude and
+Gemini), installs hooks/commands, and scaffolds `docs/ai/` — Codex in
 particular has no marketplace mechanism, so files must be placed in the repo.
 
 ```powershell
-# Windows
-.\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude
+# Windows — all 3 tools (omit -Tools to get the same default)
+.\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,gemini
 
-# Linux / macOS
-./scripts/install.sh --target /path/to/your-project --tools codex,claude
+# Linux / macOS — all 3 tools (omit --tools to get the same default)
+./scripts/install.sh --target /path/to/your-project --tools codex,claude,gemini
 ```
 
 Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
