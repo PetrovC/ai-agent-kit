@@ -4,17 +4,9 @@ description: >
   Use before finalizing any change that touches more than 2 files, shared behavior,
   security-sensitive code, or authentication/authorization. Reviews for correctness,
   regressions, security, maintainability, and missing tests.
-tools:
-  - Read
-  - Glob
-  - Grep
+tools: Read, Glob, Grep
 model: claude-opus-4-7
 maxTurns: 20
-disallowedTools:
-  - Edit
-  - Write
-  - Bash
-  - NotebookEdit
 permissionMode: default
 ---
 

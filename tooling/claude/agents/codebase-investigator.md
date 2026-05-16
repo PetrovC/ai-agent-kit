@@ -4,17 +4,9 @@ description: >
   Use proactively when the affected area is unclear, when you need to map
   usages of a method or class, or when a broad file scan would pollute the
   main context window. Returns a concise summary — not raw file dumps.
-tools:
-  - Read
-  - Glob
-  - Grep
+tools: Read, Glob, Grep
 model: claude-haiku-4-5
 maxTurns: 15
-disallowedTools:
-  - Edit
-  - Write
-  - Bash
-  - NotebookEdit
 permissionMode: default
 ---
 
