@@ -18,8 +18,10 @@ sandbox_mode = "workspace-write"
 
 # web_search enables Codex to fetch URLs for context.
 #   cached   — results are cached to reduce latency and cost
-#   enabled  — always fetch fresh
+#   live     — always fetch fresh
 #   disabled — no web access
+# (string form shown; a [web_search] table also exists for context_size /
+#  allowed_domains / location — see the Codex config reference.)
 web_search = "cached"
 
 # Cap per-doc size loaded into context to prevent runaway files (~32 KB ≈ 8k tokens).

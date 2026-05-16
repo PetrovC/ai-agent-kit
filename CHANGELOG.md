@@ -4,6 +4,42 @@
 
 ---
 
+## [1.16.6] - 2026-05-16
+
+Full Codex-surface audit against the live docs (`openai/codex` config
+reference + hooks + skills, `openai/codex-action`). **Codex was in excellent
+shape** — verified conformant, one comment bug fixed.
+
+### Verified conformant (no change)
+
+- `hooks.json`: events, `matcher` (`Bash`, `apply_patch`), `type: command`,
+  `statusMessage`, exit 0/2 — all correct. The official Bash-hook example uses
+  the exact `$(git rev-parse --show-toplevel)` command form the kit ships.
+- `codex-pr-review.yml`: `openai-api-key`, `sandbox: read-only`,
+  `safety-strategy: read-only`, `final-message` posting, author gate,
+  event-name split — all valid against the current codex-action inputs.
+- `config.toml`: `approval_policy` / `sandbox_mode` / `project_doc_max_bytes`
+  / `[sandbox_workspace_write]` / `[shell_environment_policy]` / `[history]`
+  / `[mcp_servers]` / `notify` — all keys & values match the config reference.
+- `.agents/skills/<name>/SKILL.md` with `name`+`description` — correct.
+
+### Fixed
+
+- **`config.toml` `web_search` comment documented the invalid value
+  `enabled`.** The real values are `disabled | cached | live` (or a
+  `[web_search]` table). The active setting (`web_search = "cached"`) was
+  always valid, but a user copying the comment's `enabled` would have broken
+  their config. Comment corrected to `live` + note about the table form.
+  (This was flagged by an earlier third-party analysis and deferred as
+  "cosmetic"; the doc cross-check confirms it was a real misdocumentation.)
+
+### Added
+
+- CI guard in `lint-codex-approval-policy`: fails if `config.toml` ever again
+  documents `enabled` as a `web_search` value.
+
+---
+
 ## [1.16.5] - 2026-05-16
 
 Hardening so the kit can never commit its own install output ("dogfood
