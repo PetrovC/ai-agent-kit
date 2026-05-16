@@ -177,15 +177,28 @@ Subagents protect the main context window from noisy output (test logs, large di
 
 Each agent is tuned for **task-appropriate cost** — the cheap models do the cheap work, the expensive models do the expensive work. The five shipped agents are wired as follows:
 
-| Agent | Task | Claude | Codex effort | Gemini |
-|---|---|---|---|---|
-| `architect` | Deep design reasoning (rare, high stakes) | `claude-opus-4-7` | `high` | `gemini-3.1-pro` |
-| `security-reviewer` | Vulnerability analysis (high stakes) | `claude-opus-4-7` | `high` | `gemini-3.1-pro` |
-| `code-reviewer` | PR review (balanced) | `claude-sonnet-4-6` | `high` | `gemini-3.1-pro` |
-| `codebase-investigator` | Grep / glob / read (frequent, simple) | `claude-haiku-4-5` | `medium` | `gemini-2.5-flash` |
-| `test-runner` | Run tests + summarize (frequent, simple) | `claude-haiku-4-5` | `low` | `gemini-2.5-flash` |
+| Agent | Task | Claude | Gemini |
+|---|---|---|---|
+| `architect` | Deep design reasoning (rare, high stakes) | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `security-reviewer` | Vulnerability analysis (high stakes) | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `code-reviewer` | PR review (high stakes) | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `codebase-investigator` | Grep / glob / read (frequent, simple) | `claude-haiku-4-5` | `gemini-2.5-flash` |
+| `test-runner` | Run tests + summarize (frequent, simple) | `claude-haiku-4-5` | `gemini-2.5-flash` |
 
-**Rationale:** the two most frequently spawned agents (`codebase-investigator`, `test-runner`) handle work that doesn't require deep reasoning — searching the codebase, running shell commands, summarizing output. Using a small model for those tasks saves ~10× per invocation. The two highest-stakes agents (`architect`, `security-reviewer`) use the most capable model because the cost of a wrong call is much higher than the cost of the call itself. Override per project by editing the `model:` line in each agent file.
+**Codex** does not pin a model per skill — the official Codex skill spec is
+`SKILL.md` with `name` + `description` only, so the five Codex agent-skills run
+on the **session model** (set in `~/.codex/config.toml` or `--model`). The
+behavioural role is identical across all three tools; only Claude and Gemini
+support per-agent model tiering.
+
+**Rationale:** the two most frequently spawned agents (`codebase-investigator`,
+`test-runner`) handle work that doesn't require deep reasoning — searching the
+codebase, running shell commands, summarizing output. Using a small model there
+saves ~10× per invocation (this is the kit's main token-efficiency lever,
+alongside lazy-loaded skills and short routers). The three highest-stakes
+agents (`architect`, `security-reviewer`, `code-reviewer`) use the most capable
+model because the cost of a wrong call dwarfs the cost of the call. Override
+per project by editing the `model:` line in each agent file.
 
 ---
 
