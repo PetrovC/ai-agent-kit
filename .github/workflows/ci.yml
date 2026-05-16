@@ -476,6 +476,7 @@ jobs:
 
           # marketplace plugin source must be a documented form: a relative
           # path starting with "./", or a {source: github|url|...} object.
+          self_repo = (p.get("repository") or "").replace("https://github.com/", "").rstrip("/")
           for pl in plugins:
               src = pl.get("source")
               ok = (isinstance(src, str) and src.startswith("./")) or (
@@ -483,6 +484,16 @@ jobs:
               )
               if not ok:
                   errs.append(f"marketplace source not a documented form: {src!r}")
+              # Same-repo plugins MUST use the relative "./..." form. A
+              # {source:github, repo:<own repo>} self-reference forces a second
+              # fetch that breaks on PRIVATE repos (the marketplace clone is
+              # already authenticated; the plugin re-fetch may not be).
+              if isinstance(src, dict) and src.get("source") == "github" \
+                 and src.get("repo", "").rstrip("/") == self_repo and self_repo:
+                  errs.append(
+                      f"plugin source github:{src.get('repo')} self-references the "
+                      f"marketplace repo — use a relative \"./\" source instead "
+                      f"(private-repo safe, no second fetch)")
 
           if errs:
               print("\n".join(errs)); sys.exit(1)
