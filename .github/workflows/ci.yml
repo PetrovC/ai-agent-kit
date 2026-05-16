@@ -550,6 +550,18 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
+      - name: config.toml must not document the invalid web_search value
+        run: |
+          # Valid web_search string values are: disabled | cached | live.
+          # "enabled" is NOT a Codex value (common mistake). Guard the comment
+          # so a user copying it can't set an invalid config.
+          if grep -qiE 'web.search|^#.*enabled.*always fetch' tooling/codex/config.toml \
+             && grep -qE '^#[[:space:]]*enabled[[:space:]]' tooling/codex/config.toml; then
+            echo "config.toml documents 'enabled' for web_search; valid value is 'live'"
+            exit 1
+          fi
+          echo "OK: web_search documentation uses valid values"
+
   lint-codex-skills:
     name: Codex skills must follow SKILL.md format
     runs-on: ubuntu-latest
