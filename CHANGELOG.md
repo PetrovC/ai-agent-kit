@@ -4,6 +4,32 @@
 
 ---
 
+## [1.17.0] - 2026-05-16
+
+### Changed — all agents now run on the top model (reverses v1.13 tiering)
+
+User feedback: down-tiered `codebase-investigator` and `test-runner`
+(`claude-haiku-4-5` / `gemini-2.5-flash`) produced reports that weren't
+consistently actionable. **Report quality wins over token cost.**
+
+All five agents now run on the most capable model, uniform tier, no
+exceptions:
+
+- Claude: `codebase-investigator` + `test-runner` `claude-haiku-4-5` →
+  `claude-opus-4-7` (the other three were already `opus-4-7`).
+- Gemini: `codebase-investigator` + `test-runner` `gemini-2.5-flash` →
+  `gemini-3.1-pro` (the other three were already `gemini-3.1-pro`).
+- Codex: unchanged — its skill spec has no per-skill model; all run on the
+  session model (already uniform).
+
+Token efficiency still comes from **lazy-loaded skills** and **short
+routers**, not from down-tiering agents. The README documents how to set
+`claude-haiku-4-5` / `gemini-2.5-flash` back on the read-only agents per
+project for anyone who prefers the cost trade-off. `maxTurns` / `max_turns`
+per-agent budgets are unchanged.
+
+---
+
 ## [1.16.9] - 2026-05-16
 
 ### Fixed (README — user-reported)
