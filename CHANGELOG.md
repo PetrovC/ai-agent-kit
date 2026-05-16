@@ -4,6 +4,42 @@
 
 ---
 
+## [1.16.4] - 2026-05-16
+
+Full Claude-surface audit against the live official docs (settings, skills,
+subagents, memory/rules, plugins). **Most of the Claude config was already
+correct** — verified, not assumed:
+
+- `.claude/rules/*.md` with `paths:` YAML frontmatter — matches the official
+  path-specific rules spec exactly. ✓
+- `skills/*/SKILL.md` `paths:` / `allowed-tools:` — valid skill frontmatter. ✓
+- `model: claude-sonnet-4-6`, hook `async: true`, `${CLAUDE_PROJECT_DIR}` hook
+  paths, slash-command `description`/`argument-hint`/`$ARGUMENTS` — all valid. ✓
+- `plugin.json` / `marketplace.json` — already conformant (v1.16.1). ✓
+
+### Fixed
+
+- **`settings.json` `outputStyle: "default"` removed.** `"default"` is not a
+  documented output-style value (the absence of the key already yields default
+  behaviour). It was redundant at best, ignored/invalid at worst.
+- **`settings.json` now declares `$schema`** (`https://json.schemastore.org/claude-code-settings.json`),
+  the officially recommended key — enables editor autocomplete + inline
+  validation.
+- **Subagent `tools:` / `disallowedTools:` converted from YAML list to the
+  documented comma-separated string form** (`tools: Read, Glob, Grep`). The
+  official subagent-file frontmatter spec documents the string form; the YAML
+  list was non-canonical. The redundant `disallowedTools:` was dropped on the
+  read-only agents — an explicit `tools:` allowlist already excludes everything
+  else, and the docs describe allowlist *or* denylist, not both.
+
+### CI
+
+`lint-rules` gained two checks: `settings.json` must declare the official
+`$schema` and must not set `outputStyle:"default"`; subagent files must use the
+comma-string `tools:` form (no YAML list).
+
+---
+
 ## [1.16.3] - 2026-05-15
 
 Acted on a third-party audit. **Every claim was re-verified against the live

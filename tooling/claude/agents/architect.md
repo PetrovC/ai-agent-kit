@@ -3,17 +3,9 @@ name: architect
 description: >
   Use when a task may affect layer boundaries, dependency direction, or introduces
   a new pattern or abstraction. Returns a concise design assessment with trade-offs.
-tools:
-  - Read
-  - Glob
-  - Grep
+tools: Read, Glob, Grep
 model: claude-opus-4-7
 maxTurns: 15
-disallowedTools:
-  - Edit
-  - Write
-  - Bash
-  - NotebookEdit
 permissionMode: default
 ---
 

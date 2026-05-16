@@ -3,15 +3,9 @@ name: test-runner
 description: >
   Use when test output is large or when you need a clean summary of which
   tests pass or fail after a change. Runs filtered tests and returns a concise report.
-tools:
-  - Bash
-  - Read
+tools: Bash, Read
 model: claude-haiku-4-5
 maxTurns: 10
-disallowedTools:
-  - Edit
-  - Write
-  - NotebookEdit
 permissionMode: default
 ---
 

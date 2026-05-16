@@ -3,17 +3,9 @@ name: security-reviewer
 description: >
   Use when a task touches authentication, authorization, input validation,
   secrets, CORS, CSRF, data access, or adds a new dependency.
-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash
+tools: Read, Glob, Grep, Bash
 model: claude-opus-4-7
 maxTurns: 15
-disallowedTools:
-  - Edit
-  - Write
-  - NotebookEdit
 permissionMode: default
 ---
 

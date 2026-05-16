@@ -175,6 +175,35 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
+      - name: Claude settings.json must declare $schema and no invalid outputStyle
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          s = json.load(open("tooling/claude/settings.json"))
+          errs = []
+          if s.get("$schema") != "https://json.schemastore.org/claude-code-settings.json":
+              errs.append("settings.json missing/!official $schema")
+          # "default" is not a documented outputStyle value; absence = default behaviour.
+          if s.get("outputStyle") == "default":
+              errs.append('settings.json outputStyle:"default" is not a valid value (remove the key)')
+          if errs:
+              print("\n".join(errs)); sys.exit(1)
+          print("OK: settings.json schema + outputStyle valid")
+          PY
+
+      - name: Subagent tools must use the documented comma-string form
+        run: |
+          errors=0
+          for f in tooling/claude/agents/*.md; do
+            # Official subagent .md frontmatter documents `tools: A, B, C`
+            # (comma-separated string), not a YAML list under `tools:`.
+            if grep -qE '^tools:[[:space:]]*$' "$f"; then
+              echo "YAML-list tools: in $f (use 'tools: A, B, C' string form)"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
       - name: Verify hook scripts exist and are executable
         run: |
           errors=0
