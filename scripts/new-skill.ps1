@@ -125,7 +125,7 @@ $anchorAgents       = "`n`nActivate only the skills relevant to the current task
 
 Insert-RoutingRow (Join-Path $KitRoot "tooling\claude\CLAUDE.md") "| TODO: describe when to use $Name | ``$Name`` skill |" $anchorClaudeGemini
 Insert-RoutingRow (Join-Path $KitRoot "tooling\codex\AGENTS.md")  "| TODO: describe when to use $Name | ``$`$Name`` |"    $anchorAgents
-Insert-RoutingRow (Join-Path $KitRoot "tooling\gemini\GEMINI.md") "| TODO: describe when to use $Name | ``skills/$Name/SKILL.md`` |" $anchorClaudeGemini
+Insert-RoutingRow (Join-Path $KitRoot "tooling\gemini\GEMINI.md") "| TODO: describe when to use $Name | ``.gemini/skills/$Name/SKILL.md`` |" $anchorClaudeGemini
 
 # ── Done ───────────────────────────────────────────────────────────────────
 Write-Host "+--------------------------------------+" -ForegroundColor Green
