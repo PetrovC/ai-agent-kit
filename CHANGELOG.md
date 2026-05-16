@@ -4,6 +4,29 @@
 
 ---
 
+## [1.16.9] - 2026-05-16
+
+### Fixed (README — user-reported)
+
+- **`+ Gemini` rendered as a stray bullet.** The "all three tools"
+  sentence wrapped as `(Codex + Claude\n+ Gemini)`; the line starting with
+  `+ ` was parsed by Markdown as a list item, so Gemini appeared as a
+  detached bullet and looked excluded from the install. Rewritten to
+  "(Codex, Claude and Gemini)" with no line-start `+`.
+- **Install examples omitted Gemini.** Under a heading that says "all 3
+  tools", the commands were `-Tools codex,claude` / `--tools codex,claude`
+  (Gemini missing). Corrected to `codex,claude,gemini`, with a note that
+  omitting the flag yields the same all-three default.
+
+Verified by **executing the documented command**: `install.sh --target …
+--tools codex,claude,gemini` → 156 files, `CLAUDE.md`+`AGENTS.md`+`GEMINI.md`
+present, Gemini fully installed (settings + 11 commands + 5 agents + 30
+skills). Default install (no `--tools`) also lays down all three
+(`TOOLS="codex,claude,gemini"`). No other line-start-`+` bullet drift in the
+README.
+
+---
+
 ## [1.16.8] - 2026-05-16
 
 Holistic confirmation pass (language coverage, agent parity, token efficiency,

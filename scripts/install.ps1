@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.16.8"
+$KitVersion = "1.16.9"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 $ValidTools = @("codex", "claude", "gemini")
