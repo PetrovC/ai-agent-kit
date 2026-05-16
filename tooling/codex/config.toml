@@ -4,9 +4,10 @@
 
 # approval_policy controls when Codex asks for confirmation.
 #   untrusted   — ask for any command that isn't pre-allowlisted (most paranoid)
-#   on-failure  — only ask when a sandboxed command fails
 #   on-request  — show proposed changes, require approval before applying (safe default)
 #   never       — fully autonomous; no confirmations (CI / supervised runs only)
+# (on-failure is deprecated; use on-request or never. A `granular` table also
+#  exists for fine-grained control — see the Codex config reference.)
 approval_policy = "on-request"
 
 # sandbox_mode controls filesystem and network access during execution.

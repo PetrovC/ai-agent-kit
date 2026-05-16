@@ -4,6 +4,55 @@
 
 ---
 
+## [1.16.3] - 2026-05-15
+
+Acted on a third-party audit. **Every claim was re-verified against the live
+official docs first** — 2 of its "priority" claims were factually wrong and
+applying them would have broken correct, doc-verified config. Only the 3 valid
+findings were fixed.
+
+### Fixed (verified valid)
+
+- **Gemini skill paths were broken after install.** `GEMINI.md`'s routing
+  table pointed the agent at `skills/<name>/SKILL.md`, but the installer
+  copies skills to `.gemini/skills/`. In an installed project the agent could
+  not find any skill. All 30 routing rows + the inline reference now use
+  `.gemini/skills/<name>/SKILL.md`. `new-skill.sh`/`.ps1` updated to emit the
+  correct path; the `routing-consistency` CI job now *requires* the
+  `.gemini/skills/` prefix so this can't regress.
+- **`on-failure` approval policy is deprecated** (official: use `on-request`
+  or `never`; valid set is now `untrusted | on-request | never` + a `granular`
+  table). Updated `AGENTS.md` (example + values list), `config.toml` comment,
+  `global-config-template.toml` comment, and tightened the
+  `lint-codex-approval-policy` CI job to *reject* `on-failure`.
+- **Claude hooks now use `${CLAUDE_PROJECT_DIR}`** instead of bare relative
+  `bash .claude/hooks/X.sh`, per the Claude hooks docs — robust when Claude is
+  launched from a subdirectory (symmetric with the Codex git-root fix shipped
+  in v1.16.2).
+
+### Rejected (audit claims that were wrong — verified against official docs)
+
+- *"Codex subagents must be `.codex/agents/*.toml`; stop deleting that dir."*
+  **False.** The official Codex skills doc confirms skills live in
+  `.agents/skills/<name>/SKILL.md` (markdown + `name`/`description`
+  frontmatter) — exactly what the kit ships since v1.14.0. `.codex/agents/`
+  is a dead pre-1.14 location the Rust CLI never reads; `update` correctly
+  removes it. No change (applying this would have re-introduced dead config).
+- *"Gemini `settings.json` keys are obsolete (use `general.defaultApprovalMode`,
+  `tools.allowedTools`, `security.toolSandboxing`…)."* **False.** The official
+  configuration doc confirms the kit's keys (`general.checkpointing`,
+  `tools.sandbox/core/allowed/exclude`) are the real ones; the suggested keys
+  do not exist. No change.
+- *"AGENTS.md wrongly says hooks can come from `config.toml`."* **False.** The
+  Codex config reference explicitly supports inline `[hooks]` in `config.toml`
+  with the same schema as `hooks.json`. No change.
+
+Several other audit items (`safety-strategy: "block"`, codex hook relative
+paths, README hook contradiction, `attribution` booleans) were already fixed in
+v1.16.2 — the audit ran on an older master.
+
+---
+
 ## [1.16.2] - 2026-05-15
 
 Acted on a third-party audit focused on GitHub Actions workflows + Codex hooks

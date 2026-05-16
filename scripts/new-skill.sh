@@ -127,7 +127,7 @@ PYEOF
 
 CLAUDE_ROW="| TODO: describe when to use $NAME | \`$NAME\` skill |"
 AGENTS_ROW="| TODO: describe when to use $NAME | \`\$$NAME\` |"
-GEMINI_ROW="| TODO: describe when to use $NAME | \`skills/$NAME/SKILL.md\` |"
+GEMINI_ROW="| TODO: describe when to use $NAME | \`.gemini/skills/$NAME/SKILL.md\` |"
 
 # Anchor: the blank line + --- that ends the skill routing table
 ANCHOR_CLAUDE_GEMINI=$'\n\n---\n\n## Subagent routing'

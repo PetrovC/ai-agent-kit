@@ -277,9 +277,10 @@ jobs:
               echo "MISSING from tooling/codex/AGENTS.md: \$$skill"
               errors=$((errors+1))
             fi
-            # Gemini — skills/<skill>/SKILL.md
-            if ! grep -qE "skills/${skill}/SKILL\.md" tooling/gemini/GEMINI.md; then
-              echo "MISSING from tooling/gemini/GEMINI.md: skills/$skill/SKILL.md"
+            # Gemini — must reference the INSTALLED path .gemini/skills/<skill>/SKILL.md
+            # (install copies skills there; a bare skills/ path is broken in the target).
+            if ! grep -qE "\.gemini/skills/${skill}/SKILL\.md" tooling/gemini/GEMINI.md; then
+              echo "MISSING/!.gemini-path from tooling/gemini/GEMINI.md: .gemini/skills/$skill/SKILL.md"
               errors=$((errors+1))
             fi
           done
@@ -458,12 +459,16 @@ jobs:
       - name: Each approval_policy line must use a value the Rust CLI accepts
         run: |
           errors=0
-          # Valid values per https://developers.openai.com/codex/cli/config
-          # (also see github.com/openai/codex/blob/main/docs/config.md)
+          # Valid values per https://developers.openai.com/codex/config-reference
+          # on-failure is deprecated -> rejected here so the kit can't regress.
           while IFS= read -r line; do
             value=$(echo "$line" | sed -E 's/.*approval_policy[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/')
             case "$value" in
-              untrusted|on-failure|on-request|never) ;;
+              untrusted|on-request|never) ;;
+              on-failure)
+                echo "DEPRECATED approval_policy value: on-failure (use on-request or never)"
+                errors=$((errors+1))
+                ;;
               *)
                 echo "INVALID approval_policy value: $value"
                 errors=$((errors+1))

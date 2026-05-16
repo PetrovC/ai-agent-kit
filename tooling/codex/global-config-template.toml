@@ -11,7 +11,7 @@ model                  = "gpt-5.5"
 model_reasoning_effort = "medium"
 model_reasoning_summary = "concise"
 
-approval_policy = "on-request"     # untrusted | on-failure | on-request | never
+approval_policy = "on-request"     # untrusted | on-request | never  (on-failure deprecated)
 sandbox_mode    = "workspace-write" # workspace-write | read-only | danger-full-access
 
 web_search       = "cached"

@@ -16,11 +16,13 @@ and a team can safely evolve for years.
 
 ```bash
 codex                              # interactive, on-request approval (default)
-codex --approval-policy on-failure    # only ask when a sandboxed command fails
+codex --approval-policy untrusted     # ask for anything not pre-allowlisted (most cautious)
 codex --approval-policy never         # fully autonomous; no confirmations (CI / supervised only)
 ```
 
-Valid `approval_policy` values: `untrusted` | `on-failure` | `on-request` | `never`.
+Valid `approval_policy` values: `untrusted` | `on-request` | `never` (plus a
+`granular` table for fine-grained control). `on-failure` is **deprecated** —
+use `on-request` for interactive runs or `never` for non-interactive runs.
 
 Useful options:
 - `--profile deep` — switch to the `deep` reasoning profile (high effort, slower, more thorough).
