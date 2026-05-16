@@ -4,6 +4,39 @@
 
 ---
 
+## [1.16.5] - 2026-05-16
+
+Hardening so the kit can never commit its own install output ("dogfood
+pollution").
+
+**Audit result first:** the repo is **clean** — it tracks only kit *source*
+(`tooling/`, `skills/`, `scripts/`, `prompts/`, `.claude-plugin/`,
+`project-template/`, `examples/`). No root `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`,
+no `.codex/`/`.gemini/`/`.agents/`, no `.mcp.json`/`.kit-version`, no
+`.claude/` runtime dir is committed. Verified with `git ls-tree`.
+
+But `.gitignore` only guarded `.claude/`, so a stray `install --target .`
+(dogfooding) or an agent writing root files could slip install output into a
+commit.
+
+### Changed
+
+- **`.gitignore` hardened**: root-anchored ignores for every install-output
+  artifact (`/AGENTS.md`, `/CLAUDE.md`, `/GEMINI.md`, `/.geminiignore`,
+  `/.mcp.json`, `/.mcp.example.jsonc`, `/.kit-version`, `/.codex/`,
+  `/.gemini/`, `/.agents/`, `/docs/ai/`, `CLAUDE.local.md`). Patterns are
+  **root-anchored on purpose** so the tracked sources under `tooling/`
+  (e.g. `tooling/codex/AGENTS.md`) and `examples/filled-project/docs/ai/` are
+  **never** ignored — verified: no currently-tracked file becomes ignored.
+
+### Added
+
+- CI job **`no-install-output-tracked`**: fails if any install-output
+  artifact is tracked at the repo root. `.gitignore` prevents accidental
+  `git add`; this enforces it so the invariant can't silently regress.
+
+---
+
 ## [1.16.4] - 2026-05-16
 
 Full Claude-surface audit against the live official docs (settings, skills,
