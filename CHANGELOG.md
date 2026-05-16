@@ -4,6 +4,44 @@
 
 ---
 
+## [1.16.7] - 2026-05-16
+
+Production-readiness pass: every install/update/uninstall path executed
+end-to-end (bash **and** PowerShell), every config re-verified against the
+live docs, and the private-repo plugin path fixed.
+
+### Fixed
+
+- **Plugin marketplace now works on a PRIVATE repo.** The plugin `source`
+  was `{ "source": "github", "repo": "PetrovC/ai-agent-kit" }` — a
+  self-reference that makes Claude Code do a **second** fetch of the repo
+  just for the plugin. On a private repo the marketplace clone is
+  authenticated (user's git creds) but that second `github` fetch can fail.
+  Per the docs, a plugin in the **same repo** as its marketplace must use a
+  relative path. Changed to `"source": "./"` (resolved from the
+  already-cloned, authenticated marketplace root — no second fetch). Verified
+  the kit's plugin root (repo root: `.claude-plugin/` + `skills/`) matches
+  this form.
+- `lint-plugin-manifest` now **rejects** a `{source:github, repo:<own repo>}`
+  self-reference so this can't regress, and `README.md` documents the
+  private-repo behaviour (anyone running `/plugin marketplace add` needs read
+  access; no second fetch).
+
+### Verified (no change needed)
+
+- **Functional:** `install` / `update` (idempotent + legacy
+  `.codex/agents` migration) / `uninstall` (only `docs/ai/` preserved, by
+  design) — all green on **bash** and **PowerShell**. 156 files install
+  cleanly; all JSON/TOML parse; hook scripts executable.
+- **Config conformance:** Claude (settings `$schema`, subagent comma-string
+  `tools`, rules `paths:`), Codex (`hooks.json` git-root form, `web_search`
+  values, config keys), Gemini (settings keys, `.gemini/skills/` routing,
+  subagent frontmatter, `.geminiignore`) — all match the current official
+  docs. No version drift across the 6 version-bearing files. No stale
+  model/tool references.
+
+---
+
 ## [1.16.6] - 2026-05-16
 
 Full Codex-surface audit against the live docs (`openai/codex` config

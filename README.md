@@ -82,6 +82,13 @@ auto-loading still works. This does **not** replace the script — it's the
 skills slice only, for the single-tool case. For hooks, slash commands, Codex,
 Gemini, or `docs/ai/`, use Option A.
 
+> **Private repo:** this works even when the repo is private — Claude Code
+> clones the marketplace with *your* git credentials. Anyone running
+> `/plugin marketplace add` must have read access to the repo (be a
+> collaborator, or authenticated `gh`/git). The plugin `source` is `"./"`
+> (same-repo relative path), so the plugin is served from that one
+> authenticated clone — no second fetch that could fail on a private repo.
+
 ---
 
 ## Full kit (30 minutes)
