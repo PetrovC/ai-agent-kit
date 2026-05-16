@@ -6,6 +6,36 @@ on:
   pull_request:
 
 jobs:
+  no-install-output-tracked:
+    name: Kit must not commit its own install output
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No install-output artifact may be tracked at the repo root
+        run: |
+          # The kit's SOURCE lives in tooling/, skills/, scripts/, etc.
+          # These root paths are what the installer writes into a *target*
+          # project — committing them into the kit itself is the "dogfood
+          # pollution" failure mode. .gitignore guards against accidental
+          # `git add`; this CI check enforces it.
+          bad=0
+          for p in AGENTS.md CLAUDE.md GEMINI.md .geminiignore .mcp.json \
+                   .mcp.example.jsonc .kit-version CLAUDE.local.md \
+                   .codex .gemini .agents docs/ai; do
+            if git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
+              echo "TRACKED INSTALL OUTPUT AT ROOT: $p"
+              bad=1
+            fi
+            # also catch a tracked directory's contents
+            if git ls-files "$p/" 2>/dev/null | grep -q .; then
+              echo "TRACKED INSTALL OUTPUT DIR AT ROOT: $p/"
+              bad=1
+            fi
+          done
+          [[ "$bad" -eq 0 ]] || { echo "Kit must ship source, not install output."; exit 1; }
+          echo "OK: no install-output artifact tracked at root"
+
   validate-example:
     name: Validate filled example
     runs-on: ubuntu-latest
