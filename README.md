@@ -316,8 +316,18 @@ The `prompts/github-actions/` folder has ready-to-copy workflow files for AI-ass
 | `gemini-issue-triage.yml` | `google-github-actions/run-gemini-cli@v0` | Auto-triage new issues |
 | `gemini-dispatch.yml` | `google-github-actions/run-gemini-cli@v0` | `@gemini-cli /review` \| `/triage` \| free text — central router |
 | `gemini-assistant.yml` | `google-github-actions/run-gemini-cli@v0` | `@gemini-cli` free-form Q&A on issues / PRs |
+| `ai-fallback-dispatch.yml` | all three actions, chained | Label an issue `ai-fallback` → Claude→Codex→Gemini implement it; the chain advances only until one lands a PR |
 
 Copy these to `.github/workflows/` in your project (they are **not** installed automatically).
+
+> **`ai-fallback-dispatch.yml`** is the resilient one: it runs the three
+> agents *sequentially on the same branch* and only hands off when a provider
+> did **not** finish. "Finished" is an observable git fact (a non-draft PR
+> whose head is `ai/issue-<N>` and whose body says `Closes #<N>`), never an
+> exit code — so a provider running out of tokens/quota yields to the next
+> instead of blocking the issue. Re-runs are idempotent (the gate short-
+> circuits once the PR exists). It needs all three API-key secrets; drop a
+> provider's step if you only have some.
 
 ---
 

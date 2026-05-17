@@ -4,6 +4,23 @@
 
 ---
 
+## [1.18.0] - 2026-05-17
+
+### Added
+
+- **`prompts/github-actions/ai-fallback-dispatch.yml`** — sequential
+  Claude→Codex→Gemini orchestrator for auto-implementing a labeled issue.
+  Robustness comes from a git-observable completion gate (a non-draft PR on
+  `ai/issue-<N>` with `Closes #<N>`), not exit codes: all three providers
+  share one branch so a later one resumes partial work, the chain only
+  advances when a provider did not finish, and re-runs are idempotent. Honest
+  limit documented: it cannot guarantee one uninterrupted run, only that the
+  issue keeps getting picked up until a PR lands; "first available provider"
+  is approximated by sequential fallback + an optional capped scheduled retry.
+  README GitHub Actions table + caveat note updated.
+
+---
+
 ## [1.17.0] - 2026-05-16
 
 ### Changed — all agents now run on the top model (reverses v1.13 tiering)
