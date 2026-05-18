@@ -154,6 +154,11 @@ if contains "codex"; then
     compare_and_update "$KIT_ROOT/tooling/codex/config.toml" "$TARGET/.codex/config.toml"
     compare_and_update "$KIT_ROOT/tooling/codex/hooks.json"  "$TARGET/.codex/hooks.json"
     update_dir         "$KIT_ROOT/tooling/codex/hooks"       "$TARGET/.codex/hooks"
+    # Newly added hook scripts must be executable (mirrors install.sh) —
+    # otherwise a hook added in a later version lands non-exec and the
+    # PreToolUse guard silently never runs on the update path.
+    [[ "$DRY_RUN" == "false" && -d "$TARGET/.codex/hooks" ]] && \
+        find "$TARGET/.codex/hooks" -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
     # Codex skills (5 subagents) merge into shared .agents/skills/
     update_dir         "$KIT_ROOT/tooling/codex/skills"      "$TARGET/.agents/skills"
 
@@ -189,6 +194,11 @@ if contains "claude"; then
     update_dir         "$KIT_ROOT/tooling/claude/commands"      "$TARGET/.claude/commands"
     update_dir         "$KIT_ROOT/tooling/claude/hooks"         "$TARGET/.claude/hooks"
     update_dir         "$KIT_ROOT/tooling/claude/rules"         "$TARGET/.claude/rules"
+    # Newly added hook scripts must be executable (mirrors install.sh) —
+    # otherwise a hook added in a later version lands non-exec and the
+    # PreToolUse guard silently never runs on the update path.
+    [[ "$DRY_RUN" == "false" && -d "$TARGET/.claude/hooks" ]] && \
+        find "$TARGET/.claude/hooks" -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
 fi
 
 # ── Update Gemini tooling ──────────────────────────────────────────────────

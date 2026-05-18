@@ -265,14 +265,23 @@ jobs:
               fi
             }
             expect 2 "force-push"        '{"tool_input":{"command":"git push --force origin main"}}'
+            expect 2 "force-push -f"     '{"tool_input":{"command":"git push -f origin main"}}'
+            expect 2 "force-with-lease"  '{"tool_input":{"command":"git push --force-with-lease origin main"}}'
             expect 2 "reset --hard"      '{"tool_input":{"command":"git reset --hard HEAD~3"}}'
             expect 2 "rm -rf /etc"       '{"tool_input":{"command":"rm -rf /etc"}}'
             expect 2 "rm -rf parent"     '{"tool_input":{"command":"rm -rf ../../etc"}}'
             expect 2 "rm -rf home"       '{"tool_input":{"command":"rm -rf ~"}}'
+            expect 2 "rm -rf cwd"        '{"tool_input":{"command":"rm -rf ."}}'
+            expect 2 "rm -rf cwd slash"  '{"tool_input":{"command":"rm -rf ./"}}'
+            expect 2 "rm -rf glob"       '{"tool_input":{"command":"rm -rf *"}}'
+            expect 2 "rm -Rf cwd"        '{"tool_input":{"command":"rm -Rf ."}}'
+            expect 2 "rm long-flags cwd" '{"tool_input":{"command":"rm --recursive --force ."}}'
             expect 2 "DROP TABLE"        '{"tool_input":{"command":"psql -c \"DROP TABLE users\""}}'
             expect 0 "git status"        '{"tool_input":{"command":"git status"}}'
+            expect 0 "push branch -f"    '{"tool_input":{"command":"git push origin feature-foo"}}'
             expect 0 "rm -rf /tmp/x"     '{"tool_input":{"command":"rm -rf /tmp/x"}}'
             expect 0 "rm -rf local dir"  '{"tool_input":{"command":"rm -rf node_modules"}}'
+            expect 0 "rm -rf subdir"     '{"tool_input":{"command":"rm -rf ./build"}}'
             expect 0 "npm test"          '{"tool_input":{"command":"npm test"}}'
           }
           run_matrix tooling/claude/hooks/pre-bash-guard.sh

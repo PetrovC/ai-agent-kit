@@ -52,8 +52,9 @@ CMD=$(parse_with_jq || true)
 [ -n "${CMD:-}" ] || CMD=$(parse_with_python || true)
 [ -n "${CMD:-}" ] || CMD=$(parse_with_sed || true)
 
-# Block force-push to shared branches
-if echo "$CMD" | grep -qE 'git push.*(--force|-f)'; then
+# Block force-push. Match a real -f / --force *flag*, not a branch name that
+# merely contains "-f" (e.g. `git push origin feature-foo` must pass).
+if echo "$CMD" | grep -qE 'git[[:space:]]+push.*[[:space:]](-f([[:space:]]|$)|--force)'; then
     block "BLOCKED: force-push is not allowed. Use --force-with-lease only after explicit approval."
 fi
 
@@ -62,20 +63,23 @@ if echo "$CMD" | grep -qE 'git reset --hard'; then
     block "BLOCKED: git reset --hard can destroy uncommitted work. Use git stash or explicit approval."
 fi
 
-# Block recursive+force delete on risky targets.
-# grep -E (POSIX ERE) has no negative lookahead, so: detect the rm -rf shape,
-# then block if the target is an absolute path or contains parent traversal
-# (..), unless it is explicitly under /tmp or /var/tmp.
-if echo "$CMD" | grep -qE 'rm[[:space:]]+-([a-z]*r[a-z]*f|[a-z]*f[a-z]*r)|rm[[:space:]]+-[rf][[:space:]]+-[rf]'; then
-    if echo "$CMD" | grep -qE 'rm[[:space:]]+-[a-zA-Z]+([[:space:]]+[^[:space:]]+)*[[:space:]]+(/tmp/|/var/tmp/)'; then
+# Block recursive+force delete on dangerous targets.
+# POSIX ERE has no negative lookahead. Detect the rm recursive+force "shape"
+# case-insensitively (-rf, -Rf, -fr, split -r -f, and long --recursive/--force
+# forms), then allow an explicit temp target, otherwise block dangerous
+# operands: an absolute path, home, parent traversal, the current directory
+# (. ./) or a bare glob (* ./*). `rm -rf .` / `rm -rf *` are game-over.
+if echo "$CMD" | grep -qiE 'rm[[:space:]]+-([a-z]*r[a-z]*f|[a-z]*f[a-z]*r)|rm[[:space:]]+-[rf][[:space:]]+-[rf]|rm[[:space:]]+(--recursive[[:space:]]+(--force|-f)|--force[[:space:]]+(--recursive|-r)|-r[[:space:]]+--force|-f[[:space:]]+--recursive)'; then
+    if echo "$CMD" | grep -qE 'rm[[:space:]].*[[:space:]](--[[:space:]]+)?(/tmp/|/var/tmp/)'; then
         : # explicitly allowed temp target
-    elif echo "$CMD" | grep -qE 'rm[[:space:]]+-[a-zA-Z]+([[:space:]]+--)?[[:space:]]+(/|~|\.\.)'; then
-        block "BLOCKED: recursive force-delete (rm -rf) on an absolute path, home, or parent-traversal target requires explicit approval."
+    elif echo "$CMD" | grep -qE 'rm[[:space:]].*[[:space:]](--[[:space:]]+)?(/|~|\.\.)' \
+      || echo "$CMD" | grep -qE 'rm[[:space:]].*[[:space:]](--[[:space:]]+)?(\.|\./|\*|\./\*)([[:space:]]|$)'; then
+        block "BLOCKED: recursive force-delete (rm -rf) on an absolute path, home, parent traversal, the current directory (.) or a bare glob (*) requires explicit approval."
     fi
 fi
 
 # Block DROP TABLE / DROP DATABASE without explicit approval marker
-if echo "$CMD" | grep -iqE 'DROP\s+(TABLE|DATABASE|SCHEMA)'; then
+if echo "$CMD" | grep -iqE 'DROP[[:space:]]+(TABLE|DATABASE|SCHEMA)'; then
     if ! echo "$CMD" | grep -q 'APPROVED_DESTRUCTIVE'; then
         block "BLOCKED: SQL DROP requires explicit approval. Add comment '-- APPROVED_DESTRUCTIVE' to proceed."
     fi
