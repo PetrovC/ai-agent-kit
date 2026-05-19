@@ -4,6 +4,141 @@
 
 ---
 
+## [1.19.0] - 2026-05-19
+
+Hardening pass from a 10-angle audit (docs-vs-reality, security, scripts,
+workflows, cross-tool parity, structure, CI coverage, performance),
+cross-verified. Documented here retroactively — the work shipped via PR
+review without a CHANGELOG entry; this records the *what* and *why*.
+
+### Security — GitHub Actions workflow templates
+
+- **`gemini-issue-triage.yml` (was the worst sink).** `issues: opened`
+  is openable by *any* external user; the issue title/body was
+  interpolated raw into the Gemini prompt with `issues: write` and no
+  data-fence and no author gate. Now the issue is captured via
+  `env:` + `gh --jq` to a file and fenced as untrusted DATA — the same
+  model `ai-fallback-dispatch.yml` already used. CI's semantics linter
+  was blind to it (it only audited comment-triggered workflows); a new
+  check now fails any workflow that splices `github.event.*.(title|body)`
+  into a `prompt:` block.
+- **`gemini-assistant.yml` / `gemini-dispatch.yml`** — comment body now
+  `env:`-captured and DATA-fenced instead of inlined into the prompt.
+- **`ai-fallback-dispatch.yml`** — the free-text
+  `workflow_dispatch.inputs.issue_number` was interpolated into a `run:`
+  shell (script-injection sink, insider-only but real). Now passed via
+  `env:` and validated `^[0-9]+$` before use.
+
+### Security — pre-bash-guard (Claude + Codex)
+
+- Force-push detection widened beyond `-f/--force`: now also blocks the
+  `+refspec` force form, `--mirror`, and `--delete`/`-d`.
+- Blocks `git branch -D`, `git update-ref -d`, and `git reset --keep`
+  (in addition to `--hard`).
+- Blocks `rm -rf` with a variable / command-substituted operand
+  (`$VAR`, `"$(...)"`, `` `...` ``) and the `${IFS}` word-split
+  obfuscation.
+- Added an explicit **SCOPE/LIMITS** header: this is a best-effort
+  denylist, not a sandbox — encoded/obfuscated payloads still pass, so
+  the tool's own sandbox/approval mode remains the real boundary. Honest
+  framing over a false sense of safety.
+
+### Security — permission & secret posture
+
+- **Behaviour change:** `tooling/claude/settings.json` narrowed
+  `Bash(npm:*)` / `Bash(dotnet:*)` to safe subcommands
+  (`npm install|ci|run|test|audit`, `dotnet build|test|restore|format|run`).
+  `npm publish`, `npm token`, `dotnet nuget push` now prompt instead of
+  auto-approving. Revert per project if you relied on the broad grant.
+- Secret scrub widened in `tooling/codex/config.toml` and
+  `tooling/gemini/settings.json`: added `*_URL` / `*_URI` / `*_DSN`
+  (DATABASE_URL-class connection strings carry `user:pass@host` and
+  matched none of the old patterns) and `AWS_*` / `GCP_*` / `GOOGLE_*`
+  to Gemini (it was strictly weaker than Codex).
+
+### Fixed
+
+- **5 Gemini command `.toml` files** (`code-review`, `dependency-update`,
+  `on-call`, `performance-audit`, `security-audit`) told the agent to
+  `Read skills/<n>/SKILL.md` — a path that does not exist in an installed
+  project (skills land in `.gemini/skills/`). A broken reference in
+  *every* Gemini install; now `.gemini/skills/<n>/SKILL.md`.
+- **`new-skill.ps1`** silently skipped all three routing-table inserts on
+  a Windows (CRLF) checkout: the anchors used bare `\n` but
+  `Get-Content -Raw` returns `\r\n`, so `IndexOf` never matched. It also
+  wrote a UTF-8 BOM via `Set-Content -Encoding utf8`. Now CRLF-agnostic
+  and writes UTF-8 *without* BOM (LF), matching `new-skill.sh`.
+
+### Performance
+
+- `pre-bash-guard` ran the JSON parser **twice** per Bash call (a probe
+  then the real parse) for jq and python — ~60–160 ms of avoidable
+  latency on *every* command when jq was absent. Collapsed to one spawn
+  per parser; correctness is preserved by the empty-output fallthrough
+  (a broken/missing parser yields nothing on stdout and we move on).
+- `ci.yml` gained a `concurrency` group with `cancel-in-progress`
+  (rapid pushes were stacking full ~18-job matrices); push branch filter
+  widened to `chore/**` and `claude/**`.
+- `install.sh`/`update.sh` use `chmod ... {} +` (batched, not one fork
+  per file); `update.sh` uses `cmp -s` instead of hashing both whole
+  files with md5 (early-exit on first differing byte; the
+  `md5sum`/`md5 -q` portability helper is gone).
+
+### CI (locks the above against regression)
+
+- pre-bash-guard behavioural matrix extended with every new block/allow
+  case (refspec, mirror, delete, branch -D, update-ref, reset --keep,
+  `$VAR`/`$(...)`/`$IFS` targets, plus the safe cases that must still
+  pass).
+- New `lint-shell` job: `bash -n` + `shellcheck` on every script and hook
+  (previously a syntax error in a hook only failed in the user's repo).
+- New `e2e-lifecycle` job: real (non-dry-run) install → update no-op →
+  uninstall (clean, `docs/ai/` preserved) → `new-skill` scaffolds a
+  routable, CI-valid skill. Previously only `--dry-run` was exercised and
+  `new-skill` was entirely untested.
+- `routing-consistency`: reverse check (a router row pointing at a
+  deleted skill now fails), Gemini-commands path check, 5-subagent name
+  parity across the 3 tools, and `CHANGELOG`-top == `KIT_VERSION` +
+  documented "30 skills" count pin.
+- `smoke-install-windows` asserts every `.ps1` parses.
+
+### Docs
+
+- README hook tables, the parser-chain description (no longer "probed";
+  it's a fallthrough chain now), and the update-mechanism wording
+  ("MD5-diff" → "content-diff") corrected to match the shipped behaviour.
+- `uninstall.sh` header now lists everything it actually removes
+  (`.mcp.json`, Codex config/hooks, commands, rules, `.kit-version`),
+  not a stale subset.
+
+---
+
+## [1.18.1] - 2026-05-19
+
+### Fixed — pre-bash-guard false-positive and missed cases
+
+Documented retroactively (shipped via PR #35).
+
+- **False positive:** `git push.*(--force|-f)` blocked any branch name
+  containing the substring `-f` (e.g. `git push origin feature-foo`,
+  `my-feature`). Now matches a real `-f`/`--force` *flag* only;
+  `-f`/`--force`/`--force-with-lease` still blocked.
+- **Missed game-over cases:** the guard only blocked `rm -rf` targets
+  starting with `/ ~ ..`, so `rm -rf .`, `rm -rf ./`, `rm -rf *` passed;
+  the shape detector was also lowercase-only (`-Rf` slipped) and missed
+  long `--recursive --force`. All now blocked while `./build`,
+  `node_modules`, `/tmp/*` stay allowed.
+- **Portability:** the SQL-DROP guard used `\s` (a GNU extension) — on
+  BSD/macOS grep it failed open. Now `[[:space:]]`, consistent with the
+  rest of the hook.
+- **`update.sh`** now `chmod +x` the installed hooks (mirrors
+  `install.sh`) so a hook added in a later version isn't left
+  non-executable on the update path (a silently dead PreToolUse guard).
+- CI hook matrix extended with the regression cases that previously
+  slipped.
+
+---
+
 ## [1.18.0] - 2026-05-17
 
 ### Added

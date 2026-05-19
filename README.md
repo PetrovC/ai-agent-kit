@@ -125,7 +125,7 @@ Codex via `.codex/hooks.json` (installed into `.codex/hooks/`). Both use the
 same model: stdin JSON, exit code 2 = block.
 
 ```
-Claude  PreToolUse(Bash)        → pre-bash-guard.sh   → blocks force-push, rm -rf, SQL DROP
+Claude  PreToolUse(Bash)        → pre-bash-guard.sh   → blocks force/mirror/delete push, ref deletion, rm -rf, SQL DROP
         PostToolUse(Edit|Write) → format-on-save.sh   → runs your formatter
         Stop                    → notify-done.sh      → desktop notification
         PreCompact              → session-summary.sh  → git diff snapshot before compaction
@@ -241,7 +241,7 @@ model (stdin JSON, exit 2 = block).
 | Script | Event | What it does |
 |---|---|---|
 | `format-on-save.sh` | `PostToolUse(Edit\|Write)` | Runs your project's formatter (prettier / ruff / gofmt / rustfmt / dotnet format) on every file written |
-| `pre-bash-guard.sh` | `PreToolUse(Bash)` | Blocks `git push --force`, `git reset --hard`, recursive `rm -rf` on absolute/home/parent paths, and SQL `DROP` without an approval comment |
+| `pre-bash-guard.sh` | `PreToolUse(Bash)` | Blocks force/mirror/delete push (incl. `+refspec`), `git branch -D` / `update-ref -d`, `git reset --hard`/`--keep`, recursive `rm -rf` on absolute/home/parent/cwd/glob/variable targets, and SQL `DROP` without an approval comment. **Best-effort denylist, not a sandbox** — see the script header for the honest limits |
 | `notify-done.sh` | `Stop` | Desktop notification when a session finishes (macOS, Linux, Windows) |
 | `session-summary.sh` | `PreCompact` | Saves a git status + diff snapshot to `.claude/session-log/` before context is compacted |
 
@@ -254,8 +254,9 @@ model (stdin JSON, exit 2 = block).
 | `notify-done.sh` | `Stop` | Desktop notification |
 
 Codex has no `PreCompact` event, so `session-summary` is Claude-only. The guard
-parses hook input via a probed `jq → python3 → sed` chain so it never fails open
-if an interpreter is missing or broken (e.g. the Windows python3 stub).
+parses hook input via a `jq → python3 → sed` fallback chain: a missing or broken
+interpreter (e.g. the Windows python3 stub) yields empty output and falls through
+to the next parser, so it never fails open.
 
 All hooks are installed automatically by `install.sh` / `install.ps1`.
 
@@ -336,7 +337,7 @@ Copy these to `.github/workflows/` in your project (they are **not** installed a
 | Script | Semantics |
 |---|---|
 | `install.ps1` / `install.sh` | **Always overwrites kit files** (skills, tooling configs, subagents, root `.md`). Reinstall to reset everything to baseline. |
-| `update.ps1` / `update.sh` | **MD5-diff based** — only files that are missing or whose content differs are touched. Warns on version drift. Supports `--dry-run` / `-DryRun` to preview. |
+| `update.ps1` / `update.sh` | **Content-diff based** — only files that are missing or whose content differs are touched. Warns on version drift. Supports `--dry-run` / `-DryRun` to preview. |
 | `uninstall.ps1` / `uninstall.sh` | Removes kit-installed files for the chosen tools. Preserves `docs/ai/`. |
 | `validate.ps1` / `validate.sh` | Verifies `docs/ai/` templates have been filled (no `STOP` notices, no placeholder comments, all required files present). |
 | `new-skill.ps1` / `new-skill.sh` | Scaffolds a new skill under `skills/<name>/` with the standard template — for kit contributors. |

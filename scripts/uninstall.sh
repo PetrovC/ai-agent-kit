@@ -2,8 +2,14 @@
 # uninstall.sh — Remove ai-agent-kit files from a target project.
 #
 # Removes (for each tool requested) only kit-installed files:
-#   - Root files: AGENTS.md, CLAUDE.md, GEMINI.md, .geminiignore.
-#   - Per-tool: settings.json, agents/ subdirectory, skills/ subdirectory.
+#   - Root files: AGENTS.md, CLAUDE.md, GEMINI.md, .geminiignore,
+#     .mcp.json, .mcp.example.jsonc.
+#   - Codex:  .codex/config.toml, .codex/hooks.json, .codex/hooks/,
+#             .codex/agents/, .agents/skills/.
+#   - Claude: .claude/settings.json, .claude/agents/, .claude/commands/,
+#             .claude/hooks/, .claude/rules/, .claude/skills/.
+#   - Gemini: .gemini/settings.json, .gemini/agents/, .gemini/commands/,
+#             .gemini/skills/.
 #   - Parent directories (.codex/, .claude/, .gemini/, .agents/) only if empty after removal.
 #   - .kit-version file (only if all installed tools are being removed).
 #
