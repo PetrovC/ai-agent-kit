@@ -3,7 +3,7 @@ description = "Update one package end-to-end. Args: <package> <old-version> <new
 prompt = """
 Update the package described by these arguments (package, old version, new version): {{args}}
 
-Read skills/dependencies/SKILL.md first.
+Read .gemini/skills/dependencies/SKILL.md first.
 
 ── Pre-update ────────────────────────────────────────────────────────────────
 1. Read the changelog / release notes between the old and new version.

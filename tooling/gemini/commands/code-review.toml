@@ -3,7 +3,7 @@ description = "Triage-style review of a branch or the current diff."
 prompt = """
 Review the changes in branch {{args}} (or the current `git diff` if none given).
 
-Read skills/code-review/SKILL.md first.
+Read .gemini/skills/code-review/SKILL.md first.
 Use the @codebase-investigator subagent if context about existing behavior is needed.
 
 Review for:

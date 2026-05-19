@@ -1,7 +1,7 @@
 description = "Live-incident playbook: triage, narrow, root-cause, mitigate, write up."
 
 prompt = """
-We have a live incident. Read skills/observability/SKILL.md first.
+We have a live incident. Read .gemini/skills/observability/SKILL.md first.
 
 Symptoms: {{args}}
 

@@ -30,7 +30,13 @@
       "*_KEY",
       "*_PASSWORD",
       "OPENAI_*",
-      "ANTHROPIC_*"
+      "ANTHROPIC_*",
+      "AWS_*",
+      "GCP_*",
+      "GOOGLE_*",
+      "*_URL",
+      "*_URI",
+      "*_DSN"
     ]
   }
 }

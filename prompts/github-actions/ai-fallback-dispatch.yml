@@ -92,9 +92,18 @@ jobs:
 
       - name: Resolve issue, branch, and task prompt
         id: setup
+        env:
+          # workflow_dispatch.inputs.issue_number is free-text typed by the
+          # operator — pass via env (never interpolate raw into the shell)
+          # and validate before use to kill the script-injection sink.
+          RAW_ISSUE: ${{ github.event.issue.number || github.event.inputs.issue_number }}
         run: |
           set -euo pipefail
-          N="${{ github.event.issue.number || github.event.inputs.issue_number }}"
+          N="${RAW_ISSUE}"
+          if [[ ! "$N" =~ ^[0-9]+$ ]]; then
+            echo "::error::Invalid issue number: '${N}' (must be digits only)"
+            exit 1
+          fi
           BRANCH="ai/issue-${N}"
           DEFAULT_BRANCH="$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)"
 
