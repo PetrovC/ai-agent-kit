@@ -879,11 +879,38 @@ jobs:
           bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
           echo "user note" > "$T/docs/ai/PROJECT.md"
           bash scripts/uninstall.sh --target "$T" >/dev/null
-          for p in .claude .codex .gemini .agents .kit-version AGENTS.md CLAUDE.md GEMINI.md .mcp.json; do
+          for p in .claude .codex .gemini .agents .kit-version .kit-manifest AGENTS.md CLAUDE.md GEMINI.md .mcp.json; do
             [[ -e "$T/$p" ]] && { echo "FAIL: uninstall left $p"; exit 1; }
           done
           [[ -f "$T/docs/ai/PROJECT.md" ]] || { echo "FAIL: uninstall destroyed docs/ai"; exit 1; }
           echo "OK: uninstall clean, docs/ai preserved"
+
+      - name: update.sh manifest GC prunes only de-shipped kit files
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools claude >/dev/null
+          test -f "$T/.kit-manifest"
+          # Simulate a future version that stopped shipping a command, plus a
+          # user file and docs/ai that must survive.
+          echo ".claude/commands/ghost.md" >> "$T/.kit-manifest"
+          mkdir -p "$T/.claude/commands"
+          echo stale > "$T/.claude/commands/ghost.md"
+          echo mine  > "$T/.claude/commands/my-own.md"
+          echo doc   > "$T/docs/ai/PROJECT.md"
+          out="$(bash scripts/update.sh --target "$T" --tools claude)"
+          echo "$out" | grep -q "PRUNED   .claude/commands/ghost.md" || { echo "FAIL: ghost not pruned"; exit 1; }
+          [[ -e "$T/.claude/commands/ghost.md" ]] && { echo "FAIL: ghost still present"; exit 1; }
+          [[ -f "$T/.claude/commands/my-own.md" ]] || { echo "FAIL: GC ate a user file"; exit 1; }
+          [[ -f "$T/docs/ai/PROJECT.md" ]] || { echo "FAIL: GC touched docs/ai"; exit 1; }
+          # Partial-tools safety: codex/gemini entries must never be pruned by a
+          # claude-only run even when present in the manifest.
+          T2="$(mktemp -d)"
+          bash scripts/install.sh --target "$T2" --tools codex,claude,gemini >/dev/null
+          gem_skill="$(grep -m1 '^\.gemini/skills/' "$T2/.kit-manifest")"
+          bash scripts/update.sh --target "$T2" --tools claude >/dev/null
+          [[ -f "$T2/$gem_skill" ]] || { echo "FAIL: claude-only update pruned a gemini file"; exit 1; }
+          echo "OK: GC prunes de-shipped kit files only; user/docs/other-tool safe"
 
       - name: new-skill.sh scaffolds a routable, CI-valid skill
         run: |

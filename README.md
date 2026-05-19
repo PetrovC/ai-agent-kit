@@ -350,7 +350,7 @@ Copy these to `.github/workflows/` in your project (they are **not** installed a
 | Script | Semantics |
 |---|---|
 | `install.ps1` / `install.sh` | **Always overwrites kit files** (skills, tooling configs, subagents, root `.md`). Reinstall to reset everything to baseline. |
-| `update.ps1` / `update.sh` | **Content-diff based** — only files that are missing or whose content differs are touched. Warns on version drift. Supports `--dry-run` / `-DryRun` to preview. |
+| `update.ps1` / `update.sh` | **Content-diff based** — only files that are missing or whose content differs are touched. `update.sh` also **prunes** files the kit no longer ships, via a `.kit-manifest` diff (scoped to `--tools`, never `docs/ai/` or user files; PowerShell parity tracked separately). Warns on version drift. Supports `--dry-run` / `-DryRun` to preview. |
 | `uninstall.ps1` / `uninstall.sh` | Removes kit-installed files for the chosen tools. Preserves `docs/ai/`. |
 | `validate.ps1` / `validate.sh` | Verifies `docs/ai/` templates have been filled (no `STOP` notices, no placeholder comments, all required files present). |
 | `new-skill.ps1` / `new-skill.sh` | Scaffolds a new skill under `skills/<name>/` with the standard template — for kit contributors. |
@@ -361,6 +361,12 @@ content. To get fresh templates back, delete the folder manually before reinstal
 Each install stamps a `.kit-version` file in your project root. `update` reads it to:
 - Determine which tools were configured (so partial reinstalls work).
 - Warn when the installed version differs from the source kit version.
+
+Install also writes a `.kit-manifest` (the list of kit-managed paths). `update.sh`
+diffs the new shipped set against it and prunes anything the kit stopped shipping
+— so a renamed/removed skill or command no longer lingers as a stale file. The
+first update after upgrading to this version just establishes the baseline
+(nothing is pruned until there is a manifest to diff against).
 
 ---
 

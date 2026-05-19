@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.2"
+KIT_VERSION="1.19.3"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
@@ -56,6 +56,19 @@ step() { echo -e "\n\033[36m> $1\033[0m"; }
 ok()   { echo -e "  \033[32m[ok] $1\033[0m"; }
 skip() { echo -e "  \033[33m[skip] $1 (project content - preserved)\033[0m"; }
 
+MANAGED=()   # kit-managed rel paths, written to .kit-manifest for update GC
+
+# Map a kit-managed rel path to its owning tool, or "" if it is NOT a kit
+# artifact (docs/ai, .kit-version) — keeps non-kit paths out of the manifest.
+owning_tool() {
+    case "$1" in
+        AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
+        CLAUDE.md|.mcp.json|.mcp.example.jsonc|.claude/*) echo claude ;;
+        GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
+        *)                                               echo ""     ;;
+    esac
+}
+
 copy_file() {
     local src="$1"
     local dst="$2"
@@ -64,7 +77,9 @@ copy_file() {
 
     mkdir -p "$dst_dir"
     cp "$src" "$dst"
-    ok "${dst#$TARGET/}"
+    local rel="${dst#$TARGET/}"
+    MANAGED+=("$rel")
+    ok "$rel"
 }
 
 copy_dir() {
@@ -73,10 +88,13 @@ copy_dir() {
 
     [[ -d "$src_dir" ]] || return 0
 
-    find "$src_dir" -type f | while read -r src_file; do
-        local relative="${src_file#$src_dir/}"
+    # Process substitution (not `find | while`) so MANAGED accumulates in this
+    # shell, not a lost pipe subshell.
+    local src_file relative
+    while IFS= read -r -d '' src_file; do
+        relative="${src_file#$src_dir/}"
         copy_file "$src_file" "$dst_dir/$relative"
-    done
+    done < <(find "$src_dir" -type f -print0)
 }
 
 contains() {
@@ -166,10 +184,19 @@ find "$KIT_ROOT/project-template" -maxdepth 1 -type f | while read -r src_file; 
     fi
 done
 
-# ── .kit-version ───────────────────────────────────────────────────────────
-step "Writing .kit-version"
+# ── .kit-version + .kit-manifest ───────────────────────────────────────────
+step "Writing .kit-version + .kit-manifest"
 echo "ai-agent-kit@$KIT_VERSION - installed $(date +%Y-%m-%d) - tools: $TOOLS" > "$TARGET/.kit-version"
 ok ".kit-version"
+# Baseline manifest: every kit artifact just installed (docs/ai excluded via
+# owning_tool). update.sh diffs against this to prune files later versions
+# stop shipping.
+for rel in "${MANAGED[@]}"; do
+    # `if` (not `[[ ]] && echo`) so the loop never ends on a failing test —
+    # under set -o pipefail that would fail the `| sort` pipeline + set -e.
+    if [[ -n "$(owning_tool "$rel")" ]]; then echo "$rel"; fi
+done | LC_ALL=C sort -u > "$TARGET/.kit-manifest"
+ok ".kit-manifest"
 
 # ── .gitignore hint ────────────────────────────────────────────────────────
 GITIGNORE="$TARGET/.gitignore"

@@ -4,6 +4,42 @@
 
 ---
 
+## [1.19.3] - 2026-05-19
+
+### Added — manifest-diff garbage collection in `update.sh` (audit MEDIUM-2)
+
+Before, `update.sh` only had a hardcoded cleanup for one legacy case
+(`.codex/agents/*.toml`). If a later kit version renamed or removed any
+managed file, `update` added the new one but left the old one behind
+forever — installed `.claude/` etc. drifted silently from the source.
+
+- `install.sh` now writes `.kit-manifest` (every kit-managed path; tool
+  files only — `docs/ai/` is excluded via `owning_tool`).
+- `update.sh` diffs the newly-shipped set against the old manifest and
+  **prunes** anything no longer shipped. Safety constraints:
+  - only paths under a known kit root are ever considered (`docs/ai/`,
+    `.kit-version`, `.kit-manifest`, user files can never match);
+  - first run with no manifest prunes nothing — it only writes the
+    baseline, so the GC is inert until there is something to diff;
+  - a partial `--tools` run never prunes another tool's files and
+    preserves that tool's manifest entries for a later full run;
+  - `--dry-run` reports `PRUNED …` without deleting.
+- `install.sh`'s `copy_dir` switched from `find | while` (a pipe
+  subshell that lost array state — the prior audit's MEDIUM-1) to
+  process substitution, so `MANAGED` accumulates reliably and the
+  manifest is complete.
+- `uninstall.sh` removes `.kit-manifest` with `.kit-version` (only when
+  all tools are removed); header docstring updated.
+- CI `e2e-lifecycle` gains a GC test: a de-shipped file is pruned while
+  a user file, `docs/ai/`, and another tool's files survive (incl. the
+  partial-`--tools` safety case).
+
+PowerShell parity (`update.ps1` GC, `install.ps1` manifest) is
+intentionally deferred to the bash↔ps1 parity pass — bash-only is not a
+regression (no manifest ⇒ no prune ⇒ prior behaviour) and is documented.
+
+---
+
 ## [1.19.2] - 2026-05-19
 
 ### Documentation — discoverability of not-installed artifacts (audit M3)
