@@ -4,6 +4,32 @@
 
 ---
 
+## [1.19.4] - 2026-05-19
+
+### Security — pin `gemini_cli_version` in the workflow templates (audit MEDIUM)
+
+All five Gemini workflow templates used `gemini_cli_version: "latest"`.
+The `run-gemini-cli` action installs that CLI and runs it with the
+job's scope (up to `contents: write` + `pull-requests: write` in
+`ai-fallback-dispatch.yml`), so an unpinned `latest` would auto-execute
+any future — possibly compromised or regressed — release. The action
+itself was already pinned (`@v0`); the CLI it downloads was not.
+
+- `ai-fallback-dispatch.yml`, `gemini-assistant.yml`,
+  `gemini-dispatch.yml`, `gemini-issue-triage.yml`,
+  `gemini-pr-review.yml`: `gemini_cli_version` pinned to `0.42.0`
+  (current npm `latest` of `@google/gemini-cli`, looked up at the npm
+  registry — not guessed), each with a comment explaining the
+  supply-chain rationale and a link to the release notes for deliberate
+  bumps.
+- README "GitHub Actions templates": note that the templates pin the
+  CLI version on purpose and how to bump it.
+
+No behaviour change for users on 0.42.0; older/newer pins are a
+one-line, reviewed edit.
+
+---
+
 ## [1.19.3] - 2026-05-19
 
 ### Added — manifest-diff garbage collection in `update.sh` (audit MEDIUM-2)

@@ -211,7 +211,11 @@ jobs:
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          gemini_cli_version: "latest"
+          # Pinned for supply-chain safety — this CLI runs with the job's
+          # write scope, so an unpinned "latest" would auto-run a future
+          # (possibly compromised/regressed) release. Bump deliberately after
+          # reading https://github.com/google-gemini/gemini-cli/releases
+          gemini_cli_version: "0.42.0"
           prompt: "Read ./.ai-task/PROMPT.md and complete the task exactly as it specifies, including the BRANCH / PR CONTRACT. Use run_shell_command with git and gh to push and (only when done) open the PR."
 
       - name: Gate (after Gemini) + report
