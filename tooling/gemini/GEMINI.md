@@ -41,6 +41,34 @@ Gemini CLI reads this file at startup. Skills are loaded explicitly: identify th
 
 ---
 
+## Safety model — read this
+
+**Gemini CLI has no hook system.** Claude Code and Codex CLI both ship a
+`pre-bash-guard` PreToolUse hook that *mechanically blocks* force/mirror/delete
+push, `git reset --hard/--keep`, ref deletion, `rm -rf` on dangerous targets,
+and unapproved SQL `DROP` (exit 2 = blocked). **None of that exists here.** On
+Gemini the kit's only safety layer is **your approval mode**:
+
+- **default / auto_edit** — you are still asked before shell commands run, so a
+  destructive command can be caught by the human. This is the safe posture.
+- **yolo** — *no confirmations and no guard*. A wrong `git push --force`,
+  `rm -rf`, or `DROP TABLE` executes immediately with nothing to stop it. This
+  is materially riskier than Claude `--dangerously-skip-permissions` or Codex
+  `approval_policy=never`, which still have the deny-list / PreToolUse guard as
+  a second layer. On Gemini there is no second layer.
+
+Practical rules for this kit on Gemini:
+
+- Treat the "Git rules" and "Security rules" below as **self-enforced** — the
+  model must refuse destructive commands itself; nothing else will.
+- Do **not** use `yolo` on a repo with real history/data. Reserve it for
+  sandboxed / throw-away checkouts.
+- For anything touching git history, bulk deletion, or a database, stay in
+  default/auto_edit and let the human approve the command.
+- The real safety net on Gemini is **code review + CI**, not the runtime.
+
+---
+
 ## Context strategy
 
 Do not read every file. Read only what is needed, in this order:
