@@ -3,7 +3,7 @@ description = "Performance audit: baseline, find bottleneck, propose fixes, re-m
 prompt = """
 Audit the performance of: {{args}}
 
-Read skills/performance/SKILL.md first.
+Read .gemini/skills/performance/SKILL.md first.
 
 ── Step 1: Establish a baseline ─────────────────────────────────────────────
 Backend: time the slow endpoint end-to-end (p50/p95/p99); EXPLAIN ANALYZE slowest queries; count DB queries per request (N+1).

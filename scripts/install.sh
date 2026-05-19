@@ -124,7 +124,7 @@ if contains "codex"; then
     # directory alongside the tool-agnostic skills already installed above.
     copy_dir  "$KIT_ROOT/tooling/codex/skills"      "$TARGET/.agents/skills"
     # Make hook scripts executable
-    find "$TARGET/.codex/hooks" -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
+    find "$TARGET/.codex/hooks" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 fi
 
 # ── Claude ─────────────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ if contains "claude"; then
     copy_dir  "$KIT_ROOT/tooling/claude/hooks"          "$TARGET/.claude/hooks"
     copy_dir  "$KIT_ROOT/tooling/claude/rules"          "$TARGET/.claude/rules"
     # Make hook scripts executable
-    find "$TARGET/.claude/hooks" -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
+    find "$TARGET/.claude/hooks" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 fi
 
 # ── Gemini ─────────────────────────────────────────────────────────────────

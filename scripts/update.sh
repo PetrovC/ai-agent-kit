@@ -87,15 +87,6 @@ echo "Tools      : $TOOLS"
 # ── Helpers ────────────────────────────────────────────────────────────────
 CHANGES=()
 
-# md5 helper — Linux uses md5sum, macOS uses md5 -q. Git Bash on Windows has md5sum.
-md5_of() {
-    if command -v md5sum >/dev/null 2>&1; then
-        md5sum "$1" | awk '{print $1}'
-    else
-        md5 -q "$1"
-    fi
-}
-
 contains() {
     local needle="$1"
     for item in "${TOOL_LIST[@]}"; do
@@ -121,11 +112,9 @@ compare_and_update() {
         return 0
     fi
 
-    local src_hash dst_hash
-    src_hash="$(md5_of "$src")"
-    dst_hash="$(md5_of "$dst")"
-
-    if [[ "$src_hash" != "$dst_hash" ]]; then
+    # cmp -s short-circuits on the first differing byte (and on size diff) —
+    # cheaper and more portable than hashing both whole files with md5sum/md5.
+    if ! cmp -s "$src" "$dst"; then
         CHANGES+=("UPDATED  $rel")
         if [[ "$DRY_RUN" == "false" ]]; then
             cp "$src" "$dst"
@@ -158,7 +147,7 @@ if contains "codex"; then
     # otherwise a hook added in a later version lands non-exec and the
     # PreToolUse guard silently never runs on the update path.
     [[ "$DRY_RUN" == "false" && -d "$TARGET/.codex/hooks" ]] && \
-        find "$TARGET/.codex/hooks" -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
+        find "$TARGET/.codex/hooks" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
     # Codex skills (5 subagents) merge into shared .agents/skills/
     update_dir         "$KIT_ROOT/tooling/codex/skills"      "$TARGET/.agents/skills"
 
@@ -198,7 +187,7 @@ if contains "claude"; then
     # otherwise a hook added in a later version lands non-exec and the
     # PreToolUse guard silently never runs on the update path.
     [[ "$DRY_RUN" == "false" && -d "$TARGET/.claude/hooks" ]] && \
-        find "$TARGET/.claude/hooks" -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
+        find "$TARGET/.claude/hooks" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 fi
 
 # ── Update Gemini tooling ──────────────────────────────────────────────────

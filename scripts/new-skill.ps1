@@ -29,6 +29,15 @@ $ErrorActionPreference = "Stop"
 
 $KitRoot = Split-Path -Parent $PSScriptRoot
 
+function Write-Utf8NoBom([string]$path, [string]$text) {
+    # PowerShell 5.1 `Set-Content -Encoding utf8` writes a UTF-8 BOM, which
+    # corrupts the first routing-table row / YAML frontmatter for downstream
+    # parsers and the CI grep checks. Write UTF-8 *without* BOM and normalise
+    # to LF so the result matches the bash new-skill.sh output exactly.
+    $text = $text -replace "`r`n", "`n"
+    [System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))
+}
+
 if ($Name -notmatch '^[a-z][a-z0-9-]*$') {
     Write-Error "Skill name must be kebab-case (a-z, 0-9, -). Got: $Name"
     exit 1
@@ -106,18 +115,21 @@ Always report:
 - Any new dependency: name, version, **license (MIT only - see ``dependencies`` skill)**.
 "@
 
-Set-Content -Path $skillFile -Value $body -Encoding utf8
+Write-Utf8NoBom $skillFile $body
 
 # ── Insert placeholder routing rows ────────────────────────────────────────
 function Insert-RoutingRow([string]$file, [string]$row, [string]$anchor) {
-    $content = Get-Content $file -Raw -Encoding utf8
+    # Normalise CRLF -> LF first: on a Windows checkout (autocrlf) the file is
+    # CRLF on disk but the anchors are written with bare LF — without this the
+    # IndexOf never matches and every routing row is silently skipped.
+    $content = (Get-Content $file -Raw) -replace "`r`n", "`n"
     $idx = $content.IndexOf($anchor)
     if ($idx -lt 0) {
         Write-Host "  [warn] anchor not found in $file — add the row manually" -ForegroundColor Yellow
         return
     }
     $newContent = $content.Substring(0, $idx) + "`n" + $row + $content.Substring($idx)
-    Set-Content -Path $file -Value $newContent -Encoding utf8 -NoNewline
+    Write-Utf8NoBom $file $newContent
 }
 
 $anchorClaudeGemini = "`n`n---`n`n## Subagent routing"

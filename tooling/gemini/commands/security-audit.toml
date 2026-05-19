@@ -3,7 +3,7 @@ description = "Security audit of the current change or given scope. Triage by se
 prompt = """
 Perform a security audit of {{args}} (or the current change if no scope given).
 
-Read skills/security/SKILL.md first.
+Read .gemini/skills/security/SKILL.md first.
 Use the @security-reviewer subagent if the change is large.
 
 Check for:

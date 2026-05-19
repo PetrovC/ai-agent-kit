@@ -46,6 +46,12 @@ exclude = [
     "ANTHROPIC_*",
     "AWS_*",
     "GCP_*",
+    "GOOGLE_*",
+    # Connection strings routinely embed user:password@host (DATABASE_URL,
+    # REDIS_URL, MONGODB_URI, *_DSN) and match none of the patterns above.
+    "*_URL",
+    "*_URI",
+    "*_DSN",
 ]
 
 # ── Session history ───────────────────────────────────────────────────────────

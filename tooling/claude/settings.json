@@ -4,8 +4,16 @@
   "cleanupPeriodDays": 30,
   "permissions": {
     "allow": [
-      "Bash(dotnet:*)",
-      "Bash(npm:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet format:*)",
+      "Bash(dotnet run:*)",
+      "Bash(npm install:*)",
+      "Bash(npm ci:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npm audit:*)",
       "Bash(ng:*)",
       "Bash(vue-tsc:*)",
       "Bash(vite:*)",
