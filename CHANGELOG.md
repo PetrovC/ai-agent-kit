@@ -4,6 +4,52 @@
 
 ---
 
+## [1.19.2] - 2026-05-19
+
+### Documentation — discoverability of not-installed artifacts (audit M3)
+
+Audit M3 flagged that `tooling/gemini/gemini-extension.json` and
+`tooling/codex/global-config-template.toml` are maintained (the former's
+version is CI-pinned to `KIT_VERSION`) but never touched by
+install/update/uninstall. Investigation: **not a bug** — both are
+intentionally not-installed (one is a per-user `~/.codex/config.toml`
+template, the other a Gemini-extension distribution scaffold). The real
+gap was zero discoverability. Fixed with docs only:
+
+- `tooling/codex/AGENTS.md` — new "Personal config (`~/.codex/config.toml`)"
+  section with the `cp tooling/codex/global-config-template.toml
+  ~/.codex/config.toml` step and the closest-wins note.
+- `README.md` — new "Optional artifacts (not auto-installed, by design)"
+  table under Quick start, documenting both files, their purpose, and how
+  to use them; states accurately that only `gemini-extension.json`'s
+  version is CI-pinned.
+
+No script/behaviour change.
+
+---
+
+## [1.19.1] - 2026-05-19
+
+### Fixed — Gemini safety-parity disclosure (audit H3)
+
+Claude and Codex ship the `pre-bash-guard` PreToolUse hook; Gemini CLI
+has no hook system, so on Gemini the kit's destructive-command guard
+does not exist — yet `GEMINI.md` never said so while `AGENTS.md` has a
+full Lifecycle-hooks section. A user trusting "write once, deploy on 3
+tools" would assume equal protection, and `--approval-mode yolo` removes
+the only safety layer with nothing behind it.
+
+- `tooling/gemini/GEMINI.md` — new "Safety model — read this" section
+  (after the approval-mode docs): no hook layer here; approval mode is
+  the sole runtime boundary; `yolo` is materially riskier than Claude
+  `--dangerously-skip-permissions` / Codex `approval_policy=never`
+  (those keep the guard/deny-list as a second layer); Git/Security rules
+  are self-enforced; the real net is review + CI.
+
+Docs-only, one file.
+
+---
+
 ## [1.19.0] - 2026-05-19
 
 Hardening pass from a 10-angle audit (docs-vs-reality, security, scripts,

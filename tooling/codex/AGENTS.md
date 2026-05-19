@@ -86,6 +86,23 @@ Beyond approval/sandbox, the kit's `config.toml` sets:
 
 ---
 
+## Personal config (`~/.codex/config.toml`)
+
+Project `.codex/config.toml` (above) holds **shared** settings. Your **personal**
+preferences — model, reasoning effort, profiles (`readonly`/`standard`/`deep`/
+`review`), `file_opener`, Windows sandbox — belong in `~/.codex/config.toml`,
+which is never committed. The kit ships a ready-to-copy starting point:
+
+```bash
+cp tooling/codex/global-config-template.toml ~/.codex/config.toml   # then edit
+```
+
+It is intentionally **not** placed by the install script (it is a per-user
+home-directory file, not a project file). Closest-wins resolution still applies:
+`~/.codex/config.toml` is overridden by `<repo>/.codex/config.toml`.
+
+---
+
 ## Context strategy
 
 Do not read every file. Read only what is needed, in this order:

@@ -89,6 +89,19 @@ Gemini, or `docs/ai/`, use Option A.
 > (same-repo relative path), so the plugin is served from that one
 > authenticated clone — no second fetch that could fail on a private repo.
 
+### Optional artifacts (not auto-installed, by design)
+
+Two maintained files are intentionally **not** placed by the install script —
+they target a *user home directory* or a *distribution channel*, not a project:
+
+| File | What it's for | How to use it |
+|---|---|---|
+| `tooling/codex/global-config-template.toml` | Personal Codex prefs (model, reasoning effort, `readonly`/`standard`/`deep`/`review` profiles, Windows sandbox) — the per-user `~/.codex/config.toml`, not a project file | `cp tooling/codex/global-config-template.toml ~/.codex/config.toml` then edit |
+| `tooling/gemini/gemini-extension.json` | Scaffold for teams who want to distribute the kit as an installable **Gemini CLI extension** (`gemini extensions install`) instead of via the script | Starting point — extend with your skills/commands, then publish per the [Gemini extensions docs](https://google-gemini.github.io/gemini-cli/docs/extensions) |
+
+`gemini-extension.json`'s `version` is still pinned to `KIT_VERSION` by CI so it
+never drifts, even though install/update/uninstall deliberately ignore both files.
+
 ---
 
 ## Full kit (30 minutes)
