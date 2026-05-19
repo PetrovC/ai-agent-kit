@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # update.sh — Update ai-agent-kit files in a target project.
 #
-# Only files that are missing or whose content differs (by MD5) are touched.
-# Project docs (docs/ai/) are NEVER overwritten — they contain project-specific content.
+# Only files that are missing or whose content differs (byte compare) are
+# touched. Files the kit no longer ships are pruned via a manifest diff
+# (.kit-manifest). Project docs (docs/ai/) are NEVER overwritten or pruned —
+# they contain project-specific content.
 #
 # Usage:
 #   ./update.sh --target /path/to/project
@@ -12,7 +14,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.2"
+KIT_VERSION="1.19.3"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -86,12 +88,32 @@ echo "Tools      : $TOOLS"
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 CHANGES=()
+MANAGED=()          # every kit-managed rel path touched this run (any tool in scope)
+KEEP_FROM_OLD=()    # old-manifest entries for tools NOT in this run (preserved as-is)
 
 contains() {
     local needle="$1"
     for item in "${TOOL_LIST[@]}"; do
         [[ "$item" == "$needle" ]] && return 0
     done
+    return 1
+}
+
+# Map a kit-managed rel path to its owning tool. Returns "" for anything that
+# is NOT a kit-managed artifact (docs/ai, .kit-version, .kit-manifest, user
+# files) — those are never pruned and never carried in the manifest.
+owning_tool() {
+    case "$1" in
+        AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
+        CLAUDE.md|.mcp.json|.mcp.example.jsonc|.claude/*) echo claude ;;
+        GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
+        *)                                               echo ""     ;;
+    esac
+}
+
+in_managed() {
+    local x="$1" m
+    for m in "${MANAGED[@]}"; do [[ "$m" == "$x" ]] && return 0; done
     return 1
 }
 
@@ -102,6 +124,7 @@ compare_and_update() {
     [[ -f "$src" ]] || return 0
 
     local rel="${dst#$TARGET/}"
+    MANAGED+=("$rel")
 
     if [[ ! -f "$dst" ]]; then
         CHANGES+=("NEW      $rel")
@@ -201,9 +224,44 @@ fi
 
 # NOTE: docs/ai/ is intentionally NOT updated — it contains project-specific content.
 
-# ── Update .kit-version ────────────────────────────────────────────────────
+# ── Garbage-collect files the kit no longer ships ──────────────────────────
+# Manifest diff: anything in the OLD .kit-manifest that is no longer shipped
+# AND whose owning tool is in this run's --tools scope is pruned. Conservative:
+#   - only paths under a known kit root are ever touched (owning_tool != "");
+#     docs/ai/, .kit-version, .kit-manifest and user files can never match;
+#   - first run (no manifest) prunes nothing — it only writes the baseline;
+#   - a partial --tools run never prunes another tool's files, and preserves
+#     that tool's manifest entries (KEEP_FROM_OLD) so a later full run is sane.
+MANIFEST_FILE="$TARGET/.kit-manifest"
+
+if [[ -f "$MANIFEST_FILE" && ${#MANAGED[@]} -gt 0 ]]; then
+    while IFS= read -r p; do
+        [[ -z "$p" ]] && continue
+        otool="$(owning_tool "$p")"
+        [[ -z "$otool" ]] && continue                 # not a kit artifact → ignore
+        if ! contains "$otool"; then
+            KEEP_FROM_OLD+=("$p")                      # other tool, out of scope
+            continue
+        fi
+        if ! in_managed "$p" && [[ -e "$TARGET/$p" ]]; then
+            CHANGES+=("PRUNED   $p (no longer shipped)")
+            [[ "$DRY_RUN" == "false" ]] && rm -f "$TARGET/$p"
+        fi
+    done < "$MANIFEST_FILE"
+fi
+
+# ── Update .kit-version + .kit-manifest ────────────────────────────────────
 if [[ "$DRY_RUN" == "false" ]]; then
     echo "ai-agent-kit@$KIT_VERSION - updated $(date +%Y-%m-%d) - tools: $TOOLS" > "$VERSION_FILE"
+    # NOTE: the group must not END on a failing test — under `set -o pipefail`
+    # a non-zero group exit fails the whole pipeline and `set -e` aborts. Use
+    # `if` (a false `if` with no else exits 0), never a trailing `[[ ]] &&`.
+    {
+        printf '%s\n' "${MANAGED[@]}"
+        if [[ ${#KEEP_FROM_OLD[@]} -gt 0 ]]; then
+            printf '%s\n' "${KEEP_FROM_OLD[@]}"
+        fi
+    } | LC_ALL=C sort -u | sed '/^$/d' > "$MANIFEST_FILE"
 fi
 
 # ── Report ─────────────────────────────────────────────────────────────────

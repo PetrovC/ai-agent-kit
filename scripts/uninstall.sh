@@ -11,7 +11,7 @@
 #   - Gemini: .gemini/settings.json, .gemini/agents/, .gemini/commands/,
 #             .gemini/skills/.
 #   - Parent directories (.codex/, .claude/, .gemini/, .agents/) only if empty after removal.
-#   - .kit-version file (only if all installed tools are being removed).
+#   - .kit-version + .kit-manifest (only if all installed tools are removed).
 #
 # Preserves:
 #   - docs/ai/  (your project content — never touched)
@@ -168,8 +168,9 @@ if [[ -f "$TARGET/.kit-version" ]]; then
         contains "$t" || all_removed=false
     done
     if [[ "$all_removed" == "true" ]]; then
-        step "Removing .kit-version"
+        step "Removing .kit-version + .kit-manifest"
         remove_path "$TARGET/.kit-version"
+        remove_path "$TARGET/.kit-manifest"
     else
         step "Keeping .kit-version"
         echo "  (some tools still installed: $INSTALLED minus $TOOLS)"
