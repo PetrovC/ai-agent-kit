@@ -66,7 +66,11 @@ jobs:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           # WIF alternative: remove gemini_api_key above and set:
           # use_vertex_ai: true
-          gemini_cli_version: "latest"
+          # Pinned for supply-chain safety — this CLI runs with the job's
+          # write scope, so an unpinned "latest" would auto-run a future
+          # (possibly compromised/regressed) release. Bump deliberately after
+          # reading https://github.com/google-gemini/gemini-cli/releases
+          gemini_cli_version: "0.42.0"
           # gemini_debug: false
           # upload_artifacts: false
           prompt: |

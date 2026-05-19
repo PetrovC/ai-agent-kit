@@ -334,6 +334,12 @@ The `prompts/github-actions/` folder has ready-to-copy workflow files for AI-ass
 
 Copy these to `.github/workflows/` in your project (they are **not** installed automatically).
 
+> **Supply chain:** the Gemini templates pin `gemini_cli_version` to a concrete
+> release (not `latest`) — the CLI runs with the job's write scope, so an
+> unpinned auto-upgrade is a real risk. Bump it deliberately after reviewing the
+> [gemini-cli release notes](https://github.com/google-gemini/gemini-cli/releases).
+> The GitHub Actions themselves are already pinned (`@v1` / `@v0`).
+
 > **`ai-fallback-dispatch.yml`** is the resilient one: it runs the three
 > agents *sequentially on the same branch* and only hands off when a provider
 > did **not** finish. "Finished" is an observable git fact (a non-draft PR

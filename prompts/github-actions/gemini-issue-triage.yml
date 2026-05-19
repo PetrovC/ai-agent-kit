@@ -79,7 +79,11 @@ jobs:
             5. Missing information (if any): what would help resolve this faster
 
             Post your triage as a comment on the issue.
-          gemini_cli_version: "latest"
+          # Pinned for supply-chain safety — this CLI runs with the job's
+          # write scope, so an unpinned "latest" would auto-run a future
+          # (possibly compromised/regressed) release. Bump deliberately after
+          # reading https://github.com/google-gemini/gemini-cli/releases
+          gemini_cli_version: "0.42.0"
           # Optional newer inputs (uncomment as needed):
           # gemini_debug: false       — verbose logging for troubleshooting
           # upload_artifacts: false   — upload run logs as a workflow artifact
