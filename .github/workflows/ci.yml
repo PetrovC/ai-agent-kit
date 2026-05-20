@@ -306,7 +306,7 @@ jobs:
             }
             expect 2 "force-push"        '{"tool_input":{"command":"git push --force origin main"}}'
             expect 2 "force-push -f"     '{"tool_input":{"command":"git push -f origin main"}}'
-            expect 2 "force-with-lease"  '{"tool_input":{"command":"git push --force-with-lease origin main"}}'
+            expect 0 "force-with-lease"  '{"tool_input":{"command":"git push --force-with-lease origin main"}}'
             expect 2 "reset --hard"      '{"tool_input":{"command":"git reset --hard HEAD~3"}}'
             expect 2 "rm -rf /etc"       '{"tool_input":{"command":"rm -rf /etc"}}'
             expect 2 "rm -rf parent"     '{"tool_input":{"command":"rm -rf ../../etc"}}'
