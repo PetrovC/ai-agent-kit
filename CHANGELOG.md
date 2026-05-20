@@ -4,6 +4,29 @@
 
 ---
 
+## [1.19.14] - 2026-05-20
+
+### Fixed — pre-bash-guard missed split / bundled `git branch` force-delete (closes #79)
+
+The guard regex only matched `git branch -D` and the fixed long forms
+`--delete --force` / `--force --delete`. Git accepts any combination
+of `-d`/`--delete` with `-f`/`--force` (split as `-d -f`, `-f -d`,
+`--delete -f`, `-d --force`, or bundled as `-df` / `-fd`) and treats
+them as force-delete — same destructive intent as `-D`, but the
+guard let them through.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: replace the single
+  regex with a paired check — detect `git branch`, then require both
+  a delete-intent flag (`-d` short-block or `--delete`) and a
+  force-intent flag (`-f` short-block or `--force`). Bundled short
+  flags (`-df`, `-fd`) are covered via `-[a-z]*d[a-z]*` /
+  `-[a-z]*f[a-z]*`. Plain `-d`, plain `-f`, `-m`, and branches whose
+  name contains `-D` stay allowed.
+- **`.github/workflows/ci.yml`**: 8 new matrix cases.
+
+---
+
 ## [1.19.11] - 2026-05-20
 
 ### Fixed — pre-bash-guard let `--force-with-lease` get blocked (closes #72)
