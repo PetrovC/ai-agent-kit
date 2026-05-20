@@ -76,7 +76,6 @@ jobs:
             "/tmp/smoke-target/.claude/hooks/pre-bash-guard.sh"
             "/tmp/smoke-target/.claude/hooks/notify-done.sh"
             "/tmp/smoke-target/.claude/hooks/session-summary.sh"
-            "/tmp/smoke-target/.claude/rules/commit-style.md"
             "/tmp/smoke-target/.claude/rules/test-naming.md"
             "/tmp/smoke-target/.claude/rules/migration-safety.md"
             "/tmp/smoke-target/.claude/rules/env-safety.md"
@@ -140,7 +139,7 @@ jobs:
             ".claude\settings.json",
             ".claude\hooks\format-on-save.sh", ".claude\hooks\pre-bash-guard.sh",
             ".claude\hooks\notify-done.sh", ".claude\hooks\session-summary.sh",
-            ".claude\rules\commit-style.md", ".claude\rules\test-naming.md",
+            ".claude\rules\test-naming.md",
             ".claude\rules\migration-safety.md", ".claude\rules\env-safety.md",
             ".claude\commands\bug-fix.md", ".claude\commands\code-review.md",
             ".claude\commands\feature-planning.md",

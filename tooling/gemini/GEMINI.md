@@ -199,11 +199,19 @@ Always apply the "one concern per PR" rule — propose each maintenance item sep
 
 ## Git rules
 
-- Do not push directly to `main` or `dev`.
-- Work as if changes go through a pull request.
+**Commit messages** — Conventional Commits: `<type>(<scope>): <subject>`.
+- Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`.
+- Subject ≤ 72 chars, imperative mood (`add`, not `added`).
+- Breaking changes: append `!` after type and add a `BREAKING CHANGE:` footer.
+- One concern per commit. If the message needs `and`, split the commit.
+
+**Push and history:**
+- Never push directly to `main`, `master`, or `dev` — always via PR.
 - Do not rewrite history on shared branches.
 - Do not run destructive Git commands without explicit approval.
 - Do not delete user work or untracked files.
+
+**Never commit:** `.env`, `*.local.json`, secrets, compiled binaries, `node_modules/`.
 
 ---
 
