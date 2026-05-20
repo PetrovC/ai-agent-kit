@@ -4,6 +4,49 @@
 
 ---
 
+## [1.19.7] - 2026-05-20
+
+### Fixed — bash ↔ PowerShell parity sweep (the rest of audit MEDIUM-2)
+
+Pass 3 added the manifest-diff GC + `.kit-manifest` to the bash scripts
+only. Pass 7 brings the PowerShell trio to functional parity and fixes
+a silent version drift discovered while doing so.
+
+**Silent drift — caught and guarded.** `install.ps1` and `update.ps1`
+held `$KitVersion = "1.18.0"` across every release since v1.18 (Windows
+users running them stamped a stale version into `.kit-version`). The
+`lint-plugin-manifest` CI job only inspected `install.sh`'s
+`KIT_VERSION`, so the drift was invisible. Fixed and the CI check is
+now extended to enforce `$KitVersion` in both `.ps1` scripts **and**
+`KIT_VERSION` in `update.sh` all match `install.sh`'s `KIT_VERSION` —
+this class of drift can't recur silently.
+
+**Manifest GC parity.**
+- `install.ps1` now writes `.kit-manifest` (every kit artifact, filtered
+  by `Get-OwningTool` so `docs/ai/` and any non-kit path is never in it).
+- `update.ps1` mirrors `update.sh`: tracks `$Managed` + `$KeepFromOld`,
+  diffs against the old manifest, and prunes paths no longer shipped
+  (scoped to `-Tools`, never `docs/ai/` or user files, first-run is
+  baseline-only, `-DryRun` reports without deleting).
+- `uninstall.ps1` removes `.kit-manifest` alongside `.kit-version` (only
+  when all installed tools are being removed); header docstring updated.
+- Manifest is written in **UTF-8 without BOM** with **forward-slashed**
+  paths (new `Write-Utf8NoBom` helper) so a Windows install + Git-Bash
+  update on the same project read the same file.
+
+**`update.ps1` speed-up.** Replaced `Get-FileHash` MD5 on every src+dst
+pair with a length+byte-stream early-exit `Compare-Files` — the
+`cmp -s` equivalent. Same correctness, no hashing of whole files when
+they obviously differ.
+
+**CI guards.**
+- `lint-plugin-manifest`: enforce `install.ps1` / `update.ps1`
+  `$KitVersion` and `update.sh` `KIT_VERSION` all == `install.sh`.
+- `smoke-install-windows`: assert `install.ps1` wrote `.kit-manifest`,
+  with no BOM, no backslash paths, and a plausible entry count.
+
+---
+
 ## [1.19.6] - 2026-05-20
 
 ### Fixed — Gemini security-reviewer was missing list_directory

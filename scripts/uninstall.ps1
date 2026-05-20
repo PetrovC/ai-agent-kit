@@ -7,7 +7,7 @@
       - Root files: AGENTS.md, CLAUDE.md, GEMINI.md, .geminiignore.
       - Per-tool: settings.json, agents/ subdirectory, skills/ subdirectory.
       - Parent directories (.codex/, .claude/, .gemini/, .agents/) only if empty after removal.
-      - .kit-version file (only if all installed tools are being removed).
+      - .kit-version + .kit-manifest (only if all installed tools are removed).
 
     Preserves:
       - docs/ai/  (your project content - never touched)
@@ -160,8 +160,10 @@ if (Test-Path $versionFile) {
     $installedList = $installedRaw -split "," | ForEach-Object { $_.Trim().ToLower() }
     $remaining = @($installedList | Where-Object { $ToolList -notcontains $_ })
     if ($remaining.Count -eq 0) {
-        Step "Removing .kit-version"
+        Step "Removing .kit-version + .kit-manifest"
         Remove-KitPath $versionFile
+        $manifestFile = Join-Path $Target ".kit-manifest"
+        if (Test-Path $manifestFile) { Remove-KitPath $manifestFile }
     } else {
         Step "Keeping .kit-version"
         Write-Host "  (some tools still installed: $($remaining -join ','))"

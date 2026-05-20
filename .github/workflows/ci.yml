@@ -161,6 +161,29 @@ jobs:
         shell: pwsh
         run: .\scripts\update.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun
 
+      - name: install.ps1 wrote .kit-manifest (parity with install.sh)
+        shell: pwsh
+        run: |
+          $m = Join-Path "$env:RUNNER_TEMP\smoke-target" ".kit-manifest"
+          if (-not (Test-Path $m)) { Write-Host "FAIL: .kit-manifest missing"; exit 1 }
+          $lines = Get-Content $m
+          if ($lines.Count -lt 50) {
+            Write-Host "FAIL: .kit-manifest looks empty / under-populated ($($lines.Count) lines)"; exit 1
+          }
+          # No BOM at the start (bash sort/grep would otherwise see it). Read
+          # raw bytes — Get-Content auto-strips BOM, so a string check would
+          # never fail even with a BOM present.
+          $bytes = [System.IO.File]::ReadAllBytes($m)
+          if ($bytes.Count -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+            Write-Host "FAIL: .kit-manifest starts with UTF-8 BOM"; exit 1
+          }
+          # No backslashes — manifest paths must be forward-slashed for
+          # cross-shell readability (bash update.sh on Git-Bash on the same project).
+          if ($lines | Where-Object { $_ -match '\\' }) {
+            Write-Host "FAIL: .kit-manifest has backslash paths"; exit 1
+          }
+          Write-Host "OK: .kit-manifest ($($lines.Count) entries, no BOM, forward-slashed)"
+
       - name: Dry-run uninstall
         shell: pwsh
         run: .\scripts\uninstall.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun
@@ -586,6 +609,24 @@ jobs:
               ext = json.load(f)
           if kit_ver != ext.get("version"):
               errs.append(f"gemini-extension.json version ({ext.get('version')}) != KIT_VERSION ({kit_ver})")
+
+          # Bash KIT_VERSION already enforced via install.sh. PowerShell ships
+          # the parallel install.ps1/update.ps1 with $KitVersion = "..." — that
+          # was silently drifting (held at 1.18.0 across several releases)
+          # because the check only inspected install.sh. Pin all four.
+          for ps1 in ("scripts/install.ps1", "scripts/update.ps1"):
+              with open(ps1) as f:
+                  ps1_txt = f.read()
+              m = re.search(r'\$KitVersion\s*=\s*"([^"]+)"', ps1_txt)
+              ps1_ver = m.group(1) if m else None
+              if ps1_ver != kit_ver:
+                  errs.append(f"{ps1} $KitVersion ({ps1_ver}) != KIT_VERSION ({kit_ver})")
+          with open("scripts/update.sh") as f:
+              up_txt = f.read()
+          m = re.search(r'KIT_VERSION="([^"]+)"', up_txt)
+          up_ver = m.group(1) if m else None
+          if up_ver != kit_ver:
+              errs.append(f"scripts/update.sh KIT_VERSION ({up_ver}) != install.sh KIT_VERSION ({kit_ver})")
 
           # marketplace plugin source must be a documented form: a relative
           # path starting with "./", or a {source: github|url|...} object.

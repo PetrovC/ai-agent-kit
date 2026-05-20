@@ -33,7 +33,53 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.18.0"
+$KitVersion = "1.19.7"
+
+function Get-OwningTool([string]$rel) {
+    # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,
+    # .kit-version, .kit-manifest, user files) — those are never pruned and
+    # never written to the manifest.
+    switch -Wildcard ($rel) {
+        "AGENTS.md"          { return "codex" }
+        ".codex/*"           { return "codex" }
+        ".agents/skills/*"   { return "codex" }
+        "CLAUDE.md"          { return "claude" }
+        ".mcp.json"          { return "claude" }
+        ".mcp.example.jsonc" { return "claude" }
+        ".claude/*"          { return "claude" }
+        "GEMINI.md"          { return "gemini" }
+        ".geminiignore"      { return "gemini" }
+        ".gemini/*"          { return "gemini" }
+        default              { return "" }
+    }
+}
+
+function Compare-Files([string]$a, [string]$b) {
+    # Returns $true if identical. Length check first, then byte-stream compare
+    # with early exit on the first differing byte — the cmp -s equivalent. We
+    # do not hash both whole files (Get-FileHash) because that always reads
+    # them fully even when they obviously differ.
+    if ((Get-Item $a).Length -ne (Get-Item $b).Length) { return $false }
+    $sa = [System.IO.File]::OpenRead($a)
+    $sb = [System.IO.File]::OpenRead($b)
+    try {
+        while ($true) {
+            $ba = $sa.ReadByte()
+            $bb = $sb.ReadByte()
+            if ($ba -ne $bb) { return $false }
+            if ($ba -eq -1)  { return $true }   # both EOF — lengths matched
+        }
+    } finally {
+        $sa.Close(); $sb.Close()
+    }
+}
+
+function Write-Utf8NoBom([string]$path, [string]$text) {
+    # PowerShell 5.1 Set-Content -Encoding utf8 writes a BOM. The manifest is
+    # parsed line-by-line by bash update.sh; a BOM on the first line breaks
+    # the entry. UTF-8 *without* BOM keeps it cross-shell readable.
+    [System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))
+}
 
 # -- Read installed version ------------------------------------------------
 $versionFile    = Join-Path $Target ".kit-version"
@@ -81,12 +127,16 @@ Write-Host "Tools      : $($ToolList -join ', ')"
 if ($DryRun) { Write-Host "Mode       : DRY RUN (no files written)" -ForegroundColor Yellow }
 
 # -- Helpers ---------------------------------------------------------------
-$Changes = [System.Collections.Generic.List[string]]::new()
+$Changes      = [System.Collections.Generic.List[string]]::new()
+$Managed      = [System.Collections.Generic.List[string]]::new()   # touched this run (any tool in scope)
+$KeepFromOld  = [System.Collections.Generic.List[string]]::new()   # old-manifest entries for tools NOT in this run
 
 function Compare-And-Update([string]$src, [string]$dst) {
     if (-not (Test-Path $src)) { return }
 
-    $rel = $dst.Replace($Target, "").TrimStart("\", "/")
+    # Forward-slashed rel for cross-shell manifest parity with bash update.sh.
+    $rel = $dst.Replace($Target, "").TrimStart("\", "/").Replace("\", "/")
+    $Managed.Add($rel)
 
     if (-not (Test-Path $dst)) {
         $Changes.Add("NEW      $rel")
@@ -98,10 +148,7 @@ function Compare-And-Update([string]$src, [string]$dst) {
         return
     }
 
-    $srcHash = (Get-FileHash $src -Algorithm MD5).Hash
-    $dstHash = (Get-FileHash $dst -Algorithm MD5).Hash
-
-    if ($srcHash -ne $dstHash) {
+    if (-not (Compare-Files $src $dst)) {
         $Changes.Add("UPDATED  $rel")
         if (-not $DryRun) {
             Copy-Item $src $dst -Force
@@ -178,10 +225,40 @@ if ($ToolList -contains "gemini") {
 
 # NOTE: docs/ai/ is intentionally NOT updated - it contains project-specific content.
 
-# -- Update .kit-version ---------------------------------------------------
+# -- Garbage-collect files the kit no longer ships -------------------------
+# Manifest diff: anything in the OLD .kit-manifest that is no longer shipped
+# AND whose owning tool is in this run's -Tools scope is pruned. Conservative:
+#   - only paths under a known kit root are ever touched (docs/ai/, user files
+#     can never match);
+#   - first run (no manifest) prunes nothing - it only writes the baseline;
+#   - a partial -Tools run never prunes another tool's files; preserves that
+#     tool's manifest entries (KeepFromOld) for a later full run.
+$manifestFile = Join-Path $Target ".kit-manifest"
+
+if ((Test-Path $manifestFile) -and ($Managed.Count -gt 0)) {
+    Get-Content $manifestFile | ForEach-Object {
+        $p = $_.Trim()
+        if (-not $p) { return }
+        $otool = Get-OwningTool $p
+        if (-not $otool) { return }                        # not a kit artifact -> ignore
+        if ($ToolList -notcontains $otool) {
+            $KeepFromOld.Add($p)                           # other tool, out of scope
+            return
+        }
+        if (($Managed -notcontains $p) -and (Test-Path (Join-Path $Target $p))) {
+            $Changes.Add("PRUNED   $p (no longer shipped)")
+            if (-not $DryRun) { Remove-Item -Path (Join-Path $Target $p) -Force }
+        }
+    }
+}
+
+# -- Update .kit-version + .kit-manifest -----------------------------------
 if (-not $DryRun) {
     $stamp = "ai-agent-kit@$KitVersion - updated $(Get-Date -Format 'yyyy-MM-dd') - tools: $($ToolList -join ',')"
-    Set-Content -Path $versionFile -Value $stamp -Encoding utf8
+    Write-Utf8NoBom $versionFile $stamp
+
+    $manifestEntries = (@() + $Managed + $KeepFromOld) | Sort-Object -Unique | Where-Object { $_ }
+    Write-Utf8NoBom $manifestFile (($manifestEntries -join "`n") + "`n")
 }
 
 # -- Report ----------------------------------------------------------------
