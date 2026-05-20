@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+### Changed — CI workflows split by scope
+
+`.github/workflows/ci.yml` (single 1091-line file, 19 jobs, triggered on
+both `push` and `pull_request`) replaced with six scoped Pull Request
+workflows. No job or step was dropped; behaviour is unchanged.
+
+- `.github/workflows/pr-scripts-shell.yml` — `validate-example`,
+  `smoke-install`, `lint-shell`, `e2e-lifecycle`.
+- `.github/workflows/pr-scripts-powershell.yml` — `smoke-install-windows`.
+- `.github/workflows/pr-hooks.yml` — `hooks-behavior` (hook exec +
+  pre-bash-guard matrix + non-guard hooks matrix) and `lint-codex-hooks`.
+- `.github/workflows/pr-docs.yml` — `lint-skills`, `lint-yaml`,
+  `routing-consistency`, `lint-workflow-semantics`.
+- `.github/workflows/pr-tooling.yml` — `lint-claude` (rules + settings +
+  agents + commands + .mcp.json + webfetch), `lint-codex` (approval +
+  toml + web_search + skills + no-legacy-agents), `lint-gemini`
+  (subagents + commands + extension).
+- `.github/workflows/pr-versioning.yml` — `no-install-output-tracked`,
+  `lint-plugin-manifest`.
+
+All six use `on: pull_request` (types `opened`, `synchronize`,
+`reopened`, `ready_for_review`) — no `push`, no `pull_request_target`.
+`permissions: contents: read` and PR-scoped concurrency
+(`cancel-in-progress: true`) applied uniformly.
+
 ---
 
 ## [1.19.18] - 2026-05-20
