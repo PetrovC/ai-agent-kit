@@ -1,0 +1,133 @@
+name: PR — versioning + release hygiene
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  no-install-output-tracked:
+    name: Kit must not commit its own install output
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No install-output artifact may be tracked at the repo root
+        run: |
+          # The kit's SOURCE lives in tooling/, skills/, scripts/, etc.
+          # These root paths are what the installer writes into a *target*
+          # project — committing them into the kit itself is the "dogfood
+          # pollution" failure mode. .gitignore guards against accidental
+          # `git add`; this CI check enforces it.
+          bad=0
+          for p in AGENTS.md CLAUDE.md GEMINI.md .geminiignore .mcp.json \
+                   .mcp.example.jsonc .kit-version CLAUDE.local.md \
+                   .codex .gemini .agents docs/ai; do
+            if git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
+              echo "TRACKED INSTALL OUTPUT AT ROOT: $p"
+              bad=1
+            fi
+            # also catch a tracked directory's contents
+            if git ls-files "$p/" 2>/dev/null | grep -q .; then
+              echo "TRACKED INSTALL OUTPUT DIR AT ROOT: $p/"
+              bad=1
+            fi
+          done
+          [[ "$bad" -eq 0 ]] || { echo "Kit must ship source, not install output."; exit 1; }
+          echo "OK: no install-output artifact tracked at root"
+
+  lint-plugin-manifest:
+    name: Claude plugin + marketplace manifests valid
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: plugin.json and marketplace.json must be valid and consistent
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          errs = []
+
+          with open(".claude-plugin/plugin.json") as f:
+              p = json.load(f)
+          for k in ("name", "version", "description"):
+              if not p.get(k):
+                  errs.append(f"plugin.json missing '{k}'")
+
+          with open(".claude-plugin/marketplace.json") as f:
+              m = json.load(f)
+          if not m.get("name"):
+              errs.append("marketplace.json missing 'name'")
+          if not m.get("owner", {}).get("name"):
+              errs.append("marketplace.json missing 'owner.name'")
+          plugins = m.get("plugins") or []
+          if not plugins:
+              errs.append("marketplace.json has no plugins")
+          for pl in plugins:
+              if not pl.get("name") or not pl.get("source"):
+                  errs.append(f"marketplace plugin entry missing name/source: {pl}")
+
+          # plugin.json AND gemini-extension.json versions must match the kit
+          # version in install.sh, so every distribution path stays on the same
+          # release (this catches the v1.16.0 gemini-extension.json drift).
+          with open("scripts/install.sh") as f:
+              txt = f.read()
+          mt = re.search(r'KIT_VERSION="([^"]+)"', txt)
+          kit_ver = mt.group(1) if mt else None
+          if kit_ver != p.get("version"):
+              errs.append(f"plugin.json version ({p.get('version')}) != KIT_VERSION ({kit_ver})")
+
+          with open("tooling/gemini/gemini-extension.json") as f:
+              ext = json.load(f)
+          if kit_ver != ext.get("version"):
+              errs.append(f"gemini-extension.json version ({ext.get('version')}) != KIT_VERSION ({kit_ver})")
+
+          # Bash KIT_VERSION already enforced via install.sh. PowerShell ships
+          # the parallel install.ps1/update.ps1 with $KitVersion = "..." — that
+          # was silently drifting (held at 1.18.0 across several releases)
+          # because the check only inspected install.sh. Pin all four.
+          for ps1 in ("scripts/install.ps1", "scripts/update.ps1"):
+              with open(ps1) as f:
+                  ps1_txt = f.read()
+              m = re.search(r'\$KitVersion\s*=\s*"([^"]+)"', ps1_txt)
+              ps1_ver = m.group(1) if m else None
+              if ps1_ver != kit_ver:
+                  errs.append(f"{ps1} $KitVersion ({ps1_ver}) != KIT_VERSION ({kit_ver})")
+          with open("scripts/update.sh") as f:
+              up_txt = f.read()
+          m = re.search(r'KIT_VERSION="([^"]+)"', up_txt)
+          up_ver = m.group(1) if m else None
+          if up_ver != kit_ver:
+              errs.append(f"scripts/update.sh KIT_VERSION ({up_ver}) != install.sh KIT_VERSION ({kit_ver})")
+
+          # marketplace plugin source must be a documented form: a relative
+          # path starting with "./", or a {source: github|url|...} object.
+          self_repo = (p.get("repository") or "").replace("https://github.com/", "").rstrip("/")
+          for pl in plugins:
+              src = pl.get("source")
+              ok = (isinstance(src, str) and src.startswith("./")) or (
+                  isinstance(src, dict) and src.get("source") in ("github", "url", "git-subdir", "npm")
+              )
+              if not ok:
+                  errs.append(f"marketplace source not a documented form: {src!r}")
+              # Same-repo plugins MUST use the relative "./..." form. A
+              # {source:github, repo:<own repo>} self-reference forces a second
+              # fetch that breaks on PRIVATE repos (the marketplace clone is
+              # already authenticated; the plugin re-fetch may not be).
+              if isinstance(src, dict) and src.get("source") == "github" \
+                 and src.get("repo", "").rstrip("/") == self_repo and self_repo:
+                  errs.append(
+                      f"plugin source github:{src.get('repo')} self-references the "
+                      f"marketplace repo — use a relative \"./\" source instead "
+                      f"(private-repo safe, no second fetch)")
+
+          if errs:
+              print("\n".join(errs)); sys.exit(1)
+          print(f"OK: manifests valid + version-consistent ({kit_ver})")
+          PY
