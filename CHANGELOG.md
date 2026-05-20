@@ -33,6 +33,7 @@ though the bare `git push --force` form was blocked.
 
 ---
 
+
 ## [1.19.14] - 2026-05-20
 
 ### Fixed — pre-bash-guard missed split / bundled `git branch` force-delete (closes #79)

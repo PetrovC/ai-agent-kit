@@ -72,8 +72,17 @@ if echo "$CMD" | grep -qE "${GIT_PREFIX}push.*[[:space:]](-f([[:space:]]|$)|--fo
 fi
 
 # Block branch / ref deletion that destroys history pointers.
-if echo "$CMD" | grep -qE "${GIT_PREFIX}branch[[:space:]].*(-D|--delete[[:space:]]+--force|--force[[:space:]]+--delete)([[:space:]]|$)"; then
-    block "BLOCKED: 'git branch -D' force-deletes a branch (possibly unmerged work). Use -d or explicit approval."
+# `-D` shortcut implies force-delete; any split combination of -d/--delete
+# with -f/--force is the same intent (Git accepts -d -f / -f -d / --delete -f
+# / -d --force / bundled short flags like -df, -fd).
+if echo "$CMD" | grep -qE "${GIT_PREFIX}branch[[:space:]]"; then
+    if echo "$CMD" | grep -qE "${GIT_PREFIX}branch.*[[:space:]]-D([[:space:]]|$)"; then
+        block "BLOCKED: 'git branch -D' force-deletes a branch (possibly unmerged work). Use -d or explicit approval."
+    fi
+    if echo "$CMD" | grep -qE "${GIT_PREFIX}branch.*[[:space:]](--delete|-[a-z]*d[a-z]*)([[:space:]]|$)" \
+       && echo "$CMD" | grep -qE "${GIT_PREFIX}branch.*[[:space:]](--force|-[a-z]*f[a-z]*)([[:space:]]|$)"; then
+        block "BLOCKED: 'git branch' combining -d/--delete with -f/--force is force-delete (-D equivalent). Use plain -d or explicit approval."
+    fi
 fi
 if echo "$CMD" | grep -qE "${GIT_PREFIX}update-ref[[:space:]].*-d"; then
     block "BLOCKED: 'git update-ref -d' deletes a ref directly. Requires explicit approval."
