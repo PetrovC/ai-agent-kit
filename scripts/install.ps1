@@ -35,8 +35,36 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.18.0"
+$KitVersion = "1.19.7"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
+
+# Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
+# bash install.sh — a Windows install followed by a Git-Bash update on the same
+# project must read the same paths).
+$Managed = [System.Collections.Generic.List[string]]::new()
+
+function Get-OwningTool([string]$rel) {
+    switch -Wildcard ($rel) {
+        "AGENTS.md"          { return "codex" }
+        ".codex/*"           { return "codex" }
+        ".agents/skills/*"   { return "codex" }
+        "CLAUDE.md"          { return "claude" }
+        ".mcp.json"          { return "claude" }
+        ".mcp.example.jsonc" { return "claude" }
+        ".claude/*"          { return "claude" }
+        "GEMINI.md"          { return "gemini" }
+        ".geminiignore"      { return "gemini" }
+        ".gemini/*"          { return "gemini" }
+        default              { return "" }
+    }
+}
+
+function Write-Utf8NoBom([string]$path, [string]$text) {
+    # PowerShell 5.1 Set-Content -Encoding utf8 writes a BOM. The manifest is
+    # parsed line-by-line by bash update.sh, where a BOM on the first line
+    # breaks the entry. UTF-8 *without* BOM keeps it cross-shell readable.
+    [System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))
+}
 
 $ValidTools = @("codex", "claude", "gemini")
 $invalid    = @($ToolList | Where-Object { $ValidTools -notcontains $_ })
@@ -64,7 +92,8 @@ function Copy-KitFile([string]$src, [string]$dst) {
         New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
     }
     Copy-Item -Path $src -Destination $dst -Force
-    $rel = $dst.Replace($Target, "").TrimStart("\", "/")
+    $rel = $dst.Replace($Target, "").TrimStart("\", "/").Replace("\", "/")
+    $Managed.Add($rel)
     Write-Ok $rel
 }
 
@@ -156,11 +185,18 @@ Get-ChildItem -Path (Join-Path $KitRoot "project-template") -File | ForEach-Obje
     }
 }
 
-# -- .kit-version ----------------------------------------------------------
-Write-Step "Writing .kit-version"
+# -- .kit-version + .kit-manifest ------------------------------------------
+Write-Step "Writing .kit-version + .kit-manifest"
 $stamp = "ai-agent-kit@$KitVersion - installed $(Get-Date -Format 'yyyy-MM-dd') - tools: $($ToolList -join ',')"
-Set-Content -Path (Join-Path $Target ".kit-version") -Value $stamp -Encoding utf8
+Write-Utf8NoBom (Join-Path $Target ".kit-version") $stamp
 Write-Ok ".kit-version"
+
+# Baseline manifest: every kit artifact just installed, filtered by
+# Get-OwningTool so docs/ai/ and any non-kit paths never end up in it.
+# update.ps1 diffs against this to prune files later versions stop shipping.
+$manifestEntries = $Managed | Where-Object { (Get-OwningTool $_) } | Sort-Object -Unique
+Write-Utf8NoBom (Join-Path $Target ".kit-manifest") (($manifestEntries -join "`n") + "`n")
+Write-Ok ".kit-manifest"
 
 # -- .gitignore hint -------------------------------------------------------
 $gitignore = Join-Path $Target ".gitignore"
