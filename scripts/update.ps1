@@ -33,7 +33,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.14"
+$KitVersion = "1.19.15"
 
 function Get-OwningTool([string]$rel) {
     # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,

@@ -51,11 +51,17 @@ CMD=$(parse_with_jq || true)
 [ -n "${CMD:-}" ] || CMD=$(parse_with_python || true)
 [ -n "${CMD:-}" ] || CMD=$(parse_with_sed || true)
 
+# Shared prefix for `git` + optional global options before the subcommand.
+# Covers `git -C <dir>`, `git -c <key=val>`, `git --git-dir=<p>`, `git --work-tree=<p>`
+# (including the space-separated forms). Without this, `git -C repo push --force`
+# bypasses the per-subcommand patterns below.
+GIT_PREFIX='git([[:space:]]+(-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--git-dir[=[:space:]][^[:space:]]+|--work-tree[=[:space:]][^[:space:]]+))*[[:space:]]+'
+
 # Block force-push. Match a real -f / --force *flag* (not a branch name that
 # merely contains "-f", e.g. `git push origin feature-foo` must pass), the
 # `+refspec` force form (`git push origin +main`), and the destructive
 # --mirror / --delete / -d forms.
-if echo "$CMD" | grep -qE 'git[[:space:]]+push.*[[:space:]](-f([[:space:]]|$)|--force([[:space:]]|$)|--mirror|--delete|-d([[:space:]]|$)|\+[^[:space:]]+:?)'; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}push.*[[:space:]](-f([[:space:]]|$)|--force([[:space:]]|$)|--mirror|--delete|-d([[:space:]]|$)|\+[^[:space:]]+:?)"; then
     block "BLOCKED: force/mirror/delete push is not allowed. Use --force-with-lease only after explicit approval; never +refspec, --mirror, or --delete unattended."
 fi
 
@@ -63,21 +69,21 @@ fi
 # `-D` shortcut implies force-delete; any split combination of -d/--delete
 # with -f/--force is the same intent (Git accepts -d -f / -f -d / --delete -f
 # / -d --force / bundled short flags like -df, -fd).
-if echo "$CMD" | grep -qE 'git[[:space:]]+branch[[:space:]]'; then
-    if echo "$CMD" | grep -qE 'git[[:space:]]+branch.*[[:space:]]-D([[:space:]]|$)'; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}branch[[:space:]]"; then
+    if echo "$CMD" | grep -qE "${GIT_PREFIX}branch.*[[:space:]]-D([[:space:]]|$)"; then
         block "BLOCKED: 'git branch -D' force-deletes a branch (possibly unmerged work). Use -d or explicit approval."
     fi
-    if echo "$CMD" | grep -qE 'git[[:space:]]+branch.*[[:space:]](--delete|-[a-z]*d[a-z]*)([[:space:]]|$)' \
-       && echo "$CMD" | grep -qE 'git[[:space:]]+branch.*[[:space:]](--force|-[a-z]*f[a-z]*)([[:space:]]|$)'; then
+    if echo "$CMD" | grep -qE "${GIT_PREFIX}branch.*[[:space:]](--delete|-[a-z]*d[a-z]*)([[:space:]]|$)" \
+       && echo "$CMD" | grep -qE "${GIT_PREFIX}branch.*[[:space:]](--force|-[a-z]*f[a-z]*)([[:space:]]|$)"; then
         block "BLOCKED: 'git branch' combining -d/--delete with -f/--force is force-delete (-D equivalent). Use plain -d or explicit approval."
     fi
 fi
-if echo "$CMD" | grep -qE 'git[[:space:]]+update-ref[[:space:]].*-d'; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}update-ref[[:space:]].*-d"; then
     block "BLOCKED: 'git update-ref -d' deletes a ref directly. Requires explicit approval."
 fi
 
 # Block destructive reset (--hard discards working tree, --keep discards too).
-if echo "$CMD" | grep -qE 'git[[:space:]]+reset[[:space:]].*(--hard|--keep)'; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}reset[[:space:]].*(--hard|--keep)"; then
     block "BLOCKED: git reset --hard/--keep can destroy uncommitted work. Use git stash or explicit approval."
 fi
 
@@ -86,7 +92,7 @@ fi
 # bypass that guard or reset a branch pointer:
 #   --discard-changes / -f / --force  : throw away local modifications
 #   -C <name> / --force-create        : create/reset and switch (resets branch ref)
-if echo "$CMD" | grep -qE 'git[[:space:]]+switch[[:space:]].*(--discard-changes|--force-create|--force|-f|-C)([[:space:]]|$)'; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}switch[[:space:]].*(--discard-changes|--force-create|--force|-f|-C)([[:space:]]|$)"; then
     block "BLOCKED: 'git switch --discard-changes/--force/-f/-C/--force-create' can discard uncommitted work or reset a branch pointer. Commit/stash first, or use plain 'git switch <branch>' / 'git switch -c <new>'."
 fi
 
@@ -94,7 +100,7 @@ fi
 # combined short forms like -fd, -fdx, -ffdx) actually delete untracked files;
 # -d/-x/-X widen the scope. `git clean -n` / `--dry-run` (no -f) stays allowed
 # as a safe preview.
-if echo "$CMD" | grep -qE 'git[[:space:]]+clean([[:space:]]+|.*[[:space:]])(-[a-zA-Z]*f[a-zA-Z]*|--force)([[:space:]]|$)'; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}clean([[:space:]]+|.*[[:space:]])(-[a-zA-Z]*f[a-zA-Z]*|--force)([[:space:]]|$)"; then
     block "BLOCKED: 'git clean -f' deletes untracked files (often irrecoverable). Use 'git clean -n' / '--dry-run' first; require explicit approval before a forceful clean."
 fi
 

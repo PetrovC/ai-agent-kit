@@ -4,6 +4,36 @@
 
 ---
 
+## [1.19.15] - 2026-05-20
+
+### Fixed — pre-bash-guard bypassed by Git global options (closes #66)
+
+`git -C <dir>`, `git -c <key=val>`, `git --git-dir=<path>`, and
+`git --work-tree=<path>` are standard Git syntax that automation
+snippets and agents naturally emit. The existing per-subcommand
+patterns required `git` to be **immediately** followed by the
+subcommand, so `git -C repo push --force`, `git --git-dir=.git push
+--mirror`, `git -c protocol.version=2 push --delete`, and the same
+shape for `branch`/`reset`/`update-ref` all bypassed the guard — even
+though the bare `git push --force` form was blocked.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: introduce a shared
+  `GIT_PREFIX` regex that matches `git` plus zero or more global
+  options before the subcommand (`-C dir`, `-c key=val`, `--git-dir=`/
+  `--git-dir `, `--work-tree=`/`--work-tree `). Reuse the prefix in
+  the push / branch / update-ref / reset / switch / clean checks.
+- **`.github/workflows/ci.yml`**: 7 new matrix cases (`-C push
+  --force`, `-C push --delete`, `--git-dir push --mirror`, `-c push
+  --delete`, `-C reset --hard`, `-C branch -D`, and a passthrough for
+  `git -C repo status`).
+- **`README.md`**: hook coverage tables note that global options
+  (`git -C`, `--git-dir`, …) before the destructive subcommand are
+  covered.
+
+---
+
+
 ## [1.19.14] - 2026-05-20
 
 ### Fixed — pre-bash-guard missed split / bundled `git branch` force-delete (closes #79)
