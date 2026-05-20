@@ -71,6 +71,16 @@ if echo "$CMD" | grep -qE "${GIT_PREFIX}push.*[[:space:]](-f([[:space:]]|$)|--fo
     block "BLOCKED: force/mirror/delete push is not allowed. Use --force-with-lease only after explicit approval; never +refspec, --mirror, or --delete unattended."
 fi
 
+# Block remote ref deletion via the empty-source colon refspec form.
+# `git push <remote> :<dst>` deletes <dst> on the remote — same destructive
+# intent as `--delete` / `-d`, but neither flag is present so the regex
+# above lets it through. The deletion token is a whitespace-delimited word
+# that *starts* with `:`; `main:dev` (rename push) or `HEAD:main` keep a
+# leading non-space, so they do not match.
+if echo "$CMD" | grep -qE "${GIT_PREFIX}push[[:space:]].*[[:space:]]:[^[:space:]]+"; then
+    block "BLOCKED: 'git push <remote> :<ref>' deletes a remote ref (same as --delete). Requires explicit approval; use 'git push --delete' after review if intentional."
+fi
+
 # Block branch / ref deletion that destroys history pointers.
 # `-D` shortcut implies force-delete; any split combination of -d/--delete
 # with -f/--force is the same intent (Git accepts -d -f / -f -d / --delete -f
