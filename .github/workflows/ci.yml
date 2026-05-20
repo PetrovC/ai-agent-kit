@@ -188,6 +188,41 @@ jobs:
         shell: pwsh
         run: .\scripts\uninstall.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun
 
+      - name: install/update/uninstall.ps1 reject missing and non-directory Target
+        shell: pwsh
+        run: |
+          # Parity with the bash side: [[ ! -d "$TARGET" ]] refuses both a
+          # missing path and a regular file. Without -PathType Container,
+          # PowerShell silently accepted a file (typo or wrong arg) and the
+          # subsequent Join-Path / New-Item -ItemType Directory calls began
+          # materializing a pseudo-install under that invalid root. Regression
+          # coverage for #67 — must fail-fast on each PS lifecycle script.
+          $fail = 0
+          $missing = "$env:RUNNER_TEMP\does-not-exist-$([guid]::NewGuid())"
+          $file    = New-Item -ItemType File -Path "$env:RUNNER_TEMP\not-a-dir-$([guid]::NewGuid())" -Force | Select-Object -ExpandProperty FullName
+          foreach ($case in @(
+            @{ Script = "scripts\install.ps1";   Args = @("-Target", $missing, "-Tools", "claude"); Label = "install / missing" },
+            @{ Script = "scripts\install.ps1";   Args = @("-Target", $file,    "-Tools", "claude"); Label = "install / file" },
+            @{ Script = "scripts\update.ps1";    Args = @("-Target", $missing, "-Tools", "claude"); Label = "update / missing" },
+            @{ Script = "scripts\update.ps1";    Args = @("-Target", $file,    "-Tools", "claude"); Label = "update / file" },
+            @{ Script = "scripts\uninstall.ps1"; Args = @("-Target", $missing);                     Label = "uninstall / missing" },
+            @{ Script = "scripts\uninstall.ps1"; Args = @("-Target", $file);                        Label = "uninstall / file" }
+          )) {
+            $out = & pwsh -NoProfile -ExecutionPolicy Bypass -File $case.Script @($case.Args) 2>&1
+            $rc = $LASTEXITCODE
+            if ($rc -ne 0 -and ($out -join "`n") -match "Target directory does not exist") {
+              Write-Host "PASS $($case.Label) (rc=$rc)"
+            } else {
+              Write-Host "FAIL $($case.Label) (rc=$rc): $($out | Select-Object -Last 1)"
+              $fail = 1
+            }
+          }
+          Remove-Item -LiteralPath $file -Force
+          # Explicit exit 0 — without it, $LASTEXITCODE leaks the rc=1 from
+          # the last `& pwsh ...` invocation above and the step still fails
+          # despite every case passing.
+          if ($fail) { exit 1 } else { exit 0 }
+
       - name: All .ps1 scripts must parse (syntax)
         shell: pwsh
         run: |
