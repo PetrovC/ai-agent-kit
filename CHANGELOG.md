@@ -4,6 +4,40 @@
 
 ---
 
+## [1.19.16] - 2026-05-20
+
+### Fixed — PowerShell lifecycle scripts accepted a file (or, for `update.ps1`, anything) as `-Target` (closes #67)
+
+`install.sh` / `update.sh` refused any `$TARGET` that was not an
+existing directory (`[[ ! -d ]]`). The PowerShell siblings diverged:
+
+- `scripts/install.ps1` and `scripts/uninstall.ps1` used bare
+  `Test-Path $Target`, which is true for an existing **file** too —
+  so passing `README.md` (typo, wrong arg) cleared the check and the
+  subsequent `Join-Path` / `Copy-Item` produced bogus
+  `README.md\AGENTS.md` destinations.
+- `scripts/update.ps1` had **no** `$Target` validation at all —
+  `Compare-And-Update` would then begin materializing a pseudo-install
+  via `New-Item -ItemType Directory` under whatever path was supplied.
+
+This is a cross-platform parity gap on the platform where the `.ps1`
+scripts are the primary entry point. CI Bash matrices never exercised
+it, so a green CI masked dangerous Windows UX.
+
+- **`scripts/install.ps1`**, **`scripts/update.ps1`**, and
+  **`scripts/uninstall.ps1`**: validate `$Target` with
+  `Test-Path -LiteralPath $Target -PathType Container` before any
+  I/O. `-LiteralPath` avoids surprises with `[`/`]` / wildcard chars
+  in real Windows paths; `-PathType Container` rejects files. The
+  failure message matches the Bash side verbatim
+  (`"Target directory does not exist: $Target"`, exit 1).
+- **`.github/workflows/ci.yml`**: new `smoke-install-windows` step
+  runs the 3 PS scripts × 2 invalid inputs (missing path, file path)
+  and asserts each errors with the documented message — six
+  regression assertions on the platform where the bug lived.
+
+---
+
 ## [1.19.15] - 2026-05-20
 
 ### Fixed — pre-bash-guard bypassed by Git global options (closes #66)
