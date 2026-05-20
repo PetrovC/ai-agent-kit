@@ -4,6 +4,61 @@
 
 ---
 
+## [1.19.10] - 2026-05-20
+
+### Fixed — consolidation sweep (closes the v1.19 audit series)
+
+Doc-staleness and one local-tool quirk that accumulated across the
+v1.19.0–v1.19.9 series and never made it into a sibling file. Pure
+docs/text + one `.ps1` ASCII-ification; no behaviour change.
+
+- **`tooling/codex/AGENTS.md` — guard table row** mirrored README's
+  v1.19.0 expansion: now lists the post-Pass 0 / `pre-bash-guard.sh`
+  coverage (`+refspec`, `--mirror`, `--delete`/`-d`, `git branch -D`,
+  `update-ref -d`, `reset --hard/--keep`, `rm -rf` on cwd/glob/variable,
+  `${IFS}` obfuscation, SQL `DROP`) and the **best-effort, not a sandbox**
+  framing.
+- **`tooling/codex/AGENTS.md` — parser description.** Was still
+  "probed jq → python3 → sed chain". Pass 0 (v1.19.0) collapsed the
+  parser to a single invocation per backend (empty-output fallthrough
+  to the next on a missing/broken interpreter). Wording aligned with
+  the README fix.
+- **`tooling/codex/AGENTS.md` — `[shell_environment_policy]` scrub
+  list.** Was the pre-Pass 0 set (`*_SECRET`/`*_TOKEN`/`*_KEY`/
+  `*_PASSWORD`/`OPENAI_*`/`ANTHROPIC_*`/`AWS_*`/`GCP_*`). v1.19.0 added
+  `GOOGLE_*` and the connection-string class (`*_URL`/`*_URI`/`*_DSN`,
+  which `DATABASE_URL`-style values matched none of) to `config.toml`;
+  AGENTS.md still described the old list.
+- **`scripts/new-skill.ps1` — ASCII-only.** The file used UTF-8 box-
+  drawing separators (`──`) and an em-dash. Windows PowerShell **5.1**'s
+  `Parser::ParseFile` defaults to ANSI on a UTF-8-no-BOM file and would
+  fail to parse the script, so a 5.1 user running `new-skill.ps1`
+  directly hit a parse error (CI uses `pwsh` PS 7+, so this never broke
+  CI — local-only quirk flagged at the end of Pass 7). All separators
+  replaced with ASCII `--` / `-`. Verified `new-skill.ps1` now parses
+  cleanly under Windows PowerShell 5.1 with zero non-ASCII bytes left.
+
+### v1.19.x — series summary
+
+This is the closing pass of a 10-pass audit-driven series:
+
+| Version | Pass | Subject |
+|---|---|---|
+| 1.18.1 | precursor | guard `-f`/rm-rf false-positives + portable DROP + `update.sh chmod` |
+| 1.19.0 | full audit batch | gemini-issue-triage CRITICAL, guard hardening, secret scrub, npm/dotnet narrowing, `gemini` toml paths, `new-skill.ps1` CRLF/BOM, perf double-spawn collapse, ci concurrency, +`lint-shell` + `e2e-lifecycle` |
+| 1.19.1 | Pass 1 (H3) | `GEMINI.md` Safety section — Gemini has 0 hooks |
+| 1.19.2 | Pass 2 (M3) | discoverability of not-installed artifacts (`gemini-extension.json`, `global-config-template.toml`) |
+| 1.19.3 | Pass 3 (MEDIUM-2) | manifest-diff GC in `update.sh` + `install.sh` writes `.kit-manifest` |
+| 1.19.4 | Pass 4 | pin `gemini_cli_version: 0.42.0` (supply-chain) |
+| 1.19.5 | Pass 5 | move commit rules into routers; drop the never-loading `commit-style.md` rule (GC of Pass 3 prunes it from existing installs) |
+| 1.19.6 | Pass 6 | Gemini security-reviewer parity — add `list_directory` |
+| 1.19.7 | Pass 7 | bash↔ps1 parity sweep — `.ps1` manifest GC + version-drift guard (5 → 4 sources enforced) |
+| 1.19.8 | Pass 8 | `format-on-save` parser fallback + `dotnet` walk-up + java/kotlin |
+| 1.19.9 | Pass 9 | non-guard hooks: kill the cross-language interpolation footgun in `notify-done`; CI behavioural coverage for the 3 non-guard hooks |
+| 1.19.10 | Pass 10 | this consolidation |
+
+---
+
 ## [1.19.9] - 2026-05-20
 
 ### Fixed — non-guard hooks: hardening + first behavioural CI coverage

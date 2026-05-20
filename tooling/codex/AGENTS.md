@@ -54,13 +54,15 @@ Claude Code setup so behaviour is consistent across tools):
 
 | Event | Hook | Purpose |
 |---|---|---|
-| `PreToolUse` (Bash) | `pre-bash-guard.sh` | Blocks force-push, `git reset --hard`, `rm -rf` on absolute/home/parent paths, and unapproved SQL `DROP`. Exit 2 = blocked. |
+| `PreToolUse` (Bash) | `pre-bash-guard.sh` | Blocks force/mirror/delete push (incl. `+refspec`), `git branch -D` / `update-ref -d`, `git reset --hard`/`--keep`, recursive `rm -rf` on absolute/home/parent/cwd/glob/variable targets, `${IFS}` obfuscation, and SQL `DROP` without an approval comment. Exit 2 = blocked. **Best-effort denylist, not a sandbox** — see the script header. |
 | `PostToolUse` (Edit/Write/Patch) | `format-on-save.sh` | Best-effort formatter (prettier/ruff/gofmt/rustfmt/dotnet) on the edited file. |
 | `Stop` | `notify-done.sh` | Desktop notification when a turn finishes. |
 
-The guard parses the hook stdin JSON via a probed jq → python3 → sed chain, so
-it never fails open if an interpreter is missing or broken. Codex has no
-`PreCompact` event, so the Claude `session-summary` hook has no Codex equivalent.
+The guard parses the hook stdin JSON via a `jq → python3 → sed` fallback chain:
+a missing or broken interpreter (e.g. the Windows python3 stub) yields empty
+stdout and falls through to the next parser, so it never fails open. Codex has
+no `PreCompact` event, so the Claude `session-summary` hook has no Codex
+equivalent.
 
 Hooks resolve from (closest wins): `~/.codex/hooks.json`, `~/.codex/config.toml`,
 `<repo>/.codex/hooks.json`, `<repo>/.codex/config.toml`.
@@ -74,8 +76,10 @@ Hooks resolve from (closest wins): `~/.codex/hooks.json`, `~/.codex/config.toml`
 Beyond approval/sandbox, the kit's `config.toml` sets:
 
 - **`[shell_environment_policy]`** — `inherit = "all"` but `exclude` scrubs
-  `*_SECRET`/`*_TOKEN`/`*_KEY`/`*_PASSWORD`/`OPENAI_*`/`ANTHROPIC_*`/`AWS_*`/`GCP_*`
-  from subprocess env. Codex equivalent of Gemini's `advanced.excludedEnvVars`.
+  `*_SECRET`/`*_TOKEN`/`*_KEY`/`*_PASSWORD`/`OPENAI_*`/`ANTHROPIC_*`/`AWS_*`/`GCP_*`/`GOOGLE_*`
+  **plus** connection strings (`*_URL`/`*_URI`/`*_DSN`) — `DATABASE_URL`-class
+  values routinely embed `user:password@host` and matched none of the older
+  patterns. Codex equivalent of Gemini's `advanced.excludedEnvVars`.
 - **`[history]`** — `persistence = "save-all"`, `max_bytes = 10 MiB`. Set
   `persistence = "none"` for repos that must not persist transcripts.
 - **`[mcp_servers.<name>]`** — commented stdio + HTTP examples (GitHub,
