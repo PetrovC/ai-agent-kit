@@ -42,7 +42,7 @@ if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
 }
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.19"
+$KitVersion = "1.19.20"
 
 function Get-OwningTool([string]$rel) {
     # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,
@@ -92,6 +92,7 @@ function Write-Utf8NoBom([string]$path, [string]$text) {
 
 # -- Read installed version ------------------------------------------------
 $versionFile    = Join-Path $Target ".kit-version"
+$manifestFile   = Join-Path $Target ".kit-manifest"
 $installedTools = "codex,claude,gemini"
 $installedVersion = $null
 
@@ -137,8 +138,17 @@ if ($DryRun) { Write-Host "Mode       : DRY RUN (no files written)" -ForegroundC
 
 # -- Helpers ---------------------------------------------------------------
 $Changes      = [System.Collections.Generic.List[string]]::new()
+$Notes        = [System.Collections.Generic.List[string]]::new()
 $Managed      = [System.Collections.Generic.List[string]]::new()   # touched this run (any tool in scope)
 $KeepFromOld  = [System.Collections.Generic.List[string]]::new()   # old-manifest entries for tools NOT in this run
+
+function Test-ManifestEntry([string]$rel) {
+    if (-not (Test-Path $manifestFile)) { return $false }
+    foreach ($line in Get-Content $manifestFile) {
+        if ($line.Trim() -eq $rel) { return $true }
+    }
+    return $false
+}
 
 function Compare-And-Update([string]$src, [string]$dst) {
     if (-not (Test-Path $src)) { return }
@@ -187,25 +197,17 @@ if ($ToolList -contains "codex") {
     # Codex skills (5 subagents) merge into shared .agents/skills/
     Update-Directory   (Join-Path $KitRoot "tooling\codex\skills")      (Join-Path $Target ".agents\skills")
 
-    # -- v1.14 migration: remove legacy .codex/agents/*.toml --------------
+    # -- v1.14 migration: legacy .codex/agents/*.toml ---------------------
     # The Rust Codex CLI does not read this directory. Files are leftover from
-    # pre-1.14 kit versions. Delete them so they don't sit stale in user repos.
+    # pre-1.14 kit versions. The manifest GC below removes them only when
+    # .kit-manifest proves kit ownership.
     $legacyCodexAgents = Join-Path $Target ".codex\agents"
     if (Test-Path $legacyCodexAgents) {
         foreach ($legacy in @("architect", "code-reviewer", "codebase-investigator", "security-reviewer", "test-runner")) {
             $legacyFile = Join-Path $legacyCodexAgents "$legacy.toml"
-            if (Test-Path $legacyFile) {
-                $Changes.Add("REMOVED  .codex/agents/$legacy.toml (legacy)")
-                if (-not $DryRun) {
-                    Remove-Item $legacyFile -Force
-                }
-            }
-        }
-        # Remove the now-empty directory (only if empty - preserve user-added files).
-        if (-not $DryRun) {
-            $remaining = @(Get-ChildItem $legacyCodexAgents -Force -ErrorAction SilentlyContinue)
-            if ($remaining.Count -eq 0) {
-                Remove-Item $legacyCodexAgents -Force -ErrorAction SilentlyContinue
+            $legacyRel = ".codex/agents/$legacy.toml"
+            if ((Test-Path $legacyFile) -and (-not (Test-ManifestEntry $legacyRel))) {
+                $Notes.Add("SKIPPED  $legacyRel (legacy; ownership unknown)")
             }
         }
     }
@@ -242,8 +244,6 @@ if ($ToolList -contains "gemini") {
 #   - first run (no manifest) prunes nothing - it only writes the baseline;
 #   - a partial -Tools run never prunes another tool's files; preserves that
 #     tool's manifest entries (KeepFromOld) for a later full run.
-$manifestFile = Join-Path $Target ".kit-manifest"
-
 if ((Test-Path $manifestFile) -and ($Managed.Count -gt 0)) {
     Get-Content $manifestFile | ForEach-Object {
         $p = $_.Trim()
@@ -283,4 +283,9 @@ if ($Changes.Count -eq 0) {
     } else {
         Write-Host "`n$($Changes.Count) file(s) updated." -ForegroundColor Green
     }
+}
+
+if ($Notes.Count -gt 0) {
+    Write-Host "`nNotes:" -ForegroundColor Yellow
+    $Notes | ForEach-Object { Write-Host "  $_" }
 }

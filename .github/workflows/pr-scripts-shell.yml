@@ -177,6 +177,34 @@ jobs:
           [[ -f "$T2/$gem_skill" ]] || { echo "FAIL: claude-only update pruned a gemini file"; exit 1; }
           echo "OK: GC prunes de-shipped kit files only; user/docs/other-tool safe"
 
+      - name: update.sh preserves unknown legacy Codex agent files
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools codex >/dev/null
+          mkdir -p "$T/.codex/agents"
+          echo "project-owned" > "$T/.codex/agents/architect.toml"
+
+          dry="$(bash scripts/update.sh --target "$T" --tools codex --dry-run)"
+          echo "$dry" | grep -q "SKIPPED  .codex/agents/architect.toml (legacy; ownership unknown)" \
+            || { echo "FAIL: unknown legacy file was not reported as skipped"; exit 1; }
+
+          bash scripts/update.sh --target "$T" --tools codex >/dev/null
+          [[ -f "$T/.codex/agents/architect.toml" ]] \
+            || { echo "FAIL: update.sh deleted a project-owned legacy agent"; exit 1; }
+
+          T2="$(mktemp -d)"
+          bash scripts/install.sh --target "$T2" --tools codex >/dev/null
+          mkdir -p "$T2/.codex/agents"
+          echo "kit-owned" > "$T2/.codex/agents/code-reviewer.toml"
+          echo ".codex/agents/code-reviewer.toml" >> "$T2/.kit-manifest"
+          out="$(bash scripts/update.sh --target "$T2" --tools codex)"
+          echo "$out" | grep -q "PRUNED   .codex/agents/code-reviewer.toml" \
+            || { echo "FAIL: manifest-owned legacy file was not pruned"; exit 1; }
+          [[ ! -e "$T2/.codex/agents/code-reviewer.toml" ]] \
+            || { echo "FAIL: manifest-owned legacy file survived"; exit 1; }
+          echo "OK: update.sh gates legacy Codex cleanup on manifest ownership"
+
       - name: new-skill.sh scaffolds a routable, CI-valid skill
         run: |
           set -euo pipefail

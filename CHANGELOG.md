@@ -29,6 +29,22 @@ All six use `on: pull_request` (types `opened`, `synchronize`,
 
 ---
 
+## [1.19.20] - 2026-05-20
+
+### Fixed - gate legacy Codex agent cleanup on manifest ownership (closes #88)
+
+`update.sh` and `update.ps1` no longer delete `.codex/agents/*.toml`
+legacy files only because their names match old ai-agent-kit agent names.
+The existing manifest GC still prunes those files when `.kit-manifest`
+proves they were kit-owned leftovers, but project-owned files with the
+same names are preserved and reported as skipped with unknown ownership.
+
+Regression coverage now checks both Bash and PowerShell update paths:
+unknown legacy Codex agent files survive update, while manifest-owned
+legacy files are pruned.
+
+---
+
 ## [1.19.19] - 2026-05-20
 
 ### Security - tighten pre-bash-guard destructive-command approvals (closes #63, closes #78)
