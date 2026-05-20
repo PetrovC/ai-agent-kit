@@ -4,6 +4,45 @@
 
 ---
 
+## [1.19.8] - 2026-05-20
+
+### Fixed — format-on-save robustness (audit MEDIUM-3, MEDIUM-4, LOW-3)
+
+Three related defects in `tooling/{claude,codex}/hooks/format-on-save.sh`:
+
+- **MEDIUM-3 (Claude only): single-parser JSON extraction.** The hook
+  parsed Claude's hook stdin with `python3` only — the same Windows
+  App-Execution-Alias stub the guard documents at length would yield
+  empty stdout and the hook would silently skip every file write.
+  Now uses the **same `jq → python3 → sed` fallback chain as the
+  guard** (with the Pass 0 empty-output-fallthrough design — no
+  per-parser probe). A broken interpreter falls through to the next;
+  sed is dependency-free and always runs as the last resort. (The
+  Codex hook enumerates git-modified files instead of parsing the
+  hook payload, so this didn't apply there.)
+- **MEDIUM-4 (both hooks): `dotnet format --include` semantics.**
+  `dotnet format` needs to find a project/solution — `--include` only
+  *filters* within one. The hook was running it with whatever cwd
+  Claude/Codex invoked it from, so any C# file outside that cwd's
+  project silently failed (masked by `2>/dev/null`). The formatter
+  effectively never ran. Now both hooks walk up from the changed file
+  to the nearest enclosing `.sln`/`.csproj` via a new
+  `find_dotnet_project` helper, then `dotnet format <project> --include
+  <file>`. If no enclosing project is found, the case is skipped
+  silently — that's a legit case (file isn't in a .NET project).
+- **LOW-3 (both hooks): no Java/Kotlin formatter despite a
+  `java-kotlin` skill.** Added `java) google-java-format -i` and
+  `kt|kts) ktlint -F`. Both gated on `command -v` like every other
+  formatter; if the tool isn't installed, the case is a no-op.
+
+Locally verified: `bash -n` clean on both hooks; the Claude hook stays
+`rc=0` on valid JSON, empty input, malformed JSON, and a missing file
+path (no crashes under `set -euo pipefail`); `find_dotnet_project`
+walks up to the right project for a nested `.cs` file and returns
+nothing (handled cleanly) when there is no enclosing project.
+
+---
+
 ## [1.19.7] - 2026-05-20
 
 ### Fixed — bash ↔ PowerShell parity sweep (the rest of audit MEDIUM-2)

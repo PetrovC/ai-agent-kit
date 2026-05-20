@@ -11,11 +11,13 @@
 # Wired in .codex/hooks.json (PostToolUse matcher "apply_patch").
 #
 # REQUIREMENTS: install the formatters you actually use.
-#   prettier  — npm i -g prettier
-#   ruff      — pip install ruff
-#   gofmt     — comes with Go
-#   rustfmt   — rustup component add rustfmt
-#   dotnet    — dotnet tool install -g dotnet-format
+#   prettier            — npm i -g prettier
+#   ruff                — pip install ruff
+#   gofmt               — comes with Go
+#   rustfmt             — rustup component add rustfmt
+#   dotnet              — dotnet tool install -g dotnet-format
+#   google-java-format  — brew install google-java-format (or download jar)
+#   ktlint              — brew install ktlint (or curl + chmod)
 set -euo pipefail
 
 # Drain stdin so Codex doesn't see a broken pipe; we don't rely on its content.
@@ -25,6 +27,24 @@ command -v git >/dev/null 2>&1 || exit 0
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 [ -n "$ROOT" ] || exit 0
 cd "$ROOT" || exit 0
+
+# Walk up from a C# file to the nearest enclosing .csproj or .sln. `dotnet
+# format` needs a project/solution; without it the call silently failed
+# (masked by 2>/dev/null) whenever the file wasn't directly under cwd's
+# project — i.e. most of the time.
+find_dotnet_project() {
+    local dir
+    dir="$(cd "$(dirname "$1")" && pwd)"
+    while [[ -n "$dir" && "$dir" != "/" ]]; do
+        local hit
+        hit="$(ls "$dir"/*.sln 2>/dev/null | head -1)"
+        [[ -n "$hit" ]] && { printf '%s' "$hit"; return 0; }
+        hit="$(ls "$dir"/*.csproj 2>/dev/null | head -1)"
+        [[ -n "$hit" ]] && { printf '%s' "$hit"; return 0; }
+        dir="$(dirname "$dir")"
+    done
+    return 1
+}
 
 format_file() {
     local f="$1"
@@ -39,7 +59,17 @@ format_file() {
         rs)
             command -v rustfmt >/dev/null 2>&1 && rustfmt "$f" 2>/dev/null || true ;;
         cs)
-            command -v dotnet >/dev/null 2>&1 && dotnet format --include "$f" 2>/dev/null || true ;;
+            if command -v dotnet >/dev/null 2>&1; then
+                local proj
+                proj="$(find_dotnet_project "$f" 2>/dev/null || true)"
+                if [ -n "$proj" ]; then
+                    dotnet format "$proj" --include "$f" 2>/dev/null || true
+                fi
+            fi ;;
+        java)
+            command -v google-java-format >/dev/null 2>&1 && google-java-format -i "$f" 2>/dev/null || true ;;
+        kt|kts)
+            command -v ktlint >/dev/null 2>&1 && ktlint -F "$f" >/dev/null 2>&1 || true ;;
     esac
 }
 
