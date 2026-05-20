@@ -159,7 +159,7 @@ is_safe_rm_operand() {
     operand="$(strip_outer_quotes "$1")"
 
     case "$operand" in
-        ''|'.'|'./'|'*'|./\*|'~'|'~/'*|/*/../*|*/../*|../*|*/..|..)
+        ''|'.'|'./'|'*'|./\*|\~|\~/*|/*/../*|*/../*|../*|*/..|..)
             return 1
             ;;
         *'$'*|*'`'*)
@@ -182,34 +182,42 @@ check_rm_rf_operands() {
     local -a words
     read -r -a words <<< "$CMD"
 
-    local i token saw_recursive saw_force parsing_operands
-    for ((i = 0; i < ${#words[@]}; i++)); do
-        [[ "${words[$i]}" == "rm" ]] || continue
+    local idx arg_idx token saw_recursive saw_force parsing_operands
+    idx=0
+    while ((idx < ${#words[@]})); do
+        if [[ "${words[$idx]}" != "rm" ]]; then
+            ((idx++))
+            continue
+        fi
 
         saw_recursive=0
         saw_force=0
         parsing_operands=0
+        arg_idx=$((idx + 1))
 
-        for ((i = i + 1; i < ${#words[@]}; i++)); do
-            token="${words[$i]}"
+        while ((arg_idx < ${#words[@]})); do
+            token="${words[$arg_idx]}"
             if is_rm_separator "$token"; then
                 break
             fi
 
             if [[ "$parsing_operands" -eq 0 && "$token" == "--" ]]; then
                 parsing_operands=1
+                ((arg_idx++))
                 continue
             fi
 
             if [[ "$parsing_operands" -eq 0 && "$token" == --* ]]; then
                 [[ "$token" == "--recursive" ]] && saw_recursive=1
                 [[ "$token" == "--force" ]] && saw_force=1
+                ((arg_idx++))
                 continue
             fi
 
             if [[ "$parsing_operands" -eq 0 && "$token" == -* ]]; then
                 [[ "$token" == *[rR]* ]] && saw_recursive=1
                 [[ "$token" == *f* ]] && saw_force=1
+                ((arg_idx++))
                 continue
             fi
 
@@ -217,7 +225,9 @@ check_rm_rf_operands() {
             if [[ "$saw_recursive" -eq 1 && "$saw_force" -eq 1 ]] && ! is_safe_rm_operand "$token"; then
                 block "BLOCKED: recursive force-delete (rm -rf) includes an unsafe target. Absolute paths outside /tmp or /var/tmp, home, parent traversal, cwd, bare globs, variables, and command substitutions require explicit approval."
             fi
+            ((arg_idx++))
         done
+        idx=$arg_idx
     done
 }
 
