@@ -4,6 +4,31 @@
 
 ---
 
+## [1.19.6] - 2026-05-20
+
+### Fixed — Gemini security-reviewer was missing list_directory
+
+Cross-tool parity check on the 5 subagents found one real asymmetry
+(the audit's broader claim that Gemini's security-reviewer "could not
+Bash" was incorrect — it has `run_shell_command`). The four other
+Gemini agents (architect, code-reviewer, codebase-investigator,
+test-runner) carry `list_directory` as the kit's chosen Glob-
+equivalent; `security-reviewer` did not — yet finding entry points,
+`.env` files, and config surfaces is exactly the kind of file
+discovery a security review needs.
+
+- `tooling/gemini/agents/security-reviewer.md`: added `list_directory`
+  to the `tools:` list. The agent now matches Claude's
+  `Read, Glob, Grep, Bash` grant — Gemini equivalent
+  `read_file, list_directory, search_file_content, run_shell_command`.
+
+Subagent tool-grant matrix verified across the 5 agents × 3 tools
+(`architect`, `code-reviewer`, `codebase-investigator`,
+`security-reviewer`, `test-runner` — Claude / Codex prose / Gemini).
+All five are now at functional parity on Claude ↔ Gemini.
+
+---
+
 ## [1.19.5] - 2026-05-20
 
 ### Fixed — commit-style rule never actually triggered (audit)
