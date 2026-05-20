@@ -64,6 +64,11 @@
       "Bash(git checkout -- :*)",
       "Bash(git checkout .:*)",
       "Bash(git clean -fd:*)",
+      "Bash(git switch --discard-changes:*)",
+      "Bash(git switch --force:*)",
+      "Bash(git switch -f:*)",
+      "Bash(git switch -C:*)",
+      "Bash(git switch --force-create:*)",
       "Bash(rm -rf:*)"
     ]
   },
