@@ -409,6 +409,16 @@ jobs:
             expect 0 "rm -rf subdir"     '{"tool_input":{"command":"rm -rf ./build"}}'
             expect 0 "rm literal+var"    '{"tool_input":{"command":"rm -rf node_modules && echo \"$DONE\""}}'
             expect 0 "npm test"          '{"tool_input":{"command":"npm test"}}'
+            # Fail-closed on parse failure: if the jq -> python -> sed chain
+            # cannot extract a command (empty stdin, malformed JSON, missing
+            # field, unfamiliar schema), the guard MUST refuse rather than
+            # silently exit 0 — without this every grep below would no-op.
+            expect 2 "empty stdin"        ''
+            expect 2 "empty JSON {}"      '{}'
+            expect 2 "missing tool_input" '{"x":1}'
+            expect 2 "missing command"    '{"tool_input":{}}'
+            expect 2 "empty command str"  '{"tool_input":{"command":""}}'
+            expect 2 "malformed JSON"     '{not json'
           }
           run_matrix tooling/claude/hooks/pre-bash-guard.sh
           run_matrix tooling/codex/hooks/pre-bash-guard.sh
