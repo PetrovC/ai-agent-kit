@@ -4,6 +4,28 @@
 
 ---
 
+## [1.19.11] - 2026-05-20
+
+### Fixed — pre-bash-guard let `--force-with-lease` get blocked (closes #72)
+
+The `git push` regex anchored `-f` with `([[:space:]]|$)` but left
+`--force` as a bare substring. That substring also matches inside
+`--force-with-lease`, so the very flag the block message recommends
+("Use --force-with-lease only after explicit approval") was itself
+denied by the same guard — with no override path.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: anchor `--force` with
+  `([[:space:]]|$)` so only the exact `--force` flag matches.
+  `--force-with-lease` now passes through the hook and is left to the
+  agent's native approval mechanism (per the message's own contract).
+- **`.github/workflows/ci.yml`**: matrix flipped from `expect 2
+  "force-with-lease"` to `expect 0 "force-with-lease"`; the
+  `--force` / `-f` / `+refspec` / `--mirror` / `--delete` cases stay
+  blocked.
+
+---
+
 ## [1.19.10] - 2026-05-20
 
 ### Fixed — consolidation sweep (closes the v1.19 audit series)
