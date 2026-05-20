@@ -32,8 +32,17 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# Validate $Target before any I/O. Without this, a typo or a path that points
+# at a file silently triggers the New-Item -ItemType Directory branches in
+# Compare-And-Update and starts materializing a pseudo-install under an
+# invalid root. Mirrors install.sh / update.sh which both refuse [[ ! -d ]].
+if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
+    Write-Error "Target directory does not exist: $Target"
+    exit 1
+}
+
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.15"
+$KitVersion = "1.19.16"
 
 function Get-OwningTool([string]$rel) {
     # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,

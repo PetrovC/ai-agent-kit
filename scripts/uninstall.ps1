@@ -40,7 +40,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-if (-not (Test-Path $Target)) {
+if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
     Write-Error "Target directory does not exist: $Target"
     exit 1
 }

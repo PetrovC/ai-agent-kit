@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.15"
+$KitVersion = "1.19.16"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 # Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
@@ -107,7 +107,12 @@ function Copy-KitDirectory([string]$srcDir, [string]$dstDir) {
 }
 
 # -- Validate target -------------------------------------------------------
-if (-not (Test-Path $Target)) {
+# -LiteralPath: treat $Target as a literal string, not a wildcard pattern
+# (so brackets / glob chars in paths are not silently expanded).
+# -PathType Container: a regular file passes Test-Path but is not a project
+# root — Join-Path would then produce bogus "<file>\AGENTS.md" destinations
+# and copies would either fail mid-run or write outside the intended tree.
+if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
     Write-Error "Target directory does not exist: $Target"
     exit 1
 }
