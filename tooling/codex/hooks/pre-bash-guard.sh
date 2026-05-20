@@ -51,24 +51,30 @@ CMD=$(parse_with_jq || true)
 [ -n "${CMD:-}" ] || CMD=$(parse_with_python || true)
 [ -n "${CMD:-}" ] || CMD=$(parse_with_sed || true)
 
+# Shared prefix for `git` + optional global options before the subcommand.
+# Covers `git -C <dir>`, `git -c <key=val>`, `git --git-dir=<p>`, `git --work-tree=<p>`
+# (including the space-separated forms). Without this, `git -C repo push --force`
+# bypasses the per-subcommand patterns below.
+GIT_PREFIX='git([[:space:]]+(-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--git-dir[=[:space:]][^[:space:]]+|--work-tree[=[:space:]][^[:space:]]+))*[[:space:]]+'
+
 # Block force-push. Match a real -f / --force *flag* (not a branch name that
 # merely contains "-f", e.g. `git push origin feature-foo` must pass), the
 # `+refspec` force form (`git push origin +main`), and the destructive
 # --mirror / --delete / -d forms.
-if echo "$CMD" | grep -qE 'git[[:space:]]+push.*[[:space:]](-f([[:space:]]|$)|--force|--mirror|--delete|-d([[:space:]]|$)|\+[^[:space:]]+:?)'; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}push.*[[:space:]](-f([[:space:]]|$)|--force|--mirror|--delete|-d([[:space:]]|$)|\+[^[:space:]]+:?)"; then
     block "BLOCKED: force/mirror/delete push is not allowed. Use --force-with-lease only after explicit approval; never +refspec, --mirror, or --delete unattended."
 fi
 
 # Block branch / ref deletion that destroys history pointers.
-if echo "$CMD" | grep -qE 'git[[:space:]]+branch[[:space:]].*(-D|--delete[[:space:]]+--force|--force[[:space:]]+--delete)([[:space:]]|$)'; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}branch[[:space:]].*(-D|--delete[[:space:]]+--force|--force[[:space:]]+--delete)([[:space:]]|$)"; then
     block "BLOCKED: 'git branch -D' force-deletes a branch (possibly unmerged work). Use -d or explicit approval."
 fi
-if echo "$CMD" | grep -qE 'git[[:space:]]+update-ref[[:space:]].*-d'; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}update-ref[[:space:]].*-d"; then
     block "BLOCKED: 'git update-ref -d' deletes a ref directly. Requires explicit approval."
 fi
 
 # Block destructive reset (--hard discards working tree, --keep discards too).
-if echo "$CMD" | grep -qE 'git[[:space:]]+reset[[:space:]].*(--hard|--keep)'; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}reset[[:space:]].*(--hard|--keep)"; then
     block "BLOCKED: git reset --hard/--keep can destroy uncommitted work. Use git stash or explicit approval."
 fi
 
