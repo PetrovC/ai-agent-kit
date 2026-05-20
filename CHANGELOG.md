@@ -4,6 +4,36 @@
 
 ---
 
+## [1.19.5] - 2026-05-20
+
+### Fixed — commit-style rule never actually triggered (audit)
+
+`tooling/claude/rules/commit-style.md` was path-scoped to
+`.github/**`/`.gitignore`/`.gitattributes`. Commit-message conventions
+apply to every commit, but Claude only auto-loads a rule when an opened
+file matches its `paths:` — so a normal code change (`src/app.ts`)
+never loaded the rule. The convention was effectively unenforced at
+the exact moment it matters most. Architecturally a commit-policy rule
+is **not** path-scoped, so the file was a design mis-fit there.
+
+- `tooling/claude/rules/commit-style.md` **removed**. Existing installs
+  will have it pruned automatically by `update.sh` on the next run (the
+  manifest-diff GC from v1.19.3 was built for exactly this case).
+- The commit rules now live directly in `CLAUDE.md`, `AGENTS.md`, and
+  `GEMINI.md` under `## Git rules` — Conventional Commits format with
+  types list, ≤72-char imperative subject, breaking-change footer, one
+  concern per commit, never-commit list. These routers are loaded every
+  session, so the rules apply to every commit, not only when editing
+  files under `.github/`.
+- README "Rules" mention drops `commit-style.md` (3 rules left:
+  `test-naming`, `migration-safety`, `env-safety` — all genuinely
+  path-scoped) and points at the routers for commit policy.
+- CI `smoke-install` file lists (bash + windows) updated to match the
+  3-rule reality. `lint-rules` already only checks that present rules
+  declare `paths:`, so it stays green.
+
+---
+
 ## [1.19.4] - 2026-05-19
 
 ### Security — pin `gemini_cli_version` in the workflow templates (audit MEDIUM)

@@ -156,11 +156,14 @@ See the detailed Hooks section further down for the exact behaviour.
 Rules are path-scoped Markdown files in `.claude/rules/`. Claude Code **automatically loads the relevant rule** when you open a file whose path matches the rule's `paths:` frontmatter — before you even start typing a prompt.
 
 ```
-commit-style.md     → .github/, .gitignore       → Conventional Commits, one concern per PR
 test-naming.md      → *.test.*, tests/            → No .only, no skip without issue link
 migration-safety.md → migrations/, *.sql          → Reversible migrations, CONCURRENT indexes
 env-safety.md       → .env*, config/, appsettings → No hardcoded secrets, .env.example required
 ```
+
+Commit-message rules (Conventional Commits, one concern per commit, never-commit
+list) live directly in `CLAUDE.md`/`AGENTS.md`/`GEMINI.md` `## Git rules` so they
+apply to **every** commit — not only when editing files under `.github/`.
 
 Codex and Gemini follow the same principles, but they're embedded directly in `AGENTS.md` / `GEMINI.md` rather than as auto-loaded files.
 
@@ -279,11 +282,10 @@ A `PreToolUse` hook returning **exit code 2** blocks the tool call and feeds its
 
 ## Rules *(Claude Code only)*
 
-Four path-scoped rule files are installed into `.claude/rules/` — Claude Code loads them automatically when you open a matching file:
+Three path-scoped rule files are installed into `.claude/rules/` — Claude Code loads them automatically when you open a matching file:
 
 | File | Triggers on | Enforces |
 |---|---|---|
-| `commit-style.md` | `.github/`, `.gitignore` | Conventional Commits, no force-push, one concern per commit |
 | `test-naming.md` | `*.test.*`, `*.spec.*`, `tests/` | No `.only`, no skip without issue link, deterministic tests |
 | `migration-safety.md` | `migrations/`, `*.sql`, `schema.prisma` | Reversible migrations, CONCURRENT indexes, no one-step column rename |
 | `env-safety.md` | `.env*`, `config/`, `appsettings*.json` | No hardcoded secrets, `.env.example` required |
