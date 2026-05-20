@@ -68,6 +68,11 @@
       "Bash(git clean -fdx:*)",
       "Bash(git clean -df:*)",
       "Bash(git clean --force:*)",
+      "Bash(git switch --discard-changes:*)",
+      "Bash(git switch --force:*)",
+      "Bash(git switch -f:*)",
+      "Bash(git switch -C:*)",
+      "Bash(git switch --force-create:*)",
       "Bash(rm -rf:*)"
     ]
   },

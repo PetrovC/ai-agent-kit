@@ -4,6 +4,30 @@
 
 ---
 
+## [1.19.13] - 2026-05-20
+
+### Fixed — pre-bash-guard ignored destructive `git switch` variants (closes #87)
+
+`Bash(git switch:*)` was in the Claude allow list and neither hook
+inspected the command. That left `--discard-changes`, `--force` /
+`-f`, and `-C` / `--force-create` (which throw away local mods or
+reset a branch pointer) silently allowed even though comparable
+`git checkout` / `git reset` forms are blocked.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: block `git switch`
+  with `--discard-changes`, `--force`, `-f`, `-C`, or
+  `--force-create`. Plain `git switch <branch>`, `git switch -c <new>`,
+  `git switch -`, and `git switch --detach` stay allowed.
+- **`tooling/claude/settings.json`**: add explicit deny entries for
+  the destructive variants alongside the broad `Bash(git switch:*)`
+  allow.
+- **`.github/workflows/ci.yml`**: 7 new matrix cases.
+- **`README.md`**: hook coverage tables now mention destructive
+  `git switch`.
+
+---
+
 ## [1.19.12] - 2026-05-20
 
 ### Fixed — pre-bash-guard never inspected `git clean` (closes #97)

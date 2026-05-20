@@ -138,7 +138,7 @@ Codex via `.codex/hooks.json` (installed into `.codex/hooks/`). Both use the
 same model: stdin JSON, exit code 2 = block.
 
 ```
-Claude  PreToolUse(Bash)        → pre-bash-guard.sh   → blocks force/mirror/delete push, ref deletion, `git clean -f`, rm -rf, SQL DROP
+Claude  PreToolUse(Bash)        → pre-bash-guard.sh   → blocks force/mirror/delete push, ref deletion, destructive `git switch`, `git clean -f`, rm -rf, SQL DROP
         PostToolUse(Edit|Write) → format-on-save.sh   → runs your formatter
         Stop                    → notify-done.sh      → desktop notification
         PreCompact              → session-summary.sh  → git diff snapshot before compaction
@@ -257,7 +257,7 @@ model (stdin JSON, exit 2 = block).
 | Script | Event | What it does |
 |---|---|---|
 | `format-on-save.sh` | `PostToolUse(Edit\|Write)` | Runs your project's formatter (prettier / ruff / gofmt / rustfmt / dotnet format) on every file written |
-| `pre-bash-guard.sh` | `PreToolUse(Bash)` | Blocks force/mirror/delete push (incl. `+refspec`), `git branch -D` / `update-ref -d`, `git reset --hard`/`--keep`, `git clean -f` (and `-fd`/`-fdx`/`--force` variants — `-n` / `--dry-run` stays allowed), recursive `rm -rf` on absolute/home/parent/cwd/glob/variable targets, and SQL `DROP` without an approval comment. **Best-effort denylist, not a sandbox** — see the script header for the honest limits |
+| `pre-bash-guard.sh` | `PreToolUse(Bash)` | Blocks force/mirror/delete push (incl. `+refspec`), `git branch -D` / `update-ref -d`, `git reset --hard`/`--keep`, destructive `git switch` (`--discard-changes`/`--force`/`-f`/`-C`/`--force-create`), `git clean -f` (and `-fd`/`-fdx`/`--force` variants — `-n` / `--dry-run` stays allowed), recursive `rm -rf` on absolute/home/parent/cwd/glob/variable targets, and SQL `DROP` without an approval comment. **Best-effort denylist, not a sandbox** — see the script header for the honest limits |
 | `notify-done.sh` | `Stop` | Desktop notification when a session finishes (macOS, Linux, Windows) |
 | `session-summary.sh` | `PreCompact` | Saves a git status + diff snapshot to `.claude/session-log/` before context is compacted |
 
