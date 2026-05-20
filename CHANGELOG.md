@@ -4,6 +4,30 @@
 
 ---
 
+## [1.19.17] - 2026-05-20
+
+### Fixed — pre-bash-guard let `git push <remote> :<ref>` delete remote refs (closes #62)
+
+The README documents that `pre-bash-guard.sh` blocks ref deletion via
+`git push`. The push regex covers `--delete` / `-d`, `+refspec`, and
+`--mirror`, but **not** the empty-source colon refspec form
+(`git push origin :main`, `git push origin :refs/heads/release`,
+`git push origin :v1.0.0`). That form has no `--delete` / `-d` / `+`,
+so it passed the guard while still destroying the remote pointer —
+fail-open on an operation the README claims is protected.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: add a second `git push`
+  check matching a whitespace-delimited token that *starts* with `:`
+  (the deletion form). `main:dev` (rename push) and `HEAD:main` keep a
+  non-space leading character, so they do not match. Reuses the shared
+  `GIT_PREFIX` so `git -C repo push origin :main` is covered too.
+- **`.github/workflows/ci.yml`**: 7 new matrix cases — 5 deletion
+  shapes block (`:main`, `:refs/heads/release`, `:v1.0.0`, with `-C`,
+  with a leading flag) and 2 legitimate src:dst pushes stay allowed.
+
+---
+
 ## [1.19.16] - 2026-05-20
 
 ### Fixed — PowerShell lifecycle scripts accepted a file (or, for `update.ps1`, anything) as `-Target` (closes #67)
