@@ -51,6 +51,15 @@ CMD=$(parse_with_jq || true)
 [ -n "${CMD:-}" ] || CMD=$(parse_with_python || true)
 [ -n "${CMD:-}" ] || CMD=$(parse_with_sed || true)
 
+# Fail closed if all three parsers returned empty. Without this, an unknown
+# input schema (missing `tool_input.command`, malformed JSON, future schema
+# change) leaves $CMD="" — every grep below then fails to match and the
+# script exits 0, i.e. the hook silently authorizes the call. A
+# PreToolUse(Bash) guard must refuse what it cannot inspect.
+if [ -z "${CMD:-}" ]; then
+    block "BLOCKED: pre-bash-guard could not extract the Bash command from its input (empty stdin, malformed JSON, or unfamiliar hook schema). Refusing fail-open."
+fi
+
 # Shared prefix for `git` + optional global options before the subcommand.
 # Covers `git -C <dir>`, `git -c <key=val>`, `git --git-dir=<p>`, `git --work-tree=<p>`
 # (including the space-separated forms). Without this, `git -C repo push --force`

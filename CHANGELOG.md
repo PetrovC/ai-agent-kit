@@ -4,6 +4,31 @@
 
 ---
 
+## [1.19.18] - 2026-05-20
+
+### Fixed — pre-bash-guard failed open when the parser chain returned empty (closes #53)
+
+The README claimed the `jq → python3 → sed` fallback chain "never fails
+open." It almost didn't — but if all three parsers returned empty
+(unknown input schema, missing `tool_input.command` field, malformed
+JSON, future schema change), `$CMD` stayed empty, every `grep` check
+no-op'd, and the script exited 0 — i.e. the guard silently authorized
+the call. A `PreToolUse(Bash)` hook must refuse what it cannot inspect.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: after the parser chain,
+  add an explicit `[ -z "${CMD:-}" ]` check that blocks with a clear
+  message ("could not extract the Bash command from its input ...
+  refusing fail-open"). Valid inputs keep behaving identically.
+- **`.github/workflows/ci.yml`**: 6 new matrix cases — empty stdin,
+  empty JSON `{}`, missing `tool_input`, missing `command` field,
+  empty command string, and malformed JSON each block with rc 2.
+- **`README.md`**: hook table note now reflects the explicit
+  fail-closed behavior instead of the previous aspirational
+  "never fails open."
+
+---
+
 ## [1.19.17] - 2026-05-20
 
 ### Fixed — pre-bash-guard let `git push <remote> :<ref>` delete remote refs (closes #62)
