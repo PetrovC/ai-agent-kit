@@ -1,0 +1,215 @@
+name: PR — hooks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  hooks-behavior:
+    name: pre-bash-guard + non-guard hooks behavior
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify hook scripts exist and are executable
+        run: |
+          errors=0
+          for f in tooling/claude/hooks/*.sh tooling/codex/hooks/*.sh; do
+            if [[ ! -x "$f" ]]; then
+              echo "NOT EXECUTABLE: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: pre-bash-guard blocks destructive commands and allows safe ones
+        shell: bash
+        run: |
+          fail=0
+          run_matrix() { # <guard-path>
+            local g="$1"
+            echo "── matrix against $g ──"
+            expect() { # <expected-exit> <label> <json>
+              local got=0
+              # The guard exits 2 when it blocks. Capture that without letting
+              # `set -e` abort the step (|| keeps the exit status handled).
+              echo "$3" | bash "$g" >/dev/null 2>&1 || got=$?
+              if [[ "$got" -ne "$1" ]]; then
+                echo "FAIL ($got != $1): $2"
+                fail=1
+              else
+                echo "ok: $2"
+              fi
+            }
+            expect 2 "force-push"        '{"tool_input":{"command":"git push --force origin main"}}'
+            expect 2 "force-push -f"     '{"tool_input":{"command":"git push -f origin main"}}'
+            expect 0 "force-with-lease"  '{"tool_input":{"command":"git push --force-with-lease origin main"}}'
+            expect 2 "reset --hard"      '{"tool_input":{"command":"git reset --hard HEAD~3"}}'
+            expect 2 "rm -rf /etc"       '{"tool_input":{"command":"rm -rf /etc"}}'
+            expect 2 "rm -rf parent"     '{"tool_input":{"command":"rm -rf ../../etc"}}'
+            expect 2 "rm -rf home"       '{"tool_input":{"command":"rm -rf ~"}}'
+            expect 2 "rm -rf cwd"        '{"tool_input":{"command":"rm -rf ."}}'
+            expect 2 "rm -rf cwd slash"  '{"tool_input":{"command":"rm -rf ./"}}'
+            expect 2 "rm -rf glob"       '{"tool_input":{"command":"rm -rf *"}}'
+            expect 2 "rm -Rf cwd"        '{"tool_input":{"command":"rm -Rf ."}}'
+            expect 2 "rm long-flags cwd" '{"tool_input":{"command":"rm --recursive --force ."}}'
+            expect 2 "DROP TABLE"        '{"tool_input":{"command":"psql -c \"DROP TABLE users\""}}'
+            expect 2 "push +refspec"     '{"tool_input":{"command":"git push origin +main"}}'
+            expect 2 "push --mirror"     '{"tool_input":{"command":"git push --mirror origin"}}'
+            expect 2 "push --delete"     '{"tool_input":{"command":"git push origin --delete main"}}'
+            expect 2 "push -d"           '{"tool_input":{"command":"git push -d origin x"}}'
+            expect 2 "push colon :main"   '{"tool_input":{"command":"git push origin :main"}}'
+            expect 2 "push colon :refs/"  '{"tool_input":{"command":"git push origin :refs/heads/release"}}'
+            expect 2 "push colon :tag"    '{"tool_input":{"command":"git push origin :v1.0.0"}}'
+            expect 2 "push colon -C dir"  '{"tool_input":{"command":"git -C repo push origin :feat"}}'
+            expect 2 "push colon w/flag"  '{"tool_input":{"command":"git push --quiet origin :old-branch"}}'
+            expect 0 "push src:dst"       '{"tool_input":{"command":"git push origin main:dev"}}'
+            expect 0 "push HEAD:main"     '{"tool_input":{"command":"git push origin HEAD:main"}}'
+            expect 2 "branch -D"         '{"tool_input":{"command":"git branch -D main"}}'
+            expect 2 "branch -d -f"      '{"tool_input":{"command":"git branch -d -f main"}}'
+            expect 2 "branch -f -d"      '{"tool_input":{"command":"git branch -f -d main"}}'
+            expect 2 "branch --delete -f" '{"tool_input":{"command":"git branch --delete -f main"}}'
+            expect 2 "branch -d --force" '{"tool_input":{"command":"git branch -d --force main"}}'
+            expect 2 "branch -df"        '{"tool_input":{"command":"git branch -df main"}}'
+            expect 2 "branch -fd"        '{"tool_input":{"command":"git branch -fd main"}}'
+            expect 0 "branch feature-D"  '{"tool_input":{"command":"git branch feature-D"}}'
+            expect 2 "update-ref -d"     '{"tool_input":{"command":"git update-ref -d refs/heads/main"}}'
+            expect 2 "reset --keep"      '{"tool_input":{"command":"git reset --keep HEAD~2"}}'
+            expect 2 "rm -rf var"        '{"tool_input":{"command":"rm -rf $HOME"}}'
+            expect 2 "rm -rf cmd-sub"    '{"tool_input":{"command":"rm -rf \"$(pwd)\""}}'
+            expect 2 "rm IFS evasion"    '{"tool_input":{"command":"rm${IFS}-rf${IFS}/"}}'
+            expect 2 "switch --discard-changes" '{"tool_input":{"command":"git switch --discard-changes main"}}'
+            expect 2 "switch --force"    '{"tool_input":{"command":"git switch --force main"}}'
+            expect 2 "switch -f"         '{"tool_input":{"command":"git switch -f main"}}'
+            expect 2 "switch -C"         '{"tool_input":{"command":"git switch -C feat"}}'
+            expect 2 "switch --force-create" '{"tool_input":{"command":"git switch --force-create x"}}'
+            expect 0 "switch plain"      '{"tool_input":{"command":"git switch main"}}'
+            expect 0 "switch -c"         '{"tool_input":{"command":"git switch -c new-feature"}}'
+            expect 2 "git clean -f"      '{"tool_input":{"command":"git clean -f"}}'
+            expect 2 "git clean -fd"     '{"tool_input":{"command":"git clean -fd"}}'
+            expect 2 "git clean -fdx"    '{"tool_input":{"command":"git clean -fdx"}}'
+            expect 2 "git clean -d -f"   '{"tool_input":{"command":"git clean -d -f"}}'
+            expect 2 "git clean --force" '{"tool_input":{"command":"git clean --force ."}}'
+            expect 0 "git clean -n"      '{"tool_input":{"command":"git clean -n"}}'
+            expect 0 "git clean --dry-run" '{"tool_input":{"command":"git clean --dry-run"}}'
+            expect 2 "-C push --force"   '{"tool_input":{"command":"git -C ../other-repo push --force origin main"}}'
+            expect 2 "-C push --delete"  '{"tool_input":{"command":"git -C repo push --delete origin main"}}'
+            expect 2 "--git-dir push --mirror" '{"tool_input":{"command":"git --git-dir=.git push --mirror origin"}}'
+            expect 2 "-c push --delete"  '{"tool_input":{"command":"git -c protocol.version=2 push --delete origin main"}}'
+            expect 2 "-C reset --hard"   '{"tool_input":{"command":"git -C repo reset --hard HEAD~3"}}'
+            expect 2 "-C branch -D"      '{"tool_input":{"command":"git -C repo branch -D main"}}'
+            expect 0 "-C status"         '{"tool_input":{"command":"git -C repo status"}}'
+            expect 0 "git status"        '{"tool_input":{"command":"git status"}}'
+            expect 0 "push branch -f"    '{"tool_input":{"command":"git push origin feature-foo"}}'
+            expect 0 "normal push"       '{"tool_input":{"command":"git push origin main"}}'
+            expect 0 "set-upstream"      '{"tool_input":{"command":"git push --set-upstream origin dev"}}'
+            expect 0 "branch -d safe"    '{"tool_input":{"command":"git branch -d feature"}}'
+            expect 0 "reset mixed"       '{"tool_input":{"command":"git reset HEAD~1"}}'
+            expect 0 "reset --soft"      '{"tool_input":{"command":"git reset --soft HEAD~1"}}'
+            expect 0 "rm -rf /tmp/x"     '{"tool_input":{"command":"rm -rf /tmp/x"}}'
+            expect 0 "rm -rf local dir"  '{"tool_input":{"command":"rm -rf node_modules"}}'
+            expect 0 "rm -rf subdir"     '{"tool_input":{"command":"rm -rf ./build"}}'
+            expect 0 "rm literal+var"    '{"tool_input":{"command":"rm -rf node_modules && echo \"$DONE\""}}'
+            expect 0 "npm test"          '{"tool_input":{"command":"npm test"}}'
+            # Fail-closed on parse failure: if the jq -> python -> sed chain
+            # cannot extract a command (empty stdin, malformed JSON, missing
+            # field, unfamiliar schema), the guard MUST refuse rather than
+            # silently exit 0 — without this every grep below would no-op.
+            expect 2 "empty stdin"        ''
+            expect 2 "empty JSON {}"      '{}'
+            expect 2 "missing tool_input" '{"x":1}'
+            expect 2 "missing command"    '{"tool_input":{}}'
+            expect 2 "empty command str"  '{"tool_input":{"command":""}}'
+            expect 2 "malformed JSON"     '{not json'
+          }
+          run_matrix tooling/claude/hooks/pre-bash-guard.sh
+          run_matrix tooling/codex/hooks/pre-bash-guard.sh
+          [[ "$fail" -eq 0 ]] || exit 1
+
+      - name: Non-guard hooks must exit 0 on the inputs they actually receive
+        shell: bash
+        run: |
+          # The pre-bash-guard matrix covers the guard. The three other hooks
+          # (format-on-save, notify-done, session-summary) previously had zero
+          # behavioural coverage — a logic regression (mangled input, error on
+          # empty stdin, missing-file crash) would only fail in the user's repo.
+          # This step pins minimal invariants: each hook must stay rc=0 on the
+          # realistic inputs it sees, even with no formatters / no display /
+          # no git state available.
+          fail=0
+          expect_rc0() { # <label> <hook> <stdin>
+            local got=0
+            printf '%s' "$3" | bash "$2" >/dev/null 2>&1 || got=$?
+            if [[ "$got" -ne 0 ]]; then echo "FAIL ($got): $1"; fail=1
+            else echo "ok: $1"; fi
+          }
+
+          # format-on-save (Claude) — JSON parser + early exits.
+          FO=tooling/claude/hooks/format-on-save.sh
+          expect_rc0 "format/valid-json/no-formatter" "$FO" '{"tool_input":{"file_path":"/nonexistent/x.ts"}}'
+          expect_rc0 "format/empty-stdin"             "$FO" ''
+          expect_rc0 "format/malformed-json"          "$FO" '{not json'
+          expect_rc0 "format/missing-file-key"        "$FO" '{"tool_input":{}}'
+
+          # format-on-save (Codex) — enumerates git-modified files; in a clean
+          # repo this is empty and must still exit 0.
+          expect_rc0 "format-codex/clean-repo"        tooling/codex/hooks/format-on-save.sh ''
+
+          # notify-done (both) — best-effort; on ubuntu CI there is no display
+          # backend, so every command -v probe fails and the script exits 0.
+          # If notify-send is installed on the runner, the `|| true` added in
+          # this pass keeps the script rc=0 even when delivery fails.
+          expect_rc0 "notify-claude"                  tooling/claude/hooks/notify-done.sh ''
+          expect_rc0 "notify-codex"                   tooling/codex/hooks/notify-done.sh ''
+
+          # session-summary (Claude) — anchor on CLAUDE_PROJECT_DIR so the
+          # log lands in a temp dir; no git state available, the script must
+          # still rc=0 with its "(not a git repo)" fallback.
+          T=$(mktemp -d)
+          ( CLAUDE_PROJECT_DIR="$T" bash tooling/claude/hooks/session-summary.sh >/dev/null 2>&1 ) || { echo "FAIL: session-summary rc!=0"; fail=1; exit 1; }
+          ls "$T/.claude/session-log/"pre-compact-*.md >/dev/null 2>&1 \
+            && echo "ok: session-summary/wrote-snapshot" \
+            || { echo "FAIL: session-summary did not write a snapshot file"; fail=1; }
+
+          [[ "$fail" -eq 0 ]] || exit 1
+
+  lint-codex-hooks:
+    name: Codex hooks resolve from git root
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: hooks.json commands must not use fragile relative paths
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          h = json.load(open("tooling/codex/hooks.json"))
+          errs = []
+          for event, groups in h.get("hooks", {}).items():
+              for g in groups:
+                  for hk in g.get("hooks", []):
+                      cmd = hk.get("command", "")
+                      if cmd.startswith(".codex/"):
+                          errs.append(f"{event}: bare relative command '{cmd}' "
+                                      "(must resolve from git root)")
+                      elif "git rev-parse --show-toplevel" not in cmd:
+                          errs.append(f"{event}: command does not resolve from git root: {cmd!r}")
+          if errs:
+              print("\n".join(errs)); sys.exit(1)
+          print("OK: codex hooks resolve from git root")
+          PY
+
+      - name: README hooks section must not contradict Codex hook support
+        run: |
+          if grep -q "Codex and Gemini have no equivalent hook system" README.md; then
+            echo "README still claims Codex has no hooks (contradicts the Hooks section)"
+            exit 1
+          fi
+          echo "OK: README hooks coherent"

@@ -1,0 +1,243 @@
+name: PR — tooling configs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint-claude:
+    name: Claude tooling validity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every rule file must have a paths frontmatter key
+        run: |
+          errors=0
+          for f in tooling/claude/rules/*.md; do
+            if ! grep -q "^paths:" "$f"; then
+              echo "MISSING 'paths:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Claude settings.json must declare $schema and no invalid outputStyle
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          s = json.load(open("tooling/claude/settings.json"))
+          errs = []
+          if s.get("$schema") != "https://json.schemastore.org/claude-code-settings.json":
+              errs.append("settings.json missing/!official $schema")
+          # "default" is not a documented outputStyle value; absence = default behaviour.
+          if s.get("outputStyle") == "default":
+              errs.append('settings.json outputStyle:"default" is not a valid value (remove the key)')
+          if errs:
+              print("\n".join(errs)); sys.exit(1)
+          print("OK: settings.json schema + outputStyle valid")
+          PY
+
+      - name: Subagent tools must use the documented comma-string form
+        run: |
+          errors=0
+          for f in tooling/claude/agents/*.md; do
+            # Official subagent .md frontmatter documents `tools: A, B, C`
+            # (comma-separated string), not a YAML list under `tools:`.
+            if grep -qE '^tools:[[:space:]]*$' "$f"; then
+              echo "YAML-list tools: in $f (use 'tools: A, B, C' string form)"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Each .claude/commands/*.md must declare a description
+        run: |
+          errors=0
+          for f in tooling/claude/commands/*.md; do
+            if [[ ! -f "$f" ]]; then continue; fi
+            if ! grep -qE '^description:' "$f"; then
+              echo "MISSING 'description:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: tooling/claude/.mcp.json must parse as strict JSON
+        run: |
+          # Claude Code rejects JSONC. The reference-with-comments lives in
+          # .mcp.example.jsonc; the installed .mcp.json must be strict JSON.
+          if ! python3 -c "import json,sys; json.load(open('tooling/claude/.mcp.json'))"; then
+            echo "tooling/claude/.mcp.json is not strict JSON"
+            exit 1
+          fi
+          if grep -qE '^\s*//' tooling/claude/.mcp.json; then
+            echo "tooling/claude/.mcp.json contains // comments — must be strict JSON"
+            exit 1
+          fi
+          echo "OK: .mcp.json is strict JSON"
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: WebFetch entries must be domain-scoped HTTPS, not wildcards or schemes
+        run: |
+          errors=0
+          # Extract WebFetch(domain:...) entries; verify each domain is a plausible hostname.
+          domains=$(jq -r '.permissions.allow[] | select(startswith("WebFetch(domain:"))' tooling/claude/settings.json \
+                    | sed -E 's/^WebFetch\(domain:([^)]+)\)$/\1/')
+          while IFS= read -r d; do
+            [[ -z "$d" ]] && continue
+            if [[ "$d" == "*" || "$d" == *"*"* ]]; then
+              echo "WILDCARD DOMAIN (too broad): $d"
+              errors=$((errors+1))
+            elif [[ "$d" == http://* || "$d" == https://* ]]; then
+              echo "DOMAIN SHOULD NOT INCLUDE SCHEME: $d"
+              errors=$((errors+1))
+            elif [[ ! "$d" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ ]]; then
+              echo "INVALID DOMAIN FORMAT: $d"
+              errors=$((errors+1))
+            else
+              echo "OK: $d"
+            fi
+          done <<< "$domains"
+          [[ "$errors" -eq 0 ]] || exit 1
+
+  lint-codex:
+    name: Codex tooling validity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Each approval_policy line must use a value the Rust CLI accepts
+        run: |
+          errors=0
+          # Valid values per https://developers.openai.com/codex/config-reference
+          # on-failure is deprecated -> rejected here so the kit can't regress.
+          while IFS= read -r line; do
+            value=$(echo "$line" | sed -E 's/.*approval_policy[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/')
+            case "$value" in
+              untrusted|on-request|never) ;;
+              on-failure)
+                echo "DEPRECATED approval_policy value: on-failure (use on-request or never)"
+                errors=$((errors+1))
+                ;;
+              *)
+                echo "INVALID approval_policy value: $value"
+                errors=$((errors+1))
+                ;;
+            esac
+          done < <(grep -hE '^[[:space:]]*approval_policy[[:space:]]*=' tooling/codex/*.toml)
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Codex .toml files must parse
+        run: |
+          # Ubuntu runners ship Python 3.11+ which has tomllib in the stdlib.
+          errors=0
+          for f in tooling/codex/*.toml; do
+            if ! python3 -c "import tomllib,sys; tomllib.load(open('$f','rb'))"; then
+              echo "INVALID TOML: $f"
+              errors=$((errors+1))
+            else
+              echo "OK: $f"
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: config.toml must not document the invalid web_search value
+        run: |
+          # Valid web_search string values are: disabled | cached | live.
+          # "enabled" is NOT a Codex value (common mistake). Guard the comment
+          # so a user copying it can't set an invalid config.
+          if grep -qiE 'web.search|^#.*enabled.*always fetch' tooling/codex/config.toml \
+             && grep -qE '^#[[:space:]]*enabled[[:space:]]' tooling/codex/config.toml; then
+            echo "config.toml documents 'enabled' for web_search; valid value is 'live'"
+            exit 1
+          fi
+          echo "OK: web_search documentation uses valid values"
+
+      - name: Each Codex subagent skill must have name + description frontmatter
+        run: |
+          errors=0
+          for f in tooling/codex/skills/*/SKILL.md; do
+            if [[ ! -f "$f" ]]; then continue; fi
+            if ! grep -qE '^name:[[:space:]]' "$f"; then
+              echo "MISSING 'name:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+            if ! grep -qE '^description:' "$f"; then
+              echo "MISSING 'description:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: No leftover .codex/agents/*.toml files should be tracked
+        run: |
+          if [[ -d "tooling/codex/agents" ]]; then
+            echo "Legacy directory tooling/codex/agents/ should be removed (replaced by tooling/codex/skills/)"
+            exit 1
+          fi
+
+  lint-gemini:
+    name: Gemini tooling validity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Each Gemini subagent must have name + description frontmatter
+        run: |
+          errors=0
+          for f in tooling/gemini/agents/*.md; do
+            if [[ ! -f "$f" ]]; then continue; fi
+            if ! grep -qE '^name:[[:space:]]' "$f"; then
+              echo "MISSING 'name:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+            if ! grep -qE '^description:' "$f"; then
+              echo "MISSING 'description:' frontmatter in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Each Gemini command .toml must declare prompt + description
+        run: |
+          errors=0
+          for f in tooling/gemini/commands/*.toml; do
+            if [[ ! -f "$f" ]]; then continue; fi
+            if ! grep -qE '^prompt[[:space:]]*=' "$f"; then
+              echo "MISSING 'prompt =' in: $f"
+              errors=$((errors+1))
+            fi
+            if ! grep -qE '^description[[:space:]]*=' "$f"; then
+              echo "MISSING 'description =' in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Gemini command .toml files must parse
+        run: |
+          errors=0
+          for f in tooling/gemini/commands/*.toml; do
+            if ! python3 -c "import tomllib,sys; tomllib.load(open('$f','rb'))"; then
+              echo "INVALID TOML: $f"
+              errors=$((errors+1))
+            else
+              echo "OK: $f"
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: gemini-extension.json must be valid JSON with name + version
+        run: |
+          python3 -c "import json; d=json.load(open('tooling/gemini/gemini-extension.json')); assert d.get('name') and d.get('version'), 'name/version required'"
+          echo "OK: gemini-extension.json"

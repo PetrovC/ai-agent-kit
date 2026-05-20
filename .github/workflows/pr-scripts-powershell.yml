@@ -1,0 +1,131 @@
+name: PR — scripts (powershell)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-install-windows:
+    name: Smoke install (PowerShell)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kit into temp project
+        shell: pwsh
+        run: |
+          $target = "$env:RUNNER_TEMP\smoke-target"
+          New-Item -ItemType Directory -Path $target -Force | Out-Null
+          .\scripts\install.ps1 -Target $target -Tools "codex,claude,gemini"
+
+      - name: Verify expected files exist
+        shell: pwsh
+        run: |
+          $target = "$env:RUNNER_TEMP\smoke-target"
+          $files = @(
+            "AGENTS.md", "CLAUDE.md", "GEMINI.md", ".kit-version", ".mcp.json", ".mcp.example.jsonc",
+            ".claude\settings.json",
+            ".claude\hooks\format-on-save.sh", ".claude\hooks\pre-bash-guard.sh",
+            ".claude\hooks\notify-done.sh", ".claude\hooks\session-summary.sh",
+            ".claude\rules\test-naming.md",
+            ".claude\rules\migration-safety.md", ".claude\rules\env-safety.md",
+            ".claude\commands\bug-fix.md", ".claude\commands\code-review.md",
+            ".claude\commands\feature-planning.md",
+            ".codex\config.toml", ".codex\hooks.json",
+            ".codex\hooks\pre-bash-guard.sh", ".codex\hooks\format-on-save.sh", ".codex\hooks\notify-done.sh",
+            ".agents\skills\architect\SKILL.md", ".agents\skills\security-reviewer\SKILL.md",
+            ".gemini\commands\bug-fix.toml", ".gemini\commands\security-audit.toml",
+            "docs\ai\PROJECT.md"
+          )
+          $missing = $false
+          foreach ($f in $files) {
+            $path = Join-Path $target $f
+            if (Test-Path $path) { Write-Host "OK: $f" }
+            else { Write-Host "MISSING: $f"; $missing = $true }
+          }
+          if ($missing) { exit 1 }
+
+      - name: Dry-run update
+        shell: pwsh
+        run: .\scripts\update.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun
+
+      - name: install.ps1 wrote .kit-manifest (parity with install.sh)
+        shell: pwsh
+        run: |
+          $m = Join-Path "$env:RUNNER_TEMP\smoke-target" ".kit-manifest"
+          if (-not (Test-Path $m)) { Write-Host "FAIL: .kit-manifest missing"; exit 1 }
+          $lines = Get-Content $m
+          if ($lines.Count -lt 50) {
+            Write-Host "FAIL: .kit-manifest looks empty / under-populated ($($lines.Count) lines)"; exit 1
+          }
+          # No BOM at the start (bash sort/grep would otherwise see it). Read
+          # raw bytes — Get-Content auto-strips BOM, so a string check would
+          # never fail even with a BOM present.
+          $bytes = [System.IO.File]::ReadAllBytes($m)
+          if ($bytes.Count -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+            Write-Host "FAIL: .kit-manifest starts with UTF-8 BOM"; exit 1
+          }
+          # No backslashes — manifest paths must be forward-slashed for
+          # cross-shell readability (bash update.sh on Git-Bash on the same project).
+          if ($lines | Where-Object { $_ -match '\\' }) {
+            Write-Host "FAIL: .kit-manifest has backslash paths"; exit 1
+          }
+          Write-Host "OK: .kit-manifest ($($lines.Count) entries, no BOM, forward-slashed)"
+
+      - name: Dry-run uninstall
+        shell: pwsh
+        run: .\scripts\uninstall.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun
+
+      - name: install/update/uninstall.ps1 reject missing and non-directory Target
+        shell: pwsh
+        run: |
+          # Parity with the bash side: [[ ! -d "$TARGET" ]] refuses both a
+          # missing path and a regular file. Without -PathType Container,
+          # PowerShell silently accepted a file (typo or wrong arg) and the
+          # subsequent Join-Path / New-Item -ItemType Directory calls began
+          # materializing a pseudo-install under that invalid root. Regression
+          # coverage for #67 — must fail-fast on each PS lifecycle script.
+          $fail = 0
+          $missing = "$env:RUNNER_TEMP\does-not-exist-$([guid]::NewGuid())"
+          $file    = New-Item -ItemType File -Path "$env:RUNNER_TEMP\not-a-dir-$([guid]::NewGuid())" -Force | Select-Object -ExpandProperty FullName
+          foreach ($case in @(
+            @{ Script = "scripts\install.ps1";   Args = @("-Target", $missing, "-Tools", "claude"); Label = "install / missing" },
+            @{ Script = "scripts\install.ps1";   Args = @("-Target", $file,    "-Tools", "claude"); Label = "install / file" },
+            @{ Script = "scripts\update.ps1";    Args = @("-Target", $missing, "-Tools", "claude"); Label = "update / missing" },
+            @{ Script = "scripts\update.ps1";    Args = @("-Target", $file,    "-Tools", "claude"); Label = "update / file" },
+            @{ Script = "scripts\uninstall.ps1"; Args = @("-Target", $missing);                     Label = "uninstall / missing" },
+            @{ Script = "scripts\uninstall.ps1"; Args = @("-Target", $file);                        Label = "uninstall / file" }
+          )) {
+            $out = & pwsh -NoProfile -ExecutionPolicy Bypass -File $case.Script @($case.Args) 2>&1
+            $rc = $LASTEXITCODE
+            if ($rc -ne 0 -and ($out -join "`n") -match "Target directory does not exist") {
+              Write-Host "PASS $($case.Label) (rc=$rc)"
+            } else {
+              Write-Host "FAIL $($case.Label) (rc=$rc): $($out | Select-Object -Last 1)"
+              $fail = 1
+            }
+          }
+          Remove-Item -LiteralPath $file -Force
+          # Explicit exit 0 — without it, $LASTEXITCODE leaks the rc=1 from
+          # the last `& pwsh ...` invocation above and the step still fails
+          # despite every case passing.
+          if ($fail) { exit 1 } else { exit 0 }
+
+      - name: All .ps1 scripts must parse (syntax)
+        shell: pwsh
+        run: |
+          $bad = $false
+          Get-ChildItem scripts\*.ps1 | ForEach-Object {
+            $errs = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errs) | Out-Null
+            if ($errs) { Write-Host "PARSE ERROR: $($_.Name)"; $errs | ForEach-Object { Write-Host "  $_" }; $bad = $true }
+            else { Write-Host "OK: $($_.Name)" }
+          }
+          if ($bad) { exit 1 }

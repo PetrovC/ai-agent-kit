@@ -1,0 +1,227 @@
+name: PR — docs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint-skills:
+    name: Skill structure check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every skill must have a SKILL.md
+        run: |
+          errors=0
+          for dir in skills/*/; do
+            if [[ ! -f "${dir}SKILL.md" ]]; then
+              echo "MISSING SKILL.md in: $dir"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Every SKILL.md must have a Final response requirements section
+        run: |
+          errors=0
+          for f in skills/*/SKILL.md; do
+            if ! grep -q "Final response requirements" "$f"; then
+              echo "MISSING 'Final response requirements' in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+  lint-yaml:
+    name: YAML syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        run: sudo snap install yq
+
+      - name: Validate every YAML file parses
+        run: |
+          errors=0
+          while IFS= read -r f; do
+            if ! yq eval '.' "$f" > /dev/null 2>&1; then
+              echo "INVALID YAML: $f"
+              yq eval '.' "$f" 2>&1 | head -5
+              errors=$((errors+1))
+            else
+              echo "OK: $f"
+            fi
+          done < <(find . -type f \( -name "*.yml" -o -name "*.yaml" \) -not -path "./node_modules/*" -not -path "./.git/*")
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: GitHub Actions workflow templates must declare 'on' and 'jobs'
+        run: |
+          errors=0
+          for f in prompts/github-actions/*.yml .github/workflows/*.yml; do
+            [[ -f "$f" ]] || continue
+            if ! yq eval 'has("on") and has("jobs")' "$f" | grep -q "^true$"; then
+              echo "MISSING 'on' or 'jobs' in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+  routing-consistency:
+    name: Skill routing consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every skill must appear in all three routing tables
+        run: |
+          errors=0
+          for dir in skills/*/; do
+            skill=$(basename "$dir")
+            # Claude — `<skill>` skill
+            if ! grep -qE "\`${skill}\`[[:space:]]+skill" tooling/claude/CLAUDE.md; then
+              echo "MISSING from tooling/claude/CLAUDE.md: $skill"
+              errors=$((errors+1))
+            fi
+            # Codex — `$<skill>` (fixed-string match avoids regex back-reference parsing)
+            codex_pattern="\`\$${skill}\`"
+            if ! grep -qF "$codex_pattern" tooling/codex/AGENTS.md; then
+              echo "MISSING from tooling/codex/AGENTS.md: \$$skill"
+              errors=$((errors+1))
+            fi
+            # Gemini — must reference the INSTALLED path .gemini/skills/<skill>/SKILL.md
+            # (install copies skills there; a bare skills/ path is broken in the target).
+            if ! grep -qE "\.gemini/skills/${skill}/SKILL\.md" tooling/gemini/GEMINI.md; then
+              echo "MISSING/!.gemini-path from tooling/gemini/GEMINI.md: .gemini/skills/$skill/SKILL.md"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Reverse — every Gemini router skill path must resolve to a real skill
+        run: |
+          errors=0
+          grep -oE '\.gemini/skills/[a-z0-9-]+/SKILL\.md' tooling/gemini/GEMINI.md \
+            | sed -E 's#\.gemini/skills/([a-z0-9-]+)/SKILL\.md#\1#' | sort -u \
+            | while read -r s; do
+                [[ -z "$s" ]] && continue
+                if [[ ! -d "skills/$s" ]]; then
+                  echo "STALE router row: tooling/gemini/GEMINI.md -> skills/$s (does not exist)"
+                  exit 1
+                fi
+              done
+
+      - name: Gemini command .toml must not reference the bare skills/ path
+        run: |
+          # In an installed project skills live under .gemini/skills/, never
+          # a top-level skills/ — a `Read skills/<x>/SKILL.md` line is a broken
+          # reference in every target repo.
+          if grep -rnE 'Read[[:space:]]+skills/[a-z0-9-]+/SKILL\.md' tooling/gemini/commands/; then
+            echo "Gemini command references bare skills/ path (use .gemini/skills/...)"
+            exit 1
+          fi
+          echo "OK: Gemini commands use the installed .gemini/skills/ path"
+
+      - name: The 5 subagents must have identical names across all 3 tools
+        run: |
+          claude=$(ls -1 tooling/claude/agents/*.md  | xargs -n1 basename | sed 's/\.md$//'   | sort | tr '\n' ',')
+          gemini=$(ls -1 tooling/gemini/agents/*.md  | xargs -n1 basename | sed 's/\.md$//'   | sort | tr '\n' ',')
+          codex=$(ls -1d tooling/codex/skills/*/     | xargs -n1 basename                     | sort | tr '\n' ',')
+          echo "claude=[$claude] gemini=[$gemini] codex=[$codex]"
+          if [[ "$claude" != "$gemini" || "$claude" != "$codex" ]]; then
+            echo "Subagent set drift across claude/gemini/codex"
+            exit 1
+          fi
+          echo "OK: subagent sets identical across the 3 tools"
+
+      - name: Documented counts + CHANGELOG version must match reality
+        run: |
+          errors=0
+          skills=$(find skills -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ')
+          kit_ver=$(grep -oE 'KIT_VERSION="[0-9]+\.[0-9]+\.[0-9]+"' scripts/install.sh | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          chg_ver=$(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          if [[ "$chg_ver" != "$kit_ver" ]]; then
+            echo "CHANGELOG top version ($chg_ver) != KIT_VERSION ($kit_ver)"
+            errors=$((errors+1))
+          fi
+          for f in README.md .claude-plugin/marketplace.json .claude-plugin/plugin.json tooling/claude/CLAUDE.md; do
+            if grep -qE '\b30 skills\b' "$f" && [[ "$skills" -ne 30 ]]; then
+              echo "$f says '30 skills' but found $skills"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+          echo "OK: counts/version consistent (skills=$skills, version=$kit_ver)"
+
+  lint-workflow-semantics:
+    name: GitHub Actions workflow semantics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Workflow templates must be semantically correct
+        run: |
+          python3 - <<'PY'
+          import glob, re, sys
+          errs = []
+          GH = "prompts/github-actions"
+
+          def read(p): return open(p, encoding="utf-8").read()
+
+          # 1. codex-action safety-strategy must be a valid value.
+          valid_ss = {"drop-sudo", "unprivileged-user", "read-only", "unsafe"}
+          for f in glob.glob(f"{GH}/*.yml"):
+              for m in re.finditer(r'safety-strategy:\s*"?([a-z-]+)"?', read(f)):
+                  if m.group(1) not in valid_ss:
+                      errs.append(f"{f}: invalid safety-strategy '{m.group(1)}' (valid: {sorted(valid_ss)})")
+
+          # 2. Any workflow that triggers on pull_request_review_comment must NOT
+          #    gate solely on github.event.issue.pull_request (doesn't exist there).
+          for f in glob.glob(f"{GH}/*.yml"):
+              t = read(f)
+              if "pull_request_review_comment:" in t and "github.event.issue.pull_request" in t:
+                  if "github.event_name == 'pull_request_review_comment'" not in t:
+                      errs.append(f"{f}: uses github.event.issue.pull_request but also triggers on "
+                                  "pull_request_review_comment without an event_name split")
+
+          # 3. codex-pr-review must post the final-message (codex-action doesn't auto-comment).
+          cpr = f"{GH}/codex-pr-review.yml"
+          t = read(cpr)
+          if "final-message" not in t or "github-script" not in t:
+              errs.append(f"{cpr}: missing a step that posts steps.*.outputs.final-message")
+
+          # 4. Comment-triggered agent workflows must filter by author_association.
+          for f in glob.glob(f"{GH}/*.yml"):
+              t = read(f)
+              if "issue_comment:" in t or "pull_request_review_comment:" in t:
+                  if "author_association" not in t:
+                      errs.append(f"{f}: comment-triggered but no author_association filter")
+
+          # 5. Untrusted event fields (issue/PR/comment title or body) must NOT
+          #    be interpolated raw into an agent `prompt:` — that is a prompt-
+          #    injection sink. They must be captured via env: + fenced as DATA
+          #    (see ai-fallback-dispatch / gemini-* for the safe pattern). This
+          #    audits ALL workflows, not only comment-triggered ones.
+          UNTRUSTED = re.compile(
+              r'\$\{\{\s*github\.event\.'
+              r'(issue|pull_request|comment|review)\.(title|body)\s*\}\}')
+          for f in glob.glob(f"{GH}/*.yml"):
+              t = read(f)
+              for m in re.finditer(r'prompt:\s*[|>]?\s*\n((?:[ \t]+.*\n?)+)', t):
+                  if UNTRUSTED.search(m.group(1)):
+                      errs.append(f"{f}: untrusted github.event.*.(title|body) "
+                                  "interpolated directly into a prompt: block — "
+                                  "pass via env: and fence it as untrusted DATA")
+
+          if errs:
+              print("\n".join(errs)); sys.exit(1)
+          print("OK: workflow semantics valid")
+          PY

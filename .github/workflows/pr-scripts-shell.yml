@@ -1,0 +1,189 @@
+name: PR — scripts (shell)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate-example:
+    name: Validate filled example
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate examples/filled-project
+        run: bash scripts/validate.sh --target examples/filled-project
+
+  smoke-install:
+    name: Smoke install (bash)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kit into temp project
+        run: |
+          mkdir -p /tmp/smoke-target
+          bash scripts/install.sh --target /tmp/smoke-target --tools codex,claude,gemini
+
+      - name: Verify expected files exist
+        run: |
+          files=(
+            "/tmp/smoke-target/AGENTS.md"
+            "/tmp/smoke-target/CLAUDE.md"
+            "/tmp/smoke-target/GEMINI.md"
+            "/tmp/smoke-target/.kit-version"
+            "/tmp/smoke-target/.mcp.json"
+            "/tmp/smoke-target/.mcp.example.jsonc"
+            "/tmp/smoke-target/.claude/settings.json"
+            "/tmp/smoke-target/.claude/hooks/format-on-save.sh"
+            "/tmp/smoke-target/.claude/hooks/pre-bash-guard.sh"
+            "/tmp/smoke-target/.claude/hooks/notify-done.sh"
+            "/tmp/smoke-target/.claude/hooks/session-summary.sh"
+            "/tmp/smoke-target/.claude/rules/test-naming.md"
+            "/tmp/smoke-target/.claude/rules/migration-safety.md"
+            "/tmp/smoke-target/.claude/rules/env-safety.md"
+            "/tmp/smoke-target/.claude/commands/bug-fix.md"
+            "/tmp/smoke-target/.claude/commands/code-review.md"
+            "/tmp/smoke-target/.claude/commands/feature-planning.md"
+            "/tmp/smoke-target/.codex/config.toml"
+            "/tmp/smoke-target/.codex/hooks.json"
+            "/tmp/smoke-target/.codex/hooks/pre-bash-guard.sh"
+            "/tmp/smoke-target/.codex/hooks/format-on-save.sh"
+            "/tmp/smoke-target/.codex/hooks/notify-done.sh"
+            "/tmp/smoke-target/.agents/skills/architect/SKILL.md"
+            "/tmp/smoke-target/.agents/skills/security-reviewer/SKILL.md"
+            "/tmp/smoke-target/.gemini/commands/bug-fix.toml"
+            "/tmp/smoke-target/.gemini/commands/security-audit.toml"
+            "/tmp/smoke-target/docs/ai/PROJECT.md"
+          )
+          for f in "${files[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              echo "MISSING: $f"
+              exit 1
+            fi
+            echo "OK: $f"
+          done
+
+      - name: Verify hook scripts are executable
+        run: |
+          for f in /tmp/smoke-target/.claude/hooks/*.sh /tmp/smoke-target/.codex/hooks/*.sh; do
+            if [[ ! -x "$f" ]]; then
+              echo "NOT EXECUTABLE: $f"
+              exit 1
+            fi
+            echo "EXECUTABLE: $f"
+          done
+
+      - name: Dry-run update (no changes expected)
+        run: bash scripts/update.sh --target /tmp/smoke-target --dry-run
+
+      - name: Dry-run uninstall
+        run: bash scripts/uninstall.sh --target /tmp/smoke-target --dry-run
+
+  lint-shell:
+    name: Shell scripts + hooks must be valid
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bash -n (syntax) on every script and hook
+        run: |
+          bad=0
+          while IFS= read -r -d '' f; do
+            if bash -n "$f"; then echo "OK: $f"; else echo "SYNTAX ERROR: $f"; bad=1; fi
+          done < <(find scripts tooling -type f -name "*.sh" -print0)
+          [[ "$bad" -eq 0 ]] || exit 1
+
+      - name: shellcheck (preinstalled on ubuntu-latest)
+        run: |
+          # SC1090/1091: dynamic `source` paths are intentional in the kit.
+          shellcheck --severity=warning -e SC1090,SC1091 \
+            scripts/*.sh tooling/claude/hooks/*.sh tooling/codex/hooks/*.sh
+
+  e2e-lifecycle:
+    name: install -> update -> uninstall -> new-skill (no dry-run)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Real update is a no-op right after install
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          # A real (non-dry-run) update immediately after install must report
+          # nothing changed — proves update.sh's compare path is correct.
+          out="$(bash scripts/update.sh --target "$T")"
+          echo "$out"
+          echo "$out" | grep -q "Everything is up to date" \
+            || { echo "FAIL: update.sh reported changes right after install"; exit 1; }
+
+      - name: Hooks stay executable across a real update
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools claude,codex >/dev/null
+          chmod -x "$T/.claude/hooks/pre-bash-guard.sh" "$T/.codex/hooks/pre-bash-guard.sh"
+          bash scripts/update.sh --target "$T" >/dev/null
+          for h in "$T/.claude/hooks/pre-bash-guard.sh" "$T/.codex/hooks/pre-bash-guard.sh"; do
+            [[ -x "$h" ]] || { echo "FAIL: $h not executable after update"; exit 1; }
+          done
+          echo "OK: hooks executable after real update"
+
+      - name: Real uninstall removes the kit and preserves docs/ai
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          echo "user note" > "$T/docs/ai/PROJECT.md"
+          bash scripts/uninstall.sh --target "$T" >/dev/null
+          for p in .claude .codex .gemini .agents .kit-version .kit-manifest AGENTS.md CLAUDE.md GEMINI.md .mcp.json; do
+            [[ -e "$T/$p" ]] && { echo "FAIL: uninstall left $p"; exit 1; }
+          done
+          [[ -f "$T/docs/ai/PROJECT.md" ]] || { echo "FAIL: uninstall destroyed docs/ai"; exit 1; }
+          echo "OK: uninstall clean, docs/ai preserved"
+
+      - name: update.sh manifest GC prunes only de-shipped kit files
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools claude >/dev/null
+          test -f "$T/.kit-manifest"
+          # Simulate a future version that stopped shipping a command, plus a
+          # user file and docs/ai that must survive.
+          echo ".claude/commands/ghost.md" >> "$T/.kit-manifest"
+          mkdir -p "$T/.claude/commands"
+          echo stale > "$T/.claude/commands/ghost.md"
+          echo mine  > "$T/.claude/commands/my-own.md"
+          echo doc   > "$T/docs/ai/PROJECT.md"
+          out="$(bash scripts/update.sh --target "$T" --tools claude)"
+          echo "$out" | grep -q "PRUNED   .claude/commands/ghost.md" || { echo "FAIL: ghost not pruned"; exit 1; }
+          [[ -e "$T/.claude/commands/ghost.md" ]] && { echo "FAIL: ghost still present"; exit 1; }
+          [[ -f "$T/.claude/commands/my-own.md" ]] || { echo "FAIL: GC ate a user file"; exit 1; }
+          [[ -f "$T/docs/ai/PROJECT.md" ]] || { echo "FAIL: GC touched docs/ai"; exit 1; }
+          # Partial-tools safety: codex/gemini entries must never be pruned by a
+          # claude-only run even when present in the manifest.
+          T2="$(mktemp -d)"
+          bash scripts/install.sh --target "$T2" --tools codex,claude,gemini >/dev/null
+          gem_skill="$(grep -m1 '^\.gemini/skills/' "$T2/.kit-manifest")"
+          bash scripts/update.sh --target "$T2" --tools claude >/dev/null
+          [[ -f "$T2/$gem_skill" ]] || { echo "FAIL: claude-only update pruned a gemini file"; exit 1; }
+          echo "OK: GC prunes de-shipped kit files only; user/docs/other-tool safe"
+
+      - name: new-skill.sh scaffolds a routable, CI-valid skill
+        run: |
+          set -euo pipefail
+          bash scripts/new-skill.sh --name ci-probe-skill --description "Use for the CI e2e probe."
+          test -f skills/ci-probe-skill/SKILL.md
+          grep -q "Final response requirements" skills/ci-probe-skill/SKILL.md
+          grep -qE '`ci-probe-skill`[[:space:]]+skill' tooling/claude/CLAUDE.md
+          grep -qF '`$ci-probe-skill`' tooling/codex/AGENTS.md
+          grep -qE '\.gemini/skills/ci-probe-skill/SKILL\.md' tooling/gemini/GEMINI.md
+          echo "OK: new-skill scaffold is routable in all 3 tools"
