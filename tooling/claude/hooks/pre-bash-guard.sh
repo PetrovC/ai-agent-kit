@@ -61,7 +61,7 @@ CMD=$(parse_with_jq || true)
 # merely contains "-f", e.g. `git push origin feature-foo` must pass), the
 # `+refspec` force form (`git push origin +main`), and the destructive
 # --mirror / --delete / -d forms.
-if echo "$CMD" | grep -qE 'git[[:space:]]+push.*[[:space:]](-f([[:space:]]|$)|--force|--mirror|--delete|-d([[:space:]]|$)|\+[^[:space:]]+:?)'; then
+if echo "$CMD" | grep -qE 'git[[:space:]]+push.*[[:space:]](-f([[:space:]]|$)|--force([[:space:]]|$)|--mirror|--delete|-d([[:space:]]|$)|\+[^[:space:]]+:?)'; then
     block "BLOCKED: force/mirror/delete push is not allowed. Use --force-with-lease only after explicit approval; never +refspec, --mirror, or --delete unattended."
 fi
 
