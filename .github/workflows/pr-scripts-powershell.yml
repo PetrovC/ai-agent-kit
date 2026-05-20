@@ -56,6 +56,51 @@ jobs:
         shell: pwsh
         run: .\scripts\update.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun
 
+      - name: update.ps1 preserves unknown legacy Codex agent files
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP "legacy-codex-$([guid]::NewGuid())"
+          New-Item -ItemType Directory -Path $target -Force | Out-Null
+          .\scripts\install.ps1 -Target $target -Tools "codex" | Out-Null
+          $legacyDir = Join-Path $target ".codex\agents"
+          New-Item -ItemType Directory -Path $legacyDir -Force | Out-Null
+          $unknown = Join-Path $legacyDir "architect.toml"
+          Set-Content -LiteralPath $unknown -Value "project-owned"
+
+          $dry = .\scripts\update.ps1 -Target $target -Tools "codex" -DryRun *>&1 | Out-String
+          if ($dry -notmatch "SKIPPED  \.codex/agents/architect\.toml \(legacy; ownership unknown\)") {
+            Write-Host "FAIL: unknown legacy file was not reported as skipped"
+            Write-Host $dry
+            exit 1
+          }
+
+          .\scripts\update.ps1 -Target $target -Tools "codex" | Out-Null
+          if (-not (Test-Path -LiteralPath $unknown)) {
+            Write-Host "FAIL: update.ps1 deleted a project-owned legacy agent"
+            exit 1
+          }
+
+          $target2 = Join-Path $env:RUNNER_TEMP "legacy-codex-owned-$([guid]::NewGuid())"
+          New-Item -ItemType Directory -Path $target2 -Force | Out-Null
+          .\scripts\install.ps1 -Target $target2 -Tools "codex" | Out-Null
+          $legacyDir2 = Join-Path $target2 ".codex\agents"
+          New-Item -ItemType Directory -Path $legacyDir2 -Force | Out-Null
+          $owned = Join-Path $legacyDir2 "code-reviewer.toml"
+          Set-Content -LiteralPath $owned -Value "kit-owned"
+          Add-Content -LiteralPath (Join-Path $target2 ".kit-manifest") -Value ".codex/agents/code-reviewer.toml"
+
+          $out = .\scripts\update.ps1 -Target $target2 -Tools "codex" *>&1 | Out-String
+          if ($out -notmatch "PRUNED   \.codex/agents/code-reviewer\.toml") {
+            Write-Host "FAIL: manifest-owned legacy file was not pruned"
+            Write-Host $out
+            exit 1
+          }
+          if (Test-Path -LiteralPath $owned) {
+            Write-Host "FAIL: manifest-owned legacy file survived"
+            exit 1
+          }
+          Write-Host "OK: update.ps1 gates legacy Codex cleanup on manifest ownership"
+
       - name: install.ps1 wrote .kit-manifest (parity with install.sh)
         shell: pwsh
         run: |

@@ -14,7 +14,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.19"
+KIT_VERSION="1.19.20"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -41,6 +41,7 @@ fi
 
 # ── Read installed version ─────────────────────────────────────────────────
 VERSION_FILE="$TARGET/.kit-version"
+MANIFEST_FILE="$TARGET/.kit-manifest"
 INSTALLED_TOOLS="codex,claude,gemini"
 INSTALLED_VERSION=""
 
@@ -88,6 +89,7 @@ echo "Tools      : $TOOLS"
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 CHANGES=()
+NOTES=()
 MANAGED=()          # every kit-managed rel path touched this run (any tool in scope)
 KEEP_FROM_OLD=()    # old-manifest entries for tools NOT in this run (preserved as-is)
 
@@ -115,6 +117,12 @@ in_managed() {
     local x="$1" m
     for m in "${MANAGED[@]}"; do [[ "$m" == "$x" ]] && return 0; done
     return 1
+}
+
+manifest_has() {
+    local x="$1"
+    [[ -f "$MANIFEST_FILE" ]] || return 1
+    grep -Fxq "$x" "$MANIFEST_FILE"
 }
 
 compare_and_update() {
@@ -174,25 +182,18 @@ if contains "codex"; then
     # Codex skills (5 subagents) merge into shared .agents/skills/
     update_dir         "$KIT_ROOT/tooling/codex/skills"      "$TARGET/.agents/skills"
 
-    # ── v1.14 migration: remove legacy .codex/agents/*.toml ──────────────
+    # ── v1.14 migration: legacy .codex/agents/*.toml ─────────────────────
     # The Rust Codex CLI does not read this directory. Files are leftover from
-    # pre-1.14 kit versions that used custom TOML subagents. We delete them so
-    # users don't keep stale, never-loaded files in their repos.
+    # pre-1.14 kit versions that used custom TOML subagents. The manifest GC
+    # removes them only when .kit-manifest proves kit ownership.
     LEGACY_CODEX_AGENTS_DIR="$TARGET/.codex/agents"
     if [[ -d "$LEGACY_CODEX_AGENTS_DIR" ]]; then
         for legacy in architect code-reviewer codebase-investigator security-reviewer test-runner; do
             legacy_file="$LEGACY_CODEX_AGENTS_DIR/$legacy.toml"
-            if [[ -f "$legacy_file" ]]; then
-                CHANGES+=("REMOVED  .codex/agents/$legacy.toml (legacy)")
-                if [[ "$DRY_RUN" == "false" ]]; then
-                    rm -f "$legacy_file"
-                fi
+            if [[ -f "$legacy_file" ]] && ! manifest_has ".codex/agents/$legacy.toml"; then
+                NOTES+=("SKIPPED  .codex/agents/$legacy.toml (legacy; ownership unknown)")
             fi
         done
-        # Remove the now-empty directory (only if empty — preserve user-added files).
-        if [[ "$DRY_RUN" == "false" ]] && [[ -z "$(ls -A "$LEGACY_CODEX_AGENTS_DIR" 2>/dev/null)" ]]; then
-            rmdir "$LEGACY_CODEX_AGENTS_DIR" 2>/dev/null || true
-        fi
     fi
 fi
 
@@ -232,8 +233,6 @@ fi
 #   - first run (no manifest) prunes nothing — it only writes the baseline;
 #   - a partial --tools run never prunes another tool's files, and preserves
 #     that tool's manifest entries (KEEP_FROM_OLD) so a later full run is sane.
-MANIFEST_FILE="$TARGET/.kit-manifest"
-
 if [[ -f "$MANIFEST_FILE" && ${#MANAGED[@]} -gt 0 ]]; then
     while IFS= read -r p; do
         [[ -z "$p" ]] && continue
@@ -278,4 +277,10 @@ else
         echo ""
         echo -e "\033[32m${#CHANGES[@]} file(s) updated.\033[0m"
     fi
+fi
+
+if [[ ${#NOTES[@]} -gt 0 ]]; then
+    echo ""
+    echo -e "\033[33mNotes:\033[0m"
+    for n in "${NOTES[@]}"; do echo "  $n"; done
 fi
