@@ -72,6 +72,14 @@ if echo "$CMD" | grep -qE 'git[[:space:]]+reset[[:space:]].*(--hard|--keep)'; th
     block "BLOCKED: git reset --hard/--keep can destroy uncommitted work. Use git stash or explicit approval."
 fi
 
+# Block destructive `git clean`. The force flags (-f / --force, including
+# combined short forms like -fd, -fdx, -ffdx) actually delete untracked files;
+# -d/-x/-X widen the scope. `git clean -n` / `--dry-run` (no -f) stays allowed
+# as a safe preview.
+if echo "$CMD" | grep -qE 'git[[:space:]]+clean([[:space:]]+|.*[[:space:]])(-[a-zA-Z]*f[a-zA-Z]*|--force)([[:space:]]|$)'; then
+    block "BLOCKED: 'git clean -f' deletes untracked files (often irrecoverable). Use 'git clean -n' / '--dry-run' first; require explicit approval before a forceful clean."
+fi
+
 # Block obfuscated rm via $IFS word-splitting (rm${IFS}-rf${IFS}/ evades the
 # whitespace-anchored shape detector below — there is no legitimate reason for
 # $IFS to appear in an rm invocation).
