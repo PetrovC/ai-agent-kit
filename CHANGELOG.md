@@ -22,7 +22,7 @@ though the bare `git push --force` form was blocked.
   `GIT_PREFIX` regex that matches `git` plus zero or more global
   options before the subcommand (`-C dir`, `-c key=val`, `--git-dir=`/
   `--git-dir `, `--work-tree=`/`--work-tree `). Reuse the prefix in
-  the push / branch / update-ref / reset checks.
+  the push / branch / update-ref / reset / switch / clean checks.
 - **`.github/workflows/ci.yml`**: 7 new matrix cases (`-C push
   --force`, `-C push --delete`, `--git-dir push --mirror`, `-c push
   --delete`, `-C reset --hard`, `-C branch -D`, and a passthrough for
@@ -30,6 +30,100 @@ though the bare `git push --force` form was blocked.
 - **`README.md`**: hook coverage tables note that global options
   (`git -C`, `--git-dir`, …) before the destructive subcommand are
   covered.
+
+---
+
+## [1.19.14] - 2026-05-20
+
+### Fixed — pre-bash-guard missed split / bundled `git branch` force-delete (closes #79)
+
+The guard regex only matched `git branch -D` and the fixed long forms
+`--delete --force` / `--force --delete`. Git accepts any combination
+of `-d`/`--delete` with `-f`/`--force` (split as `-d -f`, `-f -d`,
+`--delete -f`, `-d --force`, or bundled as `-df` / `-fd`) and treats
+them as force-delete — same destructive intent as `-D`, but the
+guard let them through.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: replace the single
+  regex with a paired check — detect `git branch`, then require both
+  a delete-intent flag (`-d` short-block or `--delete`) and a
+  force-intent flag (`-f` short-block or `--force`). Bundled short
+  flags (`-df`, `-fd`) are covered via `-[a-z]*d[a-z]*` /
+  `-[a-z]*f[a-z]*`. Plain `-d`, plain `-f`, `-m`, and branches whose
+  name contains `-D` stay allowed.
+- **`.github/workflows/ci.yml`**: 8 new matrix cases.
+
+---
+
+## [1.19.13] - 2026-05-20
+
+### Fixed — pre-bash-guard ignored destructive `git switch` variants (closes #87)
+
+`Bash(git switch:*)` was in the Claude allow list and neither hook
+inspected the command. That left `--discard-changes`, `--force` /
+`-f`, and `-C` / `--force-create` (which throw away local mods or
+reset a branch pointer) silently allowed even though comparable
+`git checkout` / `git reset` forms are blocked.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: block `git switch`
+  with `--discard-changes`, `--force`, `-f`, `-C`, or
+  `--force-create`. Plain `git switch <branch>`, `git switch -c <new>`,
+  `git switch -`, and `git switch --detach` stay allowed.
+- **`tooling/claude/settings.json`**: add explicit deny entries for
+  the destructive variants alongside the broad `Bash(git switch:*)`
+  allow.
+- **`.github/workflows/ci.yml`**: 7 new matrix cases.
+- **`README.md`**: hook coverage tables now mention destructive
+  `git switch`.
+
+---
+
+## [1.19.12] - 2026-05-20
+
+### Fixed — pre-bash-guard never inspected `git clean` (closes #97)
+
+`git clean -f` (and the combined / split forms `-fd`, `-fdx`,
+`-ffdx`, `-d -f`, `--force`) deletes untracked files irrecoverably.
+The shared guard had no `git clean` check at all; only the Claude
+`settings.json` denied the single exact shape `git clean -fd:*`,
+leaving Codex unprotected and most flag permutations uncovered.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: add a regex that
+  matches any short-flag block containing `f` (covers `-f`, `-fd`,
+  `-df`, `-fdx`, `-ffdx`...) or the long `--force`. `git clean -n` /
+  `--dry-run` (no force flag) stays allowed as a safe preview.
+- **`tooling/claude/settings.json`**: expand the deny list from a
+  single `git clean -fd:*` entry to cover the common destructive
+  forms (`-f`, `-fd`, `-fdx`, `-df`, `--force`).
+- **`.github/workflows/ci.yml`**: 7 new matrix cases (forceful
+  variants blocked, `-n` / `--dry-run` allowed).
+- **`README.md`**: hook coverage tables now mention destructive
+  `git clean` alongside the other Git destructive families.
+
+---
+
+## [1.19.11] - 2026-05-20
+
+### Fixed — pre-bash-guard let `--force-with-lease` get blocked (closes #72)
+
+The `git push` regex anchored `-f` with `([[:space:]]|$)` but left
+`--force` as a bare substring. That substring also matches inside
+`--force-with-lease`, so the very flag the block message recommends
+("Use --force-with-lease only after explicit approval") was itself
+denied by the same guard — with no override path.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: anchor `--force` with
+  `([[:space:]]|$)` so only the exact `--force` flag matches.
+  `--force-with-lease` now passes through the hook and is left to the
+  agent's native approval mechanism (per the message's own contract).
+- **`.github/workflows/ci.yml`**: matrix flipped from `expect 2
+  "force-with-lease"` to `expect 0 "force-with-lease"`; the
+  `--force` / `-f` / `+refspec` / `--mirror` / `--delete` cases stay
+  blocked.
 
 ---
 

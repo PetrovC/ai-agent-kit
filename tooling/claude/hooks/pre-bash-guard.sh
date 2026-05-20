@@ -67,7 +67,7 @@ GIT_PREFIX='git([[:space:]]+(-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space
 # merely contains "-f", e.g. `git push origin feature-foo` must pass), the
 # `+refspec` force form (`git push origin +main`), and the destructive
 # --mirror / --delete / -d forms.
-if echo "$CMD" | grep -qE "${GIT_PREFIX}push.*[[:space:]](-f([[:space:]]|$)|--force|--mirror|--delete|-d([[:space:]]|$)|\+[^[:space:]]+:?)"; then
+if echo "$CMD" | grep -qE "${GIT_PREFIX}push.*[[:space:]](-f([[:space:]]|$)|--force([[:space:]]|$)|--mirror|--delete|-d([[:space:]]|$)|\+[^[:space:]]+:?)"; then
     block "BLOCKED: force/mirror/delete push is not allowed. Use --force-with-lease only after explicit approval; never +refspec, --mirror, or --delete unattended."
 fi
 
@@ -82,6 +82,23 @@ fi
 # Block destructive reset (--hard discards working tree, --keep discards too).
 if echo "$CMD" | grep -qE "${GIT_PREFIX}reset[[:space:]].*(--hard|--keep)"; then
     block "BLOCKED: git reset --hard/--keep can destroy uncommitted work. Use git stash or explicit approval."
+fi
+
+# Block destructive `git switch` variants. `git switch <branch>` itself is safe
+# and Git refuses to switch when it would overwrite local changes; these flags
+# bypass that guard or reset a branch pointer:
+#   --discard-changes / -f / --force  : throw away local modifications
+#   -C <name> / --force-create        : create/reset and switch (resets branch ref)
+if echo "$CMD" | grep -qE "${GIT_PREFIX}switch[[:space:]].*(--discard-changes|--force-create|--force|-f|-C)([[:space:]]|$)"; then
+    block "BLOCKED: 'git switch --discard-changes/--force/-f/-C/--force-create' can discard uncommitted work or reset a branch pointer. Commit/stash first, or use plain 'git switch <branch>' / 'git switch -c <new>'."
+fi
+
+# Block destructive `git clean`. The force flags (-f / --force, including
+# combined short forms like -fd, -fdx, -ffdx) actually delete untracked files;
+# -d/-x/-X widen the scope. `git clean -n` / `--dry-run` (no -f) stays allowed
+# as a safe preview.
+if echo "$CMD" | grep -qE "${GIT_PREFIX}clean([[:space:]]+|.*[[:space:]])(-[a-zA-Z]*f[a-zA-Z]*|--force)([[:space:]]|$)"; then
+    block "BLOCKED: 'git clean -f' deletes untracked files (often irrecoverable). Use 'git clean -n' / '--dry-run' first; require explicit approval before a forceful clean."
 fi
 
 # Block obfuscated rm via $IFS word-splitting (rm${IFS}-rf${IFS}/ evades the
