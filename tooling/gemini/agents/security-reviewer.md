@@ -7,6 +7,7 @@ kind: local
 tools:
   - read_file
   - search_file_content
+  - list_directory
   - run_shell_command
 model: gemini-3.1-pro
 temperature: 0.1
