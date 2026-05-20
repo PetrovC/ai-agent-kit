@@ -27,6 +27,55 @@ guard let them through.
 
 ---
 
+## [1.19.13] - 2026-05-20
+
+### Fixed — pre-bash-guard ignored destructive `git switch` variants (closes #87)
+
+`Bash(git switch:*)` was in the Claude allow list and neither hook
+inspected the command. That left `--discard-changes`, `--force` /
+`-f`, and `-C` / `--force-create` (which throw away local mods or
+reset a branch pointer) silently allowed even though comparable
+`git checkout` / `git reset` forms are blocked.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: block `git switch`
+  with `--discard-changes`, `--force`, `-f`, `-C`, or
+  `--force-create`. Plain `git switch <branch>`, `git switch -c <new>`,
+  `git switch -`, and `git switch --detach` stay allowed.
+- **`tooling/claude/settings.json`**: add explicit deny entries for
+  the destructive variants alongside the broad `Bash(git switch:*)`
+  allow.
+- **`.github/workflows/ci.yml`**: 7 new matrix cases.
+- **`README.md`**: hook coverage tables now mention destructive
+  `git switch`.
+
+---
+
+## [1.19.12] - 2026-05-20
+
+### Fixed — pre-bash-guard never inspected `git clean` (closes #97)
+
+`git clean -f` (and the combined / split forms `-fd`, `-fdx`,
+`-ffdx`, `-d -f`, `--force`) deletes untracked files irrecoverably.
+The shared guard had no `git clean` check at all; only the Claude
+`settings.json` denied the single exact shape `git clean -fd:*`,
+leaving Codex unprotected and most flag permutations uncovered.
+
+- **`tooling/claude/hooks/pre-bash-guard.sh`** and
+  **`tooling/codex/hooks/pre-bash-guard.sh`**: add a regex that
+  matches any short-flag block containing `f` (covers `-f`, `-fd`,
+  `-df`, `-fdx`, `-ffdx`...) or the long `--force`. `git clean -n` /
+  `--dry-run` (no force flag) stays allowed as a safe preview.
+- **`tooling/claude/settings.json`**: expand the deny list from a
+  single `git clean -fd:*` entry to cover the common destructive
+  forms (`-f`, `-fd`, `-fdx`, `-df`, `--force`).
+- **`.github/workflows/ci.yml`**: 7 new matrix cases (forceful
+  variants blocked, `-n` / `--dry-run` allowed).
+- **`README.md`**: hook coverage tables now mention destructive
+  `git clean` alongside the other Git destructive families.
+
+---
+
 ## [1.19.11] - 2026-05-20
 
 ### Fixed — pre-bash-guard let `--force-with-lease` get blocked (closes #72)

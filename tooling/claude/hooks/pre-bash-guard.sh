@@ -87,6 +87,23 @@ if echo "$CMD" | grep -qE 'git[[:space:]]+reset[[:space:]].*(--hard|--keep)'; th
     block "BLOCKED: git reset --hard/--keep can destroy uncommitted work. Use git stash or explicit approval."
 fi
 
+# Block destructive `git switch` variants. `git switch <branch>` itself is safe
+# and Git refuses to switch when it would overwrite local changes; these flags
+# bypass that guard or reset a branch pointer:
+#   --discard-changes / -f / --force  : throw away local modifications
+#   -C <name> / --force-create        : create/reset and switch (resets branch ref)
+if echo "$CMD" | grep -qE 'git[[:space:]]+switch[[:space:]].*(--discard-changes|--force-create|--force|-f|-C)([[:space:]]|$)'; then
+    block "BLOCKED: 'git switch --discard-changes/--force/-f/-C/--force-create' can discard uncommitted work or reset a branch pointer. Commit/stash first, or use plain 'git switch <branch>' / 'git switch -c <new>'."
+fi
+
+# Block destructive `git clean`. The force flags (-f / --force, including
+# combined short forms like -fd, -fdx, -ffdx) actually delete untracked files;
+# -d/-x/-X widen the scope. `git clean -n` / `--dry-run` (no -f) stays allowed
+# as a safe preview.
+if echo "$CMD" | grep -qE 'git[[:space:]]+clean([[:space:]]+|.*[[:space:]])(-[a-zA-Z]*f[a-zA-Z]*|--force)([[:space:]]|$)'; then
+    block "BLOCKED: 'git clean -f' deletes untracked files (often irrecoverable). Use 'git clean -n' / '--dry-run' first; require explicit approval before a forceful clean."
+fi
+
 # Block obfuscated rm via $IFS word-splitting (rm${IFS}-rf${IFS}/ evades the
 # whitespace-anchored shape detector below — there is no legitimate reason for
 # $IFS to appear in an rm invocation).
