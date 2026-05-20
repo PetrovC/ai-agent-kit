@@ -117,15 +117,15 @@ Always report:
 
 Write-Utf8NoBom $skillFile $body
 
-# ── Insert placeholder routing rows ────────────────────────────────────────
+# -- Insert placeholder routing rows ---------------------------------------
 function Insert-RoutingRow([string]$file, [string]$row, [string]$anchor) {
     # Normalise CRLF -> LF first: on a Windows checkout (autocrlf) the file is
-    # CRLF on disk but the anchors are written with bare LF — without this the
+    # CRLF on disk but the anchors are written with bare LF - without this the
     # IndexOf never matches and every routing row is silently skipped.
     $content = (Get-Content $file -Raw) -replace "`r`n", "`n"
     $idx = $content.IndexOf($anchor)
     if ($idx -lt 0) {
-        Write-Host "  [warn] anchor not found in $file — add the row manually" -ForegroundColor Yellow
+        Write-Host "  [warn] anchor not found in $file -- add the row manually" -ForegroundColor Yellow
         return
     }
     $newContent = $content.Substring(0, $idx) + "`n" + $row + $content.Substring($idx)
@@ -139,7 +139,7 @@ Insert-RoutingRow (Join-Path $KitRoot "tooling\claude\CLAUDE.md") "| TODO: descr
 Insert-RoutingRow (Join-Path $KitRoot "tooling\codex\AGENTS.md")  "| TODO: describe when to use $Name | ``$`$Name`` |"    $anchorAgents
 Insert-RoutingRow (Join-Path $KitRoot "tooling\gemini\GEMINI.md") "| TODO: describe when to use $Name | ``.gemini/skills/$Name/SKILL.md`` |" $anchorClaudeGemini
 
-# ── Done ───────────────────────────────────────────────────────────────────
+# -- Done ------------------------------------------------------------------
 Write-Host "+--------------------------------------+" -ForegroundColor Green
 Write-Host "|        new-skill scaffolded          |" -ForegroundColor Green
 Write-Host "+--------------------------------------+" -ForegroundColor Green
