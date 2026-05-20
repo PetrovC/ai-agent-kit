@@ -344,6 +344,53 @@ jobs:
           run_matrix tooling/codex/hooks/pre-bash-guard.sh
           [[ "$fail" -eq 0 ]] || exit 1
 
+      - name: Non-guard hooks must exit 0 on the inputs they actually receive
+        shell: bash
+        run: |
+          # The pre-bash-guard matrix covers the guard. The three other hooks
+          # (format-on-save, notify-done, session-summary) previously had zero
+          # behavioural coverage — a logic regression (mangled input, error on
+          # empty stdin, missing-file crash) would only fail in the user's repo.
+          # This step pins minimal invariants: each hook must stay rc=0 on the
+          # realistic inputs it sees, even with no formatters / no display /
+          # no git state available.
+          fail=0
+          expect_rc0() { # <label> <hook> <stdin>
+            local got=0
+            printf '%s' "$3" | bash "$2" >/dev/null 2>&1 || got=$?
+            if [[ "$got" -ne 0 ]]; then echo "FAIL ($got): $1"; fail=1
+            else echo "ok: $1"; fi
+          }
+
+          # format-on-save (Claude) — JSON parser + early exits.
+          FO=tooling/claude/hooks/format-on-save.sh
+          expect_rc0 "format/valid-json/no-formatter" "$FO" '{"tool_input":{"file_path":"/nonexistent/x.ts"}}'
+          expect_rc0 "format/empty-stdin"             "$FO" ''
+          expect_rc0 "format/malformed-json"          "$FO" '{not json'
+          expect_rc0 "format/missing-file-key"        "$FO" '{"tool_input":{}}'
+
+          # format-on-save (Codex) — enumerates git-modified files; in a clean
+          # repo this is empty and must still exit 0.
+          expect_rc0 "format-codex/clean-repo"        tooling/codex/hooks/format-on-save.sh ''
+
+          # notify-done (both) — best-effort; on ubuntu CI there is no display
+          # backend, so every command -v probe fails and the script exits 0.
+          # If notify-send is installed on the runner, the `|| true` added in
+          # this pass keeps the script rc=0 even when delivery fails.
+          expect_rc0 "notify-claude"                  tooling/claude/hooks/notify-done.sh ''
+          expect_rc0 "notify-codex"                   tooling/codex/hooks/notify-done.sh ''
+
+          # session-summary (Claude) — anchor on CLAUDE_PROJECT_DIR so the
+          # log lands in a temp dir; no git state available, the script must
+          # still rc=0 with its "(not a git repo)" fallback.
+          T=$(mktemp -d)
+          ( CLAUDE_PROJECT_DIR="$T" bash tooling/claude/hooks/session-summary.sh >/dev/null 2>&1 ) || { echo "FAIL: session-summary rc!=0"; fail=1; exit 1; }
+          ls "$T/.claude/session-log/"pre-compact-*.md >/dev/null 2>&1 \
+            && echo "ok: session-summary/wrote-snapshot" \
+            || { echo "FAIL: session-summary did not write a snapshot file"; fail=1; }
+
+          [[ "$fail" -eq 0 ]] || exit 1
+
   lint-yaml:
     name: YAML syntax check
     runs-on: ubuntu-latest

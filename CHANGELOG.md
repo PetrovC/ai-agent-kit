@@ -4,6 +4,51 @@
 
 ---
 
+## [1.19.9] - 2026-05-20
+
+### Fixed — non-guard hooks: hardening + first behavioural CI coverage
+
+Three improvements to the hooks the previous audit flagged as
+unguarded: `notify-done.sh` (Claude + Codex), `session-summary.sh`,
+plus the CI coverage gap for *every* hook that wasn't `pre-bash-guard`.
+
+- **`notify-done.sh` (both): kill the cross-language interpolation
+  footgun.** The macOS (`osascript`) and Windows (`powershell.exe`)
+  branches built script source in another language and interpolated
+  `$MSG` into the string body. MSG is hardcoded today, but the moment
+  anyone wires turn/file data into it, an attacker controlling that
+  data could break out of the quoting and run arbitrary AppleScript /
+  PowerShell under the user's account. Restructured so `MSG`/`TITLE`
+  are passed **only via the process environment** — never inlined into
+  a command-string source — and each backend reads them from there
+  (`system attribute "MSG"` for AppleScript, `$env:MSG` for
+  PowerShell). Stays safe even if MSG becomes dynamic. Added `|| true`
+  on each branch so a failed delivery never makes the hook rc≠0 (CI on
+  headless ubuntu now exercises this).
+- **`session-summary.sh`: anchor on `$CLAUDE_PROJECT_DIR`.** Was
+  writing `.claude/session-log/` relative to the caller's cwd — not
+  guaranteed to be the project root and could drop the log under an
+  arbitrary directory. Now `cd`s to `$CLAUDE_PROJECT_DIR` (Claude Code
+  sets it), or `$PWD` as fallback, and bails silently if the directory
+  doesn't exist.
+- **CI: first behavioural coverage for the non-guard hooks.** The
+  `pre-bash-guard` matrix was the only behavioural test in the kit
+  (the prior audit explicitly flagged this gap). A new step in
+  `lint-rules` pins minimal invariants — every non-guard hook must
+  stay rc=0 on the realistic inputs it receives, even with no
+  formatters / no display / no git state:
+  - `format-on-save` (Claude): valid JSON with missing file, empty
+    stdin, malformed JSON, missing `file_path` key
+  - `format-on-save` (Codex): clean repo (no modified files)
+  - `notify-done` (both): headless invocation
+  - `session-summary` (Claude): no git state, asserts the snapshot
+    file was actually written under `$CLAUDE_PROJECT_DIR/.claude/
+    session-log/`
+
+Locally verified 8/8 PASS on this matrix.
+
+---
+
 ## [1.19.8] - 2026-05-20
 
 ### Fixed — format-on-save robustness (audit MEDIUM-3, MEDIUM-4, LOW-3)
