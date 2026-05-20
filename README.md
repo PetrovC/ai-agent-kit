@@ -272,7 +272,9 @@ model (stdin JSON, exit 2 = block).
 Codex has no `PreCompact` event, so `session-summary` is Claude-only. The guard
 parses hook input via a `jq → python3 → sed` fallback chain: a missing or broken
 interpreter (e.g. the Windows python3 stub) yields empty output and falls through
-to the next parser, so it never fails open.
+to the next parser. If all three return empty (unknown schema, missing
+`tool_input.command` field, malformed JSON), the guard refuses the call with
+exit 2 instead of authorizing what it could not inspect.
 
 All hooks are installed automatically by `install.sh` / `install.ps1`.
 
