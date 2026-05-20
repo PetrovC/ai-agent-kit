@@ -29,6 +29,30 @@ All six use `on: pull_request` (types `opened`, `synchronize`,
 
 ---
 
+## [1.19.19] - 2026-05-20
+
+### Security - tighten pre-bash-guard destructive-command approvals (closes #63, closes #78)
+
+Two `pre-bash-guard.sh` checks were still too broad in opposite ways:
+
+- `rm -rf /tmp/cache /` and similar multi-operand commands were allowed
+  because the presence of a temp path short-circuited the rest of the rm
+  checks. The guard now scans rm operands one by one: `/tmp/...` and
+  `/var/tmp/...` remain allowed only when that specific operand has no
+  parent traversal, while any sibling root/home/parent/cwd/glob/variable
+  operand still blocks.
+- `APPROVED_DESTRUCTIVE` was accepted as a magic token anywhere in the
+  shell command. The guard now requires `-- APPROVED_DESTRUCTIVE` as a SQL
+  line comment after the `DROP TABLE` / `DROP DATABASE` / `DROP SCHEMA`
+  statement.
+
+Regression coverage in `.github/workflows/pr-hooks.yml` now covers the
+approved SQL comment path, echo/env/string false approvals, temp-path
+multi-operand rm commands, `/tmp/..` traversal, and multi-local-directory
+cleanup.
+
+---
+
 ## [1.19.18] - 2026-05-20
 
 ### Fixed — pre-bash-guard failed open when the parser chain returned empty (closes #53)

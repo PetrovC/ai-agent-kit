@@ -130,6 +130,95 @@ if echo "$CMD" | grep -qE '(^|[^a-zA-Z0-9])rm[^a-zA-Z0-9]{0,3}\$\{?IFS'; then
     block "BLOCKED: rm using \$IFS word-splitting is an obfuscation pattern. Use an explicit, plainly-written command."
 fi
 
+# Inspect rm -rf operands one by one before the legacy denylist below. A safe
+# /tmp operand must not allow a second dangerous operand on the same command.
+is_rm_separator() {
+    case "$1" in
+        '&&'|'\u0026\u0026'|'||'|';'|'|') return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+strip_outer_quotes() {
+    local value="$1"
+    value="${value%\"}"
+    value="${value#\"}"
+    value="${value%\'}"
+    value="${value#\'}"
+    printf '%s' "$value"
+}
+
+is_safe_rm_operand() {
+    local operand
+    operand="$(strip_outer_quotes "$1")"
+
+    case "$operand" in
+        ''|'.'|'./'|'*'|./\*|'~'|'~/'*|/*/../*|*/../*|../*|*/..|..)
+            return 1
+            ;;
+        *'$'*|*'`'*)
+            return 1
+            ;;
+        /tmp/*|/var/tmp/*)
+            [[ "$operand" != *'..'* ]]
+            return
+            ;;
+        /*)
+            return 1
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
+check_rm_rf_operands() {
+    local -a words
+    read -r -a words <<< "$CMD"
+
+    local i token saw_recursive saw_force parsing_operands
+    for ((i = 0; i < ${#words[@]}; i++)); do
+        [[ "${words[$i]}" == "rm" ]] || continue
+
+        saw_recursive=0
+        saw_force=0
+        parsing_operands=0
+
+        for ((i = i + 1; i < ${#words[@]}; i++)); do
+            token="${words[$i]}"
+            if is_rm_separator "$token"; then
+                break
+            fi
+
+            if [[ "$parsing_operands" -eq 0 && "$token" == "--" ]]; then
+                parsing_operands=1
+                continue
+            fi
+
+            if [[ "$parsing_operands" -eq 0 && "$token" == --* ]]; then
+                [[ "$token" == "--recursive" ]] && saw_recursive=1
+                [[ "$token" == "--force" ]] && saw_force=1
+                continue
+            fi
+
+            if [[ "$parsing_operands" -eq 0 && "$token" == -* ]]; then
+                [[ "$token" == *[rR]* ]] && saw_recursive=1
+                [[ "$token" == *f* ]] && saw_force=1
+                continue
+            fi
+
+            parsing_operands=1
+            if [[ "$saw_recursive" -eq 1 && "$saw_force" -eq 1 ]] && ! is_safe_rm_operand "$token"; then
+                block "BLOCKED: recursive force-delete (rm -rf) includes an unsafe target. Absolute paths outside /tmp or /var/tmp, home, parent traversal, cwd, bare globs, variables, and command substitutions require explicit approval."
+            fi
+        done
+    done
+}
+
+if echo "$CMD" | grep -qiE '(^|[^a-zA-Z0-9])rm[[:space:]]'; then
+    check_rm_rf_operands
+fi
+
 # Block recursive+force delete on dangerous targets.
 # POSIX ERE has no negative lookahead. Detect the rm recursive+force "shape"
 # case-insensitively (-rf, -Rf, -fr, split -r -f, and long --recursive/--force
@@ -151,10 +240,12 @@ if echo "$CMD" | grep -qiE 'rm[[:space:]]+-([a-z]*r[a-z]*f|[a-z]*f[a-z]*r)|rm[[:
     fi
 fi
 
-# Block DROP TABLE / DROP DATABASE without explicit approval marker
+# Block DROP TABLE / DROP DATABASE without an explicit SQL approval comment.
+# The marker must be a SQL line comment after the DROP statement, not just a
+# magic token elsewhere in the shell command.
 if echo "$CMD" | grep -iqE 'DROP[[:space:]]+(TABLE|DATABASE|SCHEMA)'; then
-    if ! echo "$CMD" | grep -q 'APPROVED_DESTRUCTIVE'; then
-        block "BLOCKED: SQL DROP requires explicit approval. Add comment '-- APPROVED_DESTRUCTIVE' to proceed."
+    if ! echo "$CMD" | grep -iqE 'DROP[[:space:]]+(TABLE|DATABASE|SCHEMA).*([[:space:];]|\\n)--[[:space:]]*APPROVED_DESTRUCTIVE([^[:alnum:]_]|$)'; then
+        block "BLOCKED: SQL DROP requires explicit approval. Add SQL comment '-- APPROVED_DESTRUCTIVE' after the DROP statement to proceed."
     fi
 fi
 
