@@ -13,6 +13,14 @@
 #   }
 set -euo pipefail
 
+# Anchor on $CLAUDE_PROJECT_DIR (Claude Code sets it when wiring the hook).
+# Without this anchor the script writes .claude/session-log/ relative to
+# whatever cwd the hook was invoked from — not guaranteed to be the project
+# root and could leak the log under an arbitrary directory.
+ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
+[[ -d "$ROOT" ]] || exit 0
+cd "$ROOT" || exit 0
+
 LOG_DIR=".claude/session-log"
 mkdir -p "$LOG_DIR"
 
