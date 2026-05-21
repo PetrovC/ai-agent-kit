@@ -16,15 +16,50 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.23"
+KIT_VERSION="1.19.24"
 TARGET=""
 TOOLS="codex,claude,gemini"
+
+# Validate that a flag's value argument is present and is not another flag.
+# Without this, `--target` with no further args trips `set -u` on `$2` with a
+# noisy shell error, and `--target --tools codex` silently sets TARGET=--tools.
+# Empty strings are allowed (callers that forbid empty values check downstream).
+require_value() {
+    local opt="$1" value="$2" remaining="$3"
+    if (( remaining < 2 )); then
+        echo "Error: $opt requires a value" >&2
+        exit 1
+    fi
+    if [[ "$value" == --* ]]; then
+        echo "Error: $opt requires a value, got '$value'" >&2
+        exit 1
+    fi
+}
+
+# Normalize a comma-separated --tools list: trim each entry, lowercase, drop
+# empties. Mirrors install.ps1's `$Tools -split "," | ForEach-Object {
+# $_.Trim().ToLower() }` so --tools "Codex, Claude" behaves identically on
+# Bash and PowerShell. Populates the global TOOL_LIST array.
+normalize_tools() {
+    local raw="$1" item
+    local -a parts
+    TOOL_LIST=()
+    IFS=',' read -ra parts <<< "$raw"
+    for item in "${parts[@]}"; do
+        item="$(printf '%s' "$item" | sed -e 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')"
+        [[ -n "$item" ]] && TOOL_LIST+=("$item")
+    done
+    # Loops on a `[[ ]] &&` test inherit the final test's exit status. When
+    # every entry is empty/whitespace, the last iteration ends on a false
+    # test and `set -e` silently aborts the caller — return 0 to neutralize.
+    return 0
+}
 
 # ── Parse args ─────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --target) TARGET="$2"; shift 2 ;;
-        --tools)  TOOLS="$2";  shift 2 ;;
+        --target) require_value "$1" "${2-}" "$#"; TARGET="$2"; shift 2 ;;
+        --tools)  require_value "$1" "${2-}" "$#"; TOOLS="$2";  shift 2 ;;
         *) echo "Unknown argument: $1"; exit 1 ;;
     esac
 done
@@ -39,7 +74,16 @@ if [[ ! -d "$TARGET" ]]; then
     exit 1
 fi
 
-IFS=',' read -ra TOOL_LIST <<< "$TOOLS"
+normalize_tools "$TOOLS"
+# Rebuild TOOLS as the canonical form so .kit-version, the header, and any
+# downstream consumer see the same lowercase comma-joined string regardless of
+# how the user typed --tools.
+TOOLS="$(IFS=,; echo "${TOOL_LIST[*]}")"
+
+if [[ ${#TOOL_LIST[@]} -eq 0 ]]; then
+    echo "Error: --tools list is empty"
+    exit 1
+fi
 
 VALID_TOOLS=("codex" "claude" "gemini")
 for t in "${TOOL_LIST[@]}"; do

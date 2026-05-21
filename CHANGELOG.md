@@ -1,5 +1,50 @@
 # Changelog
 
+## [1.19.24] - 2026-05-21
+
+### Fixed — bash arg parsers reject missing values and normalize `--tools` (closes #54, closes #84)
+
+Every Bash lifecycle script reads `$2` directly for value-bearing flags
+under `set -u`. Two related boundary problems:
+
+- `./install.sh --target` (no value) tripped `set -u` with a noisy
+  `unbound variable` shell error instead of a clear usage message, and
+  `./install.sh --target --tools codex` silently bound `TARGET=--tools`
+  before failing later with a confusing downstream error (closes #84).
+- `--tools "Codex, Claude"` worked on `install.ps1` (which trims and
+  lowercases each entry) but was rejected by the Bash scripts as
+  `unknown tool 'Claude'`. The two entry points required different
+  grammars for the same flag (closes #54).
+
+Both are addressed in one place — the arg-parsing block at the top of
+each Bash script (`install.sh`, `update.sh`, `uninstall.sh`,
+`validate.sh`, `new-skill.sh`):
+
+- A shared `require_value` guard validates that `$2` is present and is
+  not another `--flag` before the assignment. Missing values now print
+  `Error: --<opt> requires a value` (or `requires a value, got '--X'`
+  when a flag was passed instead) and exit 1. Empty strings are still
+  accepted on flags that intentionally allow them (`new-skill.sh
+  --description ""` still falls back to the default text).
+- A shared `normalize_tools` helper splits `--tools` on commas, trims
+  whitespace, lowercases each token, and drops empties. The resulting
+  `TOOL_LIST` array drives all downstream checks, and the canonical
+  comma-joined form is written back to `$TOOLS` so the post-install
+  header, the `.kit-version` stamp, and any future re-read see the same
+  string regardless of how the user typed it.
+- An empty `--tools` value (`--tools ""` or `--tools " , , "`) is now
+  rejected with `Error: --tools list is empty` instead of being passed
+  through as zero installable tools.
+
+Regression coverage in `.github/workflows/pr-scripts-shell.yml` exercises
+every scripts × failure-mode combination (missing value, accidental
+flag-as-value, empty list) and verifies mixed-case grammar (`Codex,
+Claude, GEMINI`) is accepted by `install.sh`, `update.sh`, and
+`uninstall.sh`, and that the `.kit-version` stamp is written in
+canonical lowercase form.
+
+---
+
 ## [1.19.23] - 2026-05-21
 
 ### Fixed — tighten `.gitignore` hints (closes #56, closes #60, closes #64)
