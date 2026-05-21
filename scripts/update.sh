@@ -14,16 +14,46 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.23"
+KIT_VERSION="1.19.24"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
 
+# Validate that a flag's value argument is present and is not another flag.
+# Without this, `--target` with no further args trips `set -u` on `$2` and
+# `--target --tools codex` silently sets TARGET=--tools.
+require_value() {
+    local opt="$1" value="$2" remaining="$3"
+    if (( remaining < 2 )); then
+        echo "Error: $opt requires a value" >&2
+        exit 1
+    fi
+    if [[ "$value" == --* ]]; then
+        echo "Error: $opt requires a value, got '$value'" >&2
+        exit 1
+    fi
+}
+
+# Normalize a comma-separated --tools list: trim, lowercase, drop empties.
+# Mirrors update.ps1's PowerShell split-trim-lowercase pipeline so the two
+# entry points accept the same grammar.
+normalize_tools() {
+    local raw="$1" item
+    local -a parts
+    TOOL_LIST=()
+    IFS=',' read -ra parts <<< "$raw"
+    for item in "${parts[@]}"; do
+        item="$(printf '%s' "$item" | sed -e 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')"
+        [[ -n "$item" ]] && TOOL_LIST+=("$item")
+    done
+    return 0
+}
+
 # ── Parse args ─────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --target)  TARGET="$2"; shift 2 ;;
-        --tools)   TOOLS="$2";  shift 2 ;;
+        --target)  require_value "$1" "${2-}" "$#"; TARGET="$2"; shift 2 ;;
+        --tools)   require_value "$1" "${2-}" "$#"; TOOLS="$2";  shift 2 ;;
         --dry-run) DRY_RUN=true; shift ;;
         *) echo "Unknown argument: $1"; exit 1 ;;
     esac
@@ -70,7 +100,14 @@ if [[ -z "$TOOLS" ]]; then
     TOOLS="$INSTALLED_TOOLS"
 fi
 
-IFS=',' read -ra TOOL_LIST <<< "$TOOLS"
+normalize_tools "$TOOLS"
+# Canonical form for .kit-version + display + manifest GC scope checks.
+TOOLS="$(IFS=,; echo "${TOOL_LIST[*]}")"
+
+if [[ ${#TOOL_LIST[@]} -eq 0 ]]; then
+    echo "Error: --tools list is empty"
+    exit 1
+fi
 
 VALID_TOOLS=("codex" "claude" "gemini")
 for t in "${TOOL_LIST[@]}"; do

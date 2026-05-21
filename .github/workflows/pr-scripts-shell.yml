@@ -161,6 +161,79 @@ jobs:
           cd - >/dev/null
           echo "OK: install.sh hints + recommended snippet honour env.example + session-log"
 
+      - name: Bash arg parsers reject missing values and normalize --tools
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+
+          # Helper: assert a script invocation fails with the expected message.
+          # `--` after `grep -qF` stops option parsing so a pattern that starts
+          # with `--` (like "--target requires a value") is treated as data,
+          # not a flag.
+          assert_fail() {
+            local label="$1" expect="$2"; shift 2
+            local out rc
+            set +e
+            out="$( "$@" 2>&1 )"
+            rc=$?
+            set -e
+            if [[ "$rc" -eq 0 ]]; then
+              echo "FAIL[$label]: command unexpectedly succeeded"; echo "$out"; exit 1
+            fi
+            if ! echo "$out" | grep -qF -- "$expect"; then
+              echo "FAIL[$label]: expected '$expect' in stderr"; echo "$out"; exit 1
+            fi
+          }
+
+          # Closes #84: every value-bearing flag must reject a missing value
+          # with a clear "requires a value" message instead of a `set -u` crash.
+          assert_fail "install --target missing"  "--target requires a value" \
+              bash scripts/install.sh --target
+          assert_fail "install --target as flag"  "--target requires a value, got " \
+              bash scripts/install.sh --target --tools codex
+          assert_fail "install --tools missing"   "--tools requires a value" \
+              bash scripts/install.sh --target "$T" --tools
+          assert_fail "update --target missing"   "--target requires a value" \
+              bash scripts/update.sh --target
+          assert_fail "uninstall --tools as flag" "--tools requires a value, got " \
+              bash scripts/uninstall.sh --target "$T" --tools --dry-run
+          assert_fail "validate --target missing" "--target requires a value" \
+              bash scripts/validate.sh --target
+          assert_fail "new-skill --name missing"  "--name requires a value" \
+              bash scripts/new-skill.sh --name
+          assert_fail "new-skill --desc as flag"  "--description requires a value, got " \
+              bash scripts/new-skill.sh --description --name foo
+
+          # Closes #84 (empty list): `--tools ""` and `--tools ", , "` must
+          # fail with a precise message, not let an empty TOOL_LIST through.
+          assert_fail "install empty --tools"        "--tools list is empty" \
+              bash scripts/install.sh --target "$T" --tools ""
+          assert_fail "install whitespace --tools"   "--tools list is empty" \
+              bash scripts/install.sh --target "$T" --tools " , , "
+
+          # Closes #54: --tools must accept the same grammar on Bash as on
+          # PowerShell — whitespace tolerated, case-insensitive.
+          T2="$(mktemp -d)"
+          out="$(bash scripts/install.sh --target "$T2" --tools "Codex, Claude, GEMINI")"
+          echo "$out" | grep -qE "Tools[[:space:]]+:[[:space:]]+codex,claude,gemini" \
+            || { echo "FAIL: mixed-case --tools was not normalized"; echo "$out" | head -10; exit 1; }
+          grep -qF "tools: codex,claude,gemini" "$T2/.kit-version" \
+            || { echo "FAIL: .kit-version stamp not normalized"; cat "$T2/.kit-version"; exit 1; }
+
+          # Run on a normalized list — update/uninstall must accept the same
+          # mixed grammar without crashing on whitespace or case.
+          bash scripts/update.sh    --target "$T2" --tools "  codex , CLAUDE "   --dry-run >/dev/null \
+            || { echo "FAIL: update rejected normalized-grammar --tools"; exit 1; }
+          bash scripts/uninstall.sh --target "$T2" --tools "Gemini"              --dry-run >/dev/null \
+            || { echo "FAIL: uninstall rejected case-only --tools"; exit 1; }
+
+          # Empty --description is still valid (new-skill.sh falls back to a
+          # default text); only missing-arg and accidental-flag-as-value are
+          # rejected. The "missing" path is covered by the assert_fail above.
+
+          rm -rf "$T" "$T2"
+          echo "OK: arg parsers reject missing values and normalize --tools cross-shell"
+
   lint-shell:
     name: Shell scripts + hooks must be valid
     runs-on: ubuntu-latest

@@ -17,9 +17,22 @@ set -euo pipefail
 
 TARGET=""
 
+# Validate that a flag's value argument is present and is not another flag.
+require_value() {
+    local opt="$1" value="$2" remaining="$3"
+    if (( remaining < 2 )); then
+        echo "Error: $opt requires a value" >&2
+        exit 1
+    fi
+    if [[ "$value" == --* ]]; then
+        echo "Error: $opt requires a value, got '$value'" >&2
+        exit 1
+    fi
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --target) TARGET="$2"; shift 2 ;;
+        --target) require_value "$1" "${2-}" "$#"; TARGET="$2"; shift 2 ;;
         *) echo "Unknown argument: $1"; exit 1 ;;
     esac
 done

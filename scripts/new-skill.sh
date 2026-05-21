@@ -13,10 +13,25 @@ KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NAME=""
 DESCRIPTION=""
 
+# Validate that a flag's value argument is present and is not another flag.
+# `--description ""` is still accepted (empty falls back to the default text
+# below); only missing-arg and accidental flag-as-value cases are rejected.
+require_value() {
+    local opt="$1" value="$2" remaining="$3"
+    if (( remaining < 2 )); then
+        echo "Error: $opt requires a value" >&2
+        exit 1
+    fi
+    if [[ "$value" == --* ]]; then
+        echo "Error: $opt requires a value, got '$value'" >&2
+        exit 1
+    fi
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --name)        NAME="$2"; shift 2 ;;
-        --description) DESCRIPTION="$2"; shift 2 ;;
+        --name)        require_value "$1" "${2-}" "$#"; NAME="$2"; shift 2 ;;
+        --description) require_value "$1" "${2-}" "$#"; DESCRIPTION="$2"; shift 2 ;;
         *) echo "Unknown argument: $1"; exit 1 ;;
     esac
 done
