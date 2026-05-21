@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.19.25] - 2026-05-21
+
+### Fixed — `validate` requires every shipped docs/ai template and flags non-comment placeholders (closes #52, closes #95)
+
+`scripts/validate.sh` and `scripts/validate.ps1` previously hard-coded
+four required files (`PROJECT.md`, `ARCHITECTURE.md`, `COMMANDS.md`,
+`TESTING.md`) and only flagged `STOP` notices plus HTML-comment
+placeholders. Three shipped templates (`DECISIONS.md`, `GLOSSARY.md`,
+`ROADMAP.md`) were only checked when already present, and a user could
+remove the STOP notices and HTML comments while leaving visible
+non-comment placeholders — table rows like `| | |`, `TBD` cells,
+list items that are just `...`, and `Name: ...` / `### Flow N: ...`
+patterns — and still get `All checks passed.`
+
+Both validators now agree with the shipped template set and with the
+shapes those templates actually use:
+
+- The required list grew from 4 to all 7 templates shipped by
+  `project-template/`: `PROJECT.md`, `ARCHITECTURE.md`, `COMMANDS.md`,
+  `DECISIONS.md`, `GLOSSARY.md`, `ROADMAP.md`, `TESTING.md`. Removing
+  any of them from `docs/ai/` now fails validation (closes #52).
+- A new "non-comment placeholders" check scans each template,
+  skipping fenced code blocks and HTML comments, for four high-precision
+  patterns:
+  - empty table rows (`| | |`, `| | | |`, …)
+  - `TBD` cells (`| TBD | …`)
+  - pure-dots list items (`- ...`, `* ...`, `1. ...`, `- [ ] ...`,
+    `- [x] ...`)
+  - placeholder key/value lines (`### Flow 1: ...`, `**Name**: ...`,
+    `Goal: ...`)
+  These shapes ship in the unfilled templates and never appear in
+  `examples/filled-project/docs/ai/`, so they are reliable "still
+  unfilled" signals (closes #95).
+
+Regression coverage in `.github/workflows/pr-scripts-shell.yml` exercises
+the `validate-example` job against three scenarios: the filled example
+passes; a fresh install lists every required template, reports the
+non-comment placeholders, and exits non-zero; and removing any of the
+newly-required templates (`DECISIONS.md`, `GLOSSARY.md`, `ROADMAP.md`)
+fails validation with a `MISSING` warning.
+
+---
+
 ## [1.19.24] - 2026-05-21
 
 ### Fixed — bash arg parsers reject missing values and normalize `--tools` (closes #54, closes #84)

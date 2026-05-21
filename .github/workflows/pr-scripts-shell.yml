@@ -21,6 +21,59 @@ jobs:
       - name: Validate examples/filled-project
         run: bash scripts/validate.sh --target examples/filled-project
 
+      - name: validate.sh requires every project-template/*.md and flags non-comment placeholders
+        run: |
+          set -euo pipefail
+
+          # Fresh install must fail validation — every project-template/*.md
+          # is installed with STOP notices, HTML-comment placeholders, AND
+          # non-comment placeholders (closes #52: every shipped template must
+          # be required; closes #95: non-comment placeholders must be detected).
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools claude >/dev/null
+          set +e
+          out="$(bash scripts/validate.sh --target "$T" 2>&1)"
+          rc=$?
+          set -e
+          if [[ "$rc" -eq 0 ]]; then
+            echo "FAIL: validate passed on a fresh, unfilled install"
+            echo "$out"; exit 1
+          fi
+          # All seven shipped templates must appear in the required check.
+          for f in PROJECT.md ARCHITECTURE.md COMMANDS.md DECISIONS.md GLOSSARY.md ROADMAP.md TESTING.md; do
+            echo "$out" | grep -qF "$f present" \
+              || { echo "FAIL: $f not listed as required"; echo "$out"; exit 1; }
+          done
+          # Non-comment placeholders must be reported on files known to ship them.
+          echo "$out" | grep -q "Templates still containing non-comment placeholders" \
+            || { echo "FAIL: non-comment placeholders section missing"; exit 1; }
+          for f in PROJECT.md ARCHITECTURE.md ROADMAP.md TESTING.md; do
+            echo "$out" | grep -qE "$f: [1-9][0-9]* non-comment placeholder" \
+              || { echo "FAIL: $f non-comment placeholders not reported"; echo "$out"; exit 1; }
+          done
+
+          # Closes #52: any required file removed must produce a MISSING warning
+          # and a non-zero exit — DECISIONS.md, GLOSSARY.md, ROADMAP.md were
+          # previously only checked when already present.
+          for missing in DECISIONS.md GLOSSARY.md ROADMAP.md; do
+            T2="$(mktemp -d)"
+            bash scripts/install.sh --target "$T2" --tools claude >/dev/null
+            rm "$T2/docs/ai/$missing"
+            set +e
+            out="$(bash scripts/validate.sh --target "$T2" 2>&1)"
+            rc=$?
+            set -e
+            if [[ "$rc" -eq 0 ]]; then
+              echo "FAIL: validate passed with $missing deleted"; echo "$out"; exit 1
+            fi
+            echo "$out" | grep -qF "$missing MISSING" \
+              || { echo "FAIL: deleted $missing not flagged"; echo "$out"; exit 1; }
+            rm -rf "$T2"
+          done
+
+          rm -rf "$T"
+          echo "OK: validate.sh requires all 7 templates and detects non-comment placeholders"
+
   smoke-install:
     name: Smoke install (bash)
     runs-on: ubuntu-latest
