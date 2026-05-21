@@ -87,6 +87,80 @@ jobs:
       - name: Dry-run uninstall
         run: bash scripts/uninstall.sh --target /tmp/smoke-target --dry-run
 
+      - name: install.sh .gitignore hints cover env.example whitelist + session-log
+        run: |
+          set -euo pipefail
+
+          # Case 1: .gitignore is missing. Hints must still be printed as a
+          # bootstrap recipe, not silently skipped (closes #64).
+          T="$(mktemp -d)"
+          out="$(bash scripts/install.sh --target "$T" --tools claude)"
+          echo "$out" | grep -q ".gitignore not found - create it with at least:" \
+            || { echo "FAIL: missing-.gitignore banner not emitted"; echo "$out" | tail -25; exit 1; }
+          for need in \
+              ".claude/settings.local.json" \
+              ".claude/session-log/" \
+              "CLAUDE.local.md" \
+              ".env" \
+              ".env.*" \
+              "!.env.example" \
+              "!.env.*.example"; do
+            echo "$out" | grep -qF -- "$need" \
+              || { echo "FAIL: missing-.gitignore hint did not include '$need'"; echo "$out" | tail -25; exit 1; }
+          done
+
+          # Case 2: existing .gitignore that has the old short list. The new
+          # entries (session-log, env.example whitelist) must be suggested.
+          T2="$(mktemp -d)"
+          cat > "$T2/.gitignore" <<'EOF'
+          .claude/settings.local.json
+          CLAUDE.local.md
+          .env
+          .env.*
+          EOF
+          out2="$(bash scripts/install.sh --target "$T2" --tools claude)"
+          for need in ".claude/session-log/" "!.env.example" "!.env.*.example"; do
+            echo "$out2" | grep -qF -- "$need" \
+              || { echo "FAIL: existing-.gitignore hint missed '$need'"; echo "$out2" | tail -25; exit 1; }
+          done
+
+          # Case 3: a project that already ships the full recommended set must
+          # produce no .gitignore hint at all — the suggestion is silent when
+          # nothing is missing. Guards against false noise on well-configured repos.
+          T3="$(mktemp -d)"
+          cat > "$T3/.gitignore" <<'EOF'
+          .claude/settings.local.json
+          .claude/session-log/
+          CLAUDE.local.md
+          .env
+          .env.*
+          !.env.example
+          !.env.*.example
+          EOF
+          out3="$(bash scripts/install.sh --target "$T3" --tools claude)"
+          echo "$out3" | grep -q ".gitignore - add these entries" \
+            && { echo "FAIL: complete .gitignore should not trigger a hint"; echo "$out3" | tail -25; exit 1; }
+
+          # Case 4: the recommended snippet must actually keep .env.example
+          # versioned under real git semantics — verifies the order of
+          # `.env.*` followed by `!.env.example`.
+          T4="$(mktemp -d)"
+          cd "$T4"
+          git init -q
+          cat > .gitignore <<'EOF'
+          .env
+          .env.*
+          !.env.example
+          !.env.*.example
+          EOF
+          touch .env .env.production .env.example .env.production.example
+          if ! git check-ignore .env >/dev/null;       then echo "FAIL: .env not ignored";                   exit 1; fi
+          if ! git check-ignore .env.production >/dev/null; then echo "FAIL: .env.production not ignored"; exit 1; fi
+          if   git check-ignore .env.example >/dev/null;    then echo "FAIL: .env.example wrongly ignored"; exit 1; fi
+          if   git check-ignore .env.production.example >/dev/null; then echo "FAIL: .env.production.example wrongly ignored"; exit 1; fi
+          cd - >/dev/null
+          echo "OK: install.sh hints + recommended snippet honour env.example + session-log"
+
   lint-shell:
     name: Shell scripts + hooks must be valid
     runs-on: ubuntu-latest

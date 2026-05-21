@@ -105,6 +105,8 @@ Always ignore:
 ```
 .env
 .env.*
+!.env.example
+!.env.*.example
 *.local.json
 *.local.toml
 bin/
@@ -115,6 +117,8 @@ dist/
 .idea/
 *.user
 ```
+
+Order matters: the `!.env.example` / `!.env.*.example` whitelist entries must come *after* `.env.*` to re-include example files (with fake values) that the deny pattern would otherwise silently ignore.
 
 ---
 
