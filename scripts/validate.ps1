@@ -4,9 +4,11 @@
 
 .DESCRIPTION
     Detects:
+      - Required files missing (every project-template/*.md must ship to docs/ai/).
       - "STOP" notices still present in templates.
       - HTML-comment placeholders still present (<!-- ... -->).
-      - Required files missing.
+      - Non-comment placeholders still present (empty table rows, "TBD" cells,
+        pure-dots list items, "<key>: ..." placeholder values).
 
     Exit codes:
       0 - everything OK
@@ -33,7 +35,7 @@ if (-not (Test-Path $DocsAi)) {
     exit 1
 }
 
-$Required = @("PROJECT.md", "ARCHITECTURE.md", "COMMANDS.md", "TESTING.md")
+$Required = @("PROJECT.md", "ARCHITECTURE.md", "COMMANDS.md", "DECISIONS.md", "GLOSSARY.md", "ROADMAP.md", "TESTING.md")
 $Issues = 0
 
 function Warn([string]$msg) {
@@ -86,6 +88,47 @@ Get-ChildItem -Path $DocsAi -Filter "*.md" -File | ForEach-Object {
     }
 }
 if (-not $placeholdersFound) { Ok "no placeholder comments remaining" }
+
+# Non-comment placeholders (template patterns the previous checks miss).
+# Skips fenced code blocks and HTML comments so legitimate prose / examples
+# don't trip the detector. Patterns flagged:
+#   - empty table rows:        | | |
+#   - "TBD" cells:             | TBD |
+#   - pure-dots list items:    - ...   * ...   1. ...   - [ ] ...   - [x] ...
+#   - placeholder key/values:  ### Flow 1: ...   **Name**: ...   Goal: ...
+Write-Host ""
+Write-Host "> Templates still containing non-comment placeholders"
+$nonCommentFound = $false
+Get-ChildItem -Path $DocsAi -Filter "*.md" -File | ForEach-Object {
+    $file = $_
+    $inCode = $false
+    $inComment = $false
+    $hits = 0
+    foreach ($line in (Get-Content -LiteralPath $file.FullName)) {
+        if ($line -match '^\s*```') { $inCode = -not $inCode; continue }
+        if ($inCode) { continue }
+        if (-not $inComment -and $line -match '<!--' -and $line -notmatch '-->') {
+            $inComment = $true; continue
+        }
+        if ($inComment) {
+            if ($line -match '-->') { $inComment = $false }
+            continue
+        }
+        if ($line -match '<!--.*-->') { continue }
+
+        if ($line -match '^\s*\|(\s*\|)+\s*$' `
+            -or $line -match '\|\s*TBD\s*\|' `
+            -or $line -match '^\s*(-|\*|\d+\.)\s+(\[[\sxX]\]\s+)?\.\.\.\s*$' `
+            -or $line -match ':\s+\.\.\.\s*$') {
+            $hits++
+        }
+    }
+    if ($hits -gt 0) {
+        Warn "$($file.Name): $hits non-comment placeholder(s) remaining"
+        $nonCommentFound = $true
+    }
+}
+if (-not $nonCommentFound) { Ok "no non-comment placeholders remaining" }
 
 Write-Host ""
 if ($Issues -eq 0) {

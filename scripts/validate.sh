@@ -2,9 +2,11 @@
 # validate.sh — Check that docs/ai/* templates have been filled.
 #
 # Detects:
+#   - Required files missing (every project-template/*.md must ship to docs/ai/).
 #   - "STOP" notices still present in templates.
 #   - HTML comment placeholders still present (<!-- ... -->).
-#   - Required files missing.
+#   - Non-comment placeholders still present (empty table rows, "TBD" cells,
+#     pure-dots list items, "<key>: ..." placeholder values).
 #
 # Exit codes:
 #   0 — everything OK
@@ -48,7 +50,7 @@ if [[ ! -d "$DOCS_AI" ]]; then
     exit 1
 fi
 
-REQUIRED=(PROJECT.md ARCHITECTURE.md COMMANDS.md TESTING.md)
+REQUIRED=(PROJECT.md ARCHITECTURE.md COMMANDS.md DECISIONS.md GLOSSARY.md ROADMAP.md TESTING.md)
 
 issues=0
 warn() { echo -e "  \033[33m! $1\033[0m"; issues=$((issues+1)); }
@@ -98,6 +100,53 @@ for f in "$DOCS_AI"/*.md; do
     fi
 done
 $placeholders_found || ok "no placeholder comments remaining"
+
+# Non-comment placeholders (template patterns the previous checks miss).
+# Skips fenced code blocks and HTML comments so legitimate prose / examples
+# don't trip the detector. Patterns flagged:
+#   - empty table rows:        | | |
+#   - "TBD" cells:             | TBD |
+#   - pure-dots list items:    - ...   * ...   1. ...   - [ ] ...   - [x] ...
+#   - placeholder key/values:  ### Flow 1: ...   **Name**: ...   Goal: ...
+echo ""
+echo "> Templates still containing non-comment placeholders"
+non_comment_found=false
+for f in "$DOCS_AI"/*.md; do
+    [[ -f "$f" ]] || continue
+    in_code=0
+    in_comment=0
+    lineno=0
+    file_hits=0
+    while IFS= read -r line; do
+        lineno=$((lineno+1))
+        if [[ "$line" =~ ^[[:space:]]*\`\`\` ]]; then
+            in_code=$((1-in_code))
+            continue
+        fi
+        [[ "$in_code" -eq 1 ]] && continue
+        if [[ "$in_comment" -eq 0 && "$line" =~ \<\!-- && ! "$line" =~ --\> ]]; then
+            in_comment=1
+            continue
+        fi
+        if [[ "$in_comment" -eq 1 ]]; then
+            [[ "$line" =~ --\> ]] && in_comment=0
+            continue
+        fi
+        [[ "$line" =~ \<\!--.*--\> ]] && continue
+
+        if [[ "$line" =~ ^[[:space:]]*\|([[:space:]]*\|)+[[:space:]]*$ ]] \
+        || [[ "$line" =~ \|[[:space:]]*TBD[[:space:]]*\| ]] \
+        || [[ "$line" =~ ^[[:space:]]*(-|\*|[0-9]+\.)[[:space:]]+(\[[[:space:]xX]\][[:space:]]+)?\.\.\.[[:space:]]*$ ]] \
+        || [[ "$line" =~ :[[:space:]]+\.\.\.[[:space:]]*$ ]]; then
+            file_hits=$((file_hits+1))
+        fi
+    done < "$f"
+    if [[ "$file_hits" -gt 0 ]]; then
+        warn "$(basename "$f"): $file_hits non-comment placeholder(s) remaining"
+        non_comment_found=true
+    fi
+done
+$non_comment_found || ok "no non-comment placeholders remaining"
 
 echo ""
 if [[ "$issues" -eq 0 ]]; then
