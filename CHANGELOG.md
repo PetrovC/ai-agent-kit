@@ -1,5 +1,44 @@
 # Changelog
 
+## [1.19.23] - 2026-05-21
+
+### Fixed — tighten `.gitignore` hints (closes #56, closes #60, closes #64)
+
+`install.sh` / `install.ps1` post-install `.gitignore` guidance now
+matches the runtime / secret hygiene the kit actually requires:
+
+- Add `!.env.example` and `!.env.*.example` to the recommended entries.
+  The previously-suggested `.env.*` pattern silently ignored example
+  files even though `env-safety.md` and the README both tell users to
+  version them; without the whitelist exceptions, agents and new
+  developers lose the documented `${ENV_VAR}` contract (closes #56).
+- Add `.claude/session-log/` so the PreCompact snapshots written by
+  `session-summary.sh` are not staged for commit by default. Those
+  snapshots include `git status`, changed-file lists, and recent commit
+  messages — runtime hook output, not project source (closes #60).
+- When `.gitignore` is missing, print the full recommended set as a
+  bootstrap recipe instead of silently skipping the hint. New projects
+  were the most exposed case — exactly the ones that previously got no
+  guidance at all (closes #64).
+- The post-install "next steps" message now lists the local/runtime
+  files explicitly (`.claude/settings.local.json`,
+  `.claude/session-log/`, `CLAUDE.local.md`) instead of mentioning only
+  `.claude/settings.local.json` plus a vague "and secrets".
+
+`tooling/claude/rules/env-safety.md` and `skills/github-workflow/SKILL.md`
+were also updated to spell out that the `!.env.example` /
+`!.env.*.example` whitelist entries must follow `.env.*`, so the
+versioned rules and the install-time hints agree on one snippet.
+
+Regression coverage in `.github/workflows/pr-scripts-shell.yml` verifies:
+the missing-`.gitignore` banner is emitted with every recommended entry;
+an old short list triggers suggestions for the new entries; a complete
+`.gitignore` is silent; and the recommended snippet is honoured by real
+`git check-ignore` semantics — `.env` and `.env.production` ignored,
+`.env.example` and `.env.production.example` versioned.
+
+---
+
 ## [1.19.22] - 2026-05-21
 
 ### Fixed — preserve project-owned `.mcp.json` across install, update, and uninstall (closes #59)

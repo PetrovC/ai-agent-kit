@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.22"
+KIT_VERSION="1.19.23"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
@@ -210,16 +210,31 @@ done | LC_ALL=C sort -u > "$TARGET/.kit-manifest"
 ok ".kit-manifest"
 
 # ── .gitignore hint ────────────────────────────────────────────────────────
+# Order matters: `.env.*` is a deny pattern that catches `.env.example` too,
+# so the `!.env.example` / `!.env.*.example` whitelist entries MUST follow it.
+# `.claude/session-log/` is the PreCompact snapshot dir written by session-summary.sh.
+RECOMMENDED_GITIGNORE=(
+    ".claude/settings.local.json"
+    ".claude/session-log/"
+    "CLAUDE.local.md"
+    ".env"
+    ".env.*"
+    "!.env.example"
+    "!.env.*.example"
+)
 GITIGNORE="$TARGET/.gitignore"
 if [[ -f "$GITIGNORE" ]]; then
     MISSING=()
-    for entry in ".claude/settings.local.json" "CLAUDE.local.md" ".env" ".env.*"; do
-        grep -qF "$entry" "$GITIGNORE" || MISSING+=("$entry")
+    for entry in "${RECOMMENDED_GITIGNORE[@]}"; do
+        grep -qF -- "$entry" "$GITIGNORE" || MISSING+=("$entry")
     done
     if [[ ${#MISSING[@]} -gt 0 ]]; then
         step ".gitignore - add these entries if not already present:"
         for e in "${MISSING[@]}"; do echo "  $e"; done
     fi
+else
+    step ".gitignore not found - create it with at least:"
+    for e in "${RECOMMENDED_GITIGNORE[@]}"; do echo "  $e"; done
 fi
 
 # ── Done ───────────────────────────────────────────────────────────────────
@@ -233,7 +248,7 @@ echo "  1. Fill in docs/ai/PROJECT.md      <- describe your product"
 echo "  2. Fill in docs/ai/COMMANDS.md     <- add your build/test commands"
 echo "  3. Fill in docs/ai/ARCHITECTURE.md"
 echo "  4. Run validate.sh to confirm all templates are filled"
-echo "  5. Commit everything (except .claude/settings.local.json and secrets)"
+echo "  5. Commit everything except local/runtime files (.claude/settings.local.json, .claude/session-log/, CLAUDE.local.md) and secrets"
 echo ""
 echo "Starter prompts (open in the kit, paste into your agent):"
 echo "  prompts/daily-ticket.md     <- start a GitHub issue"

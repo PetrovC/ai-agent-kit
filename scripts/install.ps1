@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.22"
+$KitVersion = "1.19.23"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 # Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
@@ -216,15 +216,29 @@ Write-Utf8NoBom (Join-Path $Target ".kit-manifest") (($manifestEntries -join "`n
 Write-Ok ".kit-manifest"
 
 # -- .gitignore hint -------------------------------------------------------
+# Order matters: `.env.*` is a deny pattern that catches `.env.example` too,
+# so the `!.env.example` / `!.env.*.example` whitelist entries MUST follow it.
+# `.claude/session-log/` is the PreCompact snapshot dir written by session-summary.sh.
+$recommendedGitignore = @(
+    ".claude/settings.local.json",
+    ".claude/session-log/",
+    "CLAUDE.local.md",
+    ".env",
+    ".env.*",
+    "!.env.example",
+    "!.env.*.example"
+)
 $gitignore = Join-Path $Target ".gitignore"
 if (Test-Path $gitignore) {
     $content = Get-Content $gitignore -Raw
-    $entries = @(".claude/settings.local.json", "CLAUDE.local.md", ".env", ".env.*")
-    $missing = $entries | Where-Object { $content -notmatch [regex]::Escape($_) }
+    $missing = $recommendedGitignore | Where-Object { $content -notmatch [regex]::Escape($_) }
     if ($missing.Count -gt 0) {
         Write-Step ".gitignore - add these entries if not already present:"
         $missing | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
     }
+} else {
+    Write-Step ".gitignore not found - create it with at least:"
+    $recommendedGitignore | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
 }
 
 # -- Done ------------------------------------------------------------------
@@ -237,7 +251,7 @@ Write-Host "  1. Fill in docs/ai/PROJECT.md      <- describe your product"
 Write-Host "  2. Fill in docs/ai/COMMANDS.md     <- add your build/test commands"
 Write-Host "  3. Fill in docs/ai/ARCHITECTURE.md"
 Write-Host "  4. Run validate.ps1 to confirm all templates are filled"
-Write-Host "  5. Commit everything (except .claude/settings.local.json and secrets)"
+Write-Host "  5. Commit everything except local/runtime files (.claude/settings.local.json, .claude/session-log/, CLAUDE.local.md) and secrets"
 Write-Host ""
 Write-Host "Starter prompts (open in the kit, paste into your agent):"
 Write-Host "  prompts/daily-ticket.md     <- start a GitHub issue"
