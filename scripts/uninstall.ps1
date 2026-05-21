@@ -3,14 +3,22 @@
     Remove ai-agent-kit files from a target project.
 
 .DESCRIPTION
-    Removes (for each tool requested) only kit-installed files:
-      - Root files: AGENTS.md, CLAUDE.md, GEMINI.md, .geminiignore.
-      - Per-tool: settings.json, agents/ subdirectory, skills/ subdirectory.
-      - Parent directories (.codex/, .claude/, .gemini/, .agents/) only if empty after removal.
-      - .kit-version + .kit-manifest (only if all installed tools are removed).
+    Removes only files the kit installed:
+      - .kit-manifest is the source of truth: every kit-installed file is
+        listed, scoped by tool (codex / claude / gemini). Only manifest
+        entries whose owning tool is in -Tools are removed.
+      - If .kit-manifest is missing (very old installs), the script
+        reconstructs the kit's installed file list from the running kit
+        sources (KitRoot) and removes only those exact paths. Anything else
+        inside managed dirs is left in place.
+
+    Empty parent dirs under .agents\, .claude\, .codex\, .gemini\ are pruned
+    after removal so a fully-uninstalled tool leaves no empty shell behind,
+    while user files inside those dirs survive untouched.
 
     Preserves:
-      - docs/ai/  (your project content - never touched)
+      - docs/ai/ (your project content - never touched)
+      - User-added files inside managed dirs (e.g. .claude\agents\my-agent.md).
       - Anything outside the kit layout.
 
 .PARAMETER Target
@@ -45,6 +53,8 @@ if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
     exit 1
 }
 
+$KitRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+
 # If no -Tools given, read from .kit-version.
 if ([string]::IsNullOrWhiteSpace($Tools)) {
     $versionFile = Join-Path $Target ".kit-version"
@@ -59,7 +69,7 @@ if ([string]::IsNullOrWhiteSpace($Tools)) {
     }
 }
 
-$ToolList = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
+$ToolList = @($Tools -split "," | ForEach-Object { $_.Trim().ToLower() })
 
 $ValidTools = @("codex", "claude", "gemini")
 $invalid    = @($ToolList | Where-Object { $ValidTools -notcontains $_ })
@@ -69,23 +79,113 @@ if ($invalid.Count -gt 0) {
 }
 
 # -- Helpers ---------------------------------------------------------------
-function Step([string]$msg)    { Write-Host "`n> $msg" -ForegroundColor Cyan }
-function Removed([string]$msg) { Write-Host "  [removed] $msg" -ForegroundColor Red }
-function Absent([string]$msg)  { Write-Host "  [absent] $msg" -ForegroundColor Gray }
+function Step([string]$msg)      { Write-Host "`n> $msg" -ForegroundColor Cyan }
+function Removed([string]$msg)   { Write-Host "  [removed] $msg" -ForegroundColor Red }
+function Absent([string]$msg)    { Write-Host "  [absent] $msg" -ForegroundColor Gray }
 function DryRunOut([string]$msg) { Write-Host "  [would-remove] $msg" -ForegroundColor Yellow }
+function Warn([string]$msg)      { Write-Host "  ! $msg" -ForegroundColor Yellow }
 
-function Remove-KitPath([string]$path) {
-    $rel = $path.Replace($Target, "").TrimStart("\", "/")
-    if (Test-Path $path) {
+# Map a kit-managed rel path to its owning tool, or "" if not a kit artifact.
+# Mirrors install.sh / update.sh so the manifest and uninstall agree exactly.
+function Get-OwningTool([string]$rel) {
+    $r = $rel -replace "\\", "/"
+    if ($r -eq "AGENTS.md" -or $r -like ".codex/*" -or $r -like ".agents/skills/*") { return "codex" }
+    if ($r -eq "CLAUDE.md" -or $r -eq ".mcp.json" -or $r -eq ".mcp.example.jsonc" -or $r -like ".claude/*") { return "claude" }
+    if ($r -eq "GEMINI.md" -or $r -eq ".geminiignore" -or $r -like ".gemini/*") { return "gemini" }
+    return ""
+}
+
+function Remove-RelPath([string]$rel) {
+    $path = Join-Path $Target $rel
+    if (Test-Path -LiteralPath $path) {
         if ($DryRun) {
             DryRunOut $rel
         } else {
-            Remove-Item -Path $path -Recurse -Force
+            Remove-Item -LiteralPath $path -Force
             Removed $rel
         }
     } else {
         Absent $rel
     }
+}
+
+# Reconstruct the kit's installed file list for a tool when no manifest is
+# present. Only enumerates files that the running kit sources actually ship,
+# mirroring install.ps1's copy operations.
+function Get-ReconstructedFiles([string]$tool) {
+    $out = New-Object System.Collections.Generic.List[string]
+    switch ($tool) {
+        "codex" {
+            $out.Add("AGENTS.md")
+            $out.Add(".codex/config.toml")
+            $out.Add(".codex/hooks.json")
+            $hooksDir = Join-Path $KitRoot "tooling/codex/hooks"
+            if (Test-Path -LiteralPath $hooksDir) {
+                Get-ChildItem -LiteralPath $hooksDir -Recurse -File | ForEach-Object {
+                    $rel = $_.FullName.Substring($hooksDir.Length).TrimStart('\','/') -replace "\\", "/"
+                    $out.Add(".codex/hooks/$rel")
+                }
+            }
+            $codexSkillsDir = Join-Path $KitRoot "tooling/codex/skills"
+            if (Test-Path -LiteralPath $codexSkillsDir) {
+                Get-ChildItem -LiteralPath $codexSkillsDir -Recurse -File | ForEach-Object {
+                    $rel = $_.FullName.Substring($codexSkillsDir.Length).TrimStart('\','/') -replace "\\", "/"
+                    $out.Add(".agents/skills/$rel")
+                }
+            }
+            $sharedSkillsDir = Join-Path $KitRoot "skills"
+            if (Test-Path -LiteralPath $sharedSkillsDir) {
+                Get-ChildItem -LiteralPath $sharedSkillsDir -Recurse -File | ForEach-Object {
+                    $rel = $_.FullName.Substring($sharedSkillsDir.Length).TrimStart('\','/') -replace "\\", "/"
+                    $out.Add(".agents/skills/$rel")
+                }
+            }
+        }
+        "claude" {
+            $out.Add("CLAUDE.md")
+            $out.Add(".mcp.json")
+            $out.Add(".mcp.example.jsonc")
+            $out.Add(".claude/settings.json")
+            foreach ($sub in @("agents","commands","hooks","rules")) {
+                $d = Join-Path $KitRoot "tooling/claude/$sub"
+                if (Test-Path -LiteralPath $d) {
+                    Get-ChildItem -LiteralPath $d -Recurse -File | ForEach-Object {
+                        $rel = $_.FullName.Substring($d.Length).TrimStart('\','/') -replace "\\", "/"
+                        $out.Add(".claude/$sub/$rel")
+                    }
+                }
+            }
+            $sharedSkillsDir = Join-Path $KitRoot "skills"
+            if (Test-Path -LiteralPath $sharedSkillsDir) {
+                Get-ChildItem -LiteralPath $sharedSkillsDir -Recurse -File | ForEach-Object {
+                    $rel = $_.FullName.Substring($sharedSkillsDir.Length).TrimStart('\','/') -replace "\\", "/"
+                    $out.Add(".claude/skills/$rel")
+                }
+            }
+        }
+        "gemini" {
+            $out.Add("GEMINI.md")
+            $out.Add(".geminiignore")
+            $out.Add(".gemini/settings.json")
+            foreach ($sub in @("agents","commands")) {
+                $d = Join-Path $KitRoot "tooling/gemini/$sub"
+                if (Test-Path -LiteralPath $d) {
+                    Get-ChildItem -LiteralPath $d -Recurse -File | ForEach-Object {
+                        $rel = $_.FullName.Substring($d.Length).TrimStart('\','/') -replace "\\", "/"
+                        $out.Add(".gemini/$sub/$rel")
+                    }
+                }
+            }
+            $sharedSkillsDir = Join-Path $KitRoot "skills"
+            if (Test-Path -LiteralPath $sharedSkillsDir) {
+                Get-ChildItem -LiteralPath $sharedSkillsDir -Recurse -File | ForEach-Object {
+                    $rel = $_.FullName.Substring($sharedSkillsDir.Length).TrimStart('\','/') -replace "\\", "/"
+                    $out.Add(".gemini/skills/$rel")
+                }
+            }
+        }
+    }
+    return $out
 }
 
 # -- Header ----------------------------------------------------------------
@@ -97,76 +197,97 @@ Write-Host "  Target: $Target"
 Write-Host "  Tools : $($ToolList -join ', ')"
 if ($DryRun) { Write-Host "  Mode  : DRY RUN (no files removed)" -ForegroundColor Yellow }
 Write-Host ""
-Write-Host "  NOTE: docs/ai/ is preserved. Remove it manually if you want a clean slate."
+Write-Host "  NOTE: docs/ai/ and any file not installed by the kit are preserved."
+Write-Host "        Remove docs/ai/ manually if you want a clean slate."
 
-if ($ToolList -contains "codex") {
-    Step "Removing Codex tooling"
-    Remove-KitPath (Join-Path $Target "AGENTS.md")
-    Remove-KitPath (Join-Path $Target ".codex\config.toml")
-    Remove-KitPath (Join-Path $Target ".codex\hooks.json")
-    Remove-KitPath (Join-Path $Target ".codex\hooks")
-    Remove-KitPath (Join-Path $Target ".codex\agents")
-    Remove-KitPath (Join-Path $Target ".agents\skills")
-    # Clean up empty directories
-    @(".codex", ".agents") | ForEach-Object {
-        $d = Join-Path $Target $_
-        if ((Test-Path $d) -and (Get-ChildItem -Path $d -Force | Measure-Object).Count -eq 0) {
-            Remove-KitPath $d
+# -- Build the removal list ------------------------------------------------
+$ManifestFile = Join-Path $Target ".kit-manifest"
+$ToRemove = New-Object System.Collections.Generic.List[string]
+
+if (Test-Path -LiteralPath $ManifestFile) {
+    Get-Content -LiteralPath $ManifestFile | ForEach-Object {
+        $p = $_.Trim()
+        if ([string]::IsNullOrEmpty($p)) { return }
+        $otool = Get-OwningTool $p
+        if (-not [string]::IsNullOrEmpty($otool) -and $ToolList -contains $otool) {
+            $ToRemove.Add($p)
+        }
+    }
+} else {
+    Step "No .kit-manifest found - reconstructing from kit sources"
+    Warn "Without a manifest, only files this kit version still ships are removed."
+    Warn "User-added files inside managed dirs are preserved by design."
+    foreach ($t in $ToolList) {
+        Get-ReconstructedFiles $t | ForEach-Object { $ToRemove.Add($_) }
+    }
+}
+
+# Sort + dedupe (a path can be listed twice if two tools share a parent dir).
+$ToRemove = @($ToRemove | Sort-Object -Unique)
+
+# -- Remove files (kit-owned only) ----------------------------------------
+foreach ($tool in $ToolList) {
+    switch ($tool) {
+        "codex"  { Step "Removing Codex tooling" }
+        "claude" { Step "Removing Claude Code tooling" }
+        "gemini" { Step "Removing Gemini CLI tooling" }
+    }
+    $any = $false
+    foreach ($rel in $ToRemove) {
+        if ((Get-OwningTool $rel) -ne $tool) { continue }
+        $any = $true
+        Remove-RelPath $rel
+    }
+    if (-not $any) {
+        Write-Host "  (no files to remove for $tool)"
+    }
+}
+
+# -- Prune empty kit directories ------------------------------------------
+# Walk deepest first; rmdir leaves user-populated dirs alive.
+if (-not $DryRun) {
+    foreach ($top in @(".agents", ".claude", ".codex", ".gemini")) {
+        $topDir = Join-Path $Target $top
+        if (-not (Test-Path -LiteralPath $topDir)) { continue }
+        $dirs = @(Get-ChildItem -LiteralPath $topDir -Recurse -Directory -ErrorAction SilentlyContinue) +
+                @(Get-Item -LiteralPath $topDir)
+        # Sort by descending depth so children are removed before parents.
+        $dirs = $dirs | Sort-Object { $_.FullName.Length } -Descending
+        foreach ($d in $dirs) {
+            if (-not (Test-Path -LiteralPath $d.FullName)) { continue }
+            if ((Get-ChildItem -LiteralPath $d.FullName -Force -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0) {
+                Remove-Item -LiteralPath $d.FullName -Force -ErrorAction SilentlyContinue
+            }
         }
     }
 }
 
-if ($ToolList -contains "claude") {
-    Step "Removing Claude Code tooling"
-    Remove-KitPath (Join-Path $Target "CLAUDE.md")
-    Remove-KitPath (Join-Path $Target ".mcp.json")
-    Remove-KitPath (Join-Path $Target ".mcp.example.jsonc")
-    Remove-KitPath (Join-Path $Target ".claude\settings.json")
-    Remove-KitPath (Join-Path $Target ".claude\agents")
-    Remove-KitPath (Join-Path $Target ".claude\commands")
-    Remove-KitPath (Join-Path $Target ".claude\hooks")
-    Remove-KitPath (Join-Path $Target ".claude\rules")
-    Remove-KitPath (Join-Path $Target ".claude\skills")
-    # Clean up .claude/ only if nothing else is in it (preserves settings.local.json, etc.)
-    $claudeDir = Join-Path $Target ".claude"
-    if ((Test-Path $claudeDir) -and (Get-ChildItem -Path $claudeDir -Force | Measure-Object).Count -eq 0) {
-        Remove-KitPath $claudeDir
-    }
-}
-
-if ($ToolList -contains "gemini") {
-    Step "Removing Gemini CLI tooling"
-    Remove-KitPath (Join-Path $Target "GEMINI.md")
-    Remove-KitPath (Join-Path $Target ".geminiignore")
-    Remove-KitPath (Join-Path $Target ".gemini\settings.json")
-    Remove-KitPath (Join-Path $Target ".gemini\agents")
-    Remove-KitPath (Join-Path $Target ".gemini\commands")
-    Remove-KitPath (Join-Path $Target ".gemini\skills")
-    # Clean up empty .gemini/
-    $geminiDir = Join-Path $Target ".gemini"
-    if ((Test-Path $geminiDir) -and (Get-ChildItem -Path $geminiDir -Force | Measure-Object).Count -eq 0) {
-        Remove-KitPath $geminiDir
-    }
-}
-
-# Remove .kit-version only if ALL installed tools are being removed.
+# -- .kit-version + .kit-manifest -----------------------------------------
 $versionFile = Join-Path $Target ".kit-version"
-if (Test-Path $versionFile) {
-    $versionLine = (Get-Content $versionFile -Raw).Trim()
+if (Test-Path -LiteralPath $versionFile) {
+    $versionLine = (Get-Content -LiteralPath $versionFile -Raw).Trim()
     $installedRaw = "codex,claude,gemini"
     if ($versionLine -match "tools: (.+)") {
         $installedRaw = $Matches[1].Trim()
     }
-    $installedList = $installedRaw -split "," | ForEach-Object { $_.Trim().ToLower() }
+    $installedList = @($installedRaw -split "," | ForEach-Object { $_.Trim().ToLower() })
     $remaining = @($installedList | Where-Object { $ToolList -notcontains $_ })
     if ($remaining.Count -eq 0) {
         Step "Removing .kit-version + .kit-manifest"
-        Remove-KitPath $versionFile
-        $manifestFile = Join-Path $Target ".kit-manifest"
-        if (Test-Path $manifestFile) { Remove-KitPath $manifestFile }
+        foreach ($meta in @(".kit-version", ".kit-manifest")) {
+            $p = Join-Path $Target $meta
+            if (Test-Path -LiteralPath $p) {
+                if ($DryRun) {
+                    DryRunOut $meta
+                } else {
+                    Remove-Item -LiteralPath $p -Force
+                    Removed $meta
+                }
+            }
+        }
     } else {
         Step "Keeping .kit-version"
-        Write-Host "  (some tools still installed: $($remaining -join ','))"
+        Write-Host "  (still installed: $($remaining -join ','))"
     }
 }
 

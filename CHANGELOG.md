@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.19.21] - 2026-05-21
+
+### Fixed — uninstall preserves user files inside managed tool directories (closes #51)
+
+`uninstall.sh` and `uninstall.ps1` no longer `rm -rf` whole kit directories
+such as `.claude/agents/`, `.claude/commands/`, `.claude/hooks/`,
+`.claude/rules/`, `.claude/skills/`, `.codex/hooks/`, `.agents/skills/`,
+`.gemini/commands/`, or `.gemini/skills/`. They now read `.kit-manifest`,
+filter entries by the tool owning each path, and remove only those exact
+paths. Empty parent dirs under `.agents/`, `.claude/`, `.codex/`, `.gemini/`
+are pruned afterwards, so a fully-uninstalled tool still leaves no empty
+shell behind.
+
+User-added files inside any managed directory — custom agents, custom
+hooks, custom skills, custom commands, and the documented
+`.claude/settings.local.json` — now survive uninstall.
+
+When `.kit-manifest` is missing (very old installs), the scripts
+reconstruct the kit's installed file list from the running kit sources
+and remove only those exact paths; anything else inside managed dirs is
+preserved. A clear warning is printed in this fallback mode.
+
+Regression coverage in `.github/workflows/pr-scripts-shell.yml` exercises
+both the manifest-based path (kit files removed, user files kept across
+all four managed tool roots) and the legacy fallback path.
+
+---
+
 ## [Unreleased]
 
 ### Changed — CI workflows split by scope

@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
 # uninstall.sh — Remove ai-agent-kit files from a target project.
 #
-# Removes (for each tool requested) only kit-installed files:
-#   - Root files: AGENTS.md, CLAUDE.md, GEMINI.md, .geminiignore,
-#     .mcp.json, .mcp.example.jsonc.
-#   - Codex:  .codex/config.toml, .codex/hooks.json, .codex/hooks/,
-#             .codex/agents/, .agents/skills/.
-#   - Claude: .claude/settings.json, .claude/agents/, .claude/commands/,
-#             .claude/hooks/, .claude/rules/, .claude/skills/.
-#   - Gemini: .gemini/settings.json, .gemini/agents/, .gemini/commands/,
-#             .gemini/skills/.
-#   - Parent directories (.codex/, .claude/, .gemini/, .agents/) only if empty after removal.
-#   - .kit-version + .kit-manifest (only if all installed tools are removed).
+# Removes only files the kit installed:
+#   - .kit-manifest is the source of truth: every kit-installed file is listed,
+#     scoped by tool (codex / claude / gemini). Only manifest entries whose
+#     owning tool is in --tools are removed.
+#   - If .kit-manifest is missing (very old installs), the script reconstructs
+#     the kit's installed file list from the running kit sources (KIT_ROOT) and
+#     removes only those exact paths. Anything else inside managed dirs is left
+#     in place.
+#
+# Empty parent dirs under .agents/, .claude/, .codex/, .gemini/ are pruned
+# after removal so a fully-uninstalled tool leaves no empty shell behind, while
+# user files inside those dirs survive untouched.
 #
 # Preserves:
 #   - docs/ai/  (your project content — never touched)
+#   - User-added files inside managed dirs (e.g. .claude/agents/my-agent.md).
 #   - Anything outside the kit layout.
 #
 # Usage:
@@ -22,6 +24,7 @@
 #
 set -euo pipefail
 
+KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -73,21 +76,7 @@ step()   { echo -e "\n\033[36m> $1\033[0m"; }
 removed(){ echo -e "  \033[31m[removed]\033[0m $1"; }
 absent() { echo -e "  \033[37m[absent]\033[0m $1"; }
 dryrun() { echo -e "  \033[33m[would-remove]\033[0m $1"; }
-
-remove_path() {
-    local path="$1"
-    local rel="${path#$TARGET/}"
-    if [[ -e "$path" ]]; then
-        if [[ "$DRY_RUN" == "true" ]]; then
-            dryrun "$rel"
-        else
-            rm -rf "$path"
-            removed "$rel"
-        fi
-    else
-        absent "$rel"
-    fi
-}
+warn()   { echo -e "  \033[33m! $1\033[0m"; }
 
 contains() {
     local needle="$1"
@@ -95,6 +84,64 @@ contains() {
         [[ "$item" == "$needle" ]] && return 0
     done
     return 1
+}
+
+# Map a kit-managed rel path to its owning tool, or "" if not a kit artifact.
+# Mirrors install.sh / update.sh so the manifest and uninstall agree exactly.
+owning_tool() {
+    case "$1" in
+        AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
+        CLAUDE.md|.mcp.json|.mcp.example.jsonc|.claude/*) echo claude ;;
+        GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
+        *)                                               echo ""     ;;
+    esac
+}
+
+# Reconstruct the kit's installed file list for a tool when no manifest is
+# present. Only enumerates files that the running kit sources actually ship,
+# mirroring install.sh's copy_file/copy_dir invocations.
+reconstruct_codex() {
+    echo "AGENTS.md"
+    echo ".codex/config.toml"
+    echo ".codex/hooks.json"
+    [[ -d "$KIT_ROOT/tooling/codex/hooks" ]] && \
+        find "$KIT_ROOT/tooling/codex/hooks" -type f \
+             -printf '.codex/hooks/%P\n'
+    [[ -d "$KIT_ROOT/tooling/codex/skills" ]] && \
+        find "$KIT_ROOT/tooling/codex/skills" -type f \
+             -printf '.agents/skills/%P\n'
+    [[ -d "$KIT_ROOT/skills" ]] && \
+        find "$KIT_ROOT/skills" -type f \
+             -printf '.agents/skills/%P\n'
+}
+
+reconstruct_claude() {
+    echo "CLAUDE.md"
+    echo ".mcp.json"
+    echo ".mcp.example.jsonc"
+    echo ".claude/settings.json"
+    for sub in agents commands hooks rules; do
+        [[ -d "$KIT_ROOT/tooling/claude/$sub" ]] && \
+            find "$KIT_ROOT/tooling/claude/$sub" -type f \
+                 -printf ".claude/$sub/%P\n"
+    done
+    [[ -d "$KIT_ROOT/skills" ]] && \
+        find "$KIT_ROOT/skills" -type f \
+             -printf '.claude/skills/%P\n'
+}
+
+reconstruct_gemini() {
+    echo "GEMINI.md"
+    echo ".geminiignore"
+    echo ".gemini/settings.json"
+    for sub in agents commands; do
+        [[ -d "$KIT_ROOT/tooling/gemini/$sub" ]] && \
+            find "$KIT_ROOT/tooling/gemini/$sub" -type f \
+                 -printf ".gemini/$sub/%P\n"
+    done
+    [[ -d "$KIT_ROOT/skills" ]] && \
+        find "$KIT_ROOT/skills" -type f \
+             -printf '.gemini/skills/%P\n'
 }
 
 # ── Header ─────────────────────────────────────────────────────────────────
@@ -106,56 +153,75 @@ echo "  Target: $TARGET"
 echo "  Tools : $TOOLS"
 [[ "$DRY_RUN" == "true" ]] && echo -e "  Mode  : \033[33mDRY RUN (no files removed)\033[0m"
 echo ""
-echo "  NOTE: docs/ai/ is preserved. Remove it manually if you want a clean slate."
+echo "  NOTE: docs/ai/ and any file not installed by the kit are preserved."
+echo "        Remove docs/ai/ manually if you want a clean slate."
 
-if contains "codex"; then
-    step "Removing Codex tooling"
-    remove_path "$TARGET/AGENTS.md"
-    remove_path "$TARGET/.codex/config.toml"
-    remove_path "$TARGET/.codex/hooks.json"
-    remove_path "$TARGET/.codex/hooks"
-    remove_path "$TARGET/.codex/agents"
-    remove_path "$TARGET/.agents/skills"
-    # Clean up empty directories
-    for d in "$TARGET/.codex" "$TARGET/.agents"; do
-        if [[ -d "$d" ]] && [[ -z "$(ls -A "$d" 2>/dev/null)" ]]; then
-            remove_path "$d"
+# ── Build the removal list ────────────────────────────────────────────────
+MANIFEST_FILE="$TARGET/.kit-manifest"
+TO_REMOVE=()
+
+if [[ -f "$MANIFEST_FILE" ]]; then
+    while IFS= read -r p; do
+        [[ -z "$p" ]] && continue
+        otool="$(owning_tool "$p")"
+        [[ -z "$otool" ]] && continue
+        contains "$otool" && TO_REMOVE+=("$p")
+    done < "$MANIFEST_FILE"
+else
+    step "No .kit-manifest found — reconstructing from kit sources"
+    warn "Without a manifest, only files this kit version still ships are removed."
+    warn "User-added files inside managed dirs are preserved by design."
+    contains "codex"  && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_codex)
+    contains "claude" && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_claude)
+    contains "gemini" && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_gemini)
+fi
+
+# Sort + dedupe (a path can be listed twice if two tools share a parent dir).
+if [[ ${#TO_REMOVE[@]} -gt 0 ]]; then
+    mapfile -t TO_REMOVE < <(printf '%s\n' "${TO_REMOVE[@]}" | LC_ALL=C sort -u)
+fi
+
+# ── Remove files (kit-owned only) ─────────────────────────────────────────
+for tool in "${TOOL_LIST[@]}"; do
+    case "$tool" in
+        codex)  step "Removing Codex tooling"      ;;
+        claude) step "Removing Claude Code tooling";;
+        gemini) step "Removing Gemini CLI tooling" ;;
+    esac
+    any=false
+    for rel in "${TO_REMOVE[@]}"; do
+        otool="$(owning_tool "$rel")"
+        [[ "$otool" == "$tool" ]] || continue
+        any=true
+        path="$TARGET/$rel"
+        if [[ -e "$path" ]]; then
+            if [[ "$DRY_RUN" == "true" ]]; then
+                dryrun "$rel"
+            else
+                rm -f "$path"
+                removed "$rel"
+            fi
+        else
+            absent "$rel"
         fi
+    done
+    [[ "$any" == "false" ]] && echo "  (no files to remove for $tool)"
+done
+
+# ── Prune empty kit directories ───────────────────────────────────────────
+# Walk children before parents and delete empty dirs inline. `-delete` evaluates
+# at visit time (after `-depth` ordering), so removing a leaf lets its parent
+# pass `-empty` on the next visit — `-exec rmdir {} +` cannot do that because
+# it batches removals after the whole traversal completes.
+if [[ "$DRY_RUN" == "false" ]]; then
+    for top in .agents .claude .codex .gemini; do
+        dir="$TARGET/$top"
+        [[ -d "$dir" ]] || continue
+        find "$dir" -depth -type d -empty -delete 2>/dev/null || true
     done
 fi
 
-if contains "claude"; then
-    step "Removing Claude Code tooling"
-    remove_path "$TARGET/CLAUDE.md"
-    remove_path "$TARGET/.mcp.json"
-    remove_path "$TARGET/.mcp.example.jsonc"
-    remove_path "$TARGET/.claude/settings.json"
-    remove_path "$TARGET/.claude/agents"
-    remove_path "$TARGET/.claude/commands"
-    remove_path "$TARGET/.claude/hooks"
-    remove_path "$TARGET/.claude/rules"
-    remove_path "$TARGET/.claude/skills"
-    # Clean up .claude/ only if nothing else remains (preserves settings.local.json, etc.)
-    if [[ -d "$TARGET/.claude" ]] && [[ -z "$(ls -A "$TARGET/.claude" 2>/dev/null)" ]]; then
-        remove_path "$TARGET/.claude"
-    fi
-fi
-
-if contains "gemini"; then
-    step "Removing Gemini CLI tooling"
-    remove_path "$TARGET/GEMINI.md"
-    remove_path "$TARGET/.geminiignore"
-    remove_path "$TARGET/.gemini/settings.json"
-    remove_path "$TARGET/.gemini/agents"
-    remove_path "$TARGET/.gemini/commands"
-    remove_path "$TARGET/.gemini/skills"
-    # Clean up empty .gemini/
-    if [[ -d "$TARGET/.gemini" ]] && [[ -z "$(ls -A "$TARGET/.gemini" 2>/dev/null)" ]]; then
-        remove_path "$TARGET/.gemini"
-    fi
-fi
-
-# Remove .kit-version only if ALL installed tools are being removed.
+# ── .kit-version + .kit-manifest ──────────────────────────────────────────
 if [[ -f "$TARGET/.kit-version" ]]; then
     VERSION_LINE="$(cat "$TARGET/.kit-version")"
     INSTALLED=""
@@ -169,11 +235,24 @@ if [[ -f "$TARGET/.kit-version" ]]; then
     done
     if [[ "$all_removed" == "true" ]]; then
         step "Removing .kit-version + .kit-manifest"
-        remove_path "$TARGET/.kit-version"
-        remove_path "$TARGET/.kit-manifest"
+        for meta in .kit-version .kit-manifest; do
+            path="$TARGET/$meta"
+            if [[ -e "$path" ]]; then
+                if [[ "$DRY_RUN" == "true" ]]; then
+                    dryrun "$meta"
+                else
+                    rm -f "$path"
+                    removed "$meta"
+                fi
+            fi
+        done
     else
         step "Keeping .kit-version"
-        echo "  (some tools still installed: $INSTALLED minus $TOOLS)"
+        remaining=()
+        for t in "${INSTALLED_LIST[@]}"; do
+            contains "$t" || remaining+=("$t")
+        done
+        echo "  (still installed: $(IFS=,; echo "${remaining[*]}"))"
     fi
 fi
 
