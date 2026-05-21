@@ -150,6 +150,77 @@ jobs:
           [[ -f "$T/docs/ai/PROJECT.md" ]] || { echo "FAIL: uninstall destroyed docs/ai"; exit 1; }
           echo "OK: uninstall clean, docs/ai preserved"
 
+      - name: uninstall.sh preserves user files inside managed tool directories
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          # Plant user-owned files in every kit-managed directory and a
+          # settings.local.json the README tells users to keep.
+          mkdir -p "$T/.claude/agents" "$T/.claude/commands" "$T/.claude/hooks" \
+                   "$T/.claude/rules"  "$T/.claude/skills/team" \
+                   "$T/.codex/hooks"   "$T/.agents/skills/team" \
+                   "$T/.gemini/commands" "$T/.gemini/skills/team"
+          echo user > "$T/.claude/agents/team-agent.md"
+          echo user > "$T/.claude/commands/team-cmd.md"
+          echo user > "$T/.claude/hooks/team-hook.sh"
+          echo user > "$T/.claude/rules/team-rule.md"
+          echo user > "$T/.claude/skills/team/SKILL.md"
+          echo user > "$T/.codex/hooks/team-hook.sh"
+          echo user > "$T/.agents/skills/team/SKILL.md"
+          echo user > "$T/.gemini/commands/team.toml"
+          echo user > "$T/.gemini/skills/team/SKILL.md"
+          echo local > "$T/.claude/settings.local.json"
+
+          bash scripts/uninstall.sh --target "$T" >/dev/null
+
+          # User files must all survive.
+          for p in \
+            .claude/agents/team-agent.md \
+            .claude/commands/team-cmd.md \
+            .claude/hooks/team-hook.sh \
+            .claude/rules/team-rule.md \
+            .claude/skills/team/SKILL.md \
+            .claude/settings.local.json \
+            .codex/hooks/team-hook.sh \
+            .agents/skills/team/SKILL.md \
+            .gemini/commands/team.toml \
+            .gemini/skills/team/SKILL.md ; do
+            [[ -f "$T/$p" ]] || { echo "FAIL: uninstall destroyed user file $p"; exit 1; }
+          done
+
+          # Kit files must all be removed (the manifest is the source of truth).
+          for p in \
+            AGENTS.md CLAUDE.md GEMINI.md .mcp.json .kit-manifest .kit-version \
+            .claude/agents/architect.md .claude/commands/bug-fix.md \
+            .claude/hooks/pre-bash-guard.sh .claude/skills/python/SKILL.md \
+            .codex/config.toml .codex/hooks/pre-bash-guard.sh \
+            .agents/skills/python/SKILL.md \
+            .gemini/commands/bug-fix.toml .gemini/skills/python/SKILL.md ; do
+            [[ -e "$T/$p" ]] && { echo "FAIL: kit-owned $p survived uninstall"; exit 1; }
+          done
+          echo "OK: uninstall removes only kit-owned files"
+
+      - name: uninstall.sh manifest-less fallback removes only files the kit still ships
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          # Simulate a legacy install: drop the manifest, then add a user file.
+          rm "$T/.kit-manifest"
+          mkdir -p "$T/.claude/agents"
+          echo legacy-user > "$T/.claude/agents/legacy-user.md"
+          out="$(bash scripts/uninstall.sh --target "$T")"
+          echo "$out" | grep -q "No .kit-manifest found" \
+            || { echo "FAIL: legacy banner missing"; exit 1; }
+          [[ -f "$T/.claude/agents/legacy-user.md" ]] \
+            || { echo "FAIL: legacy fallback destroyed a user file"; exit 1; }
+          [[ ! -e "$T/CLAUDE.md" ]] \
+            || { echo "FAIL: legacy fallback left CLAUDE.md"; exit 1; }
+          [[ ! -e "$T/.claude/agents/architect.md" ]] \
+            || { echo "FAIL: legacy fallback left a kit agent"; exit 1; }
+          echo "OK: legacy fallback removes only files this kit version ships"
+
       - name: update.sh manifest GC prunes only de-shipped kit files
         run: |
           set -euo pipefail
