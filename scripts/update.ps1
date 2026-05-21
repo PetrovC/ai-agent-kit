@@ -42,18 +42,19 @@ if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
 }
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.21"
+$KitVersion = "1.19.22"
 
 function Get-OwningTool([string]$rel) {
     # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,
-    # .kit-version, .kit-manifest, user files) — those are never pruned and
-    # never written to the manifest.
+    # .kit-version, .kit-manifest, .mcp.json, user files) — those are never
+    # pruned and never written to the manifest. `.mcp.json` is initialized by
+    # install and then owned by the project; `.mcp.example.jsonc` is the
+    # versioned reference.
     switch -Wildcard ($rel) {
         "AGENTS.md"          { return "codex" }
         ".codex/*"           { return "codex" }
         ".agents/skills/*"   { return "codex" }
         "CLAUDE.md"          { return "claude" }
-        ".mcp.json"          { return "claude" }
         ".mcp.example.jsonc" { return "claude" }
         ".claude/*"          { return "claude" }
         "GEMINI.md"          { return "gemini" }
@@ -217,7 +218,8 @@ if ($ToolList -contains "codex") {
 if ($ToolList -contains "claude") {
     Compare-And-Update (Join-Path $KitRoot "tooling\claude\CLAUDE.md")     (Join-Path $Target "CLAUDE.md")
     Compare-And-Update (Join-Path $KitRoot "tooling\claude\settings.json") (Join-Path $Target ".claude\settings.json")
-    Compare-And-Update (Join-Path $KitRoot "tooling\claude\.mcp.json")          (Join-Path $Target ".mcp.json")
+    # .mcp.json is project-owned after install (configured by the user). Update
+    # only refreshes the versioned reference; the live file is never touched.
     Compare-And-Update (Join-Path $KitRoot "tooling\claude\.mcp.example.jsonc") (Join-Path $Target ".mcp.example.jsonc")
     Update-Directory   (Join-Path $KitRoot "tooling\claude\agents")        (Join-Path $Target ".claude\agents")
     Update-Directory   (Join-Path $KitRoot "tooling\claude\commands")      (Join-Path $Target ".claude\commands")

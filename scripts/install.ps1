@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.21"
+$KitVersion = "1.19.22"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 # Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
@@ -44,12 +44,15 @@ $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 $Managed = [System.Collections.Generic.List[string]]::new()
 
 function Get-OwningTool([string]$rel) {
+    # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,
+    # .kit-version, .kit-manifest, .mcp.json, user files) — those are never
+    # tracked in the manifest. `.mcp.json` is initialized by install and then
+    # owned by the project; `.mcp.example.jsonc` is the versioned reference.
     switch -Wildcard ($rel) {
         "AGENTS.md"          { return "codex" }
         ".codex/*"           { return "codex" }
         ".agents/skills/*"   { return "codex" }
         "CLAUDE.md"          { return "claude" }
-        ".mcp.json"          { return "claude" }
         ".mcp.example.jsonc" { return "claude" }
         ".claude/*"          { return "claude" }
         "GEMINI.md"          { return "gemini" }
@@ -158,7 +161,16 @@ if ($ToolList -contains "claude") {
     Write-Step "Installing Claude Code tooling"
     Copy-KitFile (Join-Path $KitRoot "tooling\claude\CLAUDE.md")     (Join-Path $Target "CLAUDE.md")
     Copy-KitFile (Join-Path $KitRoot "tooling\claude\settings.json") (Join-Path $Target ".claude\settings.json")
-    Copy-KitFile (Join-Path $KitRoot "tooling\claude\.mcp.json")          (Join-Path $Target ".mcp.json")
+    # .mcp.json is initialized once and then OWNED BY THE PROJECT — install
+    # bootstraps an empty file only when missing, update never overwrites it.
+    # The versioned reference users copy server blocks from is .mcp.example.jsonc.
+    $mcpJsonDst = Join-Path $Target ".mcp.json"
+    if (Test-Path -LiteralPath $mcpJsonDst) {
+        Write-Preserve ".mcp.json"
+    } else {
+        Copy-Item -Path (Join-Path $KitRoot "tooling\claude\.mcp.json") -Destination $mcpJsonDst -Force
+        Write-Ok ".mcp.json"
+    }
     Copy-KitFile (Join-Path $KitRoot "tooling\claude\.mcp.example.jsonc") (Join-Path $Target ".mcp.example.jsonc")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\agents")   (Join-Path $Target ".claude\agents")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\commands") (Join-Path $Target ".claude\commands")

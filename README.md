@@ -171,7 +171,7 @@ Codex and Gemini follow the same principles, but they're embedded directly in `A
 
 MCP (Model Context Protocol) is an open standard for giving agents access to external tools and data at runtime — databases, APIs, file systems, custom tools. All three CLIs support it, with different config locations:
 
-- **Claude Code** — `.mcp.json` at the project root (strict JSON, stdio + HTTP/SSE transports). The kit installs an empty `{"mcpServers":{}}` plus a commented `.mcp.example.jsonc` reference with GitHub / filesystem / Postgres / Notion / Linear blocks to copy from. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
+- **Claude Code** — `.mcp.json` at the project root (strict JSON, stdio + HTTP/SSE transports). On first install the kit bootstraps an empty `{"mcpServers":{}}`; afterwards `.mcp.json` is project-owned — install reruns skip it, update never overwrites it, and uninstall preserves it (same policy as `docs/ai/`). The kit ships `.mcp.example.jsonc` as the versioned reference with GitHub / filesystem / Postgres / Notion / Linear blocks to copy from. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
 - **Gemini CLI** — `mcpServers` block in `.gemini/settings.json`. See [the MCP server docs](https://google-gemini.github.io/gemini-cli/docs/tools/mcp-server.html).
 - **Codex CLI** — `[mcp_servers.<name>]` tables in `.codex/config.toml`. See [the Codex MCP docs](https://developers.openai.com/codex/mcp).
 
@@ -296,7 +296,7 @@ Three path-scoped rule files are installed into `.claude/rules/` — Claude Code
 
 ## MCP servers
 
-A `.mcp.json` template is installed at your project root with commented examples for GitHub, filesystem, Postgres, Notion, and Linear MCP servers. Fill in the `${ENV_VAR}` placeholders and uncomment the servers you use.
+On first install an empty `.mcp.json` (strict JSON) is created at your project root, and the commented `.mcp.example.jsonc` reference is installed alongside it with examples for GitHub, filesystem, Postgres, Notion, and Linear MCP servers. Paste comment-free server blocks from `.mcp.example.jsonc` into `.mcp.json` and fill in the `${ENV_VAR}` placeholders. After that first install `.mcp.json` is yours: subsequent `install`, `update`, and `uninstall` runs leave it untouched.
 
 MCP servers extend the agent with live access to external resources at runtime — without hardcoding tool logic into the prompt. A filesystem MCP server lets the agent browse files outside the workspace; a Postgres server lets it query your database directly.
 

@@ -88,10 +88,11 @@ contains() {
 
 # Map a kit-managed rel path to its owning tool, or "" if not a kit artifact.
 # Mirrors install.sh / update.sh so the manifest and uninstall agree exactly.
+# `.mcp.json` is project-owned after install and is never tracked or removed.
 owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
-        CLAUDE.md|.mcp.json|.mcp.example.jsonc|.claude/*) echo claude ;;
+        CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
         *)                                               echo ""     ;;
     esac
@@ -117,7 +118,6 @@ reconstruct_codex() {
 
 reconstruct_claude() {
     echo "CLAUDE.md"
-    echo ".mcp.json"
     echo ".mcp.example.jsonc"
     echo ".claude/settings.json"
     for sub in agents commands hooks rules; do

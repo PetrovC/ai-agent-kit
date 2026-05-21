@@ -14,7 +14,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.21"
+KIT_VERSION="1.19.22"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -103,11 +103,13 @@ contains() {
 
 # Map a kit-managed rel path to its owning tool. Returns "" for anything that
 # is NOT a kit-managed artifact (docs/ai, .kit-version, .kit-manifest, user
-# files) — those are never pruned and never carried in the manifest.
+# files, .mcp.json) — those are never pruned and never carried in the
+# manifest. `.mcp.json` is initialized by install and then owned by the
+# project; `.mcp.example.jsonc` remains the kit's versioned reference.
 owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
-        CLAUDE.md|.mcp.json|.mcp.example.jsonc|.claude/*) echo claude ;;
+        CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
         *)                                               echo ""     ;;
     esac
@@ -201,7 +203,8 @@ fi
 if contains "claude"; then
     compare_and_update "$KIT_ROOT/tooling/claude/CLAUDE.md"     "$TARGET/CLAUDE.md"
     compare_and_update "$KIT_ROOT/tooling/claude/settings.json" "$TARGET/.claude/settings.json"
-    compare_and_update "$KIT_ROOT/tooling/claude/.mcp.json"          "$TARGET/.mcp.json"
+    # .mcp.json is project-owned after install (configured by the user). Update
+    # only refreshes the versioned reference; the live file is never touched.
     compare_and_update "$KIT_ROOT/tooling/claude/.mcp.example.jsonc" "$TARGET/.mcp.example.jsonc"
     update_dir         "$KIT_ROOT/tooling/claude/agents"        "$TARGET/.claude/agents"
     update_dir         "$KIT_ROOT/tooling/claude/commands"      "$TARGET/.claude/commands"

@@ -87,10 +87,11 @@ function Warn([string]$msg)      { Write-Host "  ! $msg" -ForegroundColor Yellow
 
 # Map a kit-managed rel path to its owning tool, or "" if not a kit artifact.
 # Mirrors install.sh / update.sh so the manifest and uninstall agree exactly.
+# `.mcp.json` is project-owned after install and is never tracked or removed.
 function Get-OwningTool([string]$rel) {
     $r = $rel -replace "\\", "/"
     if ($r -eq "AGENTS.md" -or $r -like ".codex/*" -or $r -like ".agents/skills/*") { return "codex" }
-    if ($r -eq "CLAUDE.md" -or $r -eq ".mcp.json" -or $r -eq ".mcp.example.jsonc" -or $r -like ".claude/*") { return "claude" }
+    if ($r -eq "CLAUDE.md" -or $r -eq ".mcp.example.jsonc" -or $r -like ".claude/*") { return "claude" }
     if ($r -eq "GEMINI.md" -or $r -eq ".geminiignore" -or $r -like ".gemini/*") { return "gemini" }
     return ""
 }
@@ -143,7 +144,6 @@ function Get-ReconstructedFiles([string]$tool) {
         }
         "claude" {
             $out.Add("CLAUDE.md")
-            $out.Add(".mcp.json")
             $out.Add(".mcp.example.jsonc")
             $out.Add(".claude/settings.json")
             foreach ($sub in @("agents","commands","hooks","rules")) {
