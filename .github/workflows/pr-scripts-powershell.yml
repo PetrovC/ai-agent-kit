@@ -124,6 +124,73 @@ jobs:
           }
           Write-Host "OK: .kit-manifest ($($lines.Count) entries, no BOM, forward-slashed)"
 
+      - name: install/update/uninstall.ps1 preserve project-owned .mcp.json
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP "mcp-owned-$([guid]::NewGuid())"
+          New-Item -ItemType Directory -Path $target -Force | Out-Null
+          .\scripts\install.ps1 -Target $target -Tools "claude" | Out-Null
+
+          # Configure a real MCP server (mirrors the README copy/paste flow).
+          $configured = @"
+          {
+            "mcpServers": {
+              "github": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-github"],
+                "env": { "GITHUB_TOKEN": "`${GITHUB_TOKEN}" }
+              }
+            }
+          }
+          "@
+          $mcp = Join-Path $target ".mcp.json"
+          Set-Content -LiteralPath $mcp -Value $configured -NoNewline
+          $hash = (Get-FileHash -LiteralPath $mcp -Algorithm SHA256).Hash
+
+          # 1. Re-running install must NOT overwrite.
+          $out = .\scripts\install.ps1 -Target $target -Tools "claude" *>&1 | Out-String
+          if ($out -notmatch "\[skip\] \.mcp\.json") {
+            Write-Host "FAIL: install did not skip existing .mcp.json"; Write-Host $out; exit 1
+          }
+          if ((Get-FileHash -LiteralPath $mcp -Algorithm SHA256).Hash -ne $hash) {
+            Write-Host "FAIL: install overwrote project-owned .mcp.json"; exit 1
+          }
+
+          # 2. update must NOT touch .mcp.json. .mcp.example.jsonc is still refreshed.
+          Remove-Item -LiteralPath (Join-Path $target ".mcp.example.jsonc") -Force
+          $out = .\scripts\update.ps1 -Target $target -Tools "claude" *>&1 | Out-String
+          if ((Get-FileHash -LiteralPath $mcp -Algorithm SHA256).Hash -ne $hash) {
+            Write-Host "FAIL: update overwrote project-owned .mcp.json"; exit 1
+          }
+          if (-not (Test-Path -LiteralPath (Join-Path $target ".mcp.example.jsonc"))) {
+            Write-Host "FAIL: update did not restore .mcp.example.jsonc"; exit 1
+          }
+          if ($out -notmatch "NEW      \.mcp\.example\.jsonc") {
+            Write-Host "FAIL: update did not report .mcp.example.jsonc as NEW"; Write-Host $out; exit 1
+          }
+          if ($out -match "\.mcp\.json") {
+            Write-Host "FAIL: update mentioned .mcp.json"; Write-Host $out; exit 1
+          }
+
+          # 3. Manifest must not track .mcp.json.
+          $manifest = Get-Content -LiteralPath (Join-Path $target ".kit-manifest")
+          if ($manifest -contains ".mcp.json") {
+            Write-Host "FAIL: .mcp.json appears in .kit-manifest"; exit 1
+          }
+
+          # 4. uninstall must preserve .mcp.json (project-owned, like docs/ai/).
+          .\scripts\uninstall.ps1 -Target $target -Tools "claude" | Out-Null
+          if (-not (Test-Path -LiteralPath $mcp)) {
+            Write-Host "FAIL: uninstall removed project-owned .mcp.json"; exit 1
+          }
+          if ((Get-FileHash -LiteralPath $mcp -Algorithm SHA256).Hash -ne $hash) {
+            Write-Host "FAIL: uninstall mutated .mcp.json"; exit 1
+          }
+          if (Test-Path -LiteralPath (Join-Path $target ".mcp.example.jsonc")) {
+            Write-Host "FAIL: uninstall left kit-owned .mcp.example.jsonc"; exit 1
+          }
+          Write-Host "OK: .mcp.json survives install reruns, update, and uninstall (PS)"
+
       - name: Dry-run uninstall
         shell: pwsh
         run: .\scripts\uninstall.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun

@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.21"
+KIT_VERSION="1.19.22"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
@@ -59,11 +59,13 @@ skip() { echo -e "  \033[33m[skip] $1 (project content - preserved)\033[0m"; }
 MANAGED=()   # kit-managed rel paths, written to .kit-manifest for update GC
 
 # Map a kit-managed rel path to its owning tool, or "" if it is NOT a kit
-# artifact (docs/ai, .kit-version) — keeps non-kit paths out of the manifest.
+# artifact (docs/ai, .kit-version, .mcp.json) — keeps non-kit paths out of
+# the manifest. `.mcp.json` is initialized once but owned by the project
+# afterwards; the kit ships `.mcp.example.jsonc` as the versioned reference.
 owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
-        CLAUDE.md|.mcp.json|.mcp.example.jsonc|.claude/*) echo claude ;;
+        CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
         *)                                               echo ""     ;;
     esac
@@ -150,7 +152,16 @@ if contains "claude"; then
     step "Installing Claude Code tooling"
     copy_file "$KIT_ROOT/tooling/claude/CLAUDE.md"      "$TARGET/CLAUDE.md"
     copy_file "$KIT_ROOT/tooling/claude/settings.json"  "$TARGET/.claude/settings.json"
-    copy_file "$KIT_ROOT/tooling/claude/.mcp.json"          "$TARGET/.mcp.json"
+    # .mcp.json is initialized once and then OWNED BY THE PROJECT — install
+    # bootstraps an empty file only when missing, update never overwrites it.
+    # The versioned reference users copy server blocks from is .mcp.example.jsonc.
+    if [[ -f "$TARGET/.mcp.json" ]]; then
+        skip ".mcp.json"
+    else
+        mkdir -p "$TARGET"
+        cp "$KIT_ROOT/tooling/claude/.mcp.json" "$TARGET/.mcp.json"
+        ok ".mcp.json"
+    fi
     copy_file "$KIT_ROOT/tooling/claude/.mcp.example.jsonc" "$TARGET/.mcp.example.jsonc"
     copy_dir  "$KIT_ROOT/tooling/claude/agents"         "$TARGET/.claude/agents"
     copy_dir  "$KIT_ROOT/tooling/claude/commands"       "$TARGET/.claude/commands"

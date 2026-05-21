@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.19.22] - 2026-05-21
+
+### Fixed — preserve project-owned `.mcp.json` across install, update, and uninstall (closes #59)
+
+`.mcp.json` is the file where users configure their Claude Code MCP
+servers (GitHub token, filesystem paths, Postgres connection strings,
+etc.). Previously every `install` rerun and every `update` overwrote it
+with the kit's empty `{"mcpServers":{}}` template, silently wiping the
+project's MCP configuration. `uninstall` likewise removed it, even
+though its content was authored by the project rather than the kit.
+
+`.mcp.json` is now treated as project-owned after install — the same
+policy as `docs/ai/`:
+
+- `install.sh` / `install.ps1` bootstrap an empty `.mcp.json` only when
+  the file is missing, and report `[skip] .mcp.json` on reruns. It is no
+  longer added to `.kit-manifest`.
+- `update.sh` / `update.ps1` no longer compare or copy `.mcp.json`. They
+  still refresh `.mcp.example.jsonc`, the kit's versioned reference.
+- `uninstall.sh` / `uninstall.ps1` no longer remove `.mcp.json` (neither
+  the manifest-based path nor the manifest-less fallback list it).
+- `owning_tool` / `Get-OwningTool` no longer map `.mcp.json` to the
+  `claude` scope, so an old manifest entry left over from prior installs
+  is silently dropped on the next update and is also ignored by
+  uninstall.
+
+Regression coverage in `.github/workflows/pr-scripts-shell.yml` and
+`.github/workflows/pr-scripts-powershell.yml` configures a real MCP
+server block, then verifies the file's content hash survives an install
+rerun, an update, and an uninstall, while `.mcp.example.jsonc` is still
+refreshed on update and removed on uninstall.
+
+---
+
 ## [1.19.21] - 2026-05-21
 
 ### Fixed — uninstall preserves user files inside managed tool directories (closes #51)
