@@ -28,15 +28,23 @@ Approval modes:
 - **yolo** — no confirmations; use only in sandboxed / throw-away environments.
 
 Useful flags:
-- `--model gemini-3.1-pro` — override the model for this session.
+- `--model gemini-3-pro-preview` — override the model for this session.
 - `--checkpointing` — enable automatic checkpointing so Gemini can resume after an error or long pause.
 - `--debug` — verbose output showing tool calls and model reasoning.
 
-Gemini CLI reads this file at startup. Skills are loaded explicitly: identify the relevant skill path from the routing table below, then read that file before editing.
+Gemini CLI reads this file at startup. Skills under `.gemini/skills/<name>/SKILL.md`
+are **Native Agent Skills**: Gemini auto-discovers them at session start and
+activates them based on their `description:` frontmatter. The routing table
+below is the kit's policy for **deterministic activation** — it tells Gemini
+which skill applies for each task family so the choice doesn't depend on
+description-matching heuristics. Run `/skills` (or `gemini skills list`) at any
+time to see which skills are discovered.
 
 **References:**
 - Source: [github.com/google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli)
 - Docs: [google-gemini.github.io/gemini-cli/docs](https://google-gemini.github.io/gemini-cli/docs)
+- Native Agent Skills: [geminicli.com/docs/cli/creating-skills](https://geminicli.com/docs/cli/creating-skills/)
+- Using skills: [geminicli.com/docs/cli/using-agent-skills](https://geminicli.com/docs/cli/using-agent-skills/)
 - GitHub Action: [github.com/google-github-actions/run-gemini-cli](https://github.com/google-github-actions/run-gemini-cli)
 
 ---

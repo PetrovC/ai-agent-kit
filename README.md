@@ -102,6 +102,22 @@ they target a *user home directory* or a *distribution channel*, not a project:
 `gemini-extension.json`'s `version` is still pinned to `KIT_VERSION` by CI so it
 never drifts, even though install/update/uninstall deliberately ignore both files.
 
+> **Extension-mode caveat (Gemini only).** When the kit is distributed via
+> `gemini extensions install`, only the files Gemini natively loads from the
+> extension folder (`commands/`, `agents/`, the `contextFileName`) reach the
+> user's project. The routing table inside the installed `GEMINI.md` still
+> references project-relative paths like `.gemini/skills/python/SKILL.md`, but
+> the extension doesn't copy `.gemini/skills/` into the user's project — those
+> files live under `~/.gemini/extensions/ai-agent-kit/skills/` instead.
+> Effect: in Extension mode the kit's commands and subagents work, but skill
+> activation via the routing table will fail with "File not found". For full
+> skill coverage, either run the install script in addition to the extension,
+> or fork the extension and inline the skills you actually use into the
+> shipped `GEMINI.md`. The install script remains the canonical multi-tool
+> setup; the extension scaffold is here for teams who explicitly want the
+> `gemini extensions install` distribution channel for their commands and
+> agents.
+
 ---
 
 ## Full kit (30 minutes)
@@ -126,7 +142,7 @@ Skills are the core of the kit. Each skill is a Markdown file with actionable pa
 |---|---|
 | **Claude Code** | Skills with `paths:` frontmatter are **auto-loaded** when you open a matching file (e.g., opening `*.cs` triggers the `dotnet` skill). Cross-cutting skills are invoked via the routing table in `CLAUDE.md`. |
 | **Codex CLI** | Skills are loaded by **`$skill-name` activation** — the agent reads the routing table in `AGENTS.md`, decides which skill applies, and activates it. |
-| **Gemini CLI** | Skills are loaded by **explicit `ReadFile`** — the agent reads `GEMINI.md`, identifies the relevant skill path, and reads the file before editing. |
+| **Gemini CLI** | Skills under `.gemini/skills/<name>/SKILL.md` are **Native Agent Skills** — Gemini auto-discovers them at session start and activates by `description:` frontmatter. The routing table in `GEMINI.md` is kit policy for deterministic activation (so the choice doesn't drift with description-matching heuristics). Verify discovery with `/skills` or `gemini skills list`. |
 
 All three approaches achieve the same result: the agent loads expert context for the current task without reading 30 skill files upfront.
 
@@ -197,11 +213,11 @@ actionable. Uniform tier, no exceptions:
 
 | Agent | Task | Claude | Gemini |
 |---|---|---|---|
-| `architect` | Deep design reasoning | `claude-opus-4-7` | `gemini-3.1-pro` |
-| `security-reviewer` | Vulnerability analysis | `claude-opus-4-7` | `gemini-3.1-pro` |
-| `code-reviewer` | PR review | `claude-opus-4-7` | `gemini-3.1-pro` |
-| `codebase-investigator` | Map usages / affected area | `claude-opus-4-7` | `gemini-3.1-pro` |
-| `test-runner` | Run tests + summarize | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `architect` | Deep design reasoning | `claude-opus-4-7` | `gemini-3-pro-preview` |
+| `security-reviewer` | Vulnerability analysis | `claude-opus-4-7` | `gemini-3-pro-preview` |
+| `code-reviewer` | PR review | `claude-opus-4-7` | `gemini-3-pro-preview` |
+| `codebase-investigator` | Map usages / affected area | `claude-opus-4-7` | `gemini-3-pro-preview` |
+| `test-runner` | Run tests + summarize | `claude-opus-4-7` | `gemini-3-pro-preview` |
 
 **Codex** does not pin a model per skill — the official Codex skill spec is
 `SKILL.md` with `name` + `description` only, so the five Codex agent-skills run

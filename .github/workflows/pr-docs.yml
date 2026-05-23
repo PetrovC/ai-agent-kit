@@ -308,7 +308,49 @@ jobs:
                               "invoking Gemini (issue #83)")
                   break
 
-          # 10. MCP `npx -y` example blocks must pin the package version with
+          # 11. Gemini model name must stay consistent across all Gemini
+          #     surfaces (settings.json, every subagent's frontmatter, the
+          #     GEMINI.md `--model` hint, and the README capability table).
+          #     A bumped model in one file but stale in another is silent
+          #     drift — the kit needs one canonical name (issue #43 regression).
+          # Each pattern captures `[a-z0-9.-]+` so trailing punctuation in
+          # prose (e.g. the backtick-fenced "`--model <name>`" hint in
+          # GEMINI.md) isn't included in the captured model name.
+          gemini_model_files = {
+              "tooling/gemini/settings.json": r'"name":\s*"([a-z0-9.-]+)"',
+              "tooling/gemini/GEMINI.md": r'--model\s+([a-z0-9.-]+)',
+              "tooling/gemini/agents/architect.md": r'^model:\s*([a-z0-9.-]+)',
+              "tooling/gemini/agents/code-reviewer.md": r'^model:\s*([a-z0-9.-]+)',
+              "tooling/gemini/agents/codebase-investigator.md": r'^model:\s*([a-z0-9.-]+)',
+              "tooling/gemini/agents/security-reviewer.md": r'^model:\s*([a-z0-9.-]+)',
+              "tooling/gemini/agents/test-runner.md": r'^model:\s*([a-z0-9.-]+)',
+          }
+          seen_models = {}
+          for f, pat in gemini_model_files.items():
+              try:
+                  t = read(f)
+              except FileNotFoundError:
+                  continue
+              m = re.search(pat, t, flags=re.MULTILINE)
+              if not m:
+                  errs.append(f"{f}: expected a Gemini model declaration matching `{pat}`")
+                  continue
+              seen_models.setdefault(m.group(1), []).append(f)
+          # README capability table lists Gemini model for each subagent;
+          # the strings are markdown-fenced (`gemini-...`) so harvest them
+          # separately and merge into the same seen-models dict.
+          try:
+              readme = read("README.md")
+              for m in re.finditer(r'\| `(gemini-[a-z0-9-]+)` \|', readme):
+                  seen_models.setdefault(m.group(1), []).append("README.md")
+          except FileNotFoundError:
+              pass
+          if len(seen_models) > 1:
+              parts = "; ".join(f"{name!r} in {sorted(set(files))}" for name, files in seen_models.items())
+              errs.append(f"Gemini model name drift: {parts}. Pick one canonical "
+                          "name and update every file (issue #43)")
+
+          # 12. MCP `npx -y` example blocks must pin the package version with
           #     `@<x.y.z>` (or a real `@N.N.N`) — `npx -y <pkg>` without a
           #     version installs whatever the registry serves at startup,
           #     auto-running future releases with whatever access (PAT, FS,

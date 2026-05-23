@@ -8,7 +8,7 @@ tools:
   - read_file
   - search_file_content
   - list_directory
-model: gemini-3.1-pro
+model: gemini-3-pro-preview
 temperature: 0.1
 max_turns: 15
 ---
