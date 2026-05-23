@@ -181,7 +181,7 @@ function Compare-And-Update([string]$src, [string]$dst) {
         $Changes.Add("NEW      $rel")
         if (-not $DryRun) {
             $dir = Split-Path -Parent $dst
-            if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+            if (-not (Test-Path -LiteralPath $dir)) { [System.IO.Directory]::CreateDirectory($dir) | Out-Null }
             Copy-Item -LiteralPath $src -Destination $dst -Force
         }
         return

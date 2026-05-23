@@ -92,7 +92,13 @@ function Write-Preserve([string]$msg) {
 function Copy-KitFile([string]$src, [string]$dst) {
     $dstDir = Split-Path -Parent $dst
     if (-not (Test-Path -LiteralPath $dstDir)) {
-        New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
+        # `New-Item -Path $dstDir` would treat wildcard chars in $dstDir
+        # (`[`, `]`, `*`, `?`) as glob patterns and either error out or
+        # create the wrong path. [System.IO.Directory]::CreateDirectory
+        # takes its argument as a literal filesystem path and creates all
+        # intermediate directories — no wildcard interpretation, no
+        # cmdlet-parameter rule churn.
+        [System.IO.Directory]::CreateDirectory($dstDir) | Out-Null
     }
     Copy-Item -LiteralPath $src -Destination $dst -Force
     # Closes #74: `.Replace($Target, "")` strips EVERY literal occurrence

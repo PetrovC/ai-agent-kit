@@ -68,7 +68,7 @@ if ([string]::IsNullOrWhiteSpace($Description)) {
     $Description = "Use when ... (describe the trigger condition for this skill in one sentence)."
 }
 
-New-Item -ItemType Directory -Path $skillDir -Force | Out-Null
+[System.IO.Directory]::CreateDirectory($skillDir) | Out-Null
 
 $title = ($Name -split '-' | ForEach-Object {
     $_.Substring(0,1).ToUpper() + $_.Substring(1)
