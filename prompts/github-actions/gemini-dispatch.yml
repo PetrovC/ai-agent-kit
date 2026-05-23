@@ -56,6 +56,49 @@ jobs:
           mkdir -p .gemini-task
           printf '%s' "${COMMENT_BODY}" > .gemini-task/command.md
 
+      # Validate route ↔ context BEFORE spending Gemini budget. Closes the
+      # gap between "the prompt says /review needs a PR" and the workflow
+      # actually enforcing it: a maintainer commenting `@gemini-cli /review`
+      # on a plain issue (or `/triage` on a PR) used to be routed by Gemini
+      # at prompt-interpretation time, leaving misplaced output and a paid
+      # model call. We now detect the route deterministically and post a
+      # friendly correction comment instead.
+      - name: Validate route + context
+        id: route
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          IS_PR_CONTEXT: ${{ github.event_name == 'pull_request_review_comment' || (github.event_name == 'issue_comment' && github.event.issue.pull_request != null) }}
+          TARGET_NUM: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if printf '%s' "$COMMENT_BODY" | grep -qF "/review"; then route=review
+          elif printf '%s' "$COMMENT_BODY" | grep -qF "/triage"; then route=triage
+          else route=assistant
+          fi
+
+          mismatch=""
+          case "$route" in
+            review)
+              if [[ "$IS_PR_CONTEXT" != "true" ]]; then
+                mismatch="\`/review\` needs a pull-request context — this comment is on an issue. Try \`/triage\` to classify the issue, or open a PR and re-comment."
+              fi ;;
+            triage)
+              if [[ "$IS_PR_CONTEXT" == "true" ]]; then
+                mismatch="\`/triage\` needs an issue context — this comment is on a pull request. Try \`/review\` to review the PR diff."
+              fi ;;
+          esac
+
+          if [[ -n "$mismatch" ]]; then
+            # `gh issue comment` works for PRs too (PRs are issues for the
+            # comment API). Suppress comment-failure so a missing token
+            # doesn't mask the route-mismatch error message below.
+            gh issue comment "$TARGET_NUM" --body "$mismatch" || true
+            echo "::error::route/context mismatch: $mismatch"
+            exit 1
+          fi
+          echo "route=$route" >> "$GITHUB_OUTPUT"
+
       # --- WIF alternative (keyless). Uncomment + use_vertex_ai below,
       #     remove gemini_api_key, to use Workload Identity. ---
       # - name: Authenticate to Google Cloud
