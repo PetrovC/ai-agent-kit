@@ -263,6 +263,11 @@ if (-not $DryRun) {
 }
 
 # -- .kit-version + .kit-manifest -----------------------------------------
+# Partial uninstall must rewrite both metadata files to reflect the REMAINING
+# tools — leaving the stale "tools: codex,claude,gemini" line after
+# `uninstall -Tools codex` makes the next default update think Codex is still
+# installed and silently re-install its files. Manifest entries belonging to
+# removed tools must be dropped too.
 $versionFile = Join-Path $Target ".kit-version"
 if (Test-Path -LiteralPath $versionFile) {
     $versionLine = (Get-Content -LiteralPath $versionFile -Raw).Trim()
@@ -270,8 +275,13 @@ if (Test-Path -LiteralPath $versionFile) {
     if ($versionLine -match "tools: (.+)") {
         $installedRaw = $Matches[1].Trim()
     }
+    $installedVersion = "unknown"
+    if ($versionLine -match "ai-agent-kit@([0-9]+\.[0-9]+\.[0-9]+)") {
+        $installedVersion = $Matches[1]
+    }
     $installedList = @($installedRaw -split "," | ForEach-Object { $_.Trim().ToLower() })
     $remaining = @($installedList | Where-Object { $ToolList -notcontains $_ })
+
     if ($remaining.Count -eq 0) {
         Step "Removing .kit-version + .kit-manifest"
         foreach ($meta in @(".kit-version", ".kit-manifest")) {
@@ -286,8 +296,41 @@ if (Test-Path -LiteralPath $versionFile) {
             }
         }
     } else {
-        Step "Keeping .kit-version"
-        Write-Host "  (still installed: $($remaining -join ','))"
+        $remainingStr = $remaining -join ","
+        Step "Updating .kit-version to remaining tools: $remainingStr"
+        if ($DryRun) {
+            DryRunOut ".kit-version"
+        } else {
+            $stamp = "ai-agent-kit@$installedVersion - updated $(Get-Date -Format 'yyyy-MM-dd') - tools: $remainingStr"
+            [System.IO.File]::WriteAllText(
+                $versionFile,
+                $stamp,
+                (New-Object System.Text.UTF8Encoding($false)))
+            Removed ".kit-version (rewritten)"
+        }
+        # Filter the manifest: keep only entries whose owning tool is still installed.
+        $manifestPath = Join-Path $Target ".kit-manifest"
+        if (Test-Path -LiteralPath $manifestPath) {
+            if ($DryRun) {
+                DryRunOut ".kit-manifest (filter)"
+            } else {
+                $kept = @()
+                foreach ($line in (Get-Content -LiteralPath $manifestPath)) {
+                    $p = $line.Trim()
+                    if (-not $p) { continue }
+                    $otool = Get-OwningTool $p
+                    if (-not $otool) { continue }
+                    if ($ToolList -contains $otool) { continue }
+                    $kept += $p
+                }
+                $kept = @($kept | Sort-Object -Unique)
+                [System.IO.File]::WriteAllText(
+                    $manifestPath,
+                    (($kept -join "`n") + "`n"),
+                    (New-Object System.Text.UTF8Encoding($false)))
+                Removed ".kit-manifest (filtered)"
+            }
+        }
     }
 }
 

@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.27"
+$KitVersion = "1.19.28"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 # Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
@@ -203,15 +203,56 @@ Get-ChildItem -Path (Join-Path $KitRoot "project-template") -File | ForEach-Obje
 }
 
 # -- .kit-version + .kit-manifest ------------------------------------------
+# A partial install (`-Tools gemini` on top of a codex+claude install) must
+# UNION its -Tools with the already-installed set in .kit-version, never
+# shrink it; and must MERGE the new manifest entries with the manifest
+# entries of tools NOT in this run, never overwrite them.
 Write-Step "Writing .kit-version + .kit-manifest"
-$stamp = "ai-agent-kit@$KitVersion - installed $(Get-Date -Format 'yyyy-MM-dd') - tools: $($ToolList -join ',')"
-Write-Utf8NoBom (Join-Path $Target ".kit-version") $stamp
-Write-Ok ".kit-version"
 
-# Baseline manifest: every kit artifact just installed, filtered by
-# Get-OwningTool so docs/ai/ and any non-kit paths never end up in it.
-# update.ps1 diffs against this to prune files later versions stop shipping.
-$manifestEntries = $Managed | Where-Object { (Get-OwningTool $_) } | Sort-Object -Unique
+# Read the prior installed-tool set so we can preserve it across a partial run.
+$installedToolsOld = ""
+$versionFileOld = Join-Path $Target ".kit-version"
+if (Test-Path -LiteralPath $versionFileOld) {
+    $vl = (Get-Content -LiteralPath $versionFileOld -Raw).Trim()
+    if ($vl -match "tools: ([^\s]+)") {
+        $installedToolsOld = $Matches[1]
+    }
+}
+# FullTools = union(installed_old, -Tools) in canonical codex,claude,gemini order.
+$oldList = @()
+if ($installedToolsOld) {
+    $oldList = @($installedToolsOld -split "," | ForEach-Object { $_.Trim().ToLower() })
+}
+$fullTools = @()
+foreach ($ref in @("codex", "claude", "gemini")) {
+    if (($oldList -contains $ref) -or ($ToolList -contains $ref)) {
+        $fullTools += $ref
+    }
+}
+$fullToolsStr = $fullTools -join ","
+$stamp = "ai-agent-kit@$KitVersion - installed $(Get-Date -Format 'yyyy-MM-dd') - tools: $fullToolsStr"
+Write-Utf8NoBom (Join-Path $Target ".kit-version") $stamp
+Write-Ok ".kit-version (tools: $fullToolsStr)"
+
+# Manifest merge: keep entries from the old .kit-manifest whose owning tool
+# is NOT in this run's -Tools, plus the entries we just installed. Mirrors
+# update.ps1's KeepFromOld semantics so a partial install + a later update
+# don't lose other tools' files.
+$manifestKeepFromOld = @()
+$manifestFileOld = Join-Path $Target ".kit-manifest"
+if (Test-Path -LiteralPath $manifestFileOld) {
+    foreach ($line in (Get-Content -LiteralPath $manifestFileOld)) {
+        $p = $line.Trim()
+        if (-not $p) { continue }
+        $otool = Get-OwningTool $p
+        if (-not $otool) { continue }
+        if ($ToolList -notcontains $otool) {
+            $manifestKeepFromOld += $p
+        }
+    }
+}
+$newEntries = @($Managed | Where-Object { (Get-OwningTool $_) })
+$manifestEntries = (@() + $newEntries + $manifestKeepFromOld) | Sort-Object -Unique | Where-Object { $_ }
 Write-Utf8NoBom (Join-Path $Target ".kit-manifest") (($manifestEntries -join "`n") + "`n")
 Write-Ok ".kit-manifest"
 

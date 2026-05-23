@@ -482,6 +482,96 @@ jobs:
             || { echo "FAIL: legacy fallback left a kit agent"; exit 1; }
           echo "OK: legacy fallback removes only files this kit version ships"
 
+      - name: install.sh partial run preserves other tools' manifest entries + kit-version
+        run: |
+          set -euo pipefail
+          # Closes #71: install --tools gemini on top of codex+claude must
+          # MERGE the new manifest entries with the codex+claude ones, not
+          # overwrite them.
+          # Closes #40 (install path): partial install must UNION the new
+          # tools with the already-installed set in .kit-version, not shrink.
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          before_lines="$(wc -l < "$T/.kit-manifest")"
+          before_codex="$(grep -c '^\.codex/' "$T/.kit-manifest" || true)"
+          before_claude="$(grep -c '^\.claude/' "$T/.kit-manifest" || true)"
+          before_gemini="$(grep -c '^\.gemini/' "$T/.kit-manifest" || true)"
+
+          # Partial reinstall: only gemini in --tools, but the kit-managed
+          # codex+claude files are still on disk; their manifest entries must
+          # survive the rewrite.
+          bash scripts/install.sh --target "$T" --tools gemini >/dev/null
+          after_lines="$(wc -l < "$T/.kit-manifest")"
+          after_codex="$(grep -c '^\.codex/' "$T/.kit-manifest" || true)"
+          after_claude="$(grep -c '^\.claude/' "$T/.kit-manifest" || true)"
+          after_gemini="$(grep -c '^\.gemini/' "$T/.kit-manifest" || true)"
+
+          if [[ "$after_lines" -lt "$before_lines" ]]; then
+            echo "FAIL: partial install shrank the manifest ($before_lines -> $after_lines)"; exit 1
+          fi
+          for t in codex claude gemini; do
+            b="before_${t}"; a="after_${t}"
+            if [[ "${!a}" -lt "${!b}" ]]; then
+              echo "FAIL: partial install dropped $t manifest entries (${!b} -> ${!a})"; exit 1
+            fi
+          done
+
+          if ! grep -qF "tools: codex,claude,gemini" "$T/.kit-version"; then
+            echo "FAIL: partial install shrank .kit-version tool set"; cat "$T/.kit-version"; exit 1
+          fi
+
+          # Reverse direction: starting from a single-tool install, adding
+          # more tools must UPDATE .kit-version to the union.
+          T2="$(mktemp -d)"
+          bash scripts/install.sh --target "$T2" --tools codex >/dev/null
+          grep -qF "tools: codex" "$T2/.kit-version" || { echo "FAIL: initial single-tool stamp wrong"; exit 1; }
+          bash scripts/install.sh --target "$T2" --tools claude >/dev/null
+          grep -qF "tools: codex,claude" "$T2/.kit-version" \
+            || { echo "FAIL: install --tools claude did not union with codex"; cat "$T2/.kit-version"; exit 1; }
+          bash scripts/install.sh --target "$T2" --tools gemini >/dev/null
+          grep -qF "tools: codex,claude,gemini" "$T2/.kit-version" \
+            || { echo "FAIL: install --tools gemini did not union with codex,claude"; cat "$T2/.kit-version"; exit 1; }
+
+          rm -rf "$T" "$T2"
+          echo "OK: install merges manifest + unions kit-version on partial runs"
+
+      - name: update.sh + uninstall.sh keep .kit-version in sync with the installed tool set
+        run: |
+          set -euo pipefail
+          # Closes #40 (update path): partial update must NOT shrink the
+          # installed tool set; the stamp must keep codex,claude,gemini.
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          bash scripts/update.sh --target "$T" --tools gemini >/dev/null
+          grep -qF "tools: codex,claude,gemini" "$T/.kit-version" \
+            || { echo "FAIL: update --tools gemini shrank the installed tool set"; cat "$T/.kit-version"; exit 1; }
+
+          # Closes #40 (uninstall path): partial uninstall must REWRITE
+          # .kit-version with the remaining tools AND drop the removed tool's
+          # manifest entries so a later default update doesn't think the
+          # removed tool is still installed.
+          bash scripts/uninstall.sh --target "$T" --tools codex >/dev/null
+          grep -qF "tools: claude,gemini" "$T/.kit-version" \
+            || { echo "FAIL: uninstall --tools codex did not rewrite the installed tool set"; cat "$T/.kit-version"; exit 1; }
+          if grep -q '^\.codex/' "$T/.kit-manifest" || grep -q '^AGENTS.md$' "$T/.kit-manifest"; then
+            echo "FAIL: codex entries still in manifest after uninstall --tools codex"
+            grep -E '^\.codex/|^AGENTS\.md$' "$T/.kit-manifest" || true
+            exit 1
+          fi
+          # A subsequent default update must respect the new installed set
+          # (claude,gemini only) and NOT reinstall codex.
+          bash scripts/update.sh --target "$T" >/dev/null
+          [[ ! -e "$T/AGENTS.md" ]] \
+            || { echo "FAIL: update silently reinstalled AGENTS.md after codex uninstall"; exit 1; }
+
+          # All-tools uninstall still removes both metadata files entirely.
+          bash scripts/uninstall.sh --target "$T" >/dev/null
+          [[ ! -e "$T/.kit-version" ]] || { echo "FAIL: .kit-version survived all-tools uninstall"; exit 1; }
+          [[ ! -e "$T/.kit-manifest" ]] || { echo "FAIL: .kit-manifest survived all-tools uninstall"; exit 1; }
+
+          rm -rf "$T"
+          echo "OK: update preserves and uninstall narrows .kit-version + .kit-manifest"
+
       - name: update.sh manifest GC prunes only de-shipped kit files
         run: |
           set -euo pipefail

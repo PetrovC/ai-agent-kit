@@ -109,6 +109,7 @@ removed(){ echo -e "  \033[31m[removed]\033[0m $1"; }
 absent() { echo -e "  \033[37m[absent]\033[0m $1"; }
 dryrun() { echo -e "  \033[33m[would-remove]\033[0m $1"; }
 warn()   { echo -e "  \033[33m! $1\033[0m"; }
+ok()     { echo -e "  \033[32m[ok]\033[0m $1"; }
 
 contains() {
     local needle="$1"
@@ -254,18 +255,31 @@ if [[ "$DRY_RUN" == "false" ]]; then
 fi
 
 # ── .kit-version + .kit-manifest ──────────────────────────────────────────
+# Partial uninstall must rewrite both metadata files to reflect the REMAINING
+# tools — leaving the stale "tools: codex,claude,gemini" line after
+# `uninstall --tools codex` makes the next default update think Codex is still
+# installed and silently re-install its files. Similarly, manifest entries
+# belonging to removed tools must be dropped so update's manifest-diff GC
+# doesn't keep trying to track files we just deleted.
 if [[ -f "$TARGET/.kit-version" ]]; then
     VERSION_LINE="$(cat "$TARGET/.kit-version")"
     INSTALLED=""
+    INSTALLED_VERSION=""
     if [[ "$VERSION_LINE" =~ tools:\ ([^[:space:]]+) ]]; then
         INSTALLED="${BASH_REMATCH[1]}"
     fi
-    all_removed=true
+    if [[ "$VERSION_LINE" =~ ai-agent-kit@([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+        INSTALLED_VERSION="${BASH_REMATCH[1]}"
+    fi
+    [[ -z "$INSTALLED_VERSION" ]] && INSTALLED_VERSION="unknown"
+
     IFS=',' read -ra INSTALLED_LIST <<< "$INSTALLED"
+    remaining=()
     for t in "${INSTALLED_LIST[@]}"; do
-        contains "$t" || all_removed=false
+        contains "$t" || remaining+=("$t")
     done
-    if [[ "$all_removed" == "true" ]]; then
+
+    if [[ ${#remaining[@]} -eq 0 ]]; then
         step "Removing .kit-version + .kit-manifest"
         for meta in .kit-version .kit-manifest; do
             path="$TARGET/$meta"
@@ -279,12 +293,32 @@ if [[ -f "$TARGET/.kit-version" ]]; then
             fi
         done
     else
-        step "Keeping .kit-version"
-        remaining=()
-        for t in "${INSTALLED_LIST[@]}"; do
-            contains "$t" || remaining+=("$t")
-        done
-        echo "  (still installed: $(IFS=,; echo "${remaining[*]}"))"
+        REMAINING_STR="$(IFS=,; echo "${remaining[*]}")"
+        step "Updating .kit-version to remaining tools: $REMAINING_STR"
+        if [[ "$DRY_RUN" == "true" ]]; then
+            dryrun ".kit-version"
+        else
+            echo "ai-agent-kit@$INSTALLED_VERSION - updated $(date +%Y-%m-%d) - tools: $REMAINING_STR" > "$TARGET/.kit-version"
+            ok ".kit-version"
+        fi
+        # Filter the manifest: keep only entries whose owning tool is still installed.
+        if [[ -f "$TARGET/.kit-manifest" ]]; then
+            if [[ "$DRY_RUN" == "true" ]]; then
+                dryrun ".kit-manifest (filter)"
+            else
+                tmp="$(mktemp)"
+                while IFS= read -r p; do
+                    [[ -z "$p" ]] && continue
+                    otool="$(owning_tool "$p")"
+                    [[ -z "$otool" ]] && continue
+                    # Drop entries belonging to tools we just uninstalled.
+                    contains "$otool" && continue
+                    echo "$p"
+                done < "$TARGET/.kit-manifest" | LC_ALL=C sort -u | sed '/^$/d' > "$tmp"
+                mv "$tmp" "$TARGET/.kit-manifest"
+                ok ".kit-manifest (filtered)"
+            fi
+        fi
     fi
 fi
 
