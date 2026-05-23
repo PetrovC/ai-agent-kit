@@ -30,7 +30,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $DocsAi = Join-Path $Target "docs\ai"
-if (-not (Test-Path $DocsAi)) {
+# Closes #89: every Test-Path / Get-ChildItem / Select-String on a path
+# derived from $Target uses -LiteralPath so a project at e.g.
+# `C:\work\[acme]\app` is treated as a literal filesystem path, not a
+# wildcard pattern that would silently miss the docs directory.
+if (-not (Test-Path -LiteralPath $DocsAi)) {
     Write-Error "$DocsAi does not exist. Run install.ps1 first."
     exit 1
 }
@@ -57,7 +61,7 @@ Write-Host ""
 # Required files
 Write-Host "> Required files in docs/ai/"
 foreach ($f in $Required) {
-    if (Test-Path (Join-Path $DocsAi $f)) {
+    if (Test-Path -LiteralPath (Join-Path $DocsAi $f)) {
         Ok "$f present"
     } else {
         Warn "$f MISSING"
@@ -68,8 +72,8 @@ foreach ($f in $Required) {
 Write-Host ""
 Write-Host "> Templates still showing STOP notice (must be filled)"
 $stopFound = $false
-Get-ChildItem -Path $DocsAi -Filter "*.md" -File | ForEach-Object {
-    if (Select-String -Path $_.FullName -Pattern "^> .*STOP|⚠️.*STOP" -Quiet) {
+Get-ChildItem -LiteralPath $DocsAi -Filter "*.md" -File | ForEach-Object {
+    if (Select-String -LiteralPath $_.FullName -Pattern "^> .*STOP|⚠️.*STOP" -Quiet) {
         Warn "$($_.Name) still contains a STOP notice"
         $stopFound = $true
     }
@@ -80,8 +84,8 @@ if (-not $stopFound) { Ok "no STOP notices remaining" }
 Write-Host ""
 Write-Host "> Templates still containing HTML-comment placeholders"
 $placeholdersFound = $false
-Get-ChildItem -Path $DocsAi -Filter "*.md" -File | ForEach-Object {
-    $hits = @(Select-String -Path $_.FullName -Pattern "<!--\s*[A-Za-z]")
+Get-ChildItem -LiteralPath $DocsAi -Filter "*.md" -File | ForEach-Object {
+    $hits = @(Select-String -LiteralPath $_.FullName -Pattern "<!--\s*[A-Za-z]")
     if ($hits.Count -gt 0) {
         Warn "$($_.Name): $($hits.Count) placeholder comment(s) remaining"
         $placeholdersFound = $true
@@ -99,7 +103,7 @@ if (-not $placeholdersFound) { Ok "no placeholder comments remaining" }
 Write-Host ""
 Write-Host "> Templates still containing non-comment placeholders"
 $nonCommentFound = $false
-Get-ChildItem -Path $DocsAi -Filter "*.md" -File | ForEach-Object {
+Get-ChildItem -LiteralPath $DocsAi -Filter "*.md" -File | ForEach-Object {
     $file = $_
     $inCode = $false
     $inComment = $false

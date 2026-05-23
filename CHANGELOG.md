@@ -1,5 +1,52 @@
 # Changelog
 
+## [1.19.33] - 2026-05-23
+
+### Fixed — PowerShell lifecycle paths: literal handling + accurate display (closes #74, closes #89)
+
+Two related path-correctness bugs in the PowerShell lifecycle scripts.
+Both made Windows users hit problems on legitimate project paths that
+Bash users never saw.
+
+- **Lifecycle scripts now use `-LiteralPath` for every `$Target`-derived
+  file operation (closes #89).** PowerShell's bare `-Path` parameter
+  treats `[`, `]`, `*`, and `?` as wildcards. A project installed at
+  `C:\work\[acme]\app` failed `Test-Path` even though the directory
+  existed, because the bracketed name was interpreted as a character
+  class. The sweep covers `install.ps1`, `update.ps1`, `uninstall.ps1`,
+  `validate.ps1`, and `new-skill.ps1` — every `Test-Path`, `Copy-Item`,
+  `Remove-Item`, `Get-ChildItem`, `Get-Content`, and `Select-String`
+  call on a path derived from `$Target` (or the kit source) now uses
+  `-LiteralPath`. Closes the cross-platform reliability gap with the
+  Bash side, which already treats paths literally when quoted.
+
+- **`install.ps1` / `update.ps1` print accurate relative paths under
+  `-Target .` (closes #74).** The display helper used
+  `$dst.Replace($Target, "")` to build the printed relative path. When
+  `$Target` was `.` (a common shorthand for the current dir),
+  `Replace(".", "")` stripped *every* dot from `$dst` — including the
+  leading dot of `.codex/`, `.claude/`, `.gemini/` directories and
+  every file-extension dot. The change report (and especially the
+  `-DryRun` preview) showed paths like `codex/configtoml` instead of
+  `.codex/config.toml`, making users believe the script was about to
+  touch wildly wrong paths. The helpers now use a true prefix-strip
+  (`StartsWith` + `Substring`) so only the literal `$Target` prefix is
+  removed.
+
+Regression coverage in `.github/workflows/pr-scripts-powershell.yml`
+adds two Windows-runner steps:
+- *install/update/uninstall.ps1 handle paths with wildcard chars*: runs
+  the full lifecycle against `lit-[acme]-<guid>` and asserts each
+  stage exits 0, the expected files land, the update is a no-op
+  immediately after install, and uninstall removes the kit cleanly.
+- *install.ps1 with `-Target .` prints accurate relative paths*: runs
+  `install.ps1 -Target .` from a sandbox CWD and asserts the printed
+  output contains real dot-prefixed paths like `.claude/settings.json`
+  and `.mcp.example.jsonc`, and never contains the corrupted forms
+  `codex/configtoml`, `claude/settingsjson`, or `mcpexamplejsonc`.
+
+---
+
 ## [1.19.32] - 2026-05-23
 
 ### Fixed — `update` accuracy: loud failure on missing kit source, honest preservation message (closes #58, closes #68)

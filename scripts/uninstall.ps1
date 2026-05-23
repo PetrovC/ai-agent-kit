@@ -58,8 +58,8 @@ $KitRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 # If no -Tools given, read from .kit-version.
 if ([string]::IsNullOrWhiteSpace($Tools)) {
     $versionFile = Join-Path $Target ".kit-version"
-    if (Test-Path $versionFile) {
-        $versionLine = (Get-Content $versionFile -Raw).Trim()
+    if (Test-Path -LiteralPath $versionFile) {
+        $versionLine = (Get-Content -LiteralPath $versionFile -Raw).Trim()
         if ($versionLine -match "tools: (.+)") {
             $Tools = $Matches[1].Trim()
         }

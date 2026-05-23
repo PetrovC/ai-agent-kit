@@ -59,7 +59,7 @@ if ($reserved -contains $Name.ToLower()) {
 $skillDir  = Join-Path $KitRoot "skills\$Name"
 $skillFile = Join-Path $skillDir "SKILL.md"
 
-if (Test-Path $skillDir) {
+if (Test-Path -LiteralPath $skillDir) {
     Write-Error "skills/$Name already exists."
     exit 1
 }
@@ -141,7 +141,7 @@ function Insert-RoutingRow([string]$file, [string]$row, [string]$anchor) {
     # Normalise CRLF -> LF first: on a Windows checkout (autocrlf) the file is
     # CRLF on disk but the anchors are written with bare LF - without this the
     # IndexOf never matches and every routing row is silently skipped.
-    $content = (Get-Content $file -Raw) -replace "`r`n", "`n"
+    $content = (Get-Content -LiteralPath $file -Raw) -replace "`r`n", "`n"
     $idx = $content.IndexOf($anchor)
     if ($idx -lt 0) {
         $script:routingResults += "$base : ANCHOR NOT FOUND -- add the row manually"

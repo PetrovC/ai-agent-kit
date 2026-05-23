@@ -281,6 +281,100 @@ jobs:
 
           if ($fail) { exit 1 } else { Write-Host "OK: PS scaffolds with correct single-`$ AGENTS.md row"; exit 0 }
 
+      - name: install/update/uninstall.ps1 handle paths with wildcard chars (`[`, `]`) literally
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          # Closes #89: a target path containing `[`/`]` (common in client
+          # folders like `C:\work\[acme]\app`) must be treated as a literal
+          # filesystem path. PowerShell's bare `-Path` parameter expands
+          # wildcards, so `Test-Path "C:\…\[acme]\…"` returns $false even
+          # when the directory exists. Every Test-Path / Copy-Item /
+          # Remove-Item / Get-ChildItem / Get-Content on a $Target-derived
+          # path now uses -LiteralPath; this step exercises a real install
+          # against a bracketed path to catch regressions end-to-end.
+          $bracket = Join-Path $env:RUNNER_TEMP "lit-[acme]-$([guid]::NewGuid().ToString('N').Substring(0,6))"
+          New-Item -ItemType Directory -LiteralPath $bracket -Force | Out-Null
+
+          .\scripts\install.ps1 -Target $bracket -Tools "claude" 2>&1 | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "FAIL: install rejected bracketed target (rc=$LASTEXITCODE)"; exit 1
+          }
+          foreach ($rel in @("CLAUDE.md", ".kit-version", ".kit-manifest", ".claude/settings.json", ".claude/hooks/pre-bash-guard.sh")) {
+            if (-not (Test-Path -LiteralPath (Join-Path $bracket $rel))) {
+              Write-Host "FAIL: install bracketed target left $rel missing"; exit 1
+            }
+          }
+
+          # update must run cleanly against the bracketed target too.
+          $out = .\scripts\update.ps1 -Target $bracket 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "FAIL: update rejected bracketed target (rc=$LASTEXITCODE)"; Write-Host $out; exit 1
+          }
+          if ($out -notmatch "Everything is up to date") {
+            Write-Host "FAIL: update wasn't a no-op right after install on bracketed target"
+            Write-Host $out; exit 1
+          }
+
+          # uninstall must also work and clean up.
+          .\scripts\uninstall.ps1 -Target $bracket 2>&1 | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "FAIL: uninstall rejected bracketed target (rc=$LASTEXITCODE)"; exit 1
+          }
+          foreach ($leftover in @(".kit-version", ".kit-manifest", "CLAUDE.md", ".claude")) {
+            if (Test-Path -LiteralPath (Join-Path $bracket $leftover)) {
+              Write-Host "FAIL: uninstall bracketed target left $leftover behind"; exit 1
+            }
+          }
+
+          Remove-Item -LiteralPath $bracket -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host "OK: PS lifecycle scripts treat `[...]` target paths literally"
+
+      - name: install.ps1 with -Target . prints accurate relative paths (no .Replace dot-strip)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          # Closes #74: $dst.Replace($Target, "") used to collapse every
+          # dot when $Target was ".", producing e.g. `codex/configtoml`
+          # instead of `.codex/config.toml` in the [ok] / NEW / UPDATED
+          # change lines. Run install with -Target . in a sandbox and
+          # assert the printed paths keep their dots.
+          $sandbox = Join-Path $env:RUNNER_TEMP "dot-target-$([guid]::NewGuid().ToString('N').Substring(0,6))"
+          New-Item -ItemType Directory -LiteralPath $sandbox -Force | Out-Null
+          Push-Location -LiteralPath $sandbox
+          try {
+            $kit = $PWD.Path
+            # `-Target .` triggers the dot-stripping bug if .Replace is
+            # used. The absolute kit path is via $env:GITHUB_WORKSPACE.
+            $repo = $env:GITHUB_WORKSPACE
+            $out = & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo "scripts\install.ps1") -Target . -Tools "claude" 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "FAIL: install -Target . rejected (rc=$LASTEXITCODE)"; Write-Host $out; exit 1
+            }
+            # Real paths the kit ships under `claude` always have dots:
+            # `.claude/settings.json`, `.mcp.example.jsonc`, `CLAUDE.md`,
+            # `.claude/hooks/pre-bash-guard.sh`. The bug stripped the
+            # leading `.` AND the file-extension dot. Assert the real
+            # forms appear in the install output.
+            foreach ($expected in @(".claude/settings.json", ".claude/hooks/pre-bash-guard.sh", ".mcp.example.jsonc", "CLAUDE.md")) {
+              if ($out -notmatch [regex]::Escape($expected)) {
+                Write-Host "FAIL: install output missing `"$expected`" — dot-strip regression?"
+                Write-Host $out; exit 1
+              }
+            }
+            # And the bug's exact symptoms must NOT appear.
+            foreach ($corrupt in @("codex/configtoml", "claude/settingsjson", "mcpexamplejsonc")) {
+              if ($out -match [regex]::Escape($corrupt)) {
+                Write-Host "FAIL: install output contains corrupted path `"$corrupt`" (issue #74 regression)"
+                exit 1
+              }
+            }
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $sandbox -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          Write-Host "OK: install -Target . preserves dot-prefixed dirs and file extensions"
+
       - name: All .ps1 scripts must parse (syntax)
         shell: pwsh
         run: |
