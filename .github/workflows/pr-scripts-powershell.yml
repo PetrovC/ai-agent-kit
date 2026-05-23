@@ -230,6 +230,46 @@ jobs:
           # despite every case passing.
           if ($fail) { exit 1 } else { exit 0 }
 
+      - name: new-skill.ps1 interpolates $Name correctly and rejects malformed slugs
+        shell: pwsh
+        run: |
+          # Closes #69: prior `$`$Name`` form double-escaped the `$` and wrote
+          # `$$Name` literally into AGENTS.md instead of interpolating the
+          # skill slug. Scaffold a probe and assert the AGENTS.md row contains
+          # a single literal `$` followed by the slug, never `$$<slug>`.
+          $probe = "ps-probe-$([guid]::NewGuid().ToString('N').Substring(0,6))"
+          .\scripts\new-skill.ps1 -Name $probe -Description "PS interpolation probe."
+          $rc = $LASTEXITCODE
+          if ($rc -ne 0) { Write-Host "FAIL: new-skill.ps1 exit=$rc"; exit 1 }
+
+          $agents = Get-Content -Raw -LiteralPath "tooling/codex/AGENTS.md"
+          if ($agents -notmatch [regex]::Escape("`$$probe")) {
+            Write-Host "FAIL: AGENTS.md missing single-`$ row for $probe"
+            exit 1
+          }
+          if ($agents -match [regex]::Escape("`$`$$probe")) {
+            Write-Host "FAIL: AGENTS.md contains `$`$<name> corruption (issue #69 regression)"
+            exit 1
+          }
+
+          # Closes #96: PS validation must reject the same set of malformed
+          # and Windows-reserved slugs the bash side rejects.
+          $fail = 0
+          foreach ($bad in @('foo-','foo--bar','Foo','1foo','con','CON','nul','com1','lpt9')) {
+            $out = & pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/new-skill.ps1 -Name $bad 2>&1
+            $brc = $LASTEXITCODE
+            if ($brc -eq 0) {
+              Write-Host "FAIL: PS accepted invalid slug '$bad'"
+              $fail = 1
+            }
+          }
+
+          # Clean up probe + restore routing-table mutations.
+          Remove-Item -LiteralPath "skills/$probe" -Recurse -Force -ErrorAction SilentlyContinue
+          git checkout -- tooling/claude/CLAUDE.md tooling/codex/AGENTS.md tooling/gemini/GEMINI.md 2>$null
+
+          if ($fail) { exit 1 } else { Write-Host "OK: PS interpolation correct, malformed slugs rejected" }
+
       - name: All .ps1 scripts must parse (syntax)
         shell: pwsh
         run: |

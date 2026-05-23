@@ -546,4 +546,59 @@ jobs:
           grep -qE '`ci-probe-skill`[[:space:]]+skill' tooling/claude/CLAUDE.md
           grep -qF '`$ci-probe-skill`' tooling/codex/AGENTS.md
           grep -qE '\.gemini/skills/ci-probe-skill/SKILL\.md' tooling/gemini/GEMINI.md
+          # Closes #69 parity: bash must never write `$$<name>` into AGENTS.md.
+          # The PS interpolation bug produced exactly that string; this guard
+          # catches a regression in either script.
+          if grep -qF '$$ci-probe-skill' tooling/codex/AGENTS.md; then
+            echo "FAIL: AGENTS.md contains \$\$<name> corruption (issue #69 regression)"; exit 1
+          fi
           echo "OK: new-skill scaffold is routable in all 3 tools"
+
+      - name: new-skill.sh rejects malformed and Windows-reserved slugs
+        run: |
+          set -euo pipefail
+          # Closes #96: slug must be lowercase alphanumeric segments joined by
+          # single hyphens, and must not be a Windows reserved device name.
+          for bad in "foo-" "foo--bar" "Foo" "1foo" "" "con" "CON" "nul" "com1" "lpt9"; do
+            set +e
+            out="$(bash scripts/new-skill.sh --name "$bad" 2>&1)"
+            rc=$?
+            set -e
+            if [[ "$rc" -eq 0 ]]; then
+              echo "FAIL: new-skill.sh accepted invalid slug '$bad'"; exit 1
+            fi
+          done
+          echo "OK: malformed and reserved slugs rejected"
+
+      - name: new-skill.sh reports partial routing accurately and exits non-zero
+        run: |
+          set -euo pipefail
+          # Closes #85: when an anchor is missing, the script must surface a
+          # per-file ANCHOR-NOT-FOUND summary and exit non-zero so CI / release
+          # scripts never treat a partial scaffold as a successful one.
+          cp tooling/claude/CLAUDE.md /tmp/CLAUDE.md.bak
+          sed -i 's/## Subagent routing/## WAS_SUBAGENT_ROUTING_FOR_TEST/g' tooling/claude/CLAUDE.md
+
+          set +e
+          out="$(bash scripts/new-skill.sh --name partial-routing-probe 2>&1)"
+          rc=$?
+          set -e
+
+          # Restore CLAUDE.md immediately so a partial-test failure doesn't
+          # corrupt the rest of the job.
+          mv /tmp/CLAUDE.md.bak tooling/claude/CLAUDE.md
+          rm -rf skills/partial-routing-probe
+          git checkout -- tooling/codex/AGENTS.md tooling/gemini/GEMINI.md
+
+          if [[ "$rc" -eq 0 ]]; then
+            echo "FAIL: partial routing should have exited non-zero (got 0)"; echo "$out"; exit 1
+          fi
+          echo "$out" | grep -qF "CLAUDE.md: ANCHOR NOT FOUND" \
+            || { echo "FAIL: missing CLAUDE.md anchor not reported"; echo "$out"; exit 1; }
+          echo "$out" | grep -qF "AGENTS.md: row added" \
+            || { echo "FAIL: AGENTS.md success not reported"; echo "$out"; exit 1; }
+          echo "$out" | grep -qF "GEMINI.md: row added" \
+            || { echo "FAIL: GEMINI.md success not reported"; echo "$out"; exit 1; }
+          echo "$out" | grep -qF "WARNING: one or more routing anchors were missing" \
+            || { echo "FAIL: warning summary missing"; echo "$out"; exit 1; }
+          echo "OK: partial-routing detection accurate, exit non-zero"
