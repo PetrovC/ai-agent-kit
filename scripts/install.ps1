@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.31"
+$KitVersion = "1.19.32"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 # Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
@@ -301,5 +301,10 @@ Write-Host "  prompts/bug-fix.md          <- reproduce and fix a bug"
 Write-Host "  prompts/code-review.md      <- triage-style PR review"
 Write-Host "  prompts/security-audit.md   <- targeted security pass"
 Write-Host ""
-Write-Host "To pull in kit updates without overwriting your local edits:"
+Write-Host "To refresh kit-managed files while preserving docs/ai/ and .mcp.json:"
 Write-Host "  .\scripts\update.ps1 -Target `"$Target`""
+Write-Host ""
+Write-Host "  Note: update.ps1 refreshes managed kit files (CLAUDE.md, AGENTS.md, GEMINI.md,"
+Write-Host "        skills/, hooks/, settings.json, ...) byte-compared against the kit source."
+Write-Host "        Local edits to those files WILL be overwritten when they differ."
+Write-Host "        docs/ai/ and .mcp.json are project-owned and never touched."

@@ -14,7 +14,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.31"
+KIT_VERSION="1.19.32"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -168,7 +168,18 @@ compare_and_update() {
     local src="$1"
     local dst="$2"
 
-    [[ -f "$src" ]] || return 0
+    # Closes #68: every direct caller below is a REQUIRED kit source
+    # (AGENTS.md, CLAUDE.md, settings.json, …). A silent `return 0` here
+    # masked packaging accidents — a missing source produced
+    # "Everything is up to date" while leaving the target out of sync with
+    # the kit. Treat absence as a fatal release-safety error. Directories
+    # walked via update_dir below are optional by nature and use a
+    # separate `[[ -d "$src_dir" ]] || return 0` guard.
+    if [[ ! -f "$src" ]]; then
+        echo "Error: required kit source missing: $src" >&2
+        echo "       (release packaging is incomplete; cannot continue)" >&2
+        exit 1
+    fi
 
     local rel="${dst#$TARGET/}"
     MANAGED+=("$rel")
