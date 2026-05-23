@@ -1,5 +1,47 @@
 # Changelog
 
+## [1.19.27] - 2026-05-23
+
+### Fixed — `ai-fallback-dispatch` enforces its PR completion contract and runs its documented scheduled retry (closes #47, closes #55)
+
+Two related defects in
+`prompts/github-actions/ai-fallback-dispatch.yml` are addressed in one
+place. Both touch the same workflow template and both affect the
+completion contract documented at the top of the file
+(`DONE == non-draft PR on ai/issue-<N> with body containing
+'Closes #<N>'`).
+
+- **Gate enforces the documented contract (closes #55).** All four
+  `gh pr list` gate queries previously requested only `url,isDraft,state`
+  and filtered on `isDraft==false AND (OPEN OR MERGED)`. They never
+  checked the body, so a non-draft PR without the `Closes #<N>`
+  keyword (e.g., pushed early by mistake, or pointed at a different
+  issue) silently short-circuited the chain and the workflow announced
+  completion. The gate now pulls `body` too and filters with
+  `(.body // "") | contains("Closes #" + $n)`, matching the documented
+  contract byte-for-byte. The branch + issue number now flow into the
+  gates via `env:` instead of raw `${{ }}` interpolation, mirroring the
+  RAW_ISSUE pattern in the setup step.
+- **Scheduled retry now actually runs (closes #47).** The previous
+  commented-out `# schedule:` block was unreachable in two ways: the
+  job `if:` excluded `github.event_name == 'schedule'`, and scheduled
+  events don't carry `github.event.issue.number` /
+  `github.event.inputs.issue_number`, so `RAW_ISSUE` would be empty.
+  A new `discover` job runs only on `schedule`, lists open `ai-fallback`
+  issues whose branch has no contract-compliant PR yet, and dispatches
+  the existing `dispatch` job once per issue via `gh workflow run`.
+  The retry is idempotent (the gate is a no-op once the PR lands) and
+  stops naturally when the label is removed.
+
+Regression coverage in `.github/workflows/pr-docs.yml`
+(`lint-workflow-semantics`) adds two static checks: every
+gate-style `gh pr list` block in `ai-fallback-dispatch.yml` must pull
+`body` AND filter on `Closes #` (catches #55 regressions), and the file
+must declare both a `schedule:` cron trigger AND a job gated on
+`github.event_name == 'schedule'` (catches #47 regressions).
+
+---
+
 ## [1.19.26] - 2026-05-21
 
 ### Fixed — `new-skill` scaffolding integrity (closes #48, closes #69, closes #85, closes #96)

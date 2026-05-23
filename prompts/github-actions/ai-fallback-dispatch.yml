@@ -15,18 +15,20 @@
 #     partial commits does NOT create the PR, so the gate stays open and the
 #     chain continues to the next provider.
 #   - The gate is re-checked between every provider via `gh pr list`. Re-runs
-#     are idempotent: once the PR exists, every later run is a no-op.
+#     are idempotent: once the contract-compliant PR exists, every later run
+#     is a no-op.
 #
 # Honest limits:
 #   - This cannot guarantee a single uninterrupted run. It guarantees the issue
 #     keeps getting picked up until one provider lands a PR.
 #   - "Wait for whoever is free first" is approximated: there is no real-time
 #     cross-vendor availability signal. A rate-limited (429) / failing provider
-#     simply yields to the next. If all three yield, the optional scheduled
-#     retry (bottom of file) re-attempts later — capped naturally because the
-#     gate short-circuits the moment a PR exists.
-#   - The ONE behavioral contract: an agent must open the PR only when done.
-#     The kit's prompts already follow "one PR per ticket", so this holds; and
+#     simply yields to the next. If all three yield, the scheduled retry below
+#     re-attempts later — capped naturally because the gate short-circuits the
+#     moment a contract-compliant PR exists.
+#   - The ONE behavioral contract: an agent must open the PR only when done,
+#     with `Closes #<N>` in the body. The kit's prompts already follow
+#     "one PR per ticket" and the prompt below requires the closing keyword;
 #     if an agent misbehaves the failure mode is graceful (chain continues /
 #     clear comment), never a silent block.
 #
@@ -58,18 +60,70 @@ on:
         description: "Issue number to implement"
         required: true
         type: string
-  # --- Optional capped retry. Uncomment to re-attempt still-open tasks.
-  #     Idempotent: the gate makes it a no-op for issues that already have a
-  #     PR. Stops naturally when the PR lands or the label is removed. ---
-  # schedule:
-  #   - cron: "*/30 * * * *"
+  # Capped retry. The `discover` job below lists every open `ai-fallback`
+  # issue whose branch does not yet have a contract-compliant PR and fans
+  # out one `workflow_dispatch` per issue, reusing the `dispatch` job. The
+  # gate makes each dispatch a no-op once the PR lands, so the retry is
+  # idempotent and stops naturally when the label is removed or the PR
+  # exists. Bump or comment the cron to disable.
+  schedule:
+    - cron: "*/30 * * * *"
 
 concurrency:
   # One orchestrator per issue at a time; never cancel a run mid-flight.
-  group: ai-fallback-${{ github.event.issue.number || github.event.inputs.issue_number }}
+  # `github.run_id` is the fallback for `schedule` so scheduled discover runs
+  # never queue behind each other (they only enumerate; the per-issue
+  # dispatches they trigger fall into the per-issue group on their own).
+  group: ai-fallback-${{ github.event.issue.number || github.event.inputs.issue_number || github.run_id }}
   cancel-in-progress: false
 
 jobs:
+  # Schedule entry point. List open `ai-fallback` issues without a
+  # contract-compliant PR yet and dispatch the `dispatch` job for each.
+  # workflow_dispatch (manual) and the `issues:labeled` trigger run
+  # `dispatch` directly with their own issue number; this job exists
+  # exclusively to map a single schedule tick onto N per-issue dispatches.
+  discover:
+    name: Discover scheduled retries
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    permissions:
+      issues: read
+      pull-requests: read
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dispatch one run per open ai-fallback issue without a contract-compliant PR
+        run: |
+          set -euo pipefail
+          mapfile -t issues < <(gh issue list --repo "${{ github.repository }}" \
+              --label ai-fallback --state open --json number --jq '.[].number')
+          if [[ "${#issues[@]}" -eq 0 ]]; then
+            echo "No open ai-fallback issues — nothing to retry."
+            exit 0
+          fi
+          default_branch="$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)"
+          for n in "${issues[@]}"; do
+            branch="ai/issue-${n}"
+            # Skip the dispatch if a contract-compliant PR already exists.
+            # Match the dispatch-job gate exactly: non-draft, open/merged,
+            # AND body contains `Closes #<N>` (the documented contract).
+            url="$(gh pr list --head "$branch" --state all \
+                --json url,isDraft,state,body | \
+                jq -r --arg n "$n" 'first(.[] | select(.isDraft==false and (.state=="OPEN" or .state=="MERGED") and ((.body // "") | contains("Closes #" + $n)))) | .url // empty')"
+            if [[ -n "$url" ]]; then
+              echo "skip #${n}: contract-compliant PR already exists at ${url}"
+              continue
+            fi
+            echo "dispatch #${n}"
+            gh workflow run ai-fallback-dispatch.yml \
+                --ref "${default_branch}" \
+                -f issue_number="${n}"
+          done
+
   dispatch:
     name: Claude -> Codex -> Gemini
     runs-on: ubuntu-latest
@@ -154,14 +208,22 @@ jobs:
           echo "n=${N}"            >> "$GITHUB_OUTPUT"
           echo "branch=${BRANCH}"  >> "$GITHUB_OUTPUT"
 
-      # ---- Gate helper: a non-draft OPEN/MERGED PR on the branch == DONE ----
+      # ---- Gate helper: a non-draft OPEN/MERGED PR on the branch whose body
+      # ---- contains `Closes #<N>` == DONE. Implements the contract exactly
+      # ---- as documented in the top comment + agent PROMPT; previously the
+      # ---- gates checked only state+draft, so a non-draft PR without the
+      # ---- closing keyword (or pointed at the wrong branch) would falsely
+      # ---- short-circuit the chain.
       - name: Gate (before Claude)
         id: gate0
+        env:
+          BRANCH: ${{ steps.setup.outputs.branch }}
+          N: ${{ steps.setup.outputs.n }}
         run: |
           set -euo pipefail
-          URL="$(gh pr list --head '${{ steps.setup.outputs.branch }}' --state all \
-            --json url,isDraft,state \
-            --jq 'first(.[] | select(.isDraft==false and (.state=="OPEN" or .state=="MERGED"))) | .url // empty')"
+          URL="$(gh pr list --head "$BRANCH" --state all \
+              --json url,isDraft,state,body | \
+              jq -r --arg n "$N" 'first(.[] | select(.isDraft==false and (.state=="OPEN" or .state=="MERGED") and ((.body // "") | contains("Closes #" + $n)))) | .url // empty')"
           if [ -n "$URL" ]; then echo "done=true" >> "$GITHUB_OUTPUT"; echo "url=$URL" >> "$GITHUB_OUTPUT";
           else echo "done=false" >> "$GITHUB_OUTPUT"; fi
 
@@ -176,11 +238,14 @@ jobs:
 
       - name: Gate (after Claude)
         id: gate1
+        env:
+          BRANCH: ${{ steps.setup.outputs.branch }}
+          N: ${{ steps.setup.outputs.n }}
         run: |
           set -euo pipefail
-          URL="$(gh pr list --head '${{ steps.setup.outputs.branch }}' --state all \
-            --json url,isDraft,state \
-            --jq 'first(.[] | select(.isDraft==false and (.state=="OPEN" or .state=="MERGED"))) | .url // empty')"
+          URL="$(gh pr list --head "$BRANCH" --state all \
+              --json url,isDraft,state,body | \
+              jq -r --arg n "$N" 'first(.[] | select(.isDraft==false and (.state=="OPEN" or .state=="MERGED") and ((.body // "") | contains("Closes #" + $n)))) | .url // empty')"
           if [ -n "$URL" ]; then echo "done=true" >> "$GITHUB_OUTPUT"; echo "url=$URL" >> "$GITHUB_OUTPUT";
           else echo "done=false" >> "$GITHUB_OUTPUT"; fi
 
@@ -197,11 +262,14 @@ jobs:
 
       - name: Gate (after Codex)
         id: gate2
+        env:
+          BRANCH: ${{ steps.setup.outputs.branch }}
+          N: ${{ steps.setup.outputs.n }}
         run: |
           set -euo pipefail
-          URL="$(gh pr list --head '${{ steps.setup.outputs.branch }}' --state all \
-            --json url,isDraft,state \
-            --jq 'first(.[] | select(.isDraft==false and (.state=="OPEN" or .state=="MERGED"))) | .url // empty')"
+          URL="$(gh pr list --head "$BRANCH" --state all \
+              --json url,isDraft,state,body | \
+              jq -r --arg n "$N" 'first(.[] | select(.isDraft==false and (.state=="OPEN" or .state=="MERGED") and ((.body // "") | contains("Closes #" + $n)))) | .url // empty')"
           if [ -n "$URL" ]; then echo "done=true" >> "$GITHUB_OUTPUT"; echo "url=$URL" >> "$GITHUB_OUTPUT";
           else echo "done=false" >> "$GITHUB_OUTPUT"; fi
 
@@ -220,13 +288,14 @@ jobs:
 
       - name: Gate (after Gemini) + report
         id: final
+        env:
+          BRANCH: ${{ steps.setup.outputs.branch }}
+          N: ${{ steps.setup.outputs.n }}
         run: |
           set -euo pipefail
-          BRANCH='${{ steps.setup.outputs.branch }}'
-          N='${{ steps.setup.outputs.n }}'
           URL="$(gh pr list --head "$BRANCH" --state all \
-            --json url,isDraft,state \
-            --jq 'first(.[] | select(.isDraft==false and (.state=="OPEN" or .state=="MERGED"))) | .url // empty')"
+              --json url,isDraft,state,body | \
+              jq -r --arg n "$N" 'first(.[] | select(.isDraft==false and (.state=="OPEN" or .state=="MERGED") and ((.body // "") | contains("Closes #" + $n)))) | .url // empty')"
           if [ -n "$URL" ]; then
             gh issue comment "$N" --body "AI fallback dispatch: a provider completed this issue. PR: ${URL}"
             echo "Done -> ${URL}"
