@@ -252,6 +252,34 @@ jobs:
                           "'schedule'` — schedule events would have no entry "
                           "point and would do nothing")
 
+          # 8. gemini-pr-review.yml must NOT fire on `@gemini-cli` — that
+          #    phrase belongs to gemini-dispatch / gemini-assistant. Without
+          #    the `!contains(..., '@gemini-cli')` clause, a single
+          #    `@gemini-cli /review` comment double-fires pr-review and
+          #    dispatch (issue #82 regression).
+          gpr = f"{GH}/gemini-pr-review.yml"
+          t = read(gpr)
+          if "contains(github.event.comment.body, '@gemini')" not in t:
+              errs.append(f"{gpr}: missing `@gemini` comment-body trigger")
+          if "!contains(github.event.comment.body, '@gemini-cli')" not in t:
+              errs.append(f"{gpr}: gate must also exclude `@gemini-cli` so "
+                          "`@gemini-cli /review` does not double-fire this "
+                          "workflow alongside gemini-dispatch (issue #82)")
+
+          # 9. gemini-dispatch.yml must validate route ↔ context BEFORE the
+          #    Gemini step, otherwise `/review` can run on an issue and
+          #    `/triage` can run on a PR with no PR diff to review or no
+          #    issue to classify (issue #83 regression).
+          gdp = f"{GH}/gemini-dispatch.yml"
+          t = read(gdp)
+          for needle in ("IS_PR_CONTEXT", "/review", "/triage"):
+              if needle not in t:
+                  errs.append(f"{gdp}: missing route-validation marker "
+                              f"`{needle}` — `/review`/`/triage` must be "
+                              "validated against PR/issue context before "
+                              "invoking Gemini (issue #83)")
+                  break
+
           if errs:
               print("\n".join(errs)); sys.exit(1)
           print("OK: workflow semantics valid")

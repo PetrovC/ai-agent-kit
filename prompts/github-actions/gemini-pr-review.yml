@@ -28,10 +28,17 @@ jobs:
   gemini-review:
     name: Gemini code review
     runs-on: ubuntu-latest
-    # `github.event.issue.pull_request` only exists on issue_comment events.
-    # pull_request_review_comment events are always on a PR.
+    # Gate notes:
+    # - `@gemini-cli` is the Dispatch / Assistant trigger. Excluding it here
+    #   keeps `@gemini-cli /review` from double-firing this workflow alongside
+    #   gemini-dispatch.yml — the README + this file advertise the bare
+    #   `@gemini review` trigger for the PR-review entry point, but
+    #   `contains(..., '@gemini')` alone matches `@gemini-cli` too.
+    # - `github.event.issue.pull_request` only exists on issue_comment events;
+    #   pull_request_review_comment events are always on a PR.
     if: |
       contains(github.event.comment.body, '@gemini') &&
+      !contains(github.event.comment.body, '@gemini-cli') &&
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
       (
         (github.event_name == 'issue_comment' && github.event.issue.pull_request != null) ||

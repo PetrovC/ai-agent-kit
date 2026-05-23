@@ -1,5 +1,45 @@
 # Changelog
 
+## [1.19.29] - 2026-05-23
+
+### Fixed — Gemini workflow routing is now disjoint and context-aware (closes #82, closes #83)
+
+Two related defects in the Gemini workflow templates:
+
+- **Trigger phrases no longer overlap (closes #82).**
+  `gemini-pr-review.yml` gated on `contains(github.event.comment.body,
+  '@gemini')`, which silently matched `@gemini-cli` too. A single
+  `@gemini-cli /review` comment fired both `gemini-pr-review.yml` and
+  `gemini-dispatch.yml`, producing two reviews and burning twice the
+  API budget. The pr-review gate now also requires
+  `!contains(github.event.comment.body, '@gemini-cli')`, so `@gemini
+  review` continues to fire pr-review while `@gemini-cli /review`
+  routes through dispatch only — matching what the README already
+  advertises.
+
+- **Dispatch validates route ↔ context before paying for a Gemini call
+  (closes #83).** `gemini-dispatch.yml` listens to both
+  `issue_comment` and `pull_request_review_comment`, but never
+  checked that `/review` was actually invoked from a PR or `/triage`
+  from an issue — Gemini interpreted the routing rules at
+  prompt-evaluation time, so a `/review` typed on an issue produced
+  empty / misleading "review" output, and `/triage` on a PR posted
+  issue-triage text to a PR. A new `Validate route + context` step
+  derives the route from the comment body, checks
+  `IS_PR_CONTEXT` (true for `pull_request_review_comment`, or
+  `issue_comment` with `github.event.issue.pull_request != null`),
+  posts a friendly correction comment, and fails the job before the
+  Gemini step on mismatch.
+
+Regression coverage in `.github/workflows/pr-docs.yml`
+`lint-workflow-semantics` adds two static checks:
+`gemini-pr-review.yml` must include the `!contains(..., '@gemini-cli')`
+clause, and `gemini-dispatch.yml` must contain the `IS_PR_CONTEXT` /
+`/review` / `/triage` markers that prove the route-validation step is
+in place.
+
+---
+
 ## [1.19.28] - 2026-05-23
 
 ### Fixed — lifecycle metadata stays in sync with the installed tool set across partial commands (closes #40, closes #71)
