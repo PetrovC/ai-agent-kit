@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.31"
+KIT_VERSION="1.19.32"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
@@ -346,5 +346,10 @@ echo "  prompts/bug-fix.md          <- reproduce and fix a bug"
 echo "  prompts/code-review.md      <- triage-style PR review"
 echo "  prompts/security-audit.md   <- targeted security pass"
 echo ""
-echo "To pull in kit updates without overwriting your local edits:"
+echo "To refresh kit-managed files while preserving docs/ai/ and .mcp.json:"
 echo "  ./scripts/update.sh --target $TARGET"
+echo ""
+echo "  Note: update.sh refreshes managed kit files (CLAUDE.md, AGENTS.md, GEMINI.md,"
+echo "        skills/, hooks/, settings.json, …) byte-compared against the kit source."
+echo "        Local edits to those files WILL be overwritten when they differ."
+echo "        docs/ai/ and .mcp.json are project-owned and never touched."

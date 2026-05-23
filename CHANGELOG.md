@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.19.32] - 2026-05-23
+
+### Fixed — `update` accuracy: loud failure on missing kit source, honest preservation message (closes #58, closes #68)
+
+Two related accuracy bugs in the install + update messaging contract:
+
+- **`update.{sh,ps1}` no longer silently no-ops on a missing required
+  source (closes #68).** `compare_and_update` / `Compare-And-Update`
+  used to `[[ -f "$src" ]] || return 0` — so a packaging accident
+  (CLAUDE.md / settings.json / AGENTS.md missing from the kit checkout)
+  produced `Everything is up to date.` while leaving the target out of
+  sync with the kit. The helper now treats a missing source as a fatal
+  release-safety error and exits with a precise `Error: required kit
+  source missing: <path>` message naming the file. Directories iterated
+  via `update_dir` / `Update-Directory` keep their existing optional
+  semantics (`[[ -d "$src_dir" ]] || return 0`).
+
+- **Install message no longer claims update preserves local edits
+  (closes #58).** The post-install hint read `To pull in kit updates
+  without overwriting your local edits:`. That promise is false:
+  `update` refreshes managed kit files (CLAUDE.md, AGENTS.md,
+  GEMINI.md, skills/, hooks/, settings.json, …) when they differ from
+  the kit source. The new wording reads `To refresh kit-managed files
+  while preserving docs/ai/ and .mcp.json:` followed by a Note
+  explaining that managed-file edits WILL be overwritten and only
+  `docs/ai/` + `.mcp.json` are project-owned. Both `install.sh` and
+  `install.ps1` print the same wording.
+
+Regression coverage in `.github/workflows/pr-scripts-shell.yml` adds
+two e2e steps: one asserts the new install message both contains the
+accurate framing and no longer contains the misleading "without
+overwriting" phrase; the other stands up a sandbox kit checkout,
+deletes `tooling/claude/CLAUDE.md`, and verifies `update.sh` fails with
+the explicit "required kit source missing" message and a non-zero exit
+(no `Everything is up to date` masking).
+
+---
+
 ## [1.19.31] - 2026-05-23
 
 ### Fixed — Gemini tooling: current model ID, Native Agent Skills documentation, Extension-mode caveat (closes #43, closes #45, closes #75)

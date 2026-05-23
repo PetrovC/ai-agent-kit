@@ -42,7 +42,7 @@ if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
 }
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.31"
+$KitVersion = "1.19.32"
 
 function Get-OwningTool([string]$rel) {
     # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,
@@ -152,7 +152,17 @@ function Test-ManifestEntry([string]$rel) {
 }
 
 function Compare-And-Update([string]$src, [string]$dst) {
-    if (-not (Test-Path $src)) { return }
+    # Closes #68: every direct caller below is a REQUIRED kit source
+    # (AGENTS.md, CLAUDE.md, settings.json, …). A silent `return` here
+    # masked packaging accidents — a missing source produced
+    # "Everything is up to date" while leaving the target out of sync with
+    # the kit. Treat absence as a fatal release-safety error. Directories
+    # walked via Update-Directory below are optional by nature and use a
+    # separate `Test-Path $srcDir` guard.
+    if (-not (Test-Path -LiteralPath $src -PathType Leaf)) {
+        Write-Error "Required kit source missing: $src (release packaging is incomplete; cannot continue)"
+        exit 1
+    }
 
     # Forward-slashed rel for cross-shell manifest parity with bash update.sh.
     $rel = $dst.Replace($Target, "").TrimStart("\", "/").Replace("\", "/")

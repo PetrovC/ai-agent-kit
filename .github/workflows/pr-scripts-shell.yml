@@ -572,6 +572,66 @@ jobs:
           rm -rf "$T"
           echo "OK: update preserves and uninstall narrows .kit-version + .kit-manifest"
 
+      - name: install.sh "next steps" message accurately describes update preservation (closes #58)
+        run: |
+          set -euo pipefail
+          # The previous "without overwriting your local edits" line was
+          # misleading: update.sh refreshes managed kit files when they
+          # differ, only docs/ai/ + .mcp.json are truly preserved.
+          T="$(mktemp -d)"
+          out="$(bash scripts/install.sh --target "$T" --tools claude)"
+
+          # New, accurate framing must be present.
+          echo "$out" | grep -qF "refresh kit-managed files while preserving docs/ai/ and .mcp.json" \
+            || { echo "FAIL: accurate update-preservation message missing"; echo "$out" | tail -20; exit 1; }
+          echo "$out" | grep -qF "Local edits to those files WILL be overwritten" \
+            || { echo "FAIL: update overwrite warning missing"; echo "$out" | tail -20; exit 1; }
+
+          # The misleading line must be gone.
+          if echo "$out" | grep -qF "without overwriting your local edits"; then
+            echo "FAIL: misleading 'without overwriting' phrase still present"
+            exit 1
+          fi
+          rm -rf "$T"
+          echo "OK: install message accurately describes update semantics"
+
+      - name: update.sh fails loudly when a required kit source is missing (closes #68)
+        run: |
+          set -euo pipefail
+          # Stand up a sandbox kit checkout so we can remove a source file
+          # without breaking the real working tree for subsequent CI steps.
+          KIT="$(mktemp -d)"
+          cp -r scripts tooling skills project-template examples "$KIT/"
+          T="$(mktemp -d)"
+          bash "$KIT/scripts/install.sh" --target "$T" --tools claude >/dev/null
+
+          # Real update on an intact kit must still succeed and be a no-op.
+          bash "$KIT/scripts/update.sh" --target "$T" >/dev/null
+          echo "intact-source update OK"
+
+          # Now break a REQUIRED kit source and confirm update aborts loudly.
+          rm "$KIT/tooling/claude/CLAUDE.md"
+          set +e
+          out="$(bash "$KIT/scripts/update.sh" --target "$T" 2>&1)"
+          rc=$?
+          set -e
+          if [[ "$rc" -eq 0 ]]; then
+            echo "FAIL: missing required kit source did not fail update"
+            echo "$out"; exit 1
+          fi
+          echo "$out" | grep -qF "required kit source missing" \
+            || { echo "FAIL: missing-source error message wrong"; echo "$out"; exit 1; }
+          echo "$out" | grep -qF "CLAUDE.md" \
+            || { echo "FAIL: error did not name the missing file"; echo "$out"; exit 1; }
+
+          # update must NOT have written "Everything is up to date" before failing.
+          if echo "$out" | grep -q "Everything is up to date"; then
+            echo "FAIL: update reported success-status before noticing missing source"; exit 1
+          fi
+
+          rm -rf "$T" "$KIT"
+          echo "OK: update fails loudly on missing required source"
+
       - name: update.sh manifest GC prunes only de-shipped kit files
         run: |
           set -euo pipefail
