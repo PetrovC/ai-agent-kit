@@ -7,7 +7,7 @@ kind: local
 tools:
   - run_shell_command
   - read_file
-model: gemini-3.1-pro
+model: gemini-3-pro-preview
 temperature: 0.1
 max_turns: 10
 ---

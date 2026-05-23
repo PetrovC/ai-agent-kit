@@ -1,5 +1,54 @@
 # Changelog
 
+## [1.19.31] - 2026-05-23
+
+### Fixed — Gemini tooling: current model ID, Native Agent Skills documentation, Extension-mode caveat (closes #43, closes #45, closes #75)
+
+Three related defects in the kit's Gemini surface:
+
+- **Model name updated to a real Gemini 3 model (closes #43).** Every
+  Gemini surface referenced `gemini-3.1-pro`, which doesn't exist in
+  Google's official model catalog. Per the
+  [Gemini API models page](https://ai.google.dev/gemini-api/docs/models),
+  Gemini 3 Pro Preview is `gemini-3-pro-preview`. Updated in all eight
+  references: `tooling/gemini/settings.json`, every Gemini subagent
+  frontmatter (`agents/*.md`), `tooling/gemini/GEMINI.md`'s `--model`
+  hint, and the README capability table.
+
+- **GEMINI.md + README now describe Native Agent Skills (closes #45).**
+  Previously the docs claimed Gemini skills load by "explicit
+  `ReadFile`". Gemini CLI now natively discovers skills under
+  `.gemini/skills/<name>/SKILL.md` (the layout the kit already
+  installs) and activates them by `description:` frontmatter. The
+  documentation now describes that path as the primary mechanism, with
+  the routing table in `GEMINI.md` framed as kit policy for
+  deterministic activation (so the choice doesn't drift with
+  description-matching heuristics). `/skills` and `gemini skills list`
+  are documented as the verification commands.
+
+- **README spells out the Extension-mode caveat (closes #75).** When
+  the kit is distributed via `gemini extensions install`, only the
+  files Gemini natively loads from the extension folder (`commands/`,
+  `agents/`, the `contextFileName`) reach the user's project. The
+  routing table inside the installed `GEMINI.md` still references
+  project-relative paths like `.gemini/skills/python/SKILL.md`, but
+  the extension installer doesn't copy the kit's `.gemini/skills/`
+  into the user's project — those skill files live under
+  `~/.gemini/extensions/ai-agent-kit/skills/` and the relative
+  references fail to resolve. The README now warns about this and
+  documents the two viable workarounds (run the install script in
+  parallel, or fork the extension and inline the skills you actually
+  use into the shipped `GEMINI.md`).
+
+Regression coverage in `.github/workflows/pr-docs.yml`
+`lint-workflow-semantics` adds check #11: every Gemini-model
+declaration across `tooling/gemini/settings.json`, every
+`tooling/gemini/agents/*.md` frontmatter, `tooling/gemini/GEMINI.md`'s
+`--model` hint, and the README capability table must agree on one
+canonical model name — silent drift between any two surfaces fails CI.
+
+---
+
 ## [1.19.30] - 2026-05-23
 
 ### Fixed — supply-chain accuracy: pinned MCP examples, deterministic YAML lint, honest action-pin claim (closes #65, closes #91, closes #93)
