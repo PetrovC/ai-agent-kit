@@ -221,6 +221,37 @@ jobs:
                                   "interpolated directly into a prompt: block — "
                                   "pass via env: and fence it as untrusted DATA")
 
+          # 6. ai-fallback-dispatch's PR-completion gate must enforce the
+          #    DOCUMENTED contract: non-draft AND body contains "Closes #<N>".
+          #    A state+draft check alone (the original gate) lets a non-draft
+          #    PR without the closing keyword (or on the wrong issue) falsely
+          #    short-circuit the chain.
+          aif = f"{GH}/ai-fallback-dispatch.yml"
+          t = read(aif)
+          # Count every `gh pr list` query that drives a gate decision and
+          # verify it pulls `body` AND filters with `contains("Closes #" + $n)`.
+          pr_list_blocks = re.findall(
+              r'gh pr list[^\n]*\n(?:[ \t]+[^\n]*\n)+', t)
+          gate_blocks = [b for b in pr_list_blocks if 'isDraft==false' in b]
+          if not gate_blocks:
+              errs.append(f"{aif}: no gate-style `gh pr list` block found")
+          for b in gate_blocks:
+              if 'body' not in b or 'Closes #' not in b:
+                  errs.append(f"{aif}: gate `gh pr list` block does not enforce "
+                              "the documented 'body contains Closes #<N>' contract")
+                  break
+
+          # 7. ai-fallback-dispatch must declare a schedule trigger AND a
+          #    discover job that runs on schedule — otherwise the documented
+          #    capped-retry behavior is unreachable (issue #47 regression).
+          if not re.search(r'\n\s*schedule:\s*\n\s*-\s*cron:', t):
+              errs.append(f"{aif}: schedule cron trigger missing — capped "
+                          "retry is documented but unreachable without it")
+          if "github.event_name == 'schedule'" not in t:
+              errs.append(f"{aif}: no job gated on `github.event_name == "
+                          "'schedule'` — schedule events would have no entry "
+                          "point and would do nothing")
+
           if errs:
               print("\n".join(errs)); sys.exit(1)
           print("OK: workflow semantics valid")

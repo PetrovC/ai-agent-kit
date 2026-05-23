@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.26"
+$KitVersion = "1.19.27"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 # Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
