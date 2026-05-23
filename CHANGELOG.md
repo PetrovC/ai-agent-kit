@@ -1,5 +1,55 @@
 # Changelog
 
+## [1.19.30] - 2026-05-23
+
+### Fixed — supply-chain accuracy: pinned MCP examples, deterministic YAML lint, honest action-pin claim (closes #65, closes #91, closes #93)
+
+Three related supply-chain hygiene gaps in the kit's CI and copy-paste
+templates:
+
+- **`pr-docs.yml` YAML lint no longer depends on an unpinned `yq`
+  (closes #91).** `lint-yaml` installed `yq` with `sudo snap install yq`
+  on every run, picking up whatever the Snap channel served. A future
+  `yq` release could change parsing semantics, exit codes, or expression
+  syntax and break (or silently relax) the lint without any repository
+  change. The lint now uses Python + PyYAML — the same parser the rest
+  of `pr-docs.yml` already relies on — so the YAML check is
+  deterministic and has zero external installs. The two existing
+  contracts are preserved: every `*.yml` / `*.yaml` file must parse,
+  and every workflow under `prompts/github-actions/` and
+  `.github/workflows/` must declare `on:` and `jobs:` (with the YAML 1.1
+  `on→True` quirk handled).
+
+- **MCP `npx -y` examples are no longer unpinned (closes #93).**
+  `tooling/claude/.mcp.example.jsonc`, `tooling/codex/config.toml`, and
+  `skills/ai-dev/SKILL.md` shipped `npx -y @modelcontextprotocol/server-*`
+  examples with no version pin. Pasted as-is, every Claude Code or
+  Codex startup would install whatever the npm registry served — a
+  future package release would auto-run with the configured GitHub PAT,
+  filesystem path, or Postgres connection string. Every example now
+  uses `@<x.y.z>` placeholder syntax (`@modelcontextprotocol/server-github@<x.y.z>`)
+  and a clearly-labeled supply-chain note. A new
+  `lint-workflow-semantics` static check (#10) blocks any future MCP
+  example from going un-pinned.
+
+- **The README no longer claims actions are "already pinned" (closes #65).**
+  The supply-chain note said `The GitHub Actions themselves are already
+  pinned (@v1 / @v0).` Major-version tags are mutable refs — the action
+  owner can move them — and GitHub's own
+  [hardening guide](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions)
+  recommends full commit-SHA pins for jobs with write scopes. The README
+  now describes the templates as "lightly pinned for maintainability"
+  via `@vN` tags, points at the hardening guide, and explains how to
+  swap tags for SHAs when the project's threat model demands it.
+
+Regression coverage in `.github/workflows/pr-docs.yml`
+`lint-workflow-semantics` adds check #10: the three files that ship MCP
+`@modelcontextprotocol/server-*` examples must follow each package name
+with either `@<…>` placeholder syntax or an actual `@N.N.N` version
+pin, never unversioned.
+
+---
+
 ## [1.19.29] - 2026-05-23
 
 ### Fixed — Gemini workflow routing is now disjoint and context-aware (closes #82, closes #83)
