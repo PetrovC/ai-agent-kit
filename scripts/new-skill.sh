@@ -41,9 +41,45 @@ if [[ -z "$NAME" ]]; then
     exit 1
 fi
 
-# Validate name (kebab-case)
-if [[ ! "$NAME" =~ ^[a-z][a-z0-9-]*$ ]]; then
-    echo "Error: skill name must be kebab-case (a-z, 0-9, -). Got: $NAME"
+# Validate name as a cross-tool identifier. The slug becomes:
+#   - a directory under skills/<name>/
+#   - a Codex activation token written as `$<name>` in AGENTS.md
+#   - a Gemini path .gemini/skills/<name>/SKILL.md
+#   - a row in three routing tables installed into target projects.
+# So it must be true kebab-case (alphanumeric segments joined by single hyphens),
+# not just "matches [a-z][a-z0-9-]*" which would also accept "foo-" or "foo--bar".
+if [[ ! "$NAME" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ ]]; then
+    echo "Error: skill name must be lowercase alphanumeric segments joined by single hyphens (e.g. graphql-server). Got: $NAME" >&2
+    exit 1
+fi
+
+# Reject Windows reserved device names so the same slug works on every
+# target filesystem (PowerShell new-skill.ps1 has the same guard).
+case "$NAME" in
+    con|prn|aux|nul|com[1-9]|lpt[1-9])
+        echo "Error: '$NAME' is a Windows reserved device name and cannot be used as a skill slug." >&2
+        exit 1
+        ;;
+esac
+
+# Locate a usable Python interpreter BEFORE creating any file. Routing-row
+# insertion below uses Python; on Windows Git Bash, plain `python3` can
+# resolve to the Microsoft Store launcher stub (`Python was not found …`),
+# which exits non-zero and would otherwise leave a partially-scaffolded skill
+# behind (skills/<name>/SKILL.md created but no routing rows inserted).
+PYTHON_CMD=()
+for candidate in python3 python "py -3"; do
+    # shellcheck disable=SC2086
+    if $candidate -c "import sys" >/dev/null 2>&1; then
+        read -ra PYTHON_CMD <<< "$candidate"
+        break
+    fi
+done
+
+if [[ ${#PYTHON_CMD[@]} -eq 0 ]]; then
+    echo "Error: no working Python interpreter found (tried: python3, python, py -3)." >&2
+    echo "       new-skill.sh uses Python to insert routing rows into CLAUDE.md / AGENTS.md / GEMINI.md." >&2
+    echo "       Install Python 3 (https://python.org, apt, brew, or the Windows Store launcher) and re-run." >&2
     exit 1
 fi
 
@@ -117,14 +153,21 @@ Always report:
 EOF
 
 # ── Insert placeholder routing rows ────────────────────────────────────────
-# Uses Python (available on all target platforms) to insert rows before known
-# anchors in each routing table. Prints a warning and skips on failure.
+# Tracks per-file success so partial routing failures cannot masquerade as a
+# full scaffold. Exits non-zero at the end if any anchor was missing.
+
+ROUTING_RESULTS=()
+ROUTING_OK=true
 
 insert_routing_row() {
     local file="$1"
     local row="$2"
     local anchor="$3"
-    python3 - "$file" "$row" "$anchor" <<'PYEOF'
+    local base
+    base="$(basename "$file")"
+
+    # `if` (not `cmd; rc=$?`) avoids set -e tripping when the helper exits 2.
+    if "${PYTHON_CMD[@]}" - "$file" "$row" "$anchor" <<'PYEOF'
 import sys
 
 filepath, row, anchor = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -132,12 +175,17 @@ with open(filepath, 'r', encoding='utf-8') as f:
     content = f.read()
 idx = content.find(anchor)
 if idx == -1:
-    print(f"  [warn] anchor not found in {filepath} — add the row manually", file=sys.stderr)
-    sys.exit(0)
+    sys.exit(2)
 content = content[:idx] + '\n' + row + content[idx:]
 with open(filepath, 'w', encoding='utf-8') as f:
     f.write(content)
 PYEOF
+    then
+        ROUTING_RESULTS+=("$base: row added")
+    else
+        ROUTING_RESULTS+=("$base: ANCHOR NOT FOUND — add the row manually")
+        ROUTING_OK=false
+    fi
 }
 
 CLAUDE_ROW="| TODO: describe when to use $NAME | \`$NAME\` skill |"
@@ -157,8 +205,16 @@ echo "+--------------------------------------+"
 echo "|        new-skill scaffolded          |"
 echo "+--------------------------------------+"
 echo "  Created: skills/$NAME/SKILL.md"
-echo "  Routing: TODO row added to CLAUDE.md, AGENTS.md, GEMINI.md"
+echo "  Routing:"
+for r in "${ROUTING_RESULTS[@]}"; do
+    echo "    $r"
+done
 echo ""
+if [[ "$ROUTING_OK" == "false" ]]; then
+    echo "  WARNING: one or more routing anchors were missing; the skill file was"
+    echo "           created but the routing tables above are incomplete."
+    echo ""
+fi
 echo "Next steps:"
 echo "  1. Edit skills/$NAME/SKILL.md and fill the placeholders."
 echo "  2. Replace the TODO routing rows with a real description in:"
@@ -167,3 +223,10 @@ echo "       tooling/codex/AGENTS.md"
 echo "       tooling/gemini/GEMINI.md"
 echo "  3. Add an entry to CHANGELOG.md under [Unreleased] -> Added -> New skills."
 echo "  4. Re-run the install script in any target project to deploy."
+
+# Exit non-zero when routing was only partially applied. CI / release scripts
+# treating new-skill.sh's exit status as truth must not see a green run when
+# the routing tables are out of sync with the new skill file.
+if [[ "$ROUTING_OK" == "false" ]]; then
+    exit 1
+fi

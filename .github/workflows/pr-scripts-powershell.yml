@@ -230,6 +230,57 @@ jobs:
           # despite every case passing.
           if ($fail) { exit 1 } else { exit 0 }
 
+      - name: new-skill.ps1 interpolates $Name without $$<name> corruption
+        shell: pwsh
+        run: |
+          # Closes #69 (PS-side only): the prior `` "...`$`$Name``..." `` form
+          # double-escaped the `$` and wrote `$$Name` literally into AGENTS.md
+          # instead of interpolating the skill slug. Scaffold a probe and
+          # assert the AGENTS.md row contains a single literal `$` followed by
+          # the slug, never `$$<slug>`. The slug-validation / reserved-name
+          # rejects (#96) are covered by the bash workflow against the
+          # identical regex and reserved-name list — replicating them here
+          # would not catch a Bash-vs-PS divergence the parser already catches
+          # via the syntax check + PSScriptAnalyzer job.
+          $ErrorActionPreference = 'Continue'
+          $probe = "ps-probe-$([guid]::NewGuid().ToString('N').Substring(0,6))"
+          Write-Host "Probe slug: $probe"
+
+          # Run new-skill.ps1 in a subshell so any `exit N` it emits (e.g. the
+          # partial-routing safeguard) terminates the subshell only, not this
+          # step. Capture all output for diagnostics regardless of exit code.
+          $scaffoldOut = & pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/new-skill.ps1 -Name $probe -Description "PS probe." 2>&1
+          $rc = $LASTEXITCODE
+          Write-Host "--- new-skill.ps1 (rc=$rc) ---"
+          Write-Host ($scaffoldOut | Out-String)
+          Write-Host "--- end ---"
+
+          $fail = 0
+          if ($rc -ne 0) {
+            Write-Host "FAIL: new-skill.ps1 exit=$rc"
+            $fail = 1
+          } else {
+            $agents = Get-Content -Raw -LiteralPath "tooling/codex/AGENTS.md"
+            $matchedLine = ($agents -split "`n" | Where-Object { $_ -match [regex]::Escape($probe) }) -join " | "
+            Write-Host "AGENTS.md probe row: $matchedLine"
+
+            if ($agents -notmatch [regex]::Escape("`$$probe")) {
+              Write-Host "FAIL: AGENTS.md missing single-`$ row for $probe"
+              $fail = 1
+            }
+            if ($agents -match [regex]::Escape("`$`$$probe")) {
+              Write-Host "FAIL: AGENTS.md contains `$`$<name> corruption (issue #69 regression)"
+              $fail = 1
+            }
+          }
+
+          # Clean up probe + restore routing-table mutations so subsequent
+          # steps see a pristine working tree.
+          Remove-Item -LiteralPath "skills/$probe" -Recurse -Force -ErrorAction SilentlyContinue
+          git checkout -- tooling/claude/CLAUDE.md tooling/codex/AGENTS.md tooling/gemini/GEMINI.md 2>$null
+
+          if ($fail) { exit 1 } else { Write-Host "OK: PS scaffolds with correct single-`$ AGENTS.md row"; exit 0 }
+
       - name: All .ps1 scripts must parse (syntax)
         shell: pwsh
         run: |

@@ -1,5 +1,57 @@
 # Changelog
 
+## [1.19.26] - 2026-05-21
+
+### Fixed — `new-skill` scaffolding integrity (closes #48, closes #69, closes #85, closes #96)
+
+Four related boundary problems in `scripts/new-skill.sh` /
+`scripts/new-skill.ps1` are addressed in one place. All four touched
+the same file pair and all four affected the skill-scaffold contract:
+
+- **Slug validation tightened (closes #96).** The previous
+  `^[a-z][a-z0-9-]*$` regex also accepted `foo-`, `foo--bar`, and
+  Windows reserved device names (`con`, `prn`, `aux`, `nul`, `com1`-`9`,
+  `lpt1`-`9`). Both scripts now require lowercase alphanumeric segments
+  joined by single hyphens and explicitly reject reserved device names,
+  so the same slug works on every target filesystem.
+- **PowerShell interpolation bug (closes #69).** The AGENTS.md routing
+  row used the form `` "| ... | ``$`$Name`` |" `` which double-escaped
+  the `$` and wrote `` `$$Name` `` literally into AGENTS.md instead of
+  interpolating the skill slug. The row is now built by string
+  concatenation, producing the same byte-for-byte output as the Bash
+  side: `` `| ... | \`$<name>\` |` ``.
+- **Partial routing reported (closes #85).** Previously the helpers
+  printed a single per-file warning when an anchor was missing, then
+  unconditionally printed `Routing: TODO row added to CLAUDE.md,
+  AGENTS.md, GEMINI.md` and exited 0. Both scripts now track per-file
+  insertion results, surface them in the final report, print a
+  WARNING block when any anchor was missing, and exit non-zero so CI /
+  release scripts cannot treat a partial scaffold as a successful one.
+- **Atomic prerequisite check on Windows Git Bash (closes #48).**
+  `new-skill.sh` used `python3` directly. On Windows Git Bash that name
+  can resolve to the Microsoft Store launcher stub which exits non-zero
+  and leaves `skills/<name>/SKILL.md` created but no routing rows
+  inserted. The script now probes `python3`, `python`, and `py -3`
+  *before* creating any file, exits with an actionable message if none
+  works, and uses the resolved interpreter for the rest of the run.
+
+Regression coverage in `.github/workflows/pr-scripts-shell.yml` adds:
+- A `$$<name>` corruption guard on the existing scaffold step.
+- A `new-skill.sh rejects malformed and Windows-reserved slugs` step
+  exercising the full reject list.
+- A `new-skill.sh reports partial routing accurately and exits
+  non-zero` step that mutates one anchor in `CLAUDE.md`, runs the
+  scaffold, and asserts both the per-file summary and the non-zero
+  exit.
+
+`.github/workflows/pr-scripts-powershell.yml` adds an
+`install/update/uninstall.ps1 interpolates $Name correctly and rejects
+malformed slugs` step that runs `new-skill.ps1`, asserts the AGENTS.md
+row contains a single literal `$<slug>` (no `$$`), and verifies the same
+malformed-slug reject list.
+
+---
+
 ## [1.19.25] - 2026-05-21
 
 ### Fixed — `validate` requires every shipped docs/ai template and flags non-comment placeholders (closes #52, closes #95)

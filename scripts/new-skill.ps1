@@ -38,8 +38,21 @@ function Write-Utf8NoBom([string]$path, [string]$text) {
     [System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))
 }
 
-if ($Name -notmatch '^[a-z][a-z0-9-]*$') {
-    Write-Error "Skill name must be kebab-case (a-z, 0-9, -). Got: $Name"
+# Validate name as a cross-tool identifier. The slug becomes a directory, a
+# Codex activation token, a Gemini path, and a row in three routing tables —
+# the previous "[a-z][a-z0-9-]*" regex also accepted "foo-" and "foo--bar".
+if ($Name -notmatch '^[a-z][a-z0-9]*(-[a-z0-9]+)*$') {
+    Write-Error "Skill name must be lowercase alphanumeric segments joined by single hyphens (e.g. graphql-server). Got: $Name"
+    exit 1
+}
+
+# Reject Windows reserved device names so the same slug works on every target
+# filesystem (new-skill.sh has the same guard).
+$reserved = @('con','prn','aux','nul',
+              'com1','com2','com3','com4','com5','com6','com7','com8','com9',
+              'lpt1','lpt2','lpt3','lpt4','lpt5','lpt6','lpt7','lpt8','lpt9')
+if ($reserved -contains $Name.ToLower()) {
+    Write-Error "'$Name' is a Windows reserved device name and cannot be used as a skill slug."
     exit 1
 }
 
@@ -118,34 +131,58 @@ Always report:
 Write-Utf8NoBom $skillFile $body
 
 # -- Insert placeholder routing rows ---------------------------------------
+# Tracks per-file success so partial routing failures cannot masquerade as a
+# full scaffold. Exits non-zero at the end if any anchor was missing.
+$script:routingResults = @()
+$script:routingOk = $true
+
 function Insert-RoutingRow([string]$file, [string]$row, [string]$anchor) {
+    $base = Split-Path -Leaf $file
     # Normalise CRLF -> LF first: on a Windows checkout (autocrlf) the file is
     # CRLF on disk but the anchors are written with bare LF - without this the
     # IndexOf never matches and every routing row is silently skipped.
     $content = (Get-Content $file -Raw) -replace "`r`n", "`n"
     $idx = $content.IndexOf($anchor)
     if ($idx -lt 0) {
-        Write-Host "  [warn] anchor not found in $file -- add the row manually" -ForegroundColor Yellow
+        $script:routingResults += "$base : ANCHOR NOT FOUND -- add the row manually"
+        $script:routingOk = $false
         return
     }
     $newContent = $content.Substring(0, $idx) + "`n" + $row + $content.Substring($idx)
     Write-Utf8NoBom $file $newContent
+    $script:routingResults += "$base : row added"
 }
 
 $anchorClaudeGemini = "`n`n---`n`n## Subagent routing"
 $anchorAgents       = "`n`nActivate only the skills relevant to the current task."
 
-Insert-RoutingRow (Join-Path $KitRoot "tooling\claude\CLAUDE.md") "| TODO: describe when to use $Name | ``$Name`` skill |" $anchorClaudeGemini
-Insert-RoutingRow (Join-Path $KitRoot "tooling\codex\AGENTS.md")  "| TODO: describe when to use $Name | ``$`$Name`` |"    $anchorAgents
-Insert-RoutingRow (Join-Path $KitRoot "tooling\gemini\GEMINI.md") "| TODO: describe when to use $Name | ``.gemini/skills/$Name/SKILL.md`` |" $anchorClaudeGemini
+# The AGENTS.md row contains a literal `$<Name>` Codex activation token. The
+# previous "``$`$Name``" form double-escaped the `$` and wrote `$$Name`
+# literally instead of interpolating the skill slug — concatenation is
+# unambiguous and matches the bash side byte-for-byte.
+$claudeRow = '| TODO: describe when to use ' + $Name + ' | `' + $Name + '` skill |'
+$agentsRow = '| TODO: describe when to use ' + $Name + ' | `$' + $Name + '` |'
+$geminiRow = '| TODO: describe when to use ' + $Name + ' | `.gemini/skills/' + $Name + '/SKILL.md` |'
+
+Insert-RoutingRow (Join-Path $KitRoot "tooling\claude\CLAUDE.md") $claudeRow $anchorClaudeGemini
+Insert-RoutingRow (Join-Path $KitRoot "tooling\codex\AGENTS.md")  $agentsRow $anchorAgents
+Insert-RoutingRow (Join-Path $KitRoot "tooling\gemini\GEMINI.md") $geminiRow $anchorClaudeGemini
 
 # -- Done ------------------------------------------------------------------
 Write-Host "+--------------------------------------+" -ForegroundColor Green
 Write-Host "|        new-skill scaffolded          |" -ForegroundColor Green
 Write-Host "+--------------------------------------+" -ForegroundColor Green
 Write-Host "  Created: skills/$Name/SKILL.md"
-Write-Host "  Routing: TODO row added to CLAUDE.md, AGENTS.md, GEMINI.md"
+Write-Host "  Routing:"
+foreach ($r in $script:routingResults) {
+    Write-Host "    $r"
+}
 Write-Host ""
+if (-not $script:routingOk) {
+    Write-Host "  WARNING: one or more routing anchors were missing; the skill file was" -ForegroundColor Yellow
+    Write-Host "           created but the routing tables above are incomplete." -ForegroundColor Yellow
+    Write-Host ""
+}
 Write-Host "Next steps:"
 Write-Host "  1. Edit skills/$Name/SKILL.md and fill the placeholders."
 Write-Host "  2. Replace the TODO routing rows with a real description in:"
@@ -154,3 +191,10 @@ Write-Host "       tooling/codex/AGENTS.md"
 Write-Host "       tooling/gemini/GEMINI.md"
 Write-Host "  3. Add an entry to CHANGELOG.md under [Unreleased] -> Added -> New skills."
 Write-Host "  4. Re-run the install script in any target project to deploy."
+
+# Mirror new-skill.sh: surface partial routing as a non-zero exit so CI /
+# release scripts cannot treat the scaffold as fully successful when the
+# routing tables are out of sync with the new skill file.
+if (-not $script:routingOk) {
+    exit 1
+}
