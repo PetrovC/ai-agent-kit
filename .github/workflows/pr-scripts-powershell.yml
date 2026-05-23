@@ -238,19 +238,27 @@ jobs:
           # skill slug. Scaffold a probe and assert the AGENTS.md row contains
           # a single literal `$` followed by the slug, never `$$<slug>`.
           $probe = "ps-probe-$([guid]::NewGuid().ToString('N').Substring(0,6))"
-          .\scripts\new-skill.ps1 -Name $probe -Description "PS interpolation probe."
-          $rc = $LASTEXITCODE
-          if ($rc -ne 0) { Write-Host "FAIL: new-skill.ps1 exit=$rc"; exit 1 }
-
           $fail = 0
-          $agents = Get-Content -Raw -LiteralPath "tooling/codex/AGENTS.md"
-          if ($agents -notmatch [regex]::Escape("`$$probe")) {
-            Write-Host "FAIL: AGENTS.md missing single-`$ row for $probe"
+
+          # Run new-skill.ps1 via `& pwsh -File` so any `exit N` inside it
+          # (e.g. partial-routing safeguard) terminates the subshell only, not
+          # this step's pwsh process. Direct dot-invocation would propagate.
+          $scaffoldOut = & pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/new-skill.ps1 -Name $probe -Description "PS interpolation probe." 2>&1
+          $rc = $LASTEXITCODE
+          if ($rc -ne 0) {
+            Write-Host "FAIL: new-skill.ps1 exit=$rc"
+            Write-Host ($scaffoldOut | Out-String)
             $fail = 1
-          }
-          if ($agents -match [regex]::Escape("`$`$$probe")) {
-            Write-Host "FAIL: AGENTS.md contains `$`$<name> corruption (issue #69 regression)"
-            $fail = 1
+          } else {
+            $agents = Get-Content -Raw -LiteralPath "tooling/codex/AGENTS.md"
+            if ($agents -notmatch [regex]::Escape("`$$probe")) {
+              Write-Host "FAIL: AGENTS.md missing single-`$ row for $probe"
+              $fail = 1
+            }
+            if ($agents -match [regex]::Escape("`$`$$probe")) {
+              Write-Host "FAIL: AGENTS.md contains `$`$<name> corruption (issue #69 regression)"
+              $fail = 1
+            }
           }
 
           # Closes #96: PS validation must reject the same set of malformed
