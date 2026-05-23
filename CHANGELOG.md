@@ -1,5 +1,49 @@
 # Changelog
 
+## [1.19.28] - 2026-05-23
+
+### Fixed — lifecycle metadata stays in sync with the installed tool set across partial commands (closes #40, closes #71)
+
+Two related state-correctness bugs in the install / update / uninstall
+lifecycle:
+
+- **`install` overwrote `.kit-manifest` on a partial run (closes #71).**
+  `install.sh` / `install.ps1` wrote the manifest with a plain `>`
+  redirect, so a partial reinstall (`--tools gemini` on top of a
+  codex+claude+gemini install) silently dropped every codex and claude
+  entry. Later updates couldn't prune those tools' de-shipped files
+  because the manifest had "forgotten" them. The write now merges the
+  new entries with the manifest entries of tools NOT in this run
+  (`MANIFEST_KEEP_FROM_OLD`), mirroring `update.sh`'s `KEEP_FROM_OLD`
+  semantics.
+
+- **`.kit-version` no longer drifts from the actual installed tool set
+  (closes #40).** All three lifecycle scripts treated their `--tools`
+  argument as if it were the installed set, not the SCOPE of the
+  current run:
+  - `install` now UNIONs the new `--tools` with whatever is already in
+    `.kit-version`, in canonical `codex,claude,gemini` order. Adding a
+    tool on top of an existing install no longer rewrites the file as
+    "tools: <new tool only>".
+  - `update` now stamps the file with the existing installed tool set
+    (`$INSTALLED_TOOLS`), not the current `--tools`. A partial update
+    refreshes only the selected tool's files without shrinking the
+    recorded installed set.
+  - `uninstall` now REWRITES the file with `<installed> minus
+    <removed>` and filters the manifest the same way. A subsequent
+    default update no longer thinks the removed tool is still
+    installed (which would silently reinstall its files).
+
+Regression coverage in `.github/workflows/pr-scripts-shell.yml` adds
+two e2e steps that exercise both bugs end-to-end: a partial install
+preserves the other tools' manifest entries and grows `.kit-version`
+to the union; a partial update keeps the installed set unchanged; a
+partial uninstall rewrites the installed set, filters the manifest,
+and makes a subsequent default update a no-op (no silent reinstall of
+the just-removed tool).
+
+---
+
 ## [1.19.27] - 2026-05-23
 
 ### Fixed — `ai-fallback-dispatch` enforces its PR completion contract and runs its documented scheduled retry (closes #47, closes #55)

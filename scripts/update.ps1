@@ -42,7 +42,7 @@ if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
 }
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.27"
+$KitVersion = "1.19.28"
 
 function Get-OwningTool([string]$rel) {
     # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,
@@ -265,7 +265,11 @@ if ((Test-Path $manifestFile) -and ($Managed.Count -gt 0)) {
 
 # -- Update .kit-version + .kit-manifest -----------------------------------
 if (-not $DryRun) {
-    $stamp = "ai-agent-kit@$KitVersion - updated $(Get-Date -Format 'yyyy-MM-dd') - tools: $($ToolList -join ',')"
+    # The installed tool set is independent of this run's -Tools scope:
+    # `update -Tools gemini` refreshes only Gemini files but must NOT shrink
+    # the recorded installed set if codex/claude were also installed before.
+    # Preserve $installedTools read at the top of the script.
+    $stamp = "ai-agent-kit@$KitVersion - updated $(Get-Date -Format 'yyyy-MM-dd') - tools: $installedTools"
     Write-Utf8NoBom $versionFile $stamp
 
     $manifestEntries = (@() + $Managed + $KeepFromOld) | Sort-Object -Unique | Where-Object { $_ }

@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.27"
+KIT_VERSION="1.19.28"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
@@ -240,17 +240,62 @@ find "$KIT_ROOT/project-template" -maxdepth 1 -type f | while read -r src_file; 
 done
 
 # ── .kit-version + .kit-manifest ───────────────────────────────────────────
+# A partial install (`--tools gemini` on top of a codex+claude install) must
+# UNION its --tools with the already-installed set in .kit-version, never
+# shrink it; and must MERGE the new manifest entries with the manifest
+# entries of tools NOT in this run, never overwrite them. The previous
+# `>` redirect did the second wrong half — every partial install silently
+# orphaned the other tools' manifest entries, breaking later pruning by
+# update.sh.
 step "Writing .kit-version + .kit-manifest"
-echo "ai-agent-kit@$KIT_VERSION - installed $(date +%Y-%m-%d) - tools: $TOOLS" > "$TARGET/.kit-version"
-ok ".kit-version"
-# Baseline manifest: every kit artifact just installed (docs/ai excluded via
-# owning_tool). update.sh diffs against this to prune files later versions
-# stop shipping.
-for rel in "${MANAGED[@]}"; do
-    # `if` (not `[[ ]] && echo`) so the loop never ends on a failing test —
-    # under set -o pipefail that would fail the `| sort` pipeline + set -e.
-    if [[ -n "$(owning_tool "$rel")" ]]; then echo "$rel"; fi
-done | LC_ALL=C sort -u > "$TARGET/.kit-manifest"
+
+# Read the prior installed-tool set so we can preserve it across a partial run.
+INSTALLED_TOOLS_OLD=""
+if [[ -f "$TARGET/.kit-version" ]]; then
+    if [[ "$(cat "$TARGET/.kit-version")" =~ tools:\ ([^[:space:]]+) ]]; then
+        INSTALLED_TOOLS_OLD="${BASH_REMATCH[1]}"
+    fi
+fi
+# FULL_TOOLS = union(installed_old, --tools) in canonical codex,claude,gemini order.
+FULL_TOOLS=()
+for ref in codex claude gemini; do
+    keep=false
+    if [[ -n "$INSTALLED_TOOLS_OLD" ]]; then
+        IFS=',' read -ra OLD_LIST <<< "$INSTALLED_TOOLS_OLD"
+        for x in "${OLD_LIST[@]}"; do [[ "$x" == "$ref" ]] && keep=true && break; done
+    fi
+    contains "$ref" && keep=true
+    [[ "$keep" == "true" ]] && FULL_TOOLS+=("$ref")
+done
+FULL_TOOLS_STR="$(IFS=,; echo "${FULL_TOOLS[*]}")"
+echo "ai-agent-kit@$KIT_VERSION - installed $(date +%Y-%m-%d) - tools: $FULL_TOOLS_STR" > "$TARGET/.kit-version"
+ok ".kit-version (tools: $FULL_TOOLS_STR)"
+
+# Manifest merge: keep entries from the old .kit-manifest whose owning tool
+# is NOT in this run's --tools (other tools' artifacts survive a partial run),
+# plus the entries we just installed. update.sh's manifest-diff GC relies on
+# the manifest representing the FULL installed set, not just the latest scope.
+MANIFEST_KEEP_FROM_OLD=()
+if [[ -f "$TARGET/.kit-manifest" ]]; then
+    while IFS= read -r p; do
+        [[ -z "$p" ]] && continue
+        otool="$(owning_tool "$p")"
+        [[ -z "$otool" ]] && continue
+        if ! contains "$otool"; then
+            MANIFEST_KEEP_FROM_OLD+=("$p")
+        fi
+    done < "$TARGET/.kit-manifest"
+fi
+{
+    for rel in "${MANAGED[@]}"; do
+        # `if` (not `[[ ]] && echo`) so the loop never ends on a failing test —
+        # under set -o pipefail that would fail the `| sort` pipeline + set -e.
+        if [[ -n "$(owning_tool "$rel")" ]]; then echo "$rel"; fi
+    done
+    if [[ ${#MANIFEST_KEEP_FROM_OLD[@]} -gt 0 ]]; then
+        printf '%s\n' "${MANIFEST_KEEP_FROM_OLD[@]}"
+    fi
+} | LC_ALL=C sort -u | sed '/^$/d' > "$TARGET/.kit-manifest"
 ok ".kit-manifest"
 
 # ── .gitignore hint ────────────────────────────────────────────────────────

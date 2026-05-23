@@ -14,7 +14,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.27"
+KIT_VERSION="1.19.28"
 TARGET=""
 TOOLS=""
 DRY_RUN=false
@@ -291,7 +291,11 @@ fi
 
 # ── Update .kit-version + .kit-manifest ────────────────────────────────────
 if [[ "$DRY_RUN" == "false" ]]; then
-    echo "ai-agent-kit@$KIT_VERSION - updated $(date +%Y-%m-%d) - tools: $TOOLS" > "$VERSION_FILE"
+    # The installed tool set is independent of this run's --tools scope:
+    # `update --tools gemini` refreshes only Gemini files but must NOT shrink
+    # the recorded installed set if codex/claude were also installed before.
+    # Preserve INSTALLED_TOOLS read at the top of the script.
+    echo "ai-agent-kit@$KIT_VERSION - updated $(date +%Y-%m-%d) - tools: $INSTALLED_TOOLS" > "$VERSION_FILE"
     # NOTE: the group must not END on a failing test — under `set -o pipefail`
     # a non-zero group exit fails the whole pipeline and `set -e` aborts. Use
     # `if` (a false `if` with no else exits 0), never a trailing `[[ ]] &&`.
