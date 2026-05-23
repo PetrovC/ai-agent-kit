@@ -227,17 +227,19 @@ via a server that the agent queries at runtime.
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/project"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@<x.y.z>", "/path/to/project"],
       "type": "stdio"
     },
     "postgres": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres", "${DATABASE_URL}"],
+      "args": ["-y", "@modelcontextprotocol/server-postgres@<x.y.z>", "${DATABASE_URL}"],
       "type": "stdio"
     }
   }
 }
 ```
+
+Replace each `<x.y.z>` with the version you reviewed — `npx -y <pkg>` without a pinned version installs whatever the registry serves at startup, which means a future package release would auto-run with the tokens and filesystem access configured above.
 
 **Writing a minimal MCP server (Node.js):**
 ```typescript

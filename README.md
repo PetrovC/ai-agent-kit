@@ -342,7 +342,17 @@ Copy these to `.github/workflows/` in your project (they are **not** installed a
 > release (not `latest`) — the CLI runs with the job's write scope, so an
 > unpinned auto-upgrade is a real risk. Bump it deliberately after reviewing the
 > [gemini-cli release notes](https://github.com/google-gemini/gemini-cli/releases).
-> The GitHub Actions themselves are already pinned (`@v1` / `@v0`).
+>
+> The templates reference each action by **major-version tag** (`@v1`, `@v0`,
+> `actions/checkout@v4`, …). Tags are mutable refs that the action owner can
+> move, so this is "lightly pinned for maintainability" — *not* the immutable
+> SHA-pinning GitHub's
+> [supply-chain hardening guide](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-third-party-actions)
+> recommends for jobs with write scopes. For stricter pinning, replace each
+> `@vN` with the full commit SHA from the action's releases page (and bump
+> deliberately during review). The kit ships tags because most adopters will
+> want the maintainability over the supply-chain strictness; pick the trade-off
+> that fits your threat model.
 
 > **`ai-fallback-dispatch.yml`** is the resilient one: it runs the three
 > agents *sequentially on the same branch* and only hands off when a provider

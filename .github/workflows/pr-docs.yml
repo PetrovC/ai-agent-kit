@@ -46,34 +46,62 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install yq
-        run: sudo snap install yq
-
-      - name: Validate every YAML file parses
+      # We use Python + PyYAML (preinstalled on ubuntu-latest) instead of
+      # `snap install yq` so the YAML lint is deterministic: a future Snap
+      # channel rotation of yq cannot silently change parsing semantics or
+      # exit codes here. PyYAML is the same parser the rest of this workflow
+      # already relies on for the static semantics check below.
+      - name: Validate every YAML file parses + workflow templates declare 'on' + 'jobs'
         run: |
-          errors=0
-          while IFS= read -r f; do
-            if ! yq eval '.' "$f" > /dev/null 2>&1; then
-              echo "INVALID YAML: $f"
-              yq eval '.' "$f" 2>&1 | head -5
-              errors=$((errors+1))
-            else
-              echo "OK: $f"
-            fi
-          done < <(find . -type f \( -name "*.yml" -o -name "*.yaml" \) -not -path "./node_modules/*" -not -path "./.git/*")
-          [[ "$errors" -eq 0 ]] || exit 1
+          python3 - <<'PY'
+          import glob, os, sys, yaml
 
-      - name: GitHub Actions workflow templates must declare 'on' and 'jobs'
-        run: |
-          errors=0
-          for f in prompts/github-actions/*.yml .github/workflows/*.yml; do
-            [[ -f "$f" ]] || continue
-            if ! yq eval 'has("on") and has("jobs")' "$f" | grep -q "^true$"; then
-              echo "MISSING 'on' or 'jobs' in: $f"
-              errors=$((errors+1))
-            fi
-          done
-          [[ "$errors" -eq 0 ]] || exit 1
+          errors = 0
+
+          # 1. Parse every *.yml / *.yaml in the repo (skipping vendored dirs)
+          #    and report the first parse error per file.
+          to_check = []
+          for ext in ("*.yml", "*.yaml"):
+              to_check += glob.glob(f"**/{ext}", recursive=True)
+          for f in sorted(set(to_check)):
+              if "/node_modules/" in f or "/.git/" in f:
+                  continue
+              try:
+                  with open(f, encoding="utf-8") as fh:
+                      yaml.safe_load(fh)
+                  print(f"OK: {f}")
+              except yaml.YAMLError as e:
+                  print(f"INVALID YAML: {f}")
+                  for line in str(e).splitlines()[:5]:
+                      print(f"  {line}")
+                  errors += 1
+
+          # 2. Every workflow template + every shipped workflow must declare
+          #    `on:` and `jobs:`. PyYAML parses the unquoted YAML 1.1 key
+          #    `on:` as Python `True` (boolean), so a strict `"on" in keys`
+          #    check would miss the workflows that don't quote it — accept
+          #    either form.
+          for f in sorted(glob.glob("prompts/github-actions/*.yml") +
+                          glob.glob(".github/workflows/*.yml")):
+              try:
+                  with open(f, encoding="utf-8") as fh:
+                      doc = yaml.safe_load(fh)
+              except yaml.YAMLError:
+                  # Already reported above.
+                  continue
+              if not isinstance(doc, dict):
+                  print(f"MISSING 'on' or 'jobs' in: {f}")
+                  errors += 1
+                  continue
+              keys = set(doc.keys())
+              has_on = ("on" in keys) or (True in keys)
+              has_jobs = "jobs" in keys
+              if not (has_on and has_jobs):
+                  print(f"MISSING 'on' or 'jobs' in: {f}")
+                  errors += 1
+
+          sys.exit(1 if errors else 0)
+          PY
 
   routing-consistency:
     name: Skill routing consistency
@@ -279,6 +307,33 @@ jobs:
                               "validated against PR/issue context before "
                               "invoking Gemini (issue #83)")
                   break
+
+          # 10. MCP `npx -y` example blocks must pin the package version with
+          #     `@<x.y.z>` (or a real `@N.N.N`) — `npx -y <pkg>` without a
+          #     version installs whatever the registry serves at startup,
+          #     auto-running future releases with whatever access (PAT, FS,
+          #     DB) the user has configured (issue #93 regression).
+          #     The negative lookbehind `(?<![/\w])` skips the URL form
+          #     (`npmjs.com/package/@modelcontextprotocol/server-…`) and any
+          #     unrelated word characters — only EXECUTION-context mentions
+          #     (`"@modelcontextprotocol/server-…"` in args / config) need a
+          #     pin.
+          for f in ("tooling/claude/.mcp.example.jsonc",
+                    "tooling/codex/config.toml",
+                    "skills/ai-dev/SKILL.md"):
+              try:
+                  t = read(f)
+              except FileNotFoundError:
+                  continue
+              for m in re.finditer(
+                      r'(?<![/\w])@modelcontextprotocol/server-[a-z0-9-]+', t):
+                  e = m.end()
+                  tail = t[e:e + 24]
+                  if not re.match(r'@(<[^>]+>|[0-9]+(?:\.[0-9]+){1,2})', tail):
+                      errs.append(f"{f}: unpinned `{m.group(0)}` example — "
+                                  "append `@<x.y.z>` (or a real version) so "
+                                  "future releases don't auto-run (issue #93)")
+                      break
 
           if errs:
               print("\n".join(errs)); sys.exit(1)
