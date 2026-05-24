@@ -100,7 +100,11 @@ function Copy-KitFile([string]$src, [string]$dst) {
         # cmdlet-parameter rule churn.
         [System.IO.Directory]::CreateDirectory($dstDir) | Out-Null
     }
-    Copy-Item -LiteralPath $src -Destination $dst -Force
+    # PowerShell's Copy-Item has -LiteralPath for SOURCE only; -Destination
+    # still interprets wildcards, so a bracketed dst like
+    # `C:\…\[acme]\.codex\config.toml` would fail or copy to the wrong
+    # path. [System.IO.File]::Copy is literal on both sides.
+    [System.IO.File]::Copy($src, $dst, $true)
     # Closes #74: `.Replace($Target, "")` strips EVERY literal occurrence
     # of $Target from $dst, so `-Target .` collapses every dot — including
     # the dot prefix of `.codex/`, `.claude/`, and every file extension —
@@ -189,7 +193,9 @@ if ($ToolList -contains "claude") {
     if (Test-Path -LiteralPath $mcpJsonDst) {
         Write-Preserve ".mcp.json"
     } else {
-        Copy-Item -LiteralPath (Join-Path $KitRoot "tooling\claude\.mcp.json") -Destination $mcpJsonDst -Force
+        # See Copy-KitFile comment: Copy-Item -Destination interprets
+        # wildcards, so use the .NET API for a literal dst path.
+        [System.IO.File]::Copy((Join-Path $KitRoot "tooling\claude\.mcp.json"), $mcpJsonDst, $true)
         Write-Ok ".mcp.json"
     }
     Copy-KitFile (Join-Path $KitRoot "tooling\claude\.mcp.example.jsonc") (Join-Path $Target ".mcp.example.jsonc")

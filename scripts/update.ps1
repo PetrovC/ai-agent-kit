@@ -69,7 +69,9 @@ function Compare-Files([string]$a, [string]$b) {
     # with early exit on the first differing byte — the cmp -s equivalent. We
     # do not hash both whole files (Get-FileHash) because that always reads
     # them fully even when they obviously differ.
-    if ((Get-Item $a).Length -ne (Get-Item $b).Length) { return $false }
+    # Both args may live under a $Target containing wildcard chars
+    # (`[`, `]`); use -LiteralPath so Get-Item doesn't expand them.
+    if ((Get-Item -LiteralPath $a).Length -ne (Get-Item -LiteralPath $b).Length) { return $false }
     $sa = [System.IO.File]::OpenRead($a)
     $sb = [System.IO.File]::OpenRead($b)
     try {
@@ -182,7 +184,10 @@ function Compare-And-Update([string]$src, [string]$dst) {
         if (-not $DryRun) {
             $dir = Split-Path -Parent $dst
             if (-not (Test-Path -LiteralPath $dir)) { [System.IO.Directory]::CreateDirectory($dir) | Out-Null }
-            Copy-Item -LiteralPath $src -Destination $dst -Force
+            # See install.ps1 Copy-KitFile comment: Copy-Item -Destination
+            # interprets wildcards in the dst path. Use [System.IO.File]::Copy
+            # for a literal-both-sides copy that survives bracketed $Target.
+            [System.IO.File]::Copy($src, $dst, $true)
         }
         return
     }
@@ -190,7 +195,10 @@ function Compare-And-Update([string]$src, [string]$dst) {
     if (-not (Compare-Files $src $dst)) {
         $Changes.Add("UPDATED  $rel")
         if (-not $DryRun) {
-            Copy-Item -LiteralPath $src -Destination $dst -Force
+            # See install.ps1 Copy-KitFile comment: Copy-Item -Destination
+            # interprets wildcards in the dst path. Use [System.IO.File]::Copy
+            # for a literal-both-sides copy that survives bracketed $Target.
+            [System.IO.File]::Copy($src, $dst, $true)
         }
     }
 }
