@@ -1,0 +1,70 @@
+// .mcp.json — Model Context Protocol server configuration for Claude Code.
+//
+// This is a JSONC reference file (JSON with comments). To use it:
+//   1. Copy the relevant block(s) below into the real `.mcp.json` at your project root.
+//   2. STRIP the comments — `.mcp.json` must be strict JSON or Claude Code will reject it.
+//   3. Set the required env vars before launching Claude Code.
+//   4. **Pin the version of every stdio package below.** `npx -y <pkg>` (no
+//      `@<version>`) installs whatever the registry serves at startup — a
+//      future package release would auto-run inside Claude Code with the
+//      tokens / filesystem / DB access configured here. That is exactly the
+//      attack surface MCP stdio servers expose. Replace each `@<x.y.z>`
+//      placeholder with a concrete version after reviewing the changelog of
+//      the upstream package.
+//
+// Docs: https://code.claude.com/docs/en/mcp
+//       https://github.com/modelcontextprotocol/servers
+
+{
+  "mcpServers": {
+    // ── Stdio servers (local process) ─────────────────────────────────────────
+
+    // "github": {
+    //   "type": "stdio",
+    //   "command": "npx",
+    //   // Pin: replace <x.y.z> with the version you reviewed. Releases:
+    //   //   https://www.npmjs.com/package/@modelcontextprotocol/server-github
+    //   "args": ["-y", "@modelcontextprotocol/server-github@<x.y.z>"],
+    //   "env": {
+    //     "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+    //   }
+    // },
+
+    // "filesystem": {
+    //   "type": "stdio",
+    //   "command": "npx",
+    //   // Pin: replace <x.y.z> with the version you reviewed. Releases:
+    //   //   https://www.npmjs.com/package/@modelcontextprotocol/server-filesystem
+    //   "args": ["-y", "@modelcontextprotocol/server-filesystem@<x.y.z>", "."]
+    // },
+
+    // "postgres": {
+    //   "type": "stdio",
+    //   "command": "npx",
+    //   // Pin: replace <x.y.z> with the version you reviewed. Releases:
+    //   //   https://www.npmjs.com/package/@modelcontextprotocol/server-postgres
+    //   "args": ["-y", "@modelcontextprotocol/server-postgres@<x.y.z>"],
+    //   "env": {
+    //     "POSTGRES_CONNECTION_STRING": "${DATABASE_URL}"
+    //   }
+    // },
+
+    // ── HTTP/SSE servers (remote) ─────────────────────────────────────────────
+
+    // "notion": {
+    //   "type": "http",
+    //   "url": "https://mcp.notion.so/sse",
+    //   "headers": {
+    //     "Authorization": "Bearer ${NOTION_TOKEN}"
+    //   }
+    // },
+
+    // "linear": {
+    //   "type": "http",
+    //   "url": "https://mcp.linear.app/sse",
+    //   "headers": {
+    //     "Authorization": "Bearer ${LINEAR_API_KEY}"
+    //   }
+    // }
+  }
+}

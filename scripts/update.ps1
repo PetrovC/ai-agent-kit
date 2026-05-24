@@ -220,7 +220,7 @@ if ($ToolList -contains "gemini") { Update-Directory (Join-Path $KitRoot "skills
 if ($ToolList -contains "codex") {
     Compare-And-Update (Join-Path $KitRoot "tooling\codex\AGENTS.md")   (Join-Path $Target "AGENTS.md")
     Compare-And-Update (Join-Path $KitRoot "tooling\codex\config.toml") (Join-Path $Target ".codex\config.toml")
-    Compare-And-Update (Join-Path $KitRoot "tooling\codex\hooks.json")  (Join-Path $Target ".codex\hooks.json")
+    Compare-And-Update (Join-Path $KitRoot "tooling\codex\hooks.windows.json") (Join-Path $Target ".codex\hooks.json")
     Update-Directory   (Join-Path $KitRoot "tooling\codex\hooks")       (Join-Path $Target ".codex\hooks")
     # Codex skills (5 subagents) merge into shared .agents/skills/
     Update-Directory   (Join-Path $KitRoot "tooling\codex\skills")      (Join-Path $Target ".agents\skills")
@@ -244,7 +244,7 @@ if ($ToolList -contains "codex") {
 # -- Update Claude tooling -------------------------------------------------
 if ($ToolList -contains "claude") {
     Compare-And-Update (Join-Path $KitRoot "tooling\claude\CLAUDE.md")     (Join-Path $Target "CLAUDE.md")
-    Compare-And-Update (Join-Path $KitRoot "tooling\claude\settings.json") (Join-Path $Target ".claude\settings.json")
+    Compare-And-Update (Join-Path $KitRoot "tooling\claude\settings.windows.json") (Join-Path $Target ".claude\settings.json")
     # .mcp.json is project-owned after install (configured by the user). Update
     # only refreshes the versioned reference; the live file is never touched.
     Compare-And-Update (Join-Path $KitRoot "tooling\claude\.mcp.example.jsonc") (Join-Path $Target ".mcp.example.jsonc")

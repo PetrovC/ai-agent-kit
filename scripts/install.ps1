@@ -174,7 +174,7 @@ if ($ToolList -contains "codex") {
     Write-Step "Installing Codex tooling"
     Copy-KitFile (Join-Path $KitRoot "tooling\codex\AGENTS.md")   (Join-Path $Target "AGENTS.md")
     Copy-KitFile (Join-Path $KitRoot "tooling\codex\config.toml") (Join-Path $Target ".codex\config.toml")
-    Copy-KitFile (Join-Path $KitRoot "tooling\codex\hooks.json")  (Join-Path $Target ".codex\hooks.json")
+    Copy-KitFile (Join-Path $KitRoot "tooling\codex\hooks.windows.json") (Join-Path $Target ".codex\hooks.json")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\codex\hooks")  (Join-Path $Target ".codex\hooks")
     # Codex-specific skills (the 5 subagents) merge into the shared .agents/skills/
     # directory alongside the tool-agnostic skills already installed above.
@@ -185,7 +185,7 @@ if ($ToolList -contains "codex") {
 if ($ToolList -contains "claude") {
     Write-Step "Installing Claude Code tooling"
     Copy-KitFile (Join-Path $KitRoot "tooling\claude\CLAUDE.md")     (Join-Path $Target "CLAUDE.md")
-    Copy-KitFile (Join-Path $KitRoot "tooling\claude\settings.json") (Join-Path $Target ".claude\settings.json")
+    Copy-KitFile (Join-Path $KitRoot "tooling\claude\settings.windows.json") (Join-Path $Target ".claude\settings.json")
     # .mcp.json is initialized once and then OWNED BY THE PROJECT — install
     # bootstraps an empty file only when missing, update never overwrites it.
     # The versioned reference users copy server blocks from is .mcp.example.jsonc.
@@ -318,20 +318,28 @@ if (Test-Path -LiteralPath $gitignore) {
 # never runs. Detect the resolution at install time so the user fixes
 # PATH *before* the kit's only mechanical destructive-command block goes
 # missing-in-action.
-if ($IsWindows -or $env:OS -eq "Windows_NT") {
+if ($env:OS -eq "Windows_NT") {
+    $gitBashCandidates = @()
+    if ($env:ProgramFiles) {
+        $gitBashCandidates += (Join-Path $env:ProgramFiles "Git\bin\bash.exe")
+        $gitBashCandidates += (Join-Path $env:ProgramFiles "Git\usr\bin\bash.exe")
+    }
+    $programFilesX86 = [Environment]::GetEnvironmentVariable("ProgramFiles(x86)")
+    if ($programFilesX86) {
+        $gitBashCandidates += (Join-Path $programFilesX86 "Git\bin\bash.exe")
+        $gitBashCandidates += (Join-Path $programFilesX86 "Git\usr\bin\bash.exe")
+    }
+    $gitBash = $gitBashCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
     $bashSource = Get-Command bash -ErrorAction SilentlyContinue
-    if (-not $bashSource) {
-        Write-Step "Windows: bash not found on PATH"
-        Write-Host "  ! The kit's Claude / Codex hooks need Git Bash on PATH." -ForegroundColor Yellow
-        Write-Host "  ! Install Git for Windows (https://git-scm.com/download/win) and ensure" -ForegroundColor Yellow
-        Write-Host "  ! C:\Program Files\Git\bin precedes C:\Windows\System32 on PATH." -ForegroundColor Yellow
-    } elseif ($bashSource.Source -like "*System32\bash.exe") {
+    if (-not $gitBash -and -not $bashSource) {
+        Write-Step "Windows: Git Bash not found"
+        Write-Host "  ! The installed Claude / Codex hook wrapper needs Git Bash." -ForegroundColor Yellow
+        Write-Host "  ! Install Git for Windows: https://git-scm.com/download/win" -ForegroundColor Yellow
+    } elseif (-not $gitBash -and $bashSource.Source -like "*System32\bash.exe") {
         Write-Step "Windows: `bash` resolves to the WSL launcher stub"
         Write-Host "  ! $($bashSource.Source) is the WSL launcher. If no WSL distro is" -ForegroundColor Yellow
-        Write-Host "  ! installed the kit's PreToolUse hook (pre-bash-guard) will silently" -ForegroundColor Yellow
-        Write-Host "  ! never run, losing the only mechanical block on destructive shell commands." -ForegroundColor Yellow
-        Write-Host "  ! Put Git Bash (C:\Program Files\Git\bin) BEFORE C:\Windows\System32 on PATH" -ForegroundColor Yellow
-        Write-Host "  ! and verify with: where bash; bash --version" -ForegroundColor Yellow
+        Write-Host "  ! installed the hook wrapper cannot use it reliably." -ForegroundColor Yellow
+        Write-Host "  ! Install Git for Windows or put Git Bash before C:\Windows\System32 on PATH." -ForegroundColor Yellow
     }
 }
 

@@ -29,20 +29,21 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
-      - name: Claude settings.json must declare $schema and no invalid outputStyle
+      - name: Claude settings templates must declare $schema and no invalid outputStyle
         run: |
           python3 - <<'PY'
           import json, sys
-          s = json.load(open("tooling/claude/settings.json"))
           errs = []
-          if s.get("$schema") != "https://json.schemastore.org/claude-code-settings.json":
-              errs.append("settings.json missing/!official $schema")
-          # "default" is not a documented outputStyle value; absence = default behaviour.
-          if s.get("outputStyle") == "default":
-              errs.append('settings.json outputStyle:"default" is not a valid value (remove the key)')
+          for path in ("tooling/claude/settings.json", "tooling/claude/settings.windows.json"):
+              s = json.load(open(path))
+              if s.get("$schema") != "https://json.schemastore.org/claude-code-settings.json":
+                  errs.append(f"{path} missing/!official $schema")
+              # "default" is not a documented outputStyle value; absence = default behaviour.
+              if s.get("outputStyle") == "default":
+                  errs.append(f'{path} outputStyle:"default" is not a valid value (remove the key)')
           if errs:
               print("\n".join(errs)); sys.exit(1)
-          print("OK: settings.json schema + outputStyle valid")
+          print("OK: Claude settings templates schema + outputStyle valid")
           PY
 
       - name: Subagent tools must use the documented comma-string form
@@ -150,6 +151,16 @@ jobs:
             fi
           done
           [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Codex hook JSON templates must parse
+        run: |
+          python3 - <<'PY'
+          import json
+          for path in ("tooling/codex/hooks.json", "tooling/codex/hooks.windows.json"):
+              with open(path) as f:
+                  json.load(f)
+              print(f"OK: {path}")
+          PY
 
       - name: config.toml must not document the invalid web_search value
         run: |
