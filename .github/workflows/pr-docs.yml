@@ -420,6 +420,30 @@ jobs:
                           "example or move it to a `~/.codex/config.toml` "
                           "reference (issue #46)")
 
+          # 15. PR-review templates that listen to `issue_comment` must
+          #     materialize the PR diff explicitly (issue #81). Without it,
+          #     `actions/checkout@v4` lands on the default branch and the
+          #     agent reviews HEAD-of-main instead of the PR diff —
+          #     producing reviews that look real but cover the wrong code.
+          #     Required signal: a `gh pr diff` invocation somewhere in
+          #     the workflow file (`gemini-dispatch.yml` conditions it on
+          #     route == 'review'; the pr-review workflows run it
+          #     unconditionally).
+          PR_REVIEW_WORKFLOWS = (
+              "prompts/github-actions/codex-pr-review.yml",
+              "prompts/github-actions/gemini-pr-review.yml",
+              "prompts/github-actions/gemini-dispatch.yml",
+          )
+          for f in PR_REVIEW_WORKFLOWS:
+              t = read(f)
+              if "issue_comment:" not in t:
+                  continue   # not a comment-triggered workflow, nothing to assert
+              if "gh pr diff" not in t:
+                  errs.append(f"{f}: comment-triggered PR-review workflow with "
+                              "no `gh pr diff` invocation — the agent will "
+                              "review the default branch instead of the PR "
+                              "(issue #81)")
+
           if errs:
               print("\n".join(errs)); sys.exit(1)
           print("OK: workflow semantics valid")

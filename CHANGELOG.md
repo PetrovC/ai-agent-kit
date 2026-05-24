@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.19.37] - 2026-05-23
+
+### Fixed — comment-triggered PR-review workflows materialize the diff (closes #81)
+
+`codex-pr-review.yml`, `gemini-pr-review.yml`, and `gemini-dispatch.yml`
+(its `/review` route) listened to `issue_comment` for top-level PR
+comments but ran `actions/checkout@v4` with no `ref:`. On
+`issue_comment` events, `GITHUB_REF` is the **default branch**, not the
+PR's merge ref or head — so the workspace the agent reviewed was
+HEAD-of-main, not the PR diff. Reviews looked real, were posted as PR
+comments, and covered the wrong code (or zero of the PR's actual
+changes if the PR had not yet been merged).
+
+All three workflows now add a `Materialize PR diff` step (`gh pr diff
+$PR_NUMBER` + `gh pr view --json title,body,headRefName,baseRefName`)
+that writes `pr.diff` and `pr.meta.md` into `.ai-task/` (Codex) or
+`.gemini-task/` (Gemini). The agent prompts read those files
+explicitly — and treat the PR body/title as untrusted DATA, never as
+instructions, mirroring the prompt-injection mitigation pattern used in
+`gemini-dispatch.yml`'s `command.md` handling. `gh` uses
+`GH_TOKEN: ${{ github.token }}` (already scoped to the job's
+`pull-requests: write` / `contents: read` permissions). The
+`gemini-dispatch.yml` materialization is conditional on
+`steps.route.outputs.route == 'review'` — `/triage` and the free-form
+assistant route don't need a PR diff.
+
+Regression coverage in `.github/workflows/pr-docs.yml`
+`lint-workflow-semantics` adds check #15: every PR-review workflow that
+listens to `issue_comment` must contain a `gh pr diff` invocation.
+Catches future regressions where a refactor removes the materialization
+step.
+
+---
+
 ## [1.19.36] - 2026-05-23
 
 ### Fixed — hooks now keep the contract the README always advertised (closes #57, closes #94)
