@@ -16,7 +16,7 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.36"
+KIT_VERSION="1.19.37"
 TARGET=""
 TOOLS="codex,claude,gemini"
 
