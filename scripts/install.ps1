@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.32"
+$KitVersion = "1.19.33"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 # Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
@@ -91,18 +91,43 @@ function Write-Preserve([string]$msg) {
 
 function Copy-KitFile([string]$src, [string]$dst) {
     $dstDir = Split-Path -Parent $dst
-    if (-not (Test-Path $dstDir)) {
-        New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
+    if (-not (Test-Path -LiteralPath $dstDir)) {
+        # `New-Item -Path $dstDir` would treat wildcard chars in $dstDir
+        # (`[`, `]`, `*`, `?`) as glob patterns and either error out or
+        # create the wrong path. [System.IO.Directory]::CreateDirectory
+        # takes its argument as a literal filesystem path and creates all
+        # intermediate directories — no wildcard interpretation, no
+        # cmdlet-parameter rule churn.
+        [System.IO.Directory]::CreateDirectory($dstDir) | Out-Null
     }
-    Copy-Item -Path $src -Destination $dst -Force
-    $rel = $dst.Replace($Target, "").TrimStart("\", "/").Replace("\", "/")
+    # PowerShell's Copy-Item has -LiteralPath for SOURCE only; -Destination
+    # still interprets wildcards, so a bracketed dst like
+    # `C:\…\[acme]\.codex\config.toml` would fail or copy to the wrong
+    # path. [System.IO.File]::Copy is literal on both sides.
+    [System.IO.File]::Copy($src, $dst, $true)
+    # Closes #74: `.Replace($Target, "")` strips EVERY literal occurrence
+    # of $Target from $dst, so `-Target .` collapses every dot — including
+    # the dot prefix of `.codex/`, `.claude/`, and every file extension —
+    # producing nonsense like `codex/configtoml`. Use a true prefix strip
+    # so only the literal $Target prefix is removed.
+    if ($dst.StartsWith($Target)) {
+        $rel = $dst.Substring($Target.Length)
+    } else {
+        $rel = $dst
+    }
+    $rel = $rel.TrimStart("\", "/").Replace("\", "/")
     $Managed.Add($rel)
     Write-Ok $rel
 }
 
 function Copy-KitDirectory([string]$srcDir, [string]$dstDir) {
-    if (-not (Test-Path $srcDir)) { return }
-    Get-ChildItem -Path $srcDir -Recurse -File | ForEach-Object {
+    # Closes #89: every Test-Path / Copy-Item / Get-ChildItem on a path
+    # derived from $Target uses -LiteralPath so Windows paths containing
+    # wildcard chars (`[`, `]`, `*`, `?`) — common in client folders like
+    # `C:\work\[acme]\app` — are treated as literal filesystem paths, not
+    # glob patterns.
+    if (-not (Test-Path -LiteralPath $srcDir)) { return }
+    Get-ChildItem -LiteralPath $srcDir -Recurse -File | ForEach-Object {
         $relative = $_.FullName.Substring($srcDir.Length).TrimStart("\", "/")
         $dst      = Join-Path $dstDir $relative
         Copy-KitFile $_.FullName $dst
@@ -168,7 +193,9 @@ if ($ToolList -contains "claude") {
     if (Test-Path -LiteralPath $mcpJsonDst) {
         Write-Preserve ".mcp.json"
     } else {
-        Copy-Item -Path (Join-Path $KitRoot "tooling\claude\.mcp.json") -Destination $mcpJsonDst -Force
+        # See Copy-KitFile comment: Copy-Item -Destination interprets
+        # wildcards, so use the .NET API for a literal dst path.
+        [System.IO.File]::Copy((Join-Path $KitRoot "tooling\claude\.mcp.json"), $mcpJsonDst, $true)
         Write-Ok ".mcp.json"
     }
     Copy-KitFile (Join-Path $KitRoot "tooling\claude\.mcp.example.jsonc") (Join-Path $Target ".mcp.example.jsonc")
@@ -193,9 +220,9 @@ Write-Step "Installing project template -> docs/ai/"
 
 $docsAiDir = Join-Path $Target "docs\ai"
 
-Get-ChildItem -Path (Join-Path $KitRoot "project-template") -File | ForEach-Object {
+Get-ChildItem -LiteralPath (Join-Path $KitRoot "project-template") -File | ForEach-Object {
     $dst = Join-Path $docsAiDir $_.Name
-    if (Test-Path $dst) {
+    if (Test-Path -LiteralPath $dst) {
         Write-Preserve "docs/ai/$($_.Name)"
     } else {
         Copy-KitFile $_.FullName $dst
@@ -270,8 +297,8 @@ $recommendedGitignore = @(
     "!.env.*.example"
 )
 $gitignore = Join-Path $Target ".gitignore"
-if (Test-Path $gitignore) {
-    $content = Get-Content $gitignore -Raw
+if (Test-Path -LiteralPath $gitignore) {
+    $content = Get-Content -LiteralPath $gitignore -Raw
     $missing = $recommendedGitignore | Where-Object { $content -notmatch [regex]::Escape($_) }
     if ($missing.Count -gt 0) {
         Write-Step ".gitignore - add these entries if not already present:"

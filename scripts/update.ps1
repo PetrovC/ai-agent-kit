@@ -42,7 +42,7 @@ if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
 }
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.32"
+$KitVersion = "1.19.33"
 
 function Get-OwningTool([string]$rel) {
     # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,
@@ -69,7 +69,9 @@ function Compare-Files([string]$a, [string]$b) {
     # with early exit on the first differing byte — the cmp -s equivalent. We
     # do not hash both whole files (Get-FileHash) because that always reads
     # them fully even when they obviously differ.
-    if ((Get-Item $a).Length -ne (Get-Item $b).Length) { return $false }
+    # Both args may live under a $Target containing wildcard chars
+    # (`[`, `]`); use -LiteralPath so Get-Item doesn't expand them.
+    if ((Get-Item -LiteralPath $a).Length -ne (Get-Item -LiteralPath $b).Length) { return $false }
     $sa = [System.IO.File]::OpenRead($a)
     $sb = [System.IO.File]::OpenRead($b)
     try {
@@ -97,8 +99,8 @@ $manifestFile   = Join-Path $Target ".kit-manifest"
 $installedTools = "codex,claude,gemini"
 $installedVersion = $null
 
-if (Test-Path $versionFile) {
-    $versionLine = (Get-Content $versionFile -Raw).Trim()
+if (Test-Path -LiteralPath $versionFile) {
+    $versionLine = (Get-Content -LiteralPath $versionFile -Raw).Trim()
     Write-Host "Installed: $versionLine"
 
     if ($versionLine -match "ai-agent-kit@([0-9]+\.[0-9]+\.[0-9]+)") {
@@ -144,8 +146,8 @@ $Managed      = [System.Collections.Generic.List[string]]::new()   # touched thi
 $KeepFromOld  = [System.Collections.Generic.List[string]]::new()   # old-manifest entries for tools NOT in this run
 
 function Test-ManifestEntry([string]$rel) {
-    if (-not (Test-Path $manifestFile)) { return $false }
-    foreach ($line in Get-Content $manifestFile) {
+    if (-not (Test-Path -LiteralPath $manifestFile)) { return $false }
+    foreach ($line in Get-Content -LiteralPath $manifestFile) {
         if ($line.Trim() -eq $rel) { return $true }
     }
     return $false
@@ -165,15 +167,27 @@ function Compare-And-Update([string]$src, [string]$dst) {
     }
 
     # Forward-slashed rel for cross-shell manifest parity with bash update.sh.
-    $rel = $dst.Replace($Target, "").TrimStart("\", "/").Replace("\", "/")
+    # Closes #74: `.Replace($Target, "")` strips EVERY literal occurrence
+    # of $Target from $dst, so `-Target .` collapses every dot — including
+    # the dot prefix of `.codex/`, `.claude/`, and every file extension —
+    # producing nonsense paths in the change report. Use a true prefix strip.
+    if ($dst.StartsWith($Target)) {
+        $rel = $dst.Substring($Target.Length)
+    } else {
+        $rel = $dst
+    }
+    $rel = $rel.TrimStart("\", "/").Replace("\", "/")
     $Managed.Add($rel)
 
-    if (-not (Test-Path $dst)) {
+    if (-not (Test-Path -LiteralPath $dst)) {
         $Changes.Add("NEW      $rel")
         if (-not $DryRun) {
             $dir = Split-Path -Parent $dst
-            if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-            Copy-Item $src $dst -Force
+            if (-not (Test-Path -LiteralPath $dir)) { [System.IO.Directory]::CreateDirectory($dir) | Out-Null }
+            # See install.ps1 Copy-KitFile comment: Copy-Item -Destination
+            # interprets wildcards in the dst path. Use [System.IO.File]::Copy
+            # for a literal-both-sides copy that survives bracketed $Target.
+            [System.IO.File]::Copy($src, $dst, $true)
         }
         return
     }
@@ -181,14 +195,17 @@ function Compare-And-Update([string]$src, [string]$dst) {
     if (-not (Compare-Files $src $dst)) {
         $Changes.Add("UPDATED  $rel")
         if (-not $DryRun) {
-            Copy-Item $src $dst -Force
+            # See install.ps1 Copy-KitFile comment: Copy-Item -Destination
+            # interprets wildcards in the dst path. Use [System.IO.File]::Copy
+            # for a literal-both-sides copy that survives bracketed $Target.
+            [System.IO.File]::Copy($src, $dst, $true)
         }
     }
 }
 
 function Update-Directory([string]$srcDir, [string]$dstDir) {
-    if (-not (Test-Path $srcDir)) { return }
-    Get-ChildItem -Path $srcDir -Recurse -File | ForEach-Object {
+    if (-not (Test-Path -LiteralPath $srcDir)) { return }
+    Get-ChildItem -LiteralPath $srcDir -Recurse -File | ForEach-Object {
         $relative = $_.FullName.Substring($srcDir.Length).TrimStart("\", "/")
         Compare-And-Update $_.FullName (Join-Path $dstDir $relative)
     }
@@ -213,11 +230,11 @@ if ($ToolList -contains "codex") {
     # pre-1.14 kit versions. The manifest GC below removes them only when
     # .kit-manifest proves kit ownership.
     $legacyCodexAgents = Join-Path $Target ".codex\agents"
-    if (Test-Path $legacyCodexAgents) {
+    if (Test-Path -LiteralPath $legacyCodexAgents) {
         foreach ($legacy in @("architect", "code-reviewer", "codebase-investigator", "security-reviewer", "test-runner")) {
             $legacyFile = Join-Path $legacyCodexAgents "$legacy.toml"
             $legacyRel = ".codex/agents/$legacy.toml"
-            if ((Test-Path $legacyFile) -and (-not (Test-ManifestEntry $legacyRel))) {
+            if ((Test-Path -LiteralPath $legacyFile) -and (-not (Test-ManifestEntry $legacyRel))) {
                 $Notes.Add("SKIPPED  $legacyRel (legacy; ownership unknown)")
             }
         }
@@ -256,8 +273,8 @@ if ($ToolList -contains "gemini") {
 #   - first run (no manifest) prunes nothing - it only writes the baseline;
 #   - a partial -Tools run never prunes another tool's files; preserves that
 #     tool's manifest entries (KeepFromOld) for a later full run.
-if ((Test-Path $manifestFile) -and ($Managed.Count -gt 0)) {
-    Get-Content $manifestFile | ForEach-Object {
+if ((Test-Path -LiteralPath $manifestFile) -and ($Managed.Count -gt 0)) {
+    Get-Content -LiteralPath $manifestFile | ForEach-Object {
         $p = $_.Trim()
         if (-not $p) { return }
         $otool = Get-OwningTool $p
@@ -266,9 +283,10 @@ if ((Test-Path $manifestFile) -and ($Managed.Count -gt 0)) {
             $KeepFromOld.Add($p)                           # other tool, out of scope
             return
         }
-        if (($Managed -notcontains $p) -and (Test-Path (Join-Path $Target $p))) {
+        $target_p = Join-Path $Target $p
+        if (($Managed -notcontains $p) -and (Test-Path -LiteralPath $target_p)) {
             $Changes.Add("PRUNED   $p (no longer shipped)")
-            if (-not $DryRun) { Remove-Item -Path (Join-Path $Target $p) -Force }
+            if (-not $DryRun) { Remove-Item -LiteralPath $target_p -Force }
         }
     }
 }
