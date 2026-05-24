@@ -444,6 +444,35 @@ jobs:
                               "review the default branch instead of the PR "
                               "(issue #81)")
 
+          # 16. Shared skills under skills/<name>/SKILL.md may carry
+          #     allowed-tools in their YAML frontmatter (Claude reads it,
+          #     Codex/Gemini ignore it), but every entry MUST use the
+          #     Claude-recognized `Bash(<cmd>:*)` shape. Anything else
+          #     would be both invalid Claude syntax AND silently ignored
+          #     by Codex/Gemini (issue #92 regression). See
+          #     `skills/README.md` for the full contract.
+          ALLOWED_TOOL_RE = re.compile(r'^\s*-\s*"?Bash\([^"]+\)"?\s*$')
+          for f in sorted(glob.glob("skills/*/SKILL.md")):
+              t = read(f)
+              # Frontmatter block: between the first two `---` lines.
+              fm = re.match(r'^---\n(.*?)\n---\n', t, flags=re.DOTALL)
+              if not fm:
+                  continue
+              fm_text = fm.group(1)
+              # Find the allowed-tools block (if any) and walk its items.
+              at = re.search(r'^allowed-tools:\s*\n((?:[ \t]+-\s*.*\n?)+)',
+                             fm_text, flags=re.MULTILINE)
+              if not at:
+                  continue
+              for line in at.group(1).splitlines():
+                  if not line.strip():
+                      continue
+                  if not ALLOWED_TOOL_RE.match(line):
+                      errs.append(f"{f}: allowed-tools entry `{line.strip()}` "
+                                  "must use Claude's `Bash(<cmd>:*)` shape — "
+                                  "Codex/Gemini ignore the field, and anything "
+                                  "else is invalid for Claude too (issue #92)")
+
           if errs:
               print("\n".join(errs)); sys.exit(1)
           print("OK: workflow semantics valid")
