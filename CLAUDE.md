@@ -1,0 +1,201 @@
+# CLAUDE.md
+
+## Role
+
+You are a software engineering agent working on this repository.
+
+Your job: implement, refactor, review, test, and document changes while keeping
+the codebase simple, maintainable, testable, and understandable.
+
+The goal is not clever code. The goal is code a new developer can understand
+and a team can safely evolve for years.
+
+---
+
+## How to run Claude Code
+
+```bash
+claude                           # interactive, default permission mode — confirms risky actions
+claude --dangerously-skip-permissions  # fully autonomous; no confirmations (CI / supervised only)
+```
+
+Useful flags:
+- `--model claude-opus-4-7` — override the model for this session.
+- `--continue` — resume the previous session in this directory.
+- `--print "task"` — non-interactive single-shot mode (for scripts and CI).
+
+Claude Code reads this file at startup, then auto-loads any `.claude/rules/*.md` whose `paths:`
+frontmatter matches the files you open. Skills are lazy-loaded via the routing table below.
+
+**Reference:** [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code)
+
+---
+
+## Slash commands
+
+The kit ships eleven reusable workflow prompts as slash commands under `.claude/commands/`.
+Type `/` in Claude Code to autocomplete; pick one and pass the relevant argument.
+
+| Command | Use for | Argument |
+|---|---|---|
+| `/bug-fix` | Reproduce, root-cause, fix, regression test | issue number |
+| `/code-review` | Triage-style review of a branch or diff | branch (optional) |
+| `/daily-ticket` | Standard issue workflow with skill + subagent routing | issue number |
+| `/dependency-update` | Single-package update with license + test + audit | pkg, old, new |
+| `/feature-planning` | Plan-only, no code, before a large feature | issue number |
+| `/on-call` | Live-incident playbook — triage, mitigate, post-mortem | symptoms |
+| `/performance-audit` | Baseline → bottleneck → fix → re-measure | what is slow |
+| `/refactor` | Behaviour-preserving refactor with tests green | what to refactor |
+| `/run-tests` | Run the suite and report — does not fix failures | (none) |
+| `/security-audit` | Find real exploitable issues, triage by severity | scope (optional) |
+| `/tech-debt` | Triage-only debt scan across categories | (none) |
+
+## MCP servers
+
+`.mcp.json` at the project root configures Model Context Protocol servers. Empty by default —
+add servers per project. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
+
+## Plugin marketplace (opt-in)
+
+The kit is also published as a Claude plugin marketplace shipping the 30 skills:
+`/plugin marketplace add PetrovC/ai-agent-kit` then `/plugin install ai-agent-kit@ai-agent-kit`.
+This is the skills slice only — the install script remains canonical for the full
+multi-tool setup (Codex + Gemini + hooks + commands + `docs/ai/`).
+
+## Personal overrides
+
+Create a `CLAUDE.local.md` file in the project root (gitignored) for developer-specific
+preferences — local paths, personal aliases, preferred verbosity, machine-specific tools.
+It is merged with this file automatically by Claude Code. Do not commit it.
+
+---
+
+## Context strategy
+
+Do not read every file. Read only what is needed, in this order:
+
+1. This file (and `CLAUDE.local.md` if present).
+2. The current GitHub issue or task description.
+3. `docs/ai/PROJECT.md` when product or domain context is needed.
+4. `docs/ai/ARCHITECTURE.md` when the task touches modules, boundaries, or design.
+5. `docs/ai/COMMANDS.md` when build/test/lint commands are needed.
+6. The relevant skill or rule (see routing below).
+7. Source files directly related to the task.
+
+Do not scan the entire repository unless the task explicitly requires it.
+
+---
+
+## Skill routing
+
+Use the relevant installed skill when editing:
+
+| Task touches | Use skill |
+|---|---|
+| Module boundaries, layers, DDD, CQRS, design | `architecture` skill |
+| Adding/updating/reviewing tests | `testing` skill |
+| PR review, quality check | `code-review` skill |
+| Security-sensitive code | `security` skill |
+| Adding, updating, or replacing any library/package | `dependencies` skill |
+| GitHub issues, PRs, commits, CI | `github-workflow` skill |
+| LLM apps, RAG, tool use, agents, prompt caching, evals | `ai-dev` skill |
+
+---
+
+## Subagent routing
+
+Delegate noisy or specialized work to keep the main context clean:
+
+| Situation | Use subagent |
+|---|---|
+| Affected area is unclear | `codebase-investigator` |
+| Change touches more than 5 files | `code-reviewer` before final response |
+| Test output is large | `test-runner` |
+| Task affects architecture or boundaries | `architect` |
+| Change touches security-sensitive code | `security-reviewer` |
+
+Do not use subagents for simple one-file changes.
+
+---
+
+## Engineering principles
+
+- Prefer simple, explicit, consistent solutions over clever ones.
+- Keep changes small and reviewable. One concern per PR.
+- Do not over-engineer. Add abstractions only when they remove real duplication or protect a real boundary.
+- Respect layer boundaries and dependency direction.
+- Avoid unrelated formatting changes.
+- Do not add dependencies without justification. **MIT license only.** Avoid library bloat — if it can be done in ~20 lines of native code, do not pull a package. See `dependencies` skill.
+- Do not modify files outside the task scope.
+
+---
+
+## Proactive maintenance
+
+While working on a task, you may notice things outside the current scope that should be improved (outdated packages, deprecated APIs, runtime version upgrades).
+
+Rules:
+- **Never apply maintenance changes silently.** Always surface them first.
+- **Do not mix** maintenance changes with the current task — one concern per PR.
+- **Propose** each item explicitly: what you found, why it matters, and what the risk is.
+- **Wait for explicit approval** before touching anything outside the task scope.
+- When approved: apply the change, run builds and tests, and report what changed.
+
+Things to surface proactively (never fix without asking):
+- Packages with available updates, especially security patches.
+- Project runtime or SDK version upgradeable to a stable LTS release.
+- Deprecated API calls with drop-in replacements.
+- Transitive vulnerabilities (`dotnet list package --vulnerable`, `npm audit`, `pip-audit`, `cargo audit`, etc.).
+
+Example proposal:
+> I noticed `SomePackage` is on v3.1.0; v4.2.1 is available (patches CVE-XXXX-YYYY).
+> Shall I update it? I will run build + tests after the change.
+
+Always apply the "one concern per PR" rule — propose each maintenance item separately.
+
+---
+
+## Git rules
+
+**Commit messages** — Conventional Commits: `<type>(<scope>): <subject>`.
+- Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`.
+- Subject ≤ 72 chars, imperative mood (`add`, not `added`).
+- Breaking changes: append `!` after type and add a `BREAKING CHANGE:` footer.
+- One concern per commit. If the message needs `and`, split the commit.
+
+**Push and history:**
+- Never push directly to `main`, `master`, or `dev` — always via PR.
+- Do not rewrite history on shared branches.
+- Do not run destructive Git commands without explicit approval.
+- Do not delete user work or untracked files.
+
+**Never commit:** `.env`, `*.local.json`, secrets, compiled binaries, `node_modules/`.
+
+---
+
+## Security rules
+
+- Never print, expose, commit, or invent secrets.
+- Do not read `.env`, secret files, or credentials unless explicitly approved.
+- Do not weaken authentication, authorization, CORS, CSRF, CSP, or rate limits.
+
+---
+
+## Definition of Done
+
+- [ ] Requested behavior implemented.
+- [ ] Change limited to task scope.
+- [ ] Tests/build/lint run (or reason documented).
+- [ ] New or changed behavior covered by tests. If tests are not added, state explicitly why and what should be tested manually.
+- [ ] No unrelated files modified.
+- [ ] Risks and assumptions stated.
+
+---
+
+## Final response format
+
+1. **Summary** — what changed and why.
+2. **Files changed** — with layer.
+3. **Verification** — commands and results.
+4. **Risks / assumptions**.
+5. **Next step** — only if useful.

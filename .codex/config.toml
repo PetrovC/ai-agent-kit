@@ -1,0 +1,101 @@
+# .codex/config.toml
+# Project-level Codex configuration.
+# Personal config (model, profiles, API keys) goes in ~/.codex/config.toml
+
+# approval_policy controls when Codex asks for confirmation.
+#   untrusted   — ask for any command that isn't pre-allowlisted (most paranoid)
+#   on-request  — show proposed changes, require approval before applying (safe default)
+#   never       — fully autonomous; no confirmations (CI / supervised runs only)
+# (on-failure is deprecated; use on-request or never. A `granular` table also
+#  exists for fine-grained control — see the Codex config reference.)
+approval_policy = "on-request"
+
+# sandbox_mode controls filesystem and network access during execution.
+#   workspace-write    — read/write within the project directory; no network (recommended)
+#   read-only          — no writes; useful for analysis / review tasks
+#   danger-full-access — unrestricted (only for fully supervised runs)
+sandbox_mode = "workspace-write"
+
+# web_search enables Codex to fetch URLs for context.
+#   cached   — results are cached to reduce latency and cost
+#   live     — always fetch fresh
+#   disabled — no web access
+# (string form shown; a [web_search] table also exists for context_size /
+#  allowed_domains / location — see the Codex config reference.)
+web_search = "cached"
+
+# Cap per-doc size loaded into context to prevent runaway files (~32 KB ≈ 8k tokens).
+project_doc_max_bytes = 32768
+
+[sandbox_workspace_write]
+network_access = false
+
+# ── Environment policy ────────────────────────────────────────────────────────
+# Controls which environment variables are exposed to subprocesses Codex spawns.
+# This is the Codex equivalent of Gemini's advanced.excludedEnvVars and exists to
+# keep secrets out of tool subprocesses. `inherit = "all"` keeps the dev workflow
+# working (PATH etc.) while `exclude` scrubs common secret-bearing patterns.
+[shell_environment_policy]
+inherit = "all"
+exclude = [
+    "*_SECRET",
+    "*_TOKEN",
+    "*_KEY",
+    "*_PASSWORD",
+    "OPENAI_*",
+    "ANTHROPIC_*",
+    "AWS_*",
+    "GCP_*",
+    "GOOGLE_*",
+    # Connection strings routinely embed user:password@host (DATABASE_URL,
+    # REDIS_URL, MONGODB_URI, *_DSN) and match none of the patterns above.
+    "*_URL",
+    "*_URI",
+    "*_DSN",
+]
+
+# ── Session history ───────────────────────────────────────────────────────────
+# Persist transcripts but cap the on-disk size so a long session can't fill the
+# disk. Set persistence = "none" for sensitive repos that must not store history.
+[history]
+persistence = "save-all"
+max_bytes = 10485760  # 10 MiB
+
+# ── Completion notification ─────────────────────────────────────────────────
+# `notify` is a machine-local key — Codex reads it ONLY from
+# `~/.codex/config.toml`, not from project-scoped `.codex/config.toml`
+# (https://developers.openai.com/codex/config-reference). Adding it
+# here would silently do nothing.
+#
+# For project-level turn-end notification, the kit already ships the
+# hook form via `.codex/hooks.json` -> `notify-done.sh`. No action needed.
+#
+# For personal machine-level notification, set the `notify` key (an array
+# of program + args) in `~/.codex/config.toml`, NOT in this file.
+
+# ── MCP servers ───────────────────────────────────────────────────────────────
+# Codex supports Model Context Protocol servers (stdio + HTTP). Uncomment and
+# configure per project. This mirrors Claude's .mcp.json and Gemini's
+# settings.json mcpServers. Docs: https://developers.openai.com/codex/mcp
+#
+# Pin the version of every stdio package below. `npx -y <pkg>` without an
+# `@<version>` installs whatever the registry serves at startup — a future
+# package release would auto-run inside Codex with the tokens / filesystem
+# access configured here. Replace each `@<x.y.z>` placeholder with a
+# concrete version after reviewing the changelog of the upstream package.
+# Find releases at https://www.npmjs.com/package/<pkg>.
+#
+# stdio (local process):
+# [mcp_servers.github]
+# command = "npx"
+# args = ["-y", "@modelcontextprotocol/server-github@<x.y.z>"]
+# env = { GITHUB_PERSONAL_ACCESS_TOKEN = "${GITHUB_TOKEN}" }
+#
+# [mcp_servers.filesystem]
+# command = "npx"
+# args = ["-y", "@modelcontextprotocol/server-filesystem@<x.y.z>", "."]
+#
+# HTTP (remote):
+# [mcp_servers.linear]
+# url = "https://mcp.linear.app/sse"
+# bearer_token_env_var = "LINEAR_API_KEY"
