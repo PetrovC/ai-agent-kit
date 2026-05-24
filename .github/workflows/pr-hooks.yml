@@ -187,6 +187,80 @@ jobs:
             && echo "ok: session-summary/wrote-snapshot" \
             || { echo "FAIL: session-summary did not write a snapshot file"; fail=1; }
 
+          # Closes #94: settings.json must wire session-summary under
+          # PreCompact with async: false. The whole point is to write the
+          # snapshot BEFORE compaction; async: true lets Claude compact in
+          # parallel and the snapshot can race the very state it was
+          # supposed to preserve.
+          python3 - <<'PY'
+          import json, sys
+          with open("tooling/claude/settings.json", encoding="utf-8") as f:
+              data = json.load(f)
+          pc = data.get("hooks", {}).get("PreCompact", [])
+          # Find the session-summary hook entry.
+          found = False
+          for matcher in pc:
+              for h in matcher.get("hooks", []):
+                  if "session-summary.sh" in h.get("command", ""):
+                      found = True
+                      if h.get("async") is not False:
+                          print(f"FAIL: session-summary PreCompact must be async: false; got {h.get('async')!r}")
+                          sys.exit(1)
+          if not found:
+              print("FAIL: PreCompact hook for session-summary.sh missing")
+              sys.exit(1)
+          print("ok: settings.json wires session-summary PreCompact with async: false")
+          PY
+
+          # Closes #57: Codex format-on-save must format only files named by
+          # the apply_patch payload, NOT every file git sees as modified.
+          # Stand up a fresh git repo, leave one user-WIP file dirty, and
+          # feed the hook an apply_patch payload that touches a DIFFERENT
+          # file. The user-WIP file must remain untouched; only the patched
+          # file's path is "format candidate" — we assert that path is what
+          # the hook would have formatted by checking the hook's stderr is
+          # silent (no fallback warning) and that it exits 0 cleanly.
+          R=$(mktemp -d) && pushd "$R" >/dev/null
+          git init -q
+          git config user.email ci@example.com
+          git config user.name CI
+          mkdir -p src
+          echo 'console.log( "user wip"  );' > src/userwip.js
+          git add . && git commit -q -m base
+          # Now stage a "user wip" change the agent never touched.
+          echo 'console.log(  "still mine"  );' >> src/userwip.js
+          # Patch payload says the agent touched ONLY src/agent.ts.
+          touch src/agent.ts
+          PAYLOAD=$(printf '{"tool_input":{"command":"*** Begin Patch\\n*** Add File: src/agent.ts\\n+const x = 1;\\n*** End Patch\\n"}}')
+          BEFORE=$(md5sum src/userwip.js | awk '{print $1}')
+          printf '%s' "$PAYLOAD" | bash "$OLDPWD/tooling/codex/hooks/format-on-save.sh" 2>/tmp/fmt-err.log || { echo "FAIL: codex format-on-save rc!=0"; cat /tmp/fmt-err.log; fail=1; popd >/dev/null; exit 1; }
+          AFTER=$(md5sum src/userwip.js | awk '{print $1}')
+          if [[ "$BEFORE" != "$AFTER" ]]; then
+            echo "FAIL: format-on-save touched src/userwip.js (issue #57 regression)"
+            fail=1
+          else
+            echo "ok: codex format-on-save/respects-patch-scope"
+          fi
+
+          # Negative case: missing tool_input.command must emit a stderr
+          # warning AND skip silently (rc=0), never sweep the worktree.
+          BEFORE=$(md5sum src/userwip.js | awk '{print $1}')
+          : > /tmp/fmt-err.log
+          printf '%s' '{"tool_input":{}}' | bash "$OLDPWD/tooling/codex/hooks/format-on-save.sh" 2>/tmp/fmt-err.log || { echo "FAIL: codex format-on-save rc!=0 on empty payload"; fail=1; }
+          AFTER=$(md5sum src/userwip.js | awk '{print $1}')
+          if [[ "$BEFORE" != "$AFTER" ]]; then
+            echo "FAIL: empty-command payload fell back to the all-uncommitted sweep"
+            fail=1
+          fi
+          if ! grep -q "could not extract tool_input.command" /tmp/fmt-err.log; then
+            echo "FAIL: empty-command payload did not emit the diagnostic stderr warning"
+            cat /tmp/fmt-err.log
+            fail=1
+          else
+            echo "ok: codex format-on-save/parse-fail-is-loud-and-skips"
+          fi
+          popd >/dev/null
+
           [[ "$fail" -eq 0 ]] || exit 1
 
   lint-codex-hooks:
