@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.19.38] - 2026-05-24
+
+### Fixed — document `skills/` frontmatter contract + lint shared `allowed-tools` shape (closes #92)
+
+The README's "Key design principle" said `skills/` is "completely
+tool-agnostic", but every shared skill ships a YAML frontmatter with
+`paths:` and `allowed-tools:` — Claude-recognized fields that Codex
+and Gemini silently ignore. New contributors reading the existing
+files could reasonably conclude that adding Claude-execution-syntax
+to shared skills was endorsed by the kit; the contract was ambiguous.
+
+This is **documentation + a lint guard**, not a code or architecture
+change. The shared file remains the source of truth for all three
+installs.
+
+- **README** "Key design principle" now distinguishes
+  **tool-agnostic content** (prose, examples, recommendations — apply
+  equally to Codex, Claude Code, Gemini) from **shared metadata
+  frontmatter** (`paths:` + `allowed-tools:` — Claude-recognized,
+  ignored by Codex and Gemini). The trade-off and the reason behind
+  it (single-source-of-truth beats a Claude-only overlay merge) are
+  spelled out.
+
+- **`skills/README.md` (new)** documents the full contract for
+  contributors: what "tool-agnostic content" forbids, what shared
+  metadata is allowed, and the exact shape `allowed-tools:` entries
+  must take.
+
+- **`.github/workflows/pr-docs.yml` `lint-workflow-semantics`** adds
+  check #16: every `allowed-tools:` value in `skills/*/SKILL.md` must
+  match `Bash(<cmd>:*)` (Claude's recognized format). Anything else
+  would be both invalid for Claude AND silently ignored by
+  Codex/Gemini — fail CI before that lands.
+
+---
+
 ## [1.19.37] - 2026-05-23
 
 ### Fixed — comment-triggered PR-review workflows materialize the diff (closes #81)

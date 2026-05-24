@@ -51,7 +51,14 @@ ai-agent-kit/
 └── scripts/              <- Install / update / uninstall / validate scripts
 ```
 
-**Key design principle:** `skills/` is completely tool-agnostic. The same `skills/dotnet/SKILL.md` is installed into `.agents/skills/` (Codex), `.claude/skills/` (Claude Code), and `.gemini/skills/` (Gemini CLI) by the install script. Tool-specific behaviour (hooks, config syntax, agent format) lives exclusively in `tooling/`.
+**Key design principle:** `skills/` is tool-agnostic in **content** — the same `skills/dotnet/SKILL.md` is installed into `.agents/skills/` (Codex), `.claude/skills/` (Claude Code), and `.gemini/skills/` (Gemini CLI) by the install script, and its prose contains no Claude-specific / Codex-specific / Gemini-specific instructions. Tool-specific *behaviour* (hooks, config syntax, agent format) lives exclusively in `tooling/`.
+
+The shared-skill **YAML frontmatter** may carry two Claude-recognized hints:
+
+- `paths:` — Claude Code uses this to auto-load the skill when a matching file is opened.
+- `allowed-tools:` — Claude Code uses this to pre-approve specific `Bash(...)` commands so the skill can run them without per-call confirmation.
+
+These are deliberately treated as **shared metadata that other tools ignore**. Codex and Gemini do not read either field; they route by the table in `AGENTS.md` / `GEMINI.md` and inherit the user's approval mode. Putting these fields here (instead of behind a Claude-only overlay) keeps every skill exactly one file across all three installs — the cost is that the kit's "tool-agnostic" property applies to skill *content*, not to skill frontmatter. See `skills/README.md` for the full contract.
 
 ---
 
