@@ -37,7 +37,7 @@ Work on GitHub issue #[NUMBER].
 
 Keep the change small and focused.
 Add or update tests for changed behavior.
-Run dotnet test (or npm test) before final response.
+Run the project's test command (see `docs/ai/COMMANDS.md`) before final response.
 ```
 
 ## With explicit skills (when you know the stack)
@@ -45,9 +45,11 @@ Run dotnet test (or npm test) before final response.
 ```
 Work on GitHub issue #[NUMBER].
 
-Use the dotnet and testing skills.
-Do not use unrelated skills.
+Use the skills relevant to the files this change touches (e.g. `python` and
+`testing` for a Django change; replace with your stack's skill from the
+routing table). Do not use unrelated skills.
 
 Keep the change small, explicit, and covered by tests.
-Run dotnet build && dotnet test before final response.
+Run the project's build + test commands (see `docs/ai/COMMANDS.md`) before
+final response.
 ```

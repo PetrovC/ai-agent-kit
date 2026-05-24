@@ -1,5 +1,52 @@
 # Changelog
 
+## [1.19.34] - 2026-05-23
+
+### Fixed — stack-agnostic prompts + Codex notify clarification (closes #46, closes #73)
+
+Two related defects in the kit's copy-paste templates: the prompts /
+issue templates hardcoded `.NET` / `npm` build/test commands instead of
+referencing `docs/ai/COMMANDS.md`, and the Codex project config showed a
+`notify = […]` example that Codex silently ignores at project scope.
+
+- **Prompts + issue templates are now stack-agnostic (closes #73).**
+  `prompts/bug-fix.md` and `prompts/daily-ticket.md` previously told the
+  agent to "Run `dotnet test` (or `npm test`)" and "Use the `dotnet`
+  and `testing` skills". The kit advertises `skills/` as
+  tool-agnostic, so a user pasting these prompts inside a Python / Go
+  / Rust project handed the agent an explicit stack bias and wasted
+  the first build/test cycle on a non-existent `dotnet` binary. The
+  prompts now read "Run the project's test command (see
+  `docs/ai/COMMANDS.md`)" and tell the agent to pick the skill that
+  matches the files it touches. The three `.github/ISSUE_TEMPLATE/*.md`
+  validation blocks ship a placeholder pointing at
+  `docs/ai/COMMANDS.md` instead of `dotnet test` / `npm test`. The
+  `dependency-update.md`, `tech-debt.md`, and `security-audit.md`
+  prompts already list ALL stacks as explicit menus and are kept
+  as-is.
+
+- **Codex `notify` example clarified (closes #46).**
+  `tooling/codex/config.toml` shipped a commented `notify = ["bash",
+  ".codex/hooks/notify-done.sh"]` line as a "project-local
+  alternative" to the `notify-done.sh` hook. Per the
+  [Codex config reference](https://developers.openai.com/codex/config-reference),
+  `notify` is a machine-local key — Codex reads it ONLY from
+  `~/.codex/config.toml`, never from a project-scoped
+  `.codex/config.toml`. Uncommenting the example did nothing. The
+  example is removed and replaced with a note: project-level
+  completion notification stays in the `notify-done.sh` hook (already
+  shipped via `.codex/hooks.json`); machine-level `notify` belongs in
+  `~/.codex/config.toml`.
+
+Regression coverage in `.github/workflows/pr-docs.yml`
+`lint-workflow-semantics` adds two static checks: #13 blocks any
+hardcoded `dotnet test|build|run|format` or `npm test|run` in
+non-exempt prompts and issue templates; #14 blocks any commented or
+uncommented `notify = [...]` assignment from re-entering
+`tooling/codex/config.toml`.
+
+---
+
 ## [1.19.33] - 2026-05-23
 
 ### Fixed — PowerShell lifecycle paths: literal handling + accurate display (closes #74, closes #89)

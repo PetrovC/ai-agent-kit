@@ -377,6 +377,49 @@ jobs:
                                   "future releases don't auto-run (issue #93)")
                       break
 
+          # 13. Stack-agnostic prompts + ISSUE_TEMPLATE: no hardcoded
+          #     `dotnet test`, `npm test`, `npm run …` build/test
+          #     prescriptions in the kit's copy-paste templates. Bias-by-
+          #     default makes the kit feel .NET/npm-only and confuses agents
+          #     pointed at Python / Go / Rust projects (issue #73). The
+          #     dependency-update / tech-debt / security-audit prompts list
+          #     ALL stacks as explicit menus and are exempt.
+          BIAS_EXEMPT = {
+              "prompts/dependency-update.md",
+              "prompts/tech-debt.md",
+              "prompts/security-audit.md",
+          }
+          BIAS_PATTERN = re.compile(r'\b(dotnet (?:test|build|run|format)|npm (?:test|run))\b')
+          for f in (glob.glob("prompts/*.md") +
+                    glob.glob(".github/ISSUE_TEMPLATE/*.md")):
+              if f in BIAS_EXEMPT:
+                  continue
+              t = read(f)
+              hits = list(BIAS_PATTERN.finditer(t))
+              if hits:
+                  example = hits[0].group(0)
+                  errs.append(f"{f}: stack-specific command `{example}` — "
+                              "reference docs/ai/COMMANDS.md instead (issue #73)")
+
+          # 14. tooling/codex/config.toml must NOT show the project-local
+          #     `notify = [...]` example — Codex ignores `notify` in
+          #     project-scoped config; the example told users to do
+          #     something that silently does nothing (issue #46).
+          codex_toml = "tooling/codex/config.toml"
+          try:
+              t = read(codex_toml)
+          except FileNotFoundError:
+              t = ""
+          # Match an actual (commented) example: a `notify = [...]` line.
+          # The fixed file has prose comments mentioning `notify` but no
+          # `notify = [` assignment.
+          if re.search(r'^[#\s]*notify\s*=\s*\[', t, flags=re.MULTILINE):
+              errs.append(f"{codex_toml}: contains a project-local "
+                          "`notify = [...]` example — Codex ignores this "
+                          "key in project-scoped config; either remove the "
+                          "example or move it to a `~/.codex/config.toml` "
+                          "reference (issue #46)")
+
           if errs:
               print("\n".join(errs)); sys.exit(1)
           print("OK: workflow semantics valid")
