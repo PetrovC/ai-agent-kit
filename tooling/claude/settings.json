@@ -119,7 +119,7 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-summary.sh\"",
-            "async": true
+            "async": false
           }
         ]
       }

@@ -1,5 +1,50 @@
 # Changelog
 
+## [1.19.36] - 2026-05-23
+
+### Fixed — hooks now keep the contract the README always advertised (closes #57, closes #94)
+
+Two related hook-accuracy bugs.
+
+- **Codex `format-on-save` honours its own scope (closes #57).** The
+  hook previously ignored its stdin payload and ran the formatters on
+  EVERY uncommitted file in the worktree. In a dirty worktree (the
+  common case during an agent session), a small Codex edit silently
+  reformatted user work-in-progress files the agent never touched —
+  scope creep, noisy diffs, contradicting the README's "format files
+  written by the agent" promise. The hook now parses
+  `tool_input.command` (the apply_patch text) via jq → python3 → sed
+  in order, extracts every `*** Add File:` / `*** Update File:` path,
+  and formats only those. `*** Delete File:` paths are skipped (file
+  is gone). If the payload can't be parsed at all, the hook emits a
+  precise stderr warning and exits 0 — it never silently sweeps the
+  worktree.
+
+- **Claude `session-summary` PreCompact is synchronous (closes #94).**
+  `tooling/claude/settings.json` wired the PreCompact `session-summary`
+  hook with `async: true`. The whole point of that hook is to write a
+  git snapshot BEFORE compaction; running it asynchronously let Claude
+  compact in parallel and the snapshot could race the very state it
+  was supposed to preserve — unreliable exactly when the user needs
+  it most. The PreCompact entry now uses `async: false`. The script
+  is small (writes one markdown file) so the synchronous cost is
+  negligible compared to the guarantee.
+
+Regression coverage in `.github/workflows/pr-hooks.yml`
+(`hooks-behavior` job) adds:
+
+- A `settings.json` static check that `PreCompact` session-summary
+  is wired with `async: false`. Catches future #94 regressions if the
+  flag flips back.
+- A real-git-repo scenario for Codex format-on-save: stand up a fresh
+  repo, leave one user-WIP file dirty, feed the hook an apply_patch
+  payload that touches a DIFFERENT file, and assert the user-WIP file
+  md5 is unchanged. Then re-run with an empty `tool_input.command`
+  and assert the precise stderr warning fires (no silent worktree
+  sweep).
+
+---
+
 ## [1.19.35] - 2026-05-23
 
 ### Fixed — Windows install: ExecutionPolicy guidance + bash-resolution warning + hook CI check (closes #41, closes #42)
