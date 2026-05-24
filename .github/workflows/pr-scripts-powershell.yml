@@ -389,6 +389,56 @@ jobs:
           }
           if ($fail) { exit 1 } else { Write-Host "OK: install -Target . preserves dot-prefixed dirs and file extensions"; exit 0 }
 
+      - name: Installed Claude / Codex hook command form runs under Windows Git Bash
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          # Closes #42: the kit's Claude / Codex hooks invoke `bash
+          # "${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-bash-guard.sh"` (or the
+          # `bash -c 'exec "$(git rev-parse --show-toplevel)/.codex/hooks/...'`
+          # form for Codex). On windows-latest the default `bash` is Git
+          # Bash, which is what the kit documents as the supported runtime.
+          # Execute the exact hook command form against the kit's smoke
+          # install with a representative JSON payload on stdin to prove
+          # the hook actually fires (exit 0 or exit 2 = blocked, both are
+          # "ran"; rc 127 / 126 / other = bash resolution broken).
+          $fail = 0
+
+          $target = "$env:RUNNER_TEMP\smoke-target"
+          if (-not (Test-Path -LiteralPath $target)) {
+            Write-Host "FAIL: previous smoke-install step didn't leave $target — cannot exercise hook form"
+            exit 1
+          }
+          $hookPath = Join-Path $target ".claude\hooks\pre-bash-guard.sh"
+          if (-not (Test-Path -LiteralPath $hookPath)) {
+            Write-Host "FAIL: installed hook not found at $hookPath"
+            exit 1
+          }
+
+          # The CLAUDE_PROJECT_DIR env var is how Claude Code expands the
+          # `${CLAUDE_PROJECT_DIR}` placeholder in settings.json `command`.
+          # We replicate the exact substitution by spelling out the path.
+          $cmd = "bash `"$target\.claude\hooks\pre-bash-guard.sh`""
+          $stdin = '{"tool_input":{"command":"echo hello"}}'
+
+          # bash --version sanity (where bash should be Git Bash on windows-latest)
+          $bashLoc = (Get-Command bash -ErrorAction SilentlyContinue)
+          if ($bashLoc) { Write-Host "bash resolves to: $($bashLoc.Source)" }
+          else { Write-Host "FAIL: bash not on PATH"; exit 1 }
+
+          # Run the hook with a benign payload. Expected rc: 0 (allow).
+          $out = $stdin | & cmd /c $cmd 2>&1
+          $rc = $LASTEXITCODE
+          Write-Host "--- hook output (rc=$rc) ---"
+          Write-Host ($out | Out-String)
+
+          if ($rc -ne 0 -and $rc -ne 2) {
+            Write-Host "FAIL: hook command form failed with unexpected rc=$rc (0=allow, 2=block, anything else = bash/hook broken)"
+            $fail = 1
+          }
+
+          if ($fail) { exit 1 } else { Write-Host "OK: installed hook command form runs under Windows Git Bash"; exit 0 }
+
       - name: All .ps1 scripts must parse (syntax)
         shell: pwsh
         run: |

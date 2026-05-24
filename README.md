@@ -67,6 +67,55 @@ particular has no marketplace mechanism, so files must be placed in the repo.
 
 Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
 
+#### Windows notes
+
+- **PowerShell ExecutionPolicy.** A default Windows install ships with
+  `Restricted`, which refuses to run script files
+  ([about_Execution_Policies](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies)).
+  Direct invocation (`.\scripts\install.ps1 …`) fails with
+  *"Impossible de charger le fichier … car l'exécution de scripts est
+  désactivée sur ce système"* / *"… cannot be loaded because running scripts
+  is disabled on this system."* Bypass it for the single run without
+  changing the machine policy:
+
+  ```powershell
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,gemini
+  # or, on PowerShell 7+:
+  pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,gemini
+  ```
+
+  The same form applies to `update.ps1`, `validate.ps1`, `uninstall.ps1`,
+  and `new-skill.ps1`. If you'd rather change the policy persistently for
+  the current user, see Microsoft's guide above — `Set-ExecutionPolicy
+  RemoteSigned -Scope CurrentUser` is the usual relaxed setting.
+
+- **Hooks need real Git Bash on PATH** (not the WSL launcher). The
+  installed Claude / Codex hooks invoke `bash` (e.g. `bash
+  "${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-bash-guard.sh"`). On Windows
+  the name `bash` can resolve to:
+  - `C:\Program Files\Git\bin\bash.exe` — Git Bash, ships
+    `cat`/`grep`/`sed`/`jq`/`python3`-style utilities the hooks need. **Works.**
+  - `C:\Windows\System32\bash.exe` — the WSL launcher stub. If no WSL
+    distro is installed it prints a *"Windows Subsystem for Linux has
+    no installed distributions"* error and exits non-zero. The
+    `pre-bash-guard` PreToolUse hook then silently never runs, so destructive-
+    command interception is lost without any visible signal. **Does not work.**
+
+  Make sure Git Bash precedes WSL `bash.exe` on the system `PATH`
+  (`%ProgramFiles%\Git\bin` before `%SystemRoot%\System32`). Verify in a
+  fresh terminal:
+
+  ```cmd
+  where bash
+  bash --version
+  ```
+
+  Both should resolve to Git Bash. If they don't, fix `PATH` *before*
+  running an agent against a kit-installed project — the kit's hooks
+  are the only mechanical block against destructive shell commands
+  (Claude `--dangerously-skip-permissions`, Codex `approval_policy=never`),
+  and a broken `bash` resolution disables that block silently.
+
 ### Option B — Claude plugin marketplace (opt-in, skills only)
 
 If you only use Claude Code and just want the **30 skills** (no Codex/Gemini
