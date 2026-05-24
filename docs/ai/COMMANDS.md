@@ -91,8 +91,8 @@ Major workflow groups are:
   checks.
 - PR docs: documentation and workflow semantic checks.
 - PR tooling configs: Claude, Codex, and Gemini tooling validity checks.
-- PR versioning/release hygiene: forbidden install-output tracking and
-  plugin/extension version consistency.
+- PR versioning/release hygiene: Claude/Codex dogfood install tracking policy,
+  runtime/Gemini exclusion checks, and plugin/extension version consistency.
 
 ## Git Workflow Rules
 

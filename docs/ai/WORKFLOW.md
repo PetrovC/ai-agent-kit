@@ -56,10 +56,23 @@ For this docs completion task:
 - do not open a PR unless explicitly asked.
 
 In this repository, `docs/ai/` is official project-owned context and may be
-tracked. Root install artifacts such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
-`.claude/`, `.codex/`, `.gemini/`, `.agents/`, `.mcp.json`,
-`.mcp.example.jsonc`, `.kit-version`, and `.kit-manifest` must not be tracked as
-kit source.
+tracked. The repository also intentionally tracks its own Claude/Codex dogfood
+install so agents can use the kit while maintaining the kit:
+
+- `AGENTS.md`
+- `CLAUDE.md`
+- `.agents/`
+- `.claude/`
+- `.codex/`
+- `.mcp.json`
+- `.mcp.example.jsonc`
+- `.kit-version`
+- `.kit-manifest`
+
+Do not track Gemini root install output in this repository unless a future issue
+explicitly expands the dogfood scope. Do not track local/runtime files such as
+`.claude/settings.local.json`, `.claude/session-log/`, `.claude/worktrees/`, or
+`CLAUDE.local.md`.
 
 ## Public-release Hygiene
 

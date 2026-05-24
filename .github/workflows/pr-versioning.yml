@@ -1,4 +1,4 @@
-name: PR — versioning + release hygiene
+name: PR - versioning + release hygiene
 
 on:
   pull_request:
@@ -12,39 +12,61 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  no-install-output-tracked:
-    name: Kit must not commit its own install output
+  dogfood-install-policy:
+    name: Claude/Codex dogfood install policy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: No install-output artifact may be tracked at the repo root
+      - name: Only intended root AI config may be tracked
         run: |
-          # The kit's SOURCE lives in tooling/, skills/, scripts/, etc.
-          # These root paths are what the installer writes into a *target*
-          # project — committing them into the kit itself is the "dogfood
-          # pollution" failure mode. .gitignore guards against accidental
-          # `git add`; this CI check enforces it.
+          # This repository intentionally dogfoods its own Claude + Codex
+          # installation so agents can use the kit while maintaining the kit.
+          # That means AGENTS.md, CLAUDE.md, .agents/, .claude/, .codex/,
+          # .mcp.json, .mcp.example.jsonc, .kit-version, .kit-manifest, and
+          # docs/ai/ may be tracked here on purpose.
           #
-          # Exception: root docs/ai/ is intentionally tracked in this repository
-          # as project-owned context for ai-agent-kit itself. The reusable target
-          # template source remains project-template/.
+          # Still forbidden: Gemini install output for this repo and local/runtime
+          # Claude files that are machine/session-specific.
           bad=0
-          for p in AGENTS.md CLAUDE.md GEMINI.md .geminiignore .mcp.json \
-                   .mcp.example.jsonc .kit-version .kit-manifest \
-                   CLAUDE.local.md .claude .codex .gemini .agents; do
+          for p in GEMINI.md .geminiignore .gemini CLAUDE.local.md \
+                   .claude/settings.local.json .claude/session-log \
+                   .claude/worktrees; do
             if git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
-              echo "TRACKED INSTALL OUTPUT AT ROOT: $p"
+              echo "TRACKED FORBIDDEN AI CONFIG/RUNTIME FILE: $p"
               bad=1
             fi
-            # also catch a tracked directory's contents
+            # Also catch a tracked directory's contents.
             if git ls-files "$p/" 2>/dev/null | grep -q .; then
-              echo "TRACKED INSTALL OUTPUT DIR AT ROOT: $p/"
+              echo "TRACKED FORBIDDEN AI CONFIG/RUNTIME DIR: $p/"
               bad=1
             fi
           done
-          [[ "$bad" -eq 0 ]] || { echo "Kit must ship source, not install output."; exit 1; }
-          echo "OK: no install-output artifact tracked at root"
+
+          for p in .kit-version .kit-manifest .mcp.json AGENTS.md CLAUDE.md \
+                   .codex/config.toml .codex/hooks.json .claude/settings.json \
+                   docs/ai/PROJECT.md; do
+            if ! git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
+              echo "MISSING TRACKED DOGFOOD FILE: $p"
+              bad=1
+            fi
+          done
+
+          if [[ -f .kit-manifest ]]; then
+            while IFS= read -r p; do
+              [[ -n "$p" ]] || continue
+              if ! git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
+                echo "MANIFEST ENTRY NOT TRACKED: $p"
+                bad=1
+              fi
+            done < .kit-manifest
+          else
+            echo "MISSING .kit-manifest"
+            bad=1
+          fi
+
+          [[ "$bad" -eq 0 ]] || { echo "Claude/Codex dogfood install policy failed."; exit 1; }
+          echo "OK: Claude/Codex dogfood install tracked; runtime/Gemini outputs excluded"
 
   lint-plugin-manifest:
     name: Claude plugin + marketplace manifests valid
@@ -93,9 +115,8 @@ jobs:
               errs.append(f"gemini-extension.json version ({ext.get('version')}) != KIT_VERSION ({kit_ver})")
 
           # Bash KIT_VERSION already enforced via install.sh. PowerShell ships
-          # the parallel install.ps1/update.ps1 with $KitVersion = "..." — that
-          # was silently drifting (held at 1.18.0 across several releases)
-          # because the check only inspected install.sh. Pin all four.
+          # the parallel install.ps1/update.ps1 with $KitVersion = "..."; that
+          # once drifted because the check only inspected install.sh. Pin all four.
           for ps1 in ("scripts/install.ps1", "scripts/update.ps1"):
               with open(ps1) as f:
                   ps1_txt = f.read()
@@ -122,13 +143,12 @@ jobs:
                   errs.append(f"marketplace source not a documented form: {src!r}")
               # Same-repo plugins MUST use the relative "./..." form. A
               # {source:github, repo:<own repo>} self-reference forces a second
-              # fetch that breaks on PRIVATE repos (the marketplace clone is
-              # already authenticated; the plugin re-fetch may not be).
+              # fetch that breaks on private repos.
               if isinstance(src, dict) and src.get("source") == "github" \
                  and src.get("repo", "").rstrip("/") == self_repo and self_repo:
                   errs.append(
                       f"plugin source github:{src.get('repo')} self-references the "
-                      f"marketplace repo — use a relative \"./\" source instead "
+                      f"marketplace repo; use a relative \"./\" source instead "
                       f"(private-repo safe, no second fetch)")
 
           if errs:

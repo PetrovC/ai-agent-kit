@@ -40,6 +40,7 @@ extension scaffolds must not become hidden core dependencies.
 | `scripts/` | Install, update, uninstall, validate, and skill-scaffolding scripts for Windows and POSIX shells. |
 | `prompts/` | Copy-paste workflow prompts and GitHub Actions templates. |
 | `docs/ai/` | Repository-specific AI context for maintaining this kit itself. |
+| `AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, `.codex/` | Tracked Claude/Codex dogfood install for maintaining this repository with the kit itself. |
 | `examples/filled-project/` | Example filled `docs/ai` content for a fictional target project. |
 | `.claude-plugin/` | Claude plugin marketplace metadata for the skills-only distribution path. |
 
@@ -57,8 +58,12 @@ extension scaffolds must not become hidden core dependencies.
 - `.kit-manifest` tracks kit-managed files in target projects.
 - `docs/ai/` in this repository is intentionally tracked project context for
   `ai-agent-kit` itself.
-- Root install artifacts are forbidden in this repository except for
-  project-owned `docs/ai/`.
+- Root Claude/Codex install artifacts are intentionally tracked here as the
+  repository's dogfood configuration.
+- Root Gemini install artifacts are not tracked in this repository.
+- Claude local/runtime files such as `.claude/settings.local.json`,
+  `.claude/session-log/`, `.claude/worktrees/`, and `CLAUDE.local.md` are not
+  tracked.
 
 ## Design Principle
 

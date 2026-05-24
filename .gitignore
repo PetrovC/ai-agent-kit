@@ -22,22 +22,17 @@ node_modules/
 __pycache__/
 *.pyc
 
-# AI - Claude Code session/runtime and install output.
-# The kit's Claude SOURCE lives in tooling/claude/, never in root .claude/.
-/.claude/
+# AI - this repository intentionally dogfoods its own Claude + Codex install.
+# Track the project-local Claude/Codex config, route files, selected skills,
+# .mcp reference files, .kit-version, and .kit-manifest.
+#
+# Keep local/runtime files out of Git.
+/.claude/settings.local.json
+/.claude/session-log/
+/.claude/worktrees/
+CLAUDE.local.md
 
-# AI - kit install OUTPUTS must never be committed into the kit itself.
-# docs/ai/ is intentionally tracked here as project-owned context for
-# ai-agent-kit itself. Target-project templates still live in project-template/.
-/AGENTS.md
-/CLAUDE.md
+# Gemini install outputs are not dogfooded in this repository.
 /GEMINI.md
 /.geminiignore
-/.mcp.json
-/.mcp.example.jsonc
-/.kit-version
-/.kit-manifest
-/.codex/
 /.gemini/
-/.agents/
-CLAUDE.local.md

@@ -17,11 +17,12 @@ multi-agent configurator. It is not an orchestration platform, hosted service,
 model proxy, dependency bot, or CI/CD product.
 
 In this repository, `docs/ai/` is official project-owned documentation for
-`ai-agent-kit` itself and should be tracked intentionally. Other root install
-outputs, including `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/`,
-`.codex/`, `.gemini/`, `.agents/`, `.mcp.json`, `.mcp.example.jsonc`,
-`.kit-version`, and `.kit-manifest`, remain forbidden as tracked source in this
-repository.
+`ai-agent-kit` itself and should be tracked intentionally. This repository also
+intentionally dogfoods its own Claude Code and Codex CLI install, so the root
+`AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, `.codex/`, `.mcp.json`,
+`.mcp.example.jsonc`, `.kit-version`, and `.kit-manifest` are tracked as
+project-local configuration for maintaining the kit. Gemini root install output
+and local/runtime Claude files remain excluded.
 
 ## Problem Solved
 
@@ -116,6 +117,8 @@ workflow habits. This kit reduces that drift by:
 ## Current Priorities
 
 - Keep `docs/ai/` official, accurate, and useful for this repository.
+- Keep the tracked Claude/Codex dogfood install portable and aligned with the
+  source assets under `tooling/`.
 - Improve public-release hygiene with a root `LICENSE`, `SECURITY.md`,
   `CONTRIBUTING.md`, root `VERSION`, release tags, and a release checklist.
 - Strengthen validation and lifecycle script coverage without refactoring

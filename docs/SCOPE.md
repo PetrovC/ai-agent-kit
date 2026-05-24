@@ -16,6 +16,8 @@ context, and providing optional adapters where they help.
 - Root router files stay short and delegate to skills and `docs/ai/`.
 - Target project context belongs in `docs/ai/`.
 - Install and update distinguish kit-managed files from project-owned files.
+- This repository may track its own Claude/Codex dogfood install as
+  project-local configuration.
 - Optional adapters remain optional.
 - Human review, issue scope, and PR review stay part of the workflow.
 
@@ -38,4 +40,3 @@ context, and providing optional adapters where they help.
 | Core/stable | Lifecycle scripts, shared skills, route files, project templates, Claude/Codex hooks | Continue strengthening validation and parity checks before adding large features. |
 | Optional adapters | MCP examples, GitHub Actions templates, Claude plugin marketplace metadata, Gemini extension scaffold | Keep opt-in and document risk clearly. |
 | Future/experimental | Doctor command, init wizard, skill evals, skill SemVer, Gemini wrapper | Require dedicated issues and PRs before implementation. |
-

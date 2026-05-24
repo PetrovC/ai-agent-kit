@@ -30,14 +30,16 @@ issue changes direction.
 - Consequences: Install and update must preserve existing target `docs/ai/`
   content unless a file is explicitly kit-managed.
 
-## ADR-004: docs/ai is tracked in this repository
+## ADR-004: Track repository-owned AI context and Claude/Codex dogfood config
 
-- Context: This repository also needs agent-facing context for maintaining the
-  kit itself.
-- Decision: `docs/ai/` is official project-owned documentation for
-  `ai-agent-kit` and should be tracked intentionally here.
-- Consequences: CI must allow root `docs/ai/` while continuing to reject other
-  root install outputs.
+- Context: This repository needs agent-facing context and wants to use its own
+  Claude/Codex configuration while maintaining the kit.
+- Decision: `docs/ai/` is official project-owned documentation, and the root
+  Claude/Codex dogfood install (`AGENTS.md`, `CLAUDE.md`, `.agents/`,
+  `.claude/`, `.codex/`, `.mcp.json`, `.mcp.example.jsonc`, `.kit-version`, and
+  `.kit-manifest`) is tracked intentionally.
+- Consequences: CI must require the Claude/Codex dogfood install to remain
+  tracked while rejecting Gemini root install output and local/runtime files.
 
 ## ADR-005: Provider behavior stays under tooling/<tool>
 
@@ -154,4 +156,3 @@ issue changes direction.
   proxies, cost platforms, and IDE plugins stay outside the core kit unless a
   future issue explicitly promotes a narrow adapter.
 - Consequences: The core remains a maintainable multi-agent configurator.
-

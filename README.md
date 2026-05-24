@@ -9,6 +9,12 @@ A reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and
 - Project context lives in `docs/ai/` inside each project — not in this kit.
 - Subagents handle noisy, exploratory, or parallel work to protect the main context window.
 
+This repository intentionally dogfoods the kit for Claude Code and Codex CLI:
+`AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, `.codex/`, `.mcp.json`,
+`.mcp.example.jsonc`, `.kit-version`, `.kit-manifest`, and `docs/ai/` are
+tracked here as project-local configuration. Gemini root install output and
+Claude local/runtime files stay ignored.
+
 ---
 
 ## Official resources
