@@ -25,10 +25,14 @@ jobs:
           # project — committing them into the kit itself is the "dogfood
           # pollution" failure mode. .gitignore guards against accidental
           # `git add`; this CI check enforces it.
+          #
+          # Exception: root docs/ai/ is intentionally tracked in this repository
+          # as project-owned context for ai-agent-kit itself. The reusable target
+          # template source remains project-template/.
           bad=0
           for p in AGENTS.md CLAUDE.md GEMINI.md .geminiignore .mcp.json \
-                   .mcp.example.jsonc .kit-version CLAUDE.local.md \
-                   .codex .gemini .agents docs/ai; do
+                   .mcp.example.jsonc .kit-version .kit-manifest \
+                   CLAUDE.local.md .claude .codex .gemini .agents; do
             if git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
               echo "TRACKED INSTALL OUTPUT AT ROOT: $p"
               bad=1

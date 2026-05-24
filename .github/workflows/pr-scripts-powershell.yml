@@ -34,12 +34,14 @@ jobs:
             ".claude\settings.json",
             ".claude\hooks\format-on-save.sh", ".claude\hooks\pre-bash-guard.sh",
             ".claude\hooks\notify-done.sh", ".claude\hooks\session-summary.sh",
+            ".claude\hooks\run-hook.ps1",
             ".claude\rules\test-naming.md",
             ".claude\rules\migration-safety.md", ".claude\rules\env-safety.md",
             ".claude\commands\bug-fix.md", ".claude\commands\code-review.md",
             ".claude\commands\feature-planning.md",
             ".codex\config.toml", ".codex\hooks.json",
-            ".codex\hooks\pre-bash-guard.sh", ".codex\hooks\format-on-save.sh", ".codex\hooks\notify-done.sh",
+            ".codex\hooks\pre-bash-guard.sh", ".codex\hooks\format-on-save.sh",
+            ".codex\hooks\notify-done.sh", ".codex\hooks\run-hook.ps1",
             ".agents\skills\architect\SKILL.md", ".agents\skills\security-reviewer\SKILL.md",
             ".gemini\commands\bug-fix.toml", ".gemini\commands\security-audit.toml",
             "docs\ai\PROJECT.md"
@@ -389,19 +391,16 @@ jobs:
           }
           if ($fail) { exit 1 } else { Write-Host "OK: install -Target . preserves dot-prefixed dirs and file extensions"; exit 0 }
 
-      - name: Installed Claude / Codex hook command form runs under Windows Git Bash
+      - name: Installed Claude / Codex hook command form runs through Windows wrapper
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Continue'
-          # Closes #42: the kit's Claude / Codex hooks invoke `bash
-          # "${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-bash-guard.sh"` (or the
-          # `bash -c 'exec "$(git rev-parse --show-toplevel)/.codex/hooks/...'`
-          # form for Codex). On windows-latest the default `bash` is Git
-          # Bash, which is what the kit documents as the supported runtime.
-          # Execute the exact hook command form against the kit's smoke
-          # install with a representative JSON payload on stdin to prove
-          # the hook actually fires (exit 0 or exit 2 = blocked, both are
-          # "ran"; rc 127 / 126 / other = bash resolution broken).
+          # Windows installs wire hooks through run-hook.ps1 so they prefer
+          # Git Bash from Program Files instead of an ambiguous PATH `bash`
+          # that may resolve to the WSL launcher stub. Execute the installed
+          # command forms with a representative JSON payload on stdin to prove
+          # the hooks actually fire (exit 0 or exit 2 = blocked, both are
+          # "ran"; rc 127 / 126 / other = wrapper/bash resolution broken).
           $fail = 0
 
           $target = "$env:RUNNER_TEMP\smoke-target"
@@ -415,35 +414,43 @@ jobs:
             exit 1
           }
 
-          # The CLAUDE_PROJECT_DIR env var is how Claude Code expands the
-          # `${CLAUDE_PROJECT_DIR}` placeholder in settings.json `command`.
-          # We replicate the exact substitution by spelling out the path.
-          $cmd = "bash `"$target\.claude\hooks\pre-bash-guard.sh`""
           $stdin = '{"tool_input":{"command":"echo hello"}}'
 
-          # bash --version sanity (where bash should be Git Bash on windows-latest)
-          $bashLoc = (Get-Command bash -ErrorAction SilentlyContinue)
-          if ($bashLoc) { Write-Host "bash resolves to: $($bashLoc.Source)" }
-          else { Write-Host "FAIL: bash not on PATH"; exit 1 }
+          $claudeSettings = Get-Content -LiteralPath (Join-Path $target ".claude\settings.json") -Raw | ConvertFrom-Json
+          $claudeCmd = $claudeSettings.hooks.PreToolUse[0].hooks[0].command.Replace('${CLAUDE_PROJECT_DIR}', $target.Replace('\', '/'))
 
-          # Run the hook with a benign payload. Expected rc: 0 (allow).
-          $out = $stdin | & cmd /c $cmd 2>&1
-          $rc = $LASTEXITCODE
-          Write-Host "--- hook output (rc=$rc) ---"
-          Write-Host ($out | Out-String)
+          $codexHooks = Get-Content -LiteralPath (Join-Path $target ".codex\hooks.json") -Raw | ConvertFrom-Json
+          $codexCmd = $codexHooks.hooks.PreToolUse[0].hooks[0].command
 
-          if ($rc -ne 0 -and $rc -ne 2) {
-            Write-Host "FAIL: hook command form failed with unexpected rc=$rc (0=allow, 2=block, anything else = bash/hook broken)"
-            $fail = 1
+          foreach ($case in @(
+            @{ Name = "claude"; Command = $claudeCmd },
+            @{ Name = "codex";  Command = $codexCmd }
+          )) {
+            Write-Host "--- $($case.Name) hook command ---"
+            Write-Host $case.Command
+            Push-Location $target
+            try {
+              $out = $stdin | & cmd /c $case.Command 2>&1
+              $rc = $LASTEXITCODE
+            } finally {
+              Pop-Location
+            }
+            Write-Host "--- $($case.Name) hook output (rc=$rc) ---"
+            Write-Host ($out | Out-String)
+
+            if ($rc -ne 0 -and $rc -ne 2) {
+              Write-Host "FAIL: $($case.Name) hook command form failed with unexpected rc=$rc (0=allow, 2=block, anything else = wrapper/bash broken)"
+              $fail = 1
+            }
           }
 
-          if ($fail) { exit 1 } else { Write-Host "OK: installed hook command form runs under Windows Git Bash"; exit 0 }
+          if ($fail) { exit 1 } else { Write-Host "OK: installed hook command forms run through Windows wrapper"; exit 0 }
 
       - name: All .ps1 scripts must parse (syntax)
         shell: pwsh
         run: |
           $bad = $false
-          Get-ChildItem scripts\*.ps1 | ForEach-Object {
+          Get-ChildItem scripts\*.ps1, tooling\claude\hooks\*.ps1, tooling\codex\hooks\*.ps1 | ForEach-Object {
             $errs = $null
             [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errs) | Out-Null
             if ($errs) { Write-Host "PARSE ERROR: $($_.Name)"; $errs | ForEach-Object { Write-Host "  $_" }; $bad = $true }

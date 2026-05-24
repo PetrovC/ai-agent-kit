@@ -22,15 +22,13 @@ node_modules/
 __pycache__/
 *.pyc
 
-# AI — Claude Code session/runtime dir (worktrees, local settings).
-# The kit's Claude SOURCE lives in tooling/claude/, never in .claude/.
-.claude/
+# AI - Claude Code session/runtime and install output.
+# The kit's Claude SOURCE lives in tooling/claude/, never in root .claude/.
+/.claude/
 
-# AI — kit install OUTPUTS must never be committed into the kit itself.
-# These are what the install script writes into a *target* project. The kit
-# SOURCE for them lives under tooling/ (e.g. tooling/codex/AGENTS.md), so every
-# pattern below is root-anchored (leading /) — it excludes only a top-level
-# install artifact, never the tracked sources under tooling/ or examples/.
+# AI - kit install OUTPUTS must never be committed into the kit itself.
+# docs/ai/ is intentionally tracked here as project-owned context for
+# ai-agent-kit itself. Target-project templates still live in project-template/.
 /AGENTS.md
 /CLAUDE.md
 /GEMINI.md
@@ -38,8 +36,8 @@ __pycache__/
 /.mcp.json
 /.mcp.example.jsonc
 /.kit-version
+/.kit-manifest
 /.codex/
 /.gemini/
 /.agents/
-/docs/ai/
 CLAUDE.local.md

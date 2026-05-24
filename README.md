@@ -89,10 +89,10 @@ Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
   the current user, see Microsoft's guide above — `Set-ExecutionPolicy
   RemoteSigned -Scope CurrentUser` is the usual relaxed setting.
 
-- **Hooks need real Git Bash on PATH** (not the WSL launcher). The
-  installed Claude / Codex hooks invoke `bash` (e.g. `bash
-  "${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-bash-guard.sh"`). On Windows
-  the name `bash` can resolve to:
+- **Hooks still need real Git Bash, but PowerShell installs no longer rely on
+  ambiguous `bash` resolution.** The Bash hooks use Git Bash utilities such as
+  `cat`, `grep`, `sed`, and optionally `jq`/`python3`. On Windows, raw `bash`
+  commands can resolve to:
   - `C:\Program Files\Git\bin\bash.exe` — Git Bash, ships
     `cat`/`grep`/`sed`/`jq`/`python3`-style utilities the hooks need. **Works.**
   - `C:\Windows\System32\bash.exe` — the WSL launcher stub. If no WSL
@@ -101,20 +101,23 @@ Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
     `pre-bash-guard` PreToolUse hook then silently never runs, so destructive-
     command interception is lost without any visible signal. **Does not work.**
 
-  Make sure Git Bash precedes WSL `bash.exe` on the system `PATH`
-  (`%ProgramFiles%\Git\bin` before `%SystemRoot%\System32`). Verify in a
-  fresh terminal:
+  PowerShell installs wire Claude / Codex hooks through `run-hook.ps1`, which
+  prefers Git Bash from `%ProgramFiles%\Git\bin\bash.exe` before falling back
+  to PATH. If you install through Bash on Windows, or hand-edit hook commands,
+  make sure Git Bash precedes WSL `bash.exe` on the system `PATH`
+  (`%ProgramFiles%\Git\bin` before `%SystemRoot%\System32`). Verify in a fresh
+  terminal:
 
   ```cmd
   where bash
   bash --version
   ```
 
-  Both should resolve to Git Bash. If they don't, fix `PATH` *before*
-  running an agent against a kit-installed project — the kit's hooks
-  are the only mechanical block against destructive shell commands
-  (Claude `--dangerously-skip-permissions`, Codex `approval_policy=never`),
-  and a broken `bash` resolution disables that block silently.
+  For PowerShell-installed projects, the wrapper should resolve Git Bash even
+  when PATH is imperfect. For Bash-installed or manually edited projects, both
+  commands should resolve to Git Bash. The hooks are guardrails, not a sandbox,
+  but losing them removes the kit's mechanical block against common destructive
+  shell mistakes.
 
 ### Option B — Claude plugin marketplace (opt-in, skills only)
 
