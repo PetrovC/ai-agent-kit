@@ -35,7 +35,7 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.34"
+$KitVersion = "1.19.35"
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 # Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
@@ -307,6 +307,32 @@ if (Test-Path -LiteralPath $gitignore) {
 } else {
     Write-Step ".gitignore not found - create it with at least:"
     $recommendedGitignore | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+}
+
+# -- Windows: warn if `bash` is the WSL stub instead of Git Bash ----------
+# Closes #42: the installed Claude / Codex hooks invoke `bash` (e.g.
+# `bash "${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-bash-guard.sh"`). On
+# Windows, that name can resolve to %SystemRoot%\System32\bash.exe (the
+# WSL launcher) — without an installed WSL distro the launcher exits
+# non-zero on every hook invocation, and the PreToolUse guard silently
+# never runs. Detect the resolution at install time so the user fixes
+# PATH *before* the kit's only mechanical destructive-command block goes
+# missing-in-action.
+if ($IsWindows -or $env:OS -eq "Windows_NT") {
+    $bashSource = Get-Command bash -ErrorAction SilentlyContinue
+    if (-not $bashSource) {
+        Write-Step "Windows: bash not found on PATH"
+        Write-Host "  ! The kit's Claude / Codex hooks need Git Bash on PATH." -ForegroundColor Yellow
+        Write-Host "  ! Install Git for Windows (https://git-scm.com/download/win) and ensure" -ForegroundColor Yellow
+        Write-Host "  ! C:\Program Files\Git\bin precedes C:\Windows\System32 on PATH." -ForegroundColor Yellow
+    } elseif ($bashSource.Source -like "*System32\bash.exe") {
+        Write-Step "Windows: `bash` resolves to the WSL launcher stub"
+        Write-Host "  ! $($bashSource.Source) is the WSL launcher. If no WSL distro is" -ForegroundColor Yellow
+        Write-Host "  ! installed the kit's PreToolUse hook (pre-bash-guard) will silently" -ForegroundColor Yellow
+        Write-Host "  ! never run, losing the only mechanical block on destructive shell commands." -ForegroundColor Yellow
+        Write-Host "  ! Put Git Bash (C:\Program Files\Git\bin) BEFORE C:\Windows\System32 on PATH" -ForegroundColor Yellow
+        Write-Host "  ! and verify with: where bash; bash --version" -ForegroundColor Yellow
+    }
 }
 
 # -- Done ------------------------------------------------------------------

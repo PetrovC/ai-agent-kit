@@ -1,5 +1,54 @@
 # Changelog
 
+## [1.19.35] - 2026-05-23
+
+### Fixed — Windows install: ExecutionPolicy guidance + bash-resolution warning + hook CI check (closes #41, closes #42)
+
+Two related Windows-platform fragilities in the kit's runtime.
+
+- **README documents the Windows ExecutionPolicy workaround
+  (closes #41).** A default Windows install ships with
+  `ExecutionPolicy = Restricted`, which rejects direct `.\scripts\install.ps1`
+  invocation with a non-actionable French/English error message. The
+  README's quick-start now includes a "Windows notes" subsection with
+  the exact bypass form (`powershell.exe -NoProfile -ExecutionPolicy
+  Bypass -File .\scripts\install.ps1 …`) applied to every lifecycle
+  script, plus a link to Microsoft's `about_Execution_Policies`
+  documentation and a note about `Set-ExecutionPolicy RemoteSigned
+  -Scope CurrentUser` as the persistent relaxed setting.
+
+- **Hook commands now warn at install time when `bash` is the WSL
+  stub (closes #42).** The kit's Claude / Codex hooks invoke `bash
+  "${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-bash-guard.sh"`. On Windows
+  the name `bash` can resolve to:
+  - `C:\Program Files\Git\bin\bash.exe` — Git Bash, ships
+    `cat`/`grep`/`sed`/`jq`/`python3`-style utilities the hooks need.
+    Works.
+  - `C:\Windows\System32\bash.exe` — the WSL launcher. Without an
+    installed WSL distro it exits non-zero on every hook invocation
+    and the `PreToolUse` guard silently never runs, losing the only
+    mechanical block on destructive shell commands when the user
+    runs Claude `--dangerously-skip-permissions` or Codex
+    `approval_policy=never`.
+
+  `scripts/install.ps1` now detects this at install time: it probes
+  `Get-Command bash`, warns loudly if the resolved path is
+  `…\System32\bash.exe` (or if `bash` is missing entirely), and tells
+  the user exactly how to fix `PATH`. The README's "Windows notes"
+  subsection documents the same prerequisite with verification
+  commands (`where bash; bash --version`).
+
+  Regression coverage on `windows-latest` exercises the exact
+  installed hook command form (`bash
+  "${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-bash-guard.sh"`) against a
+  benign JSON payload and asserts the hook returns 0 or 2 (both are
+  "ran"; anything else means `bash` resolution is broken). This is
+  the missing CI gap the issue called for — the existing PSScriptAnalyzer
+  + parse jobs validated the .ps1 sources but never invoked the hook
+  through `bash` on Windows.
+
+---
+
 ## [1.19.34] - 2026-05-23
 
 ### Fixed — stack-agnostic prompts + Codex notify clarification (closes #46, closes #73)
