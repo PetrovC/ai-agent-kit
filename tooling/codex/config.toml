@@ -61,11 +61,17 @@ exclude = [
 persistence = "save-all"
 max_bytes = 10485760  # 10 MiB
 
-# ── Completion notification (optional) ────────────────────────────────────────
-# Uncomment to run a program when a turn finishes (parity with the Claude
-# notify-done hook). The kit ships the hook form in .codex/hooks.json instead;
-# this top-level `notify` is the config.toml alternative if you prefer it.
-# notify = ["bash", ".codex/hooks/notify-done.sh"]
+# ── Completion notification ─────────────────────────────────────────────────
+# `notify` is a machine-local key — Codex reads it ONLY from
+# `~/.codex/config.toml`, not from project-scoped `.codex/config.toml`
+# (https://developers.openai.com/codex/config-reference). Adding it
+# here would silently do nothing.
+#
+# For project-level turn-end notification, the kit already ships the
+# hook form via `.codex/hooks.json` -> `notify-done.sh`. No action needed.
+#
+# For personal machine-level notification, set the `notify` key (an array
+# of program + args) in `~/.codex/config.toml`, NOT in this file.
 
 # ── MCP servers ───────────────────────────────────────────────────────────────
 # Codex supports Model Context Protocol servers (stdio + HTTP). Uncomment and

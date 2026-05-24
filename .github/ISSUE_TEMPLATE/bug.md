@@ -36,9 +36,19 @@ Fix includes:
 
 ## Validation
 
+<!--
+List the exact commands to run after the fix to confirm it works. Pull the
+canonical build / test invocations from `docs/ai/COMMANDS.md` and adapt to
+the regression test name for this bug. Example:
+
 ```bash
-dotnet test --filter "RegressionTestName"
-dotnet test
+# <repo's "Tests filtered by name" command from COMMANDS.md, with the new test>
+# <repo's "Tests" command from COMMANDS.md>
+```
+-->
+
+```bash
+# <add the project's test commands here — see docs/ai/COMMANDS.md>
 ```
 
 ---

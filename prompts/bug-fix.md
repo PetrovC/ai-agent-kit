@@ -11,7 +11,7 @@ Before editing:
 After editing:
 - Add a regression test that fails without the fix and passes with it.
 - Name the test to describe what was broken: e.g. GetDaysConsumed_WhenHolidayOnWeekend_ShouldNotDoubleCount
-- Run dotnet test and confirm the regression test passes.
+- Run the project's test command (see `docs/ai/COMMANDS.md`) and confirm the regression test passes.
 
 Report:
 - Root cause identified.

@@ -39,9 +39,13 @@ This task must NOT include:
 
 Commands that should pass after this task:
 
+<!--
+Pull the canonical build / test / lint invocations from
+`docs/ai/COMMANDS.md` for this project's stack and list them below.
+-->
+
 ```bash
-dotnet test
-npm test
+# <add the project's build + test commands here — see docs/ai/COMMANDS.md>
 ```
 
 ---

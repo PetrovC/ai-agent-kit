@@ -31,8 +31,13 @@ labels: refactor
 
 ## Validation
 
+<!--
+Pull the canonical test invocation from `docs/ai/COMMANDS.md`. A refactor
+must leave the full test suite green — record the exact command you ran.
+-->
+
 ```bash
-dotnet test
+# <add the project's full-test command here — see docs/ai/COMMANDS.md>
 ```
 
 ---
