@@ -136,6 +136,25 @@ jobs:
           if kit_ver != ext.get("version"):
               errs.append(f"gemini-extension.json version ({ext.get('version')}) != VERSION ({kit_ver})")
 
+          # .kit-version is the dogfood install state file written by
+          # install.sh / update.sh. In this source repo it is tracked, and
+          # its `@<version>` segment is expected to match the root VERSION
+          # — otherwise a fresh clone sees a stale dogfood that does not
+          # advertise the current release. Format produced by install/update:
+          #   ai-agent-kit@<VERSION> - <installed|updated> <DATE> - tools: <tools>
+          import os
+          if os.path.exists(".kit-version"):
+              with open(".kit-version", encoding="utf-8") as f:
+                  kv = f.read().replace("\r", "").strip()
+              m = re.match(r"^ai-agent-kit@([0-9]+\.[0-9]+\.[0-9]+)\b", kv)
+              if not m:
+                  errs.append(f".kit-version has unexpected format: {kv!r}")
+              elif m.group(1) != kit_ver:
+                  errs.append(
+                      f".kit-version @{m.group(1)} != VERSION {kit_ver} — "
+                      "run `scripts/update.sh --target . --tools codex,claude` "
+                      "to refresh the dogfood install state file")
+
           hardcoded = re.compile(
               r'(?:KIT_VERSION|\$KitVersion)\s*=\s*["\'][0-9]+\.[0-9]+\.[0-9]+["\']')
           expected_reads = {

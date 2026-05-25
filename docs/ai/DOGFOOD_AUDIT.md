@@ -16,7 +16,9 @@
 | **P2** — gap structurel | **4** | Documenter ou normaliser |
 | **P3** — nettoyage | **3** | Optionnel |
 
-**Conclusion read-only** : le kit est globalement sain. La PR #213 a fermé la classe principale de bug "dérive Claude/Codex". Restent deux trous concrets — **les permissions de hooks dogfood ne sont pas exécutables** (P0) et **le CHANGELOG n'a pas été mis à jour pour les 6 dernières PRs** (P0) — plus un trou structurel : **Gemini n'a aucun check de dérive** (P1).
+**Conclusion read-only (snapshot du 2026-05-25, avant corrections)** : le kit est globalement sain. La PR #213 a fermé la classe principale de bug "dérive Claude/Codex". Restent deux trous concrets — **les permissions de hooks dogfood ne sont pas exécutables** (P0) et **le CHANGELOG n'a pas été mis à jour pour les 6 dernières PRs** (P0) — plus un trou structurel : **Gemini n'a aucun check de dérive** (P1).
+
+> **Note post-corrections** : tous les findings ci-dessus ont été résolus par les PRs [#214](https://github.com/PetrovC/ai-agent-kit/pull/214)–[#223](https://github.com/PetrovC/ai-agent-kit/pull/223) (release v1.20.1). Voir le tableau "Statut de correction" ci-dessous pour l'état actuel.
 
 ---
 
@@ -36,6 +38,9 @@ Tableau vivant : mis à jour à chaque PR qui résout un finding. Le rapport ci-
 | P2-A | Pas de `## [Unreleased]` dans CHANGELOG | inclus dans [#214](https://github.com/PetrovC/ai-agent-kit/pull/214) | ✅ résolu |
 | P2-B/C/D | Gaps structurels divers | PR-G + tests CI | 🔲 ouvert |
 | P3-A/B/C | Cleanup | PR-H | 🔲 ouvert |
+| **Post-release** | `.kit-version` 1.19.38 vs `VERSION` 1.20.1 (post-#223 dogfood drift) | **PR cleanup (en cours)** | **✅ résolu — `.kit-version` rafraîchi + check CI ajouté dans `lint-plugin-manifest`** |
+| **Post-release** | Loops bash `while read` sans guard `\|\| [[ -n "$p" ]]` ignorent dernière ligne sans newline final | **PR cleanup (en cours)** | **✅ résolu — 6 loops protégés** |
+| **Post-release** | Docs stale post-corrections (BACKLOG, DOGFOOD_AUDIT prose, validate.ps1 header, COMMANDS.md) | **PR cleanup (en cours)** | **✅ résolu** |
 
 ### Tests anti-dérive (Phase 2)
 

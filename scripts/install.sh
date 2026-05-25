@@ -286,7 +286,7 @@ ok ".kit-version (tools: $FULL_TOOLS_STR)"
 # the manifest representing the FULL installed set, not just the latest scope.
 MANIFEST_KEEP_FROM_OLD=()
 if [[ -f "$TARGET/.kit-manifest" ]]; then
-    while IFS= read -r p; do
+    while IFS= read -r p || [[ -n "$p" ]]; do
         [[ -z "$p" ]] && continue
         otool="$(owning_tool "$p")"
         [[ -z "$otool" ]] && continue

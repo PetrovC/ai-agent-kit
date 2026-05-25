@@ -194,7 +194,7 @@ MANIFEST_FILE="$TARGET/.kit-manifest"
 TO_REMOVE=()
 
 if [[ -f "$MANIFEST_FILE" ]]; then
-    while IFS= read -r p; do
+    while IFS= read -r p || [[ -n "$p" ]]; do
         [[ -z "$p" ]] && continue
         otool="$(owning_tool "$p")"
         [[ -z "$otool" ]] && continue
@@ -307,7 +307,7 @@ if [[ -f "$TARGET/.kit-version" ]]; then
                 dryrun ".kit-manifest (filter)"
             else
                 tmp="$(mktemp)"
-                while IFS= read -r p; do
+                while IFS= read -r p || [[ -n "$p" ]]; do
                     [[ -z "$p" ]] && continue
                     otool="$(owning_tool "$p")"
                     [[ -z "$otool" ]] && continue

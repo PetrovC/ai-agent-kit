@@ -9,8 +9,9 @@
       - HTML-comment placeholders still present (<!-- ... -->).
       - Non-comment placeholders still present (empty table rows, "TBD" cells,
         pure-dots list items, "<key>: ..." placeholder values).
-      - In this source repository only, tracked Claude/Codex dogfood files
-        drifted from their canonical sources under tooling/ or skills/.
+      - In this source repository only, tracked Claude/Codex/Gemini dogfood
+        files drifted (content or git mode) from their canonical sources
+        under tooling/ or skills/.
 
     Exit codes:
       0 - everything OK

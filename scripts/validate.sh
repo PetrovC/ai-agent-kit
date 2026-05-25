@@ -120,7 +120,7 @@ for f in "$DOCS_AI"/*.md; do
     in_comment=0
     lineno=0
     file_hits=0
-    while IFS= read -r line; do
+    while IFS= read -r line || [[ -n "$line" ]]; do
         lineno=$((lineno+1))
         if [[ "$line" =~ ^[[:space:]]*\`\`\` ]]; then
             in_code=$((1-in_code))
@@ -225,7 +225,7 @@ if [[ -f "$TARGET/.kit-manifest" ]] \
     dogfood_checked=0
     dogfood_found=false
 
-    while IFS= read -r rel; do
+    while IFS= read -r rel || [[ -n "$rel" ]]; do
         rel="${rel//$'\r'/}"
         rel="${rel#$'\xef\xbb\xbf'}"
         [[ -n "$rel" ]] || continue
