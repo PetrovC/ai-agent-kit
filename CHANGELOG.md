@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- **`docs(adr)` — ADR-008 rewritten: Gemini hook adoption is the
+  kit's responsibility, not a CLI gap (closes
+  [#177](https://github.com/PetrovC/ai-agent-kit/issues/177)).** The
+  ADR previously framed Gemini's runtime safety surface as
+  structurally inferior to Claude / Codex, on the assumption that
+  Gemini CLI had no hook system. Gemini CLI 2026 ships a full hooks
+  system (`BeforeTool`, `AfterTool`, `BeforeAgent`, `AfterAgent`,
+  `Notification`, `SessionStart`, `SessionEnd`, `PreCompress`,
+  `BeforeModel`, `AfterModel`, `BeforeToolSelection`) with a
+  `hooksConfig` / `hooks` schema in `settings.json` (verified against
+  [geminicli.com/docs/reference/configuration](https://geminicli.com/docs/reference/configuration/)).
+  The rewritten ADR records that the gap is *kit-side* — the kit has
+  not yet adopted Gemini's hook API — and points at
+  [#178](https://github.com/PetrovC/ai-agent-kit/issues/178) for the
+  migration path. The superseded statement is kept inline for
+  history. Same correction applied wherever the old narrative was
+  cited: `docs/ai/PROJECT.md` (×2), `tooling/gemini/GEMINI.md` "Safety
+  model" section, `README.md` (×2), `docs/ai/BACKLOG.md`. Validation
+  criterion from the issue
+  (`grep -rn 'weaker runtime guard' docs/ tooling/ README.md ↦ 0`)
+  passes. Implementation of Gemini hooks is **out of scope** for this
+  PR and tracked separately.
+
 ## [1.20.1] - 2026-05-25
 
 This patch release ships the deliverable of a full-repo dogfood audit

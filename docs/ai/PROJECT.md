@@ -154,9 +154,12 @@ Current maturity assessment:
 - Script robustness is better than a first glance suggests, with meaningful
   Bash and PowerShell care already present, but it still needs isolated helper
   tests and parity checks.
-- Runtime security is stronger for Claude and Codex because hooks are available;
-  Gemini has weaker runtime guard support and relies more on approval mode,
-  review, and CI.
+- Runtime security: Claude and Codex ship a kit-provided `pre-bash-guard`
+  hook; Gemini CLI 2026 supports the same class of hook (`BeforeTool`
+  family) but the kit has not yet adopted it — see ADR-008 and
+  [#178](https://github.com/PetrovC/ai-agent-kit/issues/178). Until that
+  lands, Gemini installs rely on approval mode (`default` / `auto_edit`),
+  `.geminiignore`, and CI to provide the same outcome.
 - Public release maturity needs work before broad public adoption.
 - Evolution potential is excellent, but advanced features should come after
   stabilizing the core.
@@ -164,7 +167,10 @@ Current maturity assessment:
 ## Known Risks
 
 - Bash and PowerShell behavior can drift without parity checks.
-- Gemini currently lacks an equivalent hook guard system.
+- Gemini CLI 2026 supports hooks, but the kit has not yet adopted them
+  (tracked by [#178](https://github.com/PetrovC/ai-agent-kit/issues/178));
+  in the meantime, Gemini installs depend on approval mode + CI for the
+  guarantees Claude / Codex get from `pre-bash-guard`.
 - Optional GitHub Actions templates can drift from actual provider behavior.
 - MCP examples and mutable GitHub Action tags carry supply-chain risk.
 - The kit could become over-engineered if it grows beyond configurator scope.

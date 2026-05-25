@@ -67,14 +67,50 @@ issue changes direction.
 - Consequences: Security documentation and review remain necessary, and hooks
   must not be marketed as complete isolation.
 
-## ADR-008: Gemini has weaker runtime guard support
+## ADR-008: Gemini hook adoption is the kit's responsibility, not a CLI gap
 
-- Context: Gemini support exists, but this kit does not currently provide an
-  equivalent hook guard system for Gemini.
-- Decision: Gemini safety relies more on approval mode, review, CI, and clear
-  router guidance.
-- Consequences: Documentation must be honest about the weaker runtime guard
-  surface.
+> *Superseded statement (kept for history):* the previous version of this
+> ADR framed Gemini as lacking an equivalent hook system and concluded
+> the kit's Gemini install therefore had a structurally limited safety
+> surface. That assumption was correct at the time of writing but stopped
+> being true with Gemini CLI 2026, which ships a full hooks system
+> (`BeforeTool`, `AfterTool`, `BeforeAgent`, `AfterAgent`, `Notification`,
+> `SessionStart`, `SessionEnd`, `PreCompress`, `BeforeModel`, `AfterModel`,
+> `BeforeToolSelection`) with a `hooksConfig` / `hooks` schema in
+> `settings.json`. See
+> [geminicli.com/docs/reference/configuration](https://geminicli.com/docs/reference/configuration/).
+
+- Context: All three CLIs (Claude, Codex, Gemini) now expose a hooks
+  surface. The kit currently ships a `pre-bash-guard` hook for Claude
+  and Codex but not for Gemini — not because Gemini cannot run hooks,
+  but because the kit has not yet adopted Gemini's hook API.
+- Decision: Treat the Gemini guard gap as **kit-side work, not a
+  platform limitation.** Adoption is tracked in
+  [#178](https://github.com/PetrovC/ai-agent-kit/issues/178). Until
+  it lands, the Gemini install layers safety as:
+  1. **Approval mode** — `default` / `auto_edit` prompt the human
+     before shell execution; `yolo` bypasses prompts. Documentation
+     recommends `default` / `auto_edit` for any repo with real
+     history or data.
+  2. **`.geminiignore`** — excludes secrets and runtime files from
+     model context.
+  3. **CI** — workflows reject merges that violate kit policy
+     regardless of the local CLI.
+  4. **Router guidance in `GEMINI.md`** — the model is instructed to
+     refuse destructive commands itself.
+- Consequences:
+  - Documentation no longer frames Gemini's hook surface as
+    structurally inferior to Claude/Codex's; it states honestly that
+    the kit does not yet adopt Gemini's hook API. See
+    [#178](https://github.com/PetrovC/ai-agent-kit/issues/178) for the
+    migration path.
+  - Once [#178](https://github.com/PetrovC/ai-agent-kit/issues/178)
+    lands, this ADR will be updated again to record the final
+    Gemini hook contract; the "lacks an equivalent" framing in
+    `PROJECT.md` and `GEMINI.md` will be removed in the same PR.
+  - The Gemini CLI wrapper experiment ([#169](https://github.com/PetrovC/ai-agent-kit/issues/169))
+    is recommended for `wontfix` because the upstream CLI now
+    provides the surface the wrapper was meant to emulate.
 
 ## ADR-009: MCPs are opt-in
 
