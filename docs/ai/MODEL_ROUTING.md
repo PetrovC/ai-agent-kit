@@ -122,3 +122,33 @@ Rules:
   their actual stack (Vue, Angular, Spring, Flutter, …). The kit
   intentionally does not ship a 30-domain catch-all — every entry is a
   small attack surface and a context-bloat risk.
+
+## Token Budgets per Slash Command
+
+Soft targets — not gates — to spot when a command balloons in tokens. If a
+run consistently exceeds the budget, investigate the prompt scope before
+the model tier. Budgets cover the full conversation (input + output) for a
+single end-to-end invocation, not just the model call.
+
+| Command | Target budget | Why this size |
+|---|---|---|
+| `/run-tests` | < 30 k | Run + summarize; logs trimmed. |
+| `/code-review` | < 60 k | Diff + skill + ARCHITECTURE; uses subagent for noise. |
+| `/security-audit` | < 80 k | Multiple checks but should not re-read the world. |
+| `/bug-fix` | < 80 k | Repro + root cause + fix + regression test. |
+| `/refactor` | < 100 k | Behaviour-preserving, scoped to one area. |
+| `/performance-audit` | < 100 k | Measure baseline, find bottleneck, propose fix. |
+| `/dependency-update` | < 100 k | Changelog + license + tests + audit. |
+| `/on-call` | < 100 k | Live incident playbook; prefer narrow scope. |
+| `/tech-debt` | < 120 k | Triage across categories — read-only, can grow. |
+| `/feature-planning` | < 120 k | Plan only; no code; can need broader context. |
+| `/daily-ticket` | < 120 k | End-to-end ticket workflow with subagents. |
+
+Heuristics:
+
+- Subagent calls do not count against the main session budget — that is
+  the point of delegation (ADR-013).
+- Hitting a budget rarely means raise it. Usually it means: tighten the
+  prompt, drop a skill, push a noisy step to a subagent.
+- See [`docs/ai/CONTEXT_GOVERNANCE.md`](./CONTEXT_GOVERNANCE.md) for the
+  40/60/80% session checkpoints that complement these per-command budgets.
