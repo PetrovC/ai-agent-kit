@@ -93,8 +93,14 @@ find_dotnet_project() {
 format_file() {
     local f="$1"
     [ -f "$f" ] || return 0
+    # Source-code extensions only. Issue #152: previously the prettier
+    # arm also matched json|css|scss|html|md|yaml|yml — running on every
+    # doc / config edit. Trimmed to JS/TS source; non-source paths
+    # (md, json, yml, sh, ps1, …) fall into the *) catch-all and are
+    # silently skipped. Users who want prettier on docs can run it
+    # manually or add a project-level pre-commit hook.
     case "${f##*.}" in
-        js|mjs|cjs|ts|tsx|jsx|json|css|scss|html|md|yaml|yml)
+        js|mjs|cjs|ts|tsx|jsx)
             command -v prettier >/dev/null 2>&1 && prettier --write "$f" --log-level silent || true ;;
         py)
             command -v ruff >/dev/null 2>&1 && ruff format "$f" --quiet || true ;;
@@ -114,6 +120,10 @@ format_file() {
             command -v google-java-format >/dev/null 2>&1 && google-java-format -i "$f" 2>/dev/null || true ;;
         kt|kts)
             command -v ktlint >/dev/null 2>&1 && ktlint -F "$f" >/dev/null 2>&1 || true ;;
+        rb)
+            command -v rubocop >/dev/null 2>&1 && rubocop -a --force-exclusion "$f" >/dev/null 2>&1 || true ;;
+        *)
+            : ;; # non-source extension — skip silently
     esac
 }
 
