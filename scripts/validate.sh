@@ -7,8 +7,9 @@
 #   - HTML comment placeholders still present (<!-- ... -->).
 #   - Non-comment placeholders still present (empty table rows, "TBD" cells,
 #     pure-dots list items, "<key>: ..." placeholder values).
-#   - In this source repository only, tracked Claude/Codex dogfood files drifted
-#     from their canonical sources under tooling/ or skills/.
+#   - In this source repository only, tracked Claude/Codex/Gemini dogfood files
+#     drifted (content or git mode) from their canonical sources under tooling/
+#     or skills/.
 #
 # Exit codes:
 #   0 — everything OK
@@ -198,10 +199,27 @@ dogfood_source_candidates() {
             tail="${rel#.claude/skills/}"
             printf '%s\n' "$TARGET/skills/$tail"
             ;;
+
+        GEMINI.md) printf '%s\n' "$TARGET/tooling/gemini/GEMINI.md" ;;
+        .geminiignore) printf '%s\n' "$TARGET/tooling/gemini/.geminiignore" ;;
+        .gemini/settings.json) printf '%s\n' "$TARGET/tooling/gemini/settings.json" ;;
+        .gemini/agents/*)
+            tail="${rel#.gemini/agents/}"
+            printf '%s\n' "$TARGET/tooling/gemini/agents/$tail"
+            ;;
+        .gemini/commands/*)
+            tail="${rel#.gemini/commands/}"
+            printf '%s\n' "$TARGET/tooling/gemini/commands/$tail"
+            ;;
+        .gemini/skills/*)
+            tail="${rel#.gemini/skills/}"
+            printf '%s\n' "$TARGET/skills/$tail"
+            ;;
     esac
 }
 
-if [[ -f "$TARGET/.kit-manifest" && -d "$TARGET/tooling/codex" && -d "$TARGET/tooling/claude" ]]; then
+if [[ -f "$TARGET/.kit-manifest" ]] \
+   && { [[ -d "$TARGET/tooling/codex" ]] || [[ -d "$TARGET/tooling/claude" ]] || [[ -d "$TARGET/tooling/gemini" ]]; }; then
     echo ""
     echo "> Dogfood install drift (repo only)"
     dogfood_checked=0

@@ -26,13 +26,13 @@ Tableau vivant : mis à jour à chaque PR qui résout un finding. Le rapport ci-
 
 | Finding | Description | PR | Statut |
 |---|---|---|---|
-| **P0-A** | Permissions hooks dogfood non exécutables | **PR-A (en cours)** | **✅ résolu — `chmod +x` + validate mode check** |
+| **P0-A** | Permissions hooks dogfood non exécutables | **[#216](https://github.com/PetrovC/ai-agent-kit/pull/216)** | **✅ résolu — `chmod +x` + validate mode check** |
 | **P0-B** | CHANGELOG en retard de 17 PRs + pas de `[Unreleased]` | **[#214](https://github.com/PetrovC/ai-agent-kit/pull/214)** | **✅ résolu — v1.20.0** |
-| P1-A | Gemini sans check de dérive validate (22 fichiers) | PR-C (à venir) | 🔲 ouvert |
+| **P1-A** | Gemini sans check de dérive validate | **PR-C (en cours)** | **✅ résolu — cases ajoutés + gate étendue** |
 | P1-B | `tooling/gemini/gemini-extension.json` orphelin | PR-D (à venir) | 🔲 ouvert |
 | P1-C | `tooling/codex/global-config-template.toml` orphelin | PR-D (à venir) | 🔲 ouvert |
 | P1-D | Asymétrie `*.windows.json` ↔ `*.json` non vérifiée | (à planifier) | 🔲 ouvert |
-| **P1-E** | `validate.sh` ne compare pas les modes | **PR-A (en cours)** | **✅ résolu — git ls-files mode parity** |
+| **P1-E** | `validate.sh` ne compare pas les modes | **[#216](https://github.com/PetrovC/ai-agent-kit/pull/216)** | **✅ résolu — git ls-files mode parity** |
 | P2-A | Pas de `## [Unreleased]` dans CHANGELOG | inclus dans [#214](https://github.com/PetrovC/ai-agent-kit/pull/214) | ✅ résolu |
 | P2-B/C/D | Gaps structurels divers | PR-G + tests CI | 🔲 ouvert |
 | P3-A/B/C | Cleanup | PR-H | 🔲 ouvert |

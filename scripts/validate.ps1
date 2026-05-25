@@ -172,6 +172,13 @@ function Get-DogfoodSourceCandidates([string]$rel) {
         "^\.claude/hooks/(.+)$" { return @("tooling/claude/hooks/$($Matches[1])") }
         "^\.claude/rules/(.+)$" { return @("tooling/claude/rules/$($Matches[1])") }
         "^\.claude/skills/(.+)$" { return @("skills/$($Matches[1])") }
+
+        "^GEMINI\.md$" { return @("tooling/gemini/GEMINI.md") }
+        "^\.geminiignore$" { return @("tooling/gemini/.geminiignore") }
+        "^\.gemini/settings\.json$" { return @("tooling/gemini/settings.json") }
+        "^\.gemini/agents/(.+)$" { return @("tooling/gemini/agents/$($Matches[1])") }
+        "^\.gemini/commands/(.+)$" { return @("tooling/gemini/commands/$($Matches[1])") }
+        "^\.gemini/skills/(.+)$" { return @("skills/$($Matches[1])") }
     }
     return @()
 }
@@ -187,9 +194,12 @@ function Test-SameFile([string]$left, [string]$right) {
 $manifestPath = Join-Path $Target ".kit-manifest"
 $codexSource = Join-Path $Target "tooling\codex"
 $claudeSource = Join-Path $Target "tooling\claude"
-if ((Test-Path -LiteralPath $manifestPath -PathType Leaf) `
-    -and (Test-Path -LiteralPath $codexSource -PathType Container) `
-    -and (Test-Path -LiteralPath $claudeSource -PathType Container)) {
+$geminiSource = Join-Path $Target "tooling\gemini"
+$hasManifest = Test-Path -LiteralPath $manifestPath -PathType Leaf
+$hasAnyToolSource = (Test-Path -LiteralPath $codexSource -PathType Container) `
+    -or (Test-Path -LiteralPath $claudeSource -PathType Container) `
+    -or (Test-Path -LiteralPath $geminiSource -PathType Container)
+if ($hasManifest -and $hasAnyToolSource) {
     Write-Host ""
     Write-Host "> Dogfood install drift (repo only)"
     $dogfoodChecked = 0
