@@ -4,6 +4,10 @@ about: Improve code quality without changing behavior
 labels: refactor
 ---
 
+Before opening work, read
+[CONTRIBUTING.md](https://github.com/PetrovC/ai-agent-kit/blob/master/CONTRIBUTING.md)
+for the issue-first workflow, branch naming, and validation expectations.
+
 ## Goal
 
 <!-- What is the structural problem being solved? Why now? -->

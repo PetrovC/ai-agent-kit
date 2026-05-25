@@ -4,6 +4,10 @@ about: New feature or enhancement
 labels: feature
 ---
 
+Before opening work, read
+[CONTRIBUTING.md](https://github.com/PetrovC/ai-agent-kit/blob/master/CONTRIBUTING.md)
+for the issue-first workflow, branch naming, and validation expectations.
+
 ## Goal
 
 <!-- What is the expected outcome? One or two sentences. -->

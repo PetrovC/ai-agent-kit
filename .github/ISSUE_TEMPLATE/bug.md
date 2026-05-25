@@ -4,6 +4,10 @@ about: Something is broken
 labels: bug
 ---
 
+Before opening work, read
+[CONTRIBUTING.md](https://github.com/PetrovC/ai-agent-kit/blob/master/CONTRIBUTING.md)
+for the issue-first workflow, branch naming, and validation expectations.
+
 ## Description
 
 <!-- What is broken? What was expected vs what happened? -->
