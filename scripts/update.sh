@@ -14,7 +14,16 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KIT_VERSION="1.19.38"
+VERSION_FILE="$KIT_ROOT/VERSION"
+if [[ ! -f "$VERSION_FILE" ]]; then
+    echo "Error: VERSION file not found at $VERSION_FILE" >&2
+    exit 1
+fi
+KIT_VERSION="$(tr -d '\r' < "$VERSION_FILE")"
+if [[ ! "$KIT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Error: VERSION must contain a single semver value, got '$KIT_VERSION'" >&2
+    exit 1
+fi
 TARGET=""
 TOOLS=""
 DRY_RUN=false

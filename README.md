@@ -172,7 +172,7 @@ they target a *user home directory* or a *distribution channel*, not a project:
 | `tooling/codex/global-config-template.toml` | Personal Codex prefs (model, reasoning effort, `readonly`/`standard`/`deep`/`review` profiles, Windows sandbox) — the per-user `~/.codex/config.toml`, not a project file | `cp tooling/codex/global-config-template.toml ~/.codex/config.toml` then edit |
 | `tooling/gemini/gemini-extension.json` | Scaffold for teams who want to distribute the kit as an installable **Gemini CLI extension** (`gemini extensions install`) instead of via the script | Starting point — extend with your skills/commands, then publish per the [Gemini extensions docs](https://google-gemini.github.io/gemini-cli/docs/extensions) |
 
-`gemini-extension.json`'s `version` is still pinned to `KIT_VERSION` by CI so it
+`gemini-extension.json`'s `version` is still pinned to root `VERSION` by CI so it
 never drifts, even though install/update/uninstall deliberately ignore both files.
 
 > **Extension-mode caveat (Gemini only).** When the kit is distributed via

@@ -174,10 +174,20 @@ jobs:
         run: |
           errors=0
           skills=$(find skills -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ')
-          kit_ver=$(grep -oE 'KIT_VERSION="[0-9]+\.[0-9]+\.[0-9]+"' scripts/install.sh | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          if [[ ! -f VERSION ]]; then
+            echo "MISSING VERSION"
+            errors=$((errors+1))
+            kit_ver=""
+          else
+            kit_ver=$(tr -d '\r' < VERSION)
+            if ! [[ "$kit_ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "VERSION must contain semver only, got: $kit_ver"
+              errors=$((errors+1))
+            fi
+          fi
           chg_ver=$(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
           if [[ "$chg_ver" != "$kit_ver" ]]; then
-            echo "CHANGELOG top version ($chg_ver) != KIT_VERSION ($kit_ver)"
+            echo "CHANGELOG top version ($chg_ver) != VERSION ($kit_ver)"
             errors=$((errors+1))
           fi
           for f in README.md .claude-plugin/marketplace.json .claude-plugin/plugin.json tooling/claude/CLAUDE.md; do
