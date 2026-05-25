@@ -54,9 +54,21 @@ jobs:
           }
           if ($missing) { exit 1 }
 
-      - name: Dry-run update
+      - name: Update --dry-run reports up-to-date right after install (audit T3)
         shell: pwsh
-        run: .\scripts\update.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun
+        run: |
+          # Mirror of the bash e2e-lifecycle "Real update is a no-op right
+          # after install" assertion. Catches a class of bugs where
+          # install.ps1 copies a file that update.ps1 doesn't recognise as
+          # its own — they would diverge silently and every dry-run after
+          # install would print pending changes the user must approve.
+          $out = .\scripts\update.ps1 -Target "$env:RUNNER_TEMP\smoke-target" -DryRun *>&1 | Out-String
+          Write-Host $out
+          if ($out -notmatch "Everything is up to date") {
+            Write-Host "FAIL: update.ps1 -DryRun reported pending changes right after install"
+            exit 1
+          }
+          Write-Host "OK: update.ps1 -DryRun is a no-op right after install"
 
       - name: update.ps1 preserves unknown legacy Codex agent files
         shell: pwsh

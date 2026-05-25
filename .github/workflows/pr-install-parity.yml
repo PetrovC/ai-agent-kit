@@ -1,0 +1,118 @@
+name: PR — install parity (cross-OS)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Audit test T4. Bash install.sh and PowerShell install.ps1 are separate
+# scripts that must produce the same set of files in the target — only the
+# *content* of a few files (settings.json variants, .kit-version timestamps)
+# is allowed to differ. This workflow installs the kit on Linux AND Windows
+# and asserts the relative file lists are byte-identical after `sort`.
+#
+# Why a new file (instead of folding into pr-scripts-{shell,powershell}.yml):
+# GitHub Actions artifacts can only be shared between jobs of the SAME
+# workflow run. Putting both installs and the diff into a single workflow is
+# the simplest way to cross-OS-compare.
+
+jobs:
+  install-linux:
+    name: Install + capture file list (bash)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kit and snapshot sorted relative file list
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          # Write into $RUNNER_TEMP rather than /tmp so the same shell path
+          # works on Windows runners too (where /tmp is a Git-Bash mount
+          # that actions/upload-artifact cannot see).
+          (cd "$T" && find . -type f | LC_ALL=C sort) > "$RUNNER_TEMP/install-list-linux.txt"
+          echo "--- linux file count ---"
+          wc -l "$RUNNER_TEMP/install-list-linux.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: install-list-linux
+          path: ${{ runner.temp }}/install-list-linux.txt
+
+  install-windows:
+    name: Install + capture file list (PowerShell)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kit via PowerShell
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP "parity-target"
+          New-Item -ItemType Directory -Path $target -Force | Out-Null
+          .\scripts\install.ps1 -Target $target -Tools "codex,claude,gemini" | Out-Null
+          # Hand the target path to the bash step that captures the list.
+          "PARITY_TARGET=$target" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Snapshot sorted relative file list via Git Bash
+        shell: bash
+        run: |
+          set -euo pipefail
+          # cygpath converts the Windows path the previous step exported
+          # ("C:\\Users\\...\\parity-target") to a Git-Bash-compatible
+          # ("/c/Users/.../parity-target") form that `cd` and `find` accept.
+          # $RUNNER_TEMP is also a Windows path in bash on Windows runners
+          # (e.g. "D:\\a\\_temp"), so we cygpath that too — but we write the
+          # output under that path because that is where the upload action
+          # (which uses the Windows path) looks for it.
+          target_unix="$(cygpath -u "$PARITY_TARGET")"
+          out_unix="$(cygpath -u "$RUNNER_TEMP")/install-list-windows.txt"
+          (cd "$target_unix" && find . -type f | LC_ALL=C sort) > "$out_unix"
+          echo "--- windows file count ---"
+          wc -l "$out_unix"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: install-list-windows
+          path: ${{ runner.temp }}/install-list-windows.txt
+
+  parity:
+    name: Bash and PowerShell installs produce identical file lists
+    needs: [install-linux, install-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: install-list-linux
+          path: /tmp/linux
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: install-list-windows
+          path: /tmp/windows
+
+      - name: Diff the two file lists
+        run: |
+          set -euo pipefail
+          # File LIST parity, not content parity. Intentional content
+          # differences (settings.json POSIX vs Windows variant,
+          # `.kit-version` timestamp, etc.) are out of scope here — handled
+          # by validate.sh's content/mode check against canonical sources.
+          if diff -u /tmp/linux/install-list-linux.txt /tmp/windows/install-list-windows.txt; then
+            echo "OK: bash and PowerShell installs produce identical relative file lists"
+          else
+            echo ""
+            echo "FAIL: bash and PowerShell installs produce different file lists."
+            echo "      Lines prefixed with '-' are in the bash install only,"
+            echo "      lines prefixed with '+' are in the PowerShell install only."
+            echo "      Likely cause: one of install.sh / install.ps1 copies a file"
+            echo "      the other does not — fix the asymmetric script before merging."
+            exit 1
+          fi
