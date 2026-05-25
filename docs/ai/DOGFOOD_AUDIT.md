@@ -43,14 +43,14 @@ Plan original = 8 tests CI permanents pour fermer structurellement les classes d
 
 | Test | Couvre | PR | Statut |
 |---|---|---|---|
-| **T1** | **Manifest exhaustivity (orphelins + manifest périmé)** | **PR-G (en cours)** | **✅ résolu — reverse check dans `dogfood-install-policy`** |
+| T1 | Manifest exhaustivity (orphelins + manifest périmé) | [#220](https://github.com/PetrovC/ai-agent-kit/pull/220) | ✅ résolu — reverse check dans `dogfood-install-policy` |
 | T2 | Source ↔ dogfood byte-equal Gemini | [#217](https://github.com/PetrovC/ai-agent-kit/pull/217) | ✅ résolu |
-| T3 | Install → update dry-run = up-to-date | PR-H | 🔲 ouvert |
-| T4 | Cross-OS parity (bash vs ps1 produisent même set) | PR-H | 🔲 ouvert |
+| **T3** | **Install → update dry-run = up-to-date** | **PR-H (en cours)** | **✅ résolu — bash via `e2e-lifecycle` (déjà en place), Windows via assertion ajoutée à `smoke-install-windows`** |
+| **T4** | **Cross-OS parity (bash vs ps1 produisent même set)** | **PR-H (en cours)** | **✅ résolu — nouveau workflow `pr-install-parity.yml`** |
 | T5 | PR-classifier — refuse dogfood-only modifications | déprio. — fermé via #213/#216/#217/#219 | 🔁 redondant |
 | T6 | CHANGELOG entry required for feat/fix/perf | [#219](https://github.com/PetrovC/ai-agent-kit/pull/219) | ✅ résolu |
 | T7 | Version sync (couvert par `pr-versioning.yml`) | déjà en place | ✅ existant |
-| **T8** | **Doc-reference validity (liens markdown intra-repo)** | **PR-G (en cours)** | **✅ résolu — `lint-doc-links` dans `pr-docs.yml`** |
+| T8 | Doc-reference validity (liens markdown intra-repo) | [#220](https://github.com/PetrovC/ai-agent-kit/pull/220) | ✅ résolu — `lint-doc-links` dans `pr-docs.yml` |
 
 ---
 
