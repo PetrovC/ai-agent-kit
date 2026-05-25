@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### CI
+
+- **`ci(tooling)` — new `lint-platform-variant-parity` job asserts
+  POSIX/Windows JSON variants share the same key set (audit P1-D).**
+  `install.sh` copies `tooling/{claude/settings.json,
+  codex/hooks.json}`; `install.ps1` copies their `*.windows.json`
+  siblings. Byte-for-byte divergence is expected (paths, command flags
+  differ by OS), but the JSON *key shape* must stay aligned — a key
+  added on one side but not the other means one platform silently
+  loses a hook / setting. The new job recursively extracts every key
+  path from both files of each pair and fails on any drift. Current
+  state at this PR: Claude settings (30 keys) and Codex hooks (17
+  keys) both align perfectly — the check locks that contract in.
+
 ### Fixed
 
 - **`fix(docs)` — `skills/ai-dev/SKILL.md` link to `MODEL_ROUTING.md`

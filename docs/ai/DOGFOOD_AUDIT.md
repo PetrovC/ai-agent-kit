@@ -31,7 +31,7 @@ Tableau vivant : mis à jour à chaque PR qui résout un finding. Le rapport ci-
 | **P1-A** | Gemini sans check de dérive validate | **[#217](https://github.com/PetrovC/ai-agent-kit/pull/217)** | **✅ résolu — cases ajoutés + gate étendue** |
 | ~~P1-B~~ | ~~`tooling/gemini/gemini-extension.json` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:201`](../../README.md), validé par CI (`pr-versioning.yml` / `lint-plugin-manifest`)** |
 | ~~P1-C~~ | ~~`tooling/codex/global-config-template.toml` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:200`](../../README.md) (template `~/.codex/config.toml`, par-user, pas par-projet)** |
-| P1-D | Asymétrie `*.windows.json` ↔ `*.json` non vérifiée | (à planifier) | 🔲 ouvert |
+| **P1-D** | **Asymétrie `*.windows.json` ↔ `*.json` non vérifiée** | **PR-I (en cours)** | **✅ résolu — `lint-platform-variant-parity` dans `pr-tooling.yml` (Claude settings: 30 clés alignées, Codex hooks: 17 clés alignées)** |
 | **P1-E** | `validate.sh` ne compare pas les modes | **[#216](https://github.com/PetrovC/ai-agent-kit/pull/216)** | **✅ résolu — git ls-files mode parity** |
 | P2-A | Pas de `## [Unreleased]` dans CHANGELOG | inclus dans [#214](https://github.com/PetrovC/ai-agent-kit/pull/214) | ✅ résolu |
 | P2-B/C/D | Gaps structurels divers | PR-G + tests CI | 🔲 ouvert |
