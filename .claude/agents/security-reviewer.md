@@ -38,3 +38,13 @@ Output format per finding:
 - Vulnerability type.
 - Concrete risk.
 - Recommended fix.
+
+Stop conditions (return immediately when any is true):
+- All check categories above were evaluated against the changed files. Stop.
+- No Critical or High finding remains, and Informational findings are
+  capped at 3 → stop padding.
+- A finding requires reproducing in a running environment → describe the
+  attack vector and recommend the main agent run the repro; do not run it
+  yourself unless explicitly allowed.
+- If you would need a new dependency or scanner not already in the repo
+  → recommend it instead of fabricating coverage.
