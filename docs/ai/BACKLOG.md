@@ -150,7 +150,7 @@ Start with the issues that unlock everything else, then run independent tracks i
 
 The 21 `kind:audit` issues come from a cross-check between the kit and the current official docs of Claude Code, Codex CLI, and Gemini CLI. High-impact findings:
 
-- **ADR-008 is obsolete.** Gemini CLI now ships a full hooks system. Tracked by [#177](https://github.com/PetrovC/ai-agent-kit/issues/177); marks [#169](https://github.com/PetrovC/ai-agent-kit/issues/169) as likely `wontfix`.
+- ~~**ADR-008 is obsolete.** Gemini CLI now ships a full hooks system.~~ — ADR-008 rewritten in this PR; [#177](https://github.com/PetrovC/ai-agent-kit/issues/177) resolved. The kit-side hook adoption is now tracked separately by [#178](https://github.com/PetrovC/ai-agent-kit/issues/178); [#169](https://github.com/PetrovC/ai-agent-kit/issues/169) remains recommended for `wontfix`.
 - **Codex has native `[agents.<name>]` tables.** The kit's "Codex skills as agent stand-ins" pattern is legacy. Tracked by [#179](https://github.com/PetrovC/ai-agent-kit/issues/179).
 - **Claude exposes 12 hook events; the kit uses 4.** Tracked by [#180](https://github.com/PetrovC/ai-agent-kit/issues/180).
 - ~~**Version drift live now**: `.kit-version` 1.19.36 vs `plugin.json`/`gemini-extension.json` 1.19.38~~ — resolved by [#211](https://github.com/PetrovC/ai-agent-kit/pull/211) (root `VERSION` as single source of truth) + [#214](https://github.com/PetrovC/ai-agent-kit/pull/214)/[#223](https://github.com/PetrovC/ai-agent-kit/pull/223) (CI enforces equality across all version-bearing files).

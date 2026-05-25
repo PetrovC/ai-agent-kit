@@ -51,29 +51,43 @@ time to see which skills are discovered.
 
 ## Safety model — read this
 
-**Gemini CLI has no hook system.** Claude Code and Codex CLI both ship a
-`pre-bash-guard` PreToolUse hook that *mechanically blocks* force/mirror/delete
-push, `git reset --hard/--keep`, ref deletion, `rm -rf` on dangerous targets,
-and unapproved SQL `DROP` (exit 2 = blocked). **None of that exists here.** On
-Gemini the kit's only safety layer is **your approval mode**:
+**The kit does not (yet) ship a Gemini `pre-bash-guard` hook.** Claude
+Code and Codex CLI both install a `BeforeTool` / PreToolUse hook that
+*mechanically blocks* force/mirror/delete push, `git reset --hard/--keep`,
+ref deletion, `rm -rf` on dangerous targets, and unapproved SQL `DROP`
+(exit 2 = blocked). Gemini CLI 2026 supports the same class of hook
+(`BeforeTool` family in `hooksConfig` / `hooks` — see the [official
+configuration reference](https://geminicli.com/docs/reference/configuration/)),
+but the kit has not yet adopted it. Adoption is tracked by
+[#178](https://github.com/PetrovC/ai-agent-kit/issues/178); ADR-008
+in `docs/ai/DECISIONS.md` records the current state.
 
-- **default / auto_edit** — you are still asked before shell commands run, so a
-  destructive command can be caught by the human. This is the safe posture.
-- **yolo** — *no confirmations and no guard*. A wrong `git push --force`,
-  `rm -rf`, or `DROP TABLE` executes immediately with nothing to stop it. This
-  is materially riskier than Claude `--dangerously-skip-permissions` or Codex
-  `approval_policy=never`, which still have the deny-list / PreToolUse guard as
-  a second layer. On Gemini there is no second layer.
+Until the Gemini guard ships, the kit's safety layers on Gemini are:
 
-Practical rules for this kit on Gemini:
+- **Approval mode.** `default` / `auto_edit` prompt before shell
+  execution — a destructive command can be caught by the human.
+  `yolo` skips the prompt and, *because the kit has not yet wired
+  Gemini's `BeforeTool` hook*, there is no second layer to fall
+  back on. Treat `yolo` on Gemini as materially riskier than Claude
+  `--dangerously-skip-permissions` or Codex `approval_policy=never`,
+  which still run their PreToolUse guard.
+- **`.geminiignore`.** Keeps secrets and runtime files out of the
+  model context.
+- **CI.** The kit's GitHub Actions workflows reject merges that
+  violate policy regardless of the local CLI.
+- **Router guidance below.** "Git rules" and "Security rules" must be
+  **self-enforced** by the model until the upstream hook lands.
 
-- Treat the "Git rules" and "Security rules" below as **self-enforced** — the
-  model must refuse destructive commands itself; nothing else will.
-- Do **not** use `yolo` on a repo with real history/data. Reserve it for
-  sandboxed / throw-away checkouts.
-- For anything touching git history, bulk deletion, or a database, stay in
-  default/auto_edit and let the human approve the command.
-- The real safety net on Gemini is **code review + CI**, not the runtime.
+Practical rules until [#178](https://github.com/PetrovC/ai-agent-kit/issues/178) lands:
+
+- Do **not** use `yolo` on a repo with real history/data. Reserve it
+  for sandboxed / throw-away checkouts.
+- For anything touching git history, bulk deletion, or a database,
+  stay in `default` / `auto_edit` and let the human approve the
+  command.
+- The current safety net on Gemini is **approval mode + code review
+  + CI**, not the runtime. After [#178](https://github.com/PetrovC/ai-agent-kit/issues/178)
+  the runtime layer will join the other two.
 
 ---
 
