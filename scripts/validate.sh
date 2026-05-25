@@ -7,6 +7,8 @@
 #   - HTML comment placeholders still present (<!-- ... -->).
 #   - Non-comment placeholders still present (empty table rows, "TBD" cells,
 #     pure-dots list items, "<key>: ..." placeholder values).
+#   - In this source repository only, tracked Claude/Codex dogfood files drifted
+#     from their canonical sources under tooling/ or skills/.
 #
 # Exit codes:
 #   0 — everything OK
@@ -147,6 +149,109 @@ for f in "$DOCS_AI"/*.md; do
     fi
 done
 $non_comment_found || ok "no non-comment placeholders remaining"
+
+dogfood_source_candidates() {
+    local rel="$1" tail=""
+    case "$rel" in
+        AGENTS.md) printf '%s\n' "$TARGET/tooling/codex/AGENTS.md" ;;
+        CLAUDE.md) printf '%s\n' "$TARGET/tooling/claude/CLAUDE.md" ;;
+        .mcp.example.jsonc) printf '%s\n' "$TARGET/tooling/claude/.mcp.example.jsonc" ;;
+
+        .codex/config.toml) printf '%s\n' "$TARGET/tooling/codex/config.toml" ;;
+        .codex/hooks.json)
+            printf '%s\n' "$TARGET/tooling/codex/hooks.json"
+            printf '%s\n' "$TARGET/tooling/codex/hooks.windows.json"
+            ;;
+        .codex/hooks/*)
+            tail="${rel#.codex/hooks/}"
+            printf '%s\n' "$TARGET/tooling/codex/hooks/$tail"
+            ;;
+        .agents/skills/*)
+            tail="${rel#.agents/skills/}"
+            if [[ -f "$TARGET/tooling/codex/skills/$tail" ]]; then
+                printf '%s\n' "$TARGET/tooling/codex/skills/$tail"
+            fi
+            printf '%s\n' "$TARGET/skills/$tail"
+            ;;
+
+        .claude/settings.json)
+            printf '%s\n' "$TARGET/tooling/claude/settings.json"
+            printf '%s\n' "$TARGET/tooling/claude/settings.windows.json"
+            ;;
+        .claude/agents/*)
+            tail="${rel#.claude/agents/}"
+            printf '%s\n' "$TARGET/tooling/claude/agents/$tail"
+            ;;
+        .claude/commands/*)
+            tail="${rel#.claude/commands/}"
+            printf '%s\n' "$TARGET/tooling/claude/commands/$tail"
+            ;;
+        .claude/hooks/*)
+            tail="${rel#.claude/hooks/}"
+            printf '%s\n' "$TARGET/tooling/claude/hooks/$tail"
+            ;;
+        .claude/rules/*)
+            tail="${rel#.claude/rules/}"
+            printf '%s\n' "$TARGET/tooling/claude/rules/$tail"
+            ;;
+        .claude/skills/*)
+            tail="${rel#.claude/skills/}"
+            printf '%s\n' "$TARGET/skills/$tail"
+            ;;
+    esac
+}
+
+if [[ -f "$TARGET/.kit-manifest" && -d "$TARGET/tooling/codex" && -d "$TARGET/tooling/claude" ]]; then
+    echo ""
+    echo "> Dogfood install drift (repo only)"
+    dogfood_checked=0
+    dogfood_found=false
+
+    while IFS= read -r rel; do
+        rel="${rel//$'\r'/}"
+        rel="${rel#$'\xef\xbb\xbf'}"
+        [[ -n "$rel" ]] || continue
+        case "$rel" in
+            .kit-version|.kit-manifest|.mcp.json) continue ;;
+        esac
+
+        dst="$TARGET/$rel"
+        if [[ ! -f "$dst" ]]; then
+            warn "$rel missing from dogfood install"
+            dogfood_found=true
+            continue
+        fi
+
+        mapfile -t candidates < <(dogfood_source_candidates "$rel")
+        ((${#candidates[@]} > 0)) || continue
+
+        source_found=false
+        source_match=false
+        for src in "${candidates[@]}"; do
+            if [[ -f "$src" ]]; then
+                source_found=true
+                if cmp -s "$src" "$dst"; then
+                    source_match=true
+                    break
+                fi
+            fi
+        done
+
+        if [[ "$source_found" == false ]]; then
+            warn "$rel has no source candidate under tooling/ or skills/"
+            dogfood_found=true
+        elif [[ "$source_match" == false ]]; then
+            warn "$rel differs from its source under tooling/ or skills/"
+            dogfood_found=true
+        else
+            dogfood_checked=$((dogfood_checked+1))
+        fi
+    done < "$TARGET/.kit-manifest"
+
+    if [[ "$dogfood_found" == false ]]; then
+        ok "$dogfood_checked dogfood file(s) match source"
+    fi
+fi
 
 echo ""
 if [[ "$issues" -eq 0 ]]; then

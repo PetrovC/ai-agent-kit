@@ -9,7 +9,7 @@ between provider adapters.
 
 | Level | Scope | Tooling | Location |
 |---|---|---|---|
-| Documentation validation | Filled `docs/ai` templates and required files | `scripts/validate.ps1`, `scripts/validate.sh` | `scripts/` |
+| Documentation validation | Filled `docs/ai` templates, required files, and source-repo dogfood drift | `scripts/validate.ps1`, `scripts/validate.sh` | `scripts/` |
 | Script behavior | Install, update, uninstall, dry-run, manifest behavior | PowerShell and Bash scripts, CI workflows | `scripts/`, `.github/workflows/` |
 | Hook behavior | Claude/Codex guard, format, notify, session summary | Shell scripts and workflow checks | `tooling/*/hooks/`, `.github/workflows/` |
 | Semantic lint | Cross-tool consistency, action templates, model/config drift | GitHub Actions and repository checks | `.github/workflows/` |
@@ -42,7 +42,8 @@ Markdown, TOML, JSON, YAML, and provider configuration.
 ## Required Before PR
 
 - Run `scripts/validate.ps1 -Target "."` on Windows or
-  `./scripts/validate.sh --target .` on POSIX when `docs/ai` changes.
+  `./scripts/validate.sh --target .` on POSIX when `docs/ai` or root
+  Claude/Codex dogfood files change.
 - Run the relevant script dry-run when changing update or uninstall behavior.
 - Run targeted hook tests when changing hook scripts or hook wiring.
 - Inspect generated diffs for accidental template or provider drift.

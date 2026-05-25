@@ -9,6 +9,8 @@
       - HTML-comment placeholders still present (<!-- ... -->).
       - Non-comment placeholders still present (empty table rows, "TBD" cells,
         pure-dots list items, "<key>: ..." placeholder values).
+      - In this source repository only, tracked Claude/Codex dogfood files
+        drifted from their canonical sources under tooling/ or skills/.
 
     Exit codes:
       0 - everything OK
@@ -133,6 +135,109 @@ Get-ChildItem -LiteralPath $DocsAi -Filter "*.md" -File | ForEach-Object {
     }
 }
 if (-not $nonCommentFound) { Ok "no non-comment placeholders remaining" }
+
+function Join-TargetRelative([string]$rel) {
+    $path = $Target
+    foreach ($part in ($rel -split "/")) {
+        if ($part) {
+            $path = Join-Path $path $part
+        }
+    }
+    return $path
+}
+
+function Get-DogfoodSourceCandidates([string]$rel) {
+    switch -Regex ($rel) {
+        "^AGENTS\.md$" { return @("tooling/codex/AGENTS.md") }
+        "^CLAUDE\.md$" { return @("tooling/claude/CLAUDE.md") }
+        "^\.mcp\.example\.jsonc$" { return @("tooling/claude/.mcp.example.jsonc") }
+
+        "^\.codex/config\.toml$" { return @("tooling/codex/config.toml") }
+        "^\.codex/hooks\.json$" { return @("tooling/codex/hooks.json", "tooling/codex/hooks.windows.json") }
+        "^\.codex/hooks/(.+)$" { return @("tooling/codex/hooks/$($Matches[1])") }
+        "^\.agents/skills/(.+)$" {
+            $tail = $Matches[1]
+            $candidates = @()
+            $codexSkill = "tooling/codex/skills/$tail"
+            if (Test-Path -LiteralPath (Join-TargetRelative $codexSkill) -PathType Leaf) {
+                $candidates += $codexSkill
+            }
+            $candidates += "skills/$tail"
+            return $candidates
+        }
+
+        "^\.claude/settings\.json$" { return @("tooling/claude/settings.json", "tooling/claude/settings.windows.json") }
+        "^\.claude/agents/(.+)$" { return @("tooling/claude/agents/$($Matches[1])") }
+        "^\.claude/commands/(.+)$" { return @("tooling/claude/commands/$($Matches[1])") }
+        "^\.claude/hooks/(.+)$" { return @("tooling/claude/hooks/$($Matches[1])") }
+        "^\.claude/rules/(.+)$" { return @("tooling/claude/rules/$($Matches[1])") }
+        "^\.claude/skills/(.+)$" { return @("skills/$($Matches[1])") }
+    }
+    return @()
+}
+
+function Test-SameFile([string]$left, [string]$right) {
+    if (-not (Test-Path -LiteralPath $left -PathType Leaf)) { return $false }
+    if (-not (Test-Path -LiteralPath $right -PathType Leaf)) { return $false }
+    $leftHash = (Get-FileHash -LiteralPath $left -Algorithm SHA256).Hash
+    $rightHash = (Get-FileHash -LiteralPath $right -Algorithm SHA256).Hash
+    return $leftHash -eq $rightHash
+}
+
+$manifestPath = Join-Path $Target ".kit-manifest"
+$codexSource = Join-Path $Target "tooling\codex"
+$claudeSource = Join-Path $Target "tooling\claude"
+if ((Test-Path -LiteralPath $manifestPath -PathType Leaf) `
+    -and (Test-Path -LiteralPath $codexSource -PathType Container) `
+    -and (Test-Path -LiteralPath $claudeSource -PathType Container)) {
+    Write-Host ""
+    Write-Host "> Dogfood install drift (repo only)"
+    $dogfoodChecked = 0
+    $dogfoodFound = $false
+
+    foreach ($relRaw in (Get-Content -LiteralPath $manifestPath)) {
+        $rel = $relRaw.Trim().TrimStart([char]0xFEFF)
+        if (-not $rel) { continue }
+        if ($rel -in @(".kit-version", ".kit-manifest", ".mcp.json")) { continue }
+
+        $dst = Join-TargetRelative $rel
+        if (-not (Test-Path -LiteralPath $dst -PathType Leaf)) {
+            Warn "$rel missing from dogfood install"
+            $dogfoodFound = $true
+            continue
+        }
+
+        $candidates = @(Get-DogfoodSourceCandidates $rel)
+        if ($candidates.Count -eq 0) { continue }
+
+        $sourceFound = $false
+        $sourceMatch = $false
+        foreach ($candidate in $candidates) {
+            $src = Join-TargetRelative $candidate
+            if (Test-Path -LiteralPath $src -PathType Leaf) {
+                $sourceFound = $true
+                if (Test-SameFile $src $dst) {
+                    $sourceMatch = $true
+                    break
+                }
+            }
+        }
+
+        if (-not $sourceFound) {
+            Warn "$rel has no source candidate under tooling/ or skills/"
+            $dogfoodFound = $true
+        } elseif (-not $sourceMatch) {
+            Warn "$rel differs from its source under tooling/ or skills/"
+            $dogfoodFound = $true
+        } else {
+            $dogfoodChecked++
+        }
+    }
+
+    if (-not $dogfoodFound) {
+        Ok "$dogfoodChecked dogfood file(s) match source"
+    }
+}
 
 Write-Host ""
 if ($Issues -eq 0) {

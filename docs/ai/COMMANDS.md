@@ -34,7 +34,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\new-skill.ps1 
 | `install.ps1` / `install.sh` | `Target` or `--target`; `Tools` or `--tools` | Installs managed kit files. No dry-run mode exists. Valid tools: `codex`, `claude`, `gemini`. |
 | `update.ps1` / `update.sh` | `Target` or `--target`; optional `Tools` or `--tools`; `DryRun` or `--dry-run` | Refreshes managed kit files. Does not overwrite `docs/ai`. |
 | `uninstall.ps1` / `uninstall.sh` | `Target` or `--target`; optional `Tools` or `--tools`; `DryRun` or `--dry-run` | Removes managed files by manifest. Preserves `docs/ai` and user-added files. |
-| `validate.ps1` / `validate.sh` | `Target` or `--target` | Checks required `docs/ai` files, template warning notices, HTML placeholders, and common template placeholders. |
+| `validate.ps1` / `validate.sh` | `Target` or `--target` | Checks required `docs/ai` files, template warning notices, HTML placeholders, common template placeholders, and repo-local Claude/Codex dogfood drift when run against this source tree. |
 | `new-skill.ps1` / `new-skill.sh` | `Name` or `--name`; optional `Description` or `--description` | Scaffolds `skills/<name>/SKILL.md` and routing placeholders. |
 
 ## Repository Smoke Commands
@@ -44,7 +44,7 @@ provider configuration. Do not add unrelated .NET, Angular, Node, npm, or app
 runtime commands here unless they are clearly examples for target projects.
 
 ```powershell
-# Validate this repository's docs/ai folder.
+# Validate this repository's docs/ai folder and Claude/Codex dogfood drift.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Target "."
 
 # Validate the filled example project context.
@@ -59,7 +59,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1 
 ```
 
 ```bash
-# Validate this repository's docs/ai folder.
+# Validate this repository's docs/ai folder and Claude/Codex dogfood drift.
 ./scripts/validate.sh --target .
 
 # Validate the filled example project context.

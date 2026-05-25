@@ -125,17 +125,40 @@ Do not scan the entire repository unless the task explicitly requires it.
 
 ## Skill routing
 
-Activate the relevant installed skill before editing:
+Activate the relevant skill before editing:
 
 | Task touches | Use skill |
 |---|---|
+| C#, .NET, ASP.NET, EF Core, xUnit, backend | `$dotnet` |
+| Java, Kotlin, Spring Boot, Ktor, JPA, Gradle/Maven, Android | `$java-kotlin` |
+| Python, FastAPI, Django, pytest | `$python` |
+| Node.js backend (Express, NestJS, Fastify) | `$node` |
+| Go (modules, services, CLIs) | `$go` |
+| Rust (cargo, tokio, services, CLIs) | `$rust` |
+| Angular components, services, routing, signals | `$angular` |
+| Vue components, composables, Pinia, Vite | `$vue` |
+| Svelte components, SvelteKit routes, stores, form actions | `$svelte` |
+| React, Next.js, Remix, hooks, RSC | `$react` |
+| React Native (Expo or bare RN) | `$mobile-rn` |
+| Flutter (widgets, Riverpod / BLoC, Dart) | `$mobile-flutter` |
+| SQL / NoSQL schemas, migrations, queries (any engine) | `$database` |
+| Docker, Kubernetes, Terraform, CI/CD pipelines | `$infrastructure` |
+| REST / OpenAPI contracts, versioning, error contracts, API design | `$api-design` |
+| GraphQL schemas, resolvers, dataloaders, subscriptions, codegen | `$graphql` |
 | Module boundaries, layers, DDD, CQRS, design decisions | `$architecture` |
 | Adding/updating/reviewing tests | `$testing` |
 | PR review, branch review, quality check | `$code-review` |
 | Authentication, authorization, secrets, input validation | `$security` |
 | Adding, updating, or replacing any library/package | `$dependencies` |
 | Issues, PRs, branches, commits, CI | `$github-workflow` |
+| Logs / metrics / traces / SLO / alerting | `$observability` |
+| Kafka / RabbitMQ / SQS / event-driven / outbox / idempotency | `$messaging` |
+| Retries / timeouts / circuit breakers / exception design | `$error-handling` |
+| Nx / Turborepo / pnpm-cargo-go workspaces / build caching | `$monorepo` |
+| Accessibility (WCAG, ARIA, keyboard, screen readers) | `$accessibility` |
+| Internationalization (translation, ICU, RTL, formats) | `$i18n` |
 | LLM apps, RAG, tool use, agents, prompt caching, evals | `$ai-dev` |
+| Profiling, benchmarking, query plans, Core Web Vitals, caching strategy | `$performance` |
 
 Activate only the skills relevant to the current task.
 Do not activate all skills by default.
@@ -158,18 +181,26 @@ Do not use subagents for simple one-file changes.
 
 ### Agent → Codex profile mapping
 
-All profiles run on `gpt-5.5`; they differ by `model_reasoning_effort`:
+Codex CLI 2026 routes work through profiles defined in `~/.codex/config.toml`
+(`readonly` / `standard` / `deep` / `review`). All profiles run on `gpt-5.5`;
+they differ by `model_reasoning_effort`. Use the following mapping so Codex
+matches the per-agent risk tiering used by Claude (Opus/Sonnet/Haiku) and
+Gemini (Pro/Flash):
 
 | Subagent | Codex profile | `model_reasoning_effort` | Why |
 |---|---|---|---|
 | `architect` | `deep` | `high` | Decision-bearing design assessment. |
 | `code-reviewer` | `deep` | `high` | High-stakes review of multi-file changes. |
-| `security-reviewer` | `deep` | `high` | Real exploitable vulnerabilities. |
+| `security-reviewer` | `deep` | `high` | Real exploitable vulnerabilities, not theoretical risk. |
 | `codebase-investigator` | `standard` | `medium` | Narrow lookups; deterministic search first per ADR-017. |
 | `test-runner` | `readonly` | `low` | Mechanical: filtered run + concise report. |
 
-Switch profile mid-session with `Alt+,` / `Alt+.` in the TUI, or pass
-`--profile <name>` at launch.
+Switch profile mid-session with `Alt+,` (lower) / `Alt+.` (raise) in the TUI,
+or pass `--profile <name>` at launch.
+
+Verified GA model as of May 2026 (OpenAI): `gpt-5.5` with reasoning effort
+levels `none` / `low` / `medium` (default) / `high` / `xhigh`. See
+<https://developers.openai.com/codex/models>.
 
 ---
 
