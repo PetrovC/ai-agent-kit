@@ -44,6 +44,31 @@ extension scaffolds must not become hidden core dependencies.
 | `examples/filled-project/` | Example filled `docs/ai` content for a fictional target project. |
 | `.claude-plugin/` | Claude plugin marketplace metadata for the skills-only distribution path. |
 
+## Dogfood vs source
+
+This repository tracks a Claude/Codex dogfood install at the root so the kit can
+be used while maintaining the kit. Those root files are installed outputs, not
+the canonical source for provider behavior.
+
+| Dogfood output in this repo | Canonical source |
+|---|---|
+| `AGENTS.md`, `.codex/config.toml`, `.codex/hooks.json`, `.codex/hooks/` | `tooling/codex/AGENTS.md`, `tooling/codex/config.toml`, platform-specific `tooling/codex/hooks*.json`, `tooling/codex/hooks/` |
+| `.agents/skills/` | Shared `skills/` plus Codex-only agent skills under `tooling/codex/skills/` |
+| `CLAUDE.md`, `.claude/settings.json`, `.claude/agents/`, `.claude/commands/`, `.claude/hooks/`, `.claude/rules/` | `tooling/claude/CLAUDE.md`, platform-specific `tooling/claude/settings*.json`, and matching `tooling/claude/*/` directories |
+| `.claude/skills/` | Shared `skills/` |
+| Future root Gemini dogfood files | Not tracked today. If that changes, update ADR-004, `.kit-manifest`, validation, and CI in the same scoped issue. Canonical Gemini source remains `tooling/gemini/`. |
+
+Edit the canonical source first, then refresh this repository's dogfood install
+with `scripts/update.* -Target "." -Tools codex,claude`. Commit the source
+change and the refreshed dogfood output together when both are part of the same
+issue.
+
+`scripts/validate.* -Target "."` has a repo-only drift check: when it sees this
+source tree and `.kit-manifest`, it compares tracked Claude/Codex dogfood files
+against their canonical `tooling/` or `skills/` sources. Platform-specific
+outputs such as `.codex/hooks.json` and `.claude/settings.json` may match either
+the POSIX or Windows source variant.
+
 ## Repository Invariants
 
 - `skills/` is the shared skill source.
