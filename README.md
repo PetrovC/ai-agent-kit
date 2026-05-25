@@ -17,6 +17,14 @@ Claude local/runtime files stay ignored.
 
 ---
 
+## Contributing
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) for the issue-first workflow,
+branch and commit conventions, Definition of Done, and local validation
+commands.
+
+---
+
 ## Official resources
 
 The tools this kit targets, and their official documentation:
