@@ -28,9 +28,9 @@ Tableau vivant : mis à jour à chaque PR qui résout un finding. Le rapport ci-
 |---|---|---|---|
 | **P0-A** | Permissions hooks dogfood non exécutables | **[#216](https://github.com/PetrovC/ai-agent-kit/pull/216)** | **✅ résolu — `chmod +x` + validate mode check** |
 | **P0-B** | CHANGELOG en retard de 17 PRs + pas de `[Unreleased]` | **[#214](https://github.com/PetrovC/ai-agent-kit/pull/214)** | **✅ résolu — v1.20.0** |
-| **P1-A** | Gemini sans check de dérive validate | **PR-C (en cours)** | **✅ résolu — cases ajoutés + gate étendue** |
-| P1-B | `tooling/gemini/gemini-extension.json` orphelin | PR-D (à venir) | 🔲 ouvert |
-| P1-C | `tooling/codex/global-config-template.toml` orphelin | PR-D (à venir) | 🔲 ouvert |
+| **P1-A** | Gemini sans check de dérive validate | **[#217](https://github.com/PetrovC/ai-agent-kit/pull/217)** | **✅ résolu — cases ajoutés + gate étendue** |
+| ~~P1-B~~ | ~~`tooling/gemini/gemini-extension.json` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:201`](README.md), validé par CI (`pr-versioning.yml` / `lint-plugin-manifest`)** |
+| ~~P1-C~~ | ~~`tooling/codex/global-config-template.toml` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:200`](README.md) (template `~/.codex/config.toml`, par-user, pas par-projet)** |
 | P1-D | Asymétrie `*.windows.json` ↔ `*.json` non vérifiée | (à planifier) | 🔲 ouvert |
 | **P1-E** | `validate.sh` ne compare pas les modes | **[#216](https://github.com/PetrovC/ai-agent-kit/pull/216)** | **✅ résolu — git ls-files mode parity** |
 | P2-A | Pas de `## [Unreleased]` dans CHANGELOG | inclus dans [#214](https://github.com/PetrovC/ai-agent-kit/pull/214) | ✅ résolu |
@@ -301,7 +301,13 @@ Voir Section C. Résultat : 0 PR DOGFOOD_ONLY user-facing confirmée sur l'histo
 | `tooling/codex/global-config-template.toml` | ❌ | ❌ | ❌ |
 | `tooling/gemini/gemini-extension.json` | ❌ | ❌ | ❌ |
 
-Intention de distribution non documentée. **P1**.
+~~Intention de distribution non documentée. **P1**.~~
+
+**Errata (PR-D)** : les deux fichiers se sont avérés être des références/scaffolds intentionnels, déjà documentés dans `README.md:195-204` :
+- `global-config-template.toml` = template pour `~/.codex/config.toml` (per-user, pas per-projet)
+- `gemini-extension.json` = scaffold pour distribution via `gemini extensions install`, validé par CI (`lint-plugin-manifest`) qui assure `version == VERSION`
+
+L'agent codebase-investigator qui a produit cette section H a lu `tooling/` mais pas la section "Two maintained files are intentionally not placed by the install script" du README. Voir le tableau "Statut de correction" en haut.
 
 ### H.5 — Asymétries `*.windows.json` ↔ `*.json`
 
