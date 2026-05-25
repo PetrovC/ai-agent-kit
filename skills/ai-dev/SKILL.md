@@ -69,15 +69,113 @@ ASSISTANT:
 
 ## Prompt caching
 
-Most providers (Anthropic, OpenAI) offer caching for repeated prefix tokens.
+Most providers (Anthropic, OpenAI, Gemini) cache repeated prefix tokens.
+On Anthropic, savings on the cached portion are typically 50–90% on input
+tokens and latency cuts by 30–80% on long system prompts.
 
-- **Put stable content (system prompt, few-shot examples, RAG context) at the START.**
-- **Variable content (user query) at the END.**
-- For Anthropic: explicit `cache_control: { type: "ephemeral" }` markers (5-min TTL).
-- For OpenAI: automatic caching on prompts > 1024 tokens (kv-cache).
-- Savings: typically 50-90% on the cached portion.
+### Order content stable → volatile
 
-**Always enable caching** for chat apps, RAG, and agent loops. It pays for itself within minutes.
+A cache hit requires the prefix to be byte-identical. Always put the parts
+that change least at the very top of the prompt, in this order:
+
+1. Tool definitions (rarely change).
+2. System prompt / role.
+3. Long knowledge base or RAG context.
+4. Few-shot examples.
+5. Conversation history (truncated, oldest first).
+6. The current user message (always last).
+
+If you reorder a single character in the prefix, the cache is invalidated.
+The most common mistake is dynamic timestamps or request IDs at the top —
+move them to a tool result or to the tail.
+
+### Anthropic — explicit `cache_control` markers
+
+The Anthropic API requires you to mark cache breakpoints. Default TTL is
+**5 minutes**; pass `ttl: "1h"` for a 1-hour breakpoint (extra cost on
+miss, big savings on hit). Up to **4 breakpoints** per request.
+
+```python
+from anthropic import Anthropic
+
+client = Anthropic()
+response = client.messages.create(
+    model="claude-sonnet-4-6",
+    system=[
+        {
+            "type": "text",
+            "text": LONG_SYSTEM_PROMPT,           # stable
+            "cache_control": {"type": "ephemeral"},
+        },
+        {
+            "type": "text",
+            "text": RAG_CONTEXT,                  # changes per session
+            "cache_control": {"type": "ephemeral", "ttl": "1h"},
+        },
+    ],
+    messages=[{"role": "user", "content": user_message}],
+)
+```
+
+```typescript
+// @anthropic-ai/sdk
+const response = await client.messages.create({
+  model: "claude-sonnet-4-6",
+  system: [
+    { type: "text", text: TOOLS_DOC, cache_control: { type: "ephemeral" } },
+    { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+  ],
+  messages: [{ role: "user", content: userMessage }],
+});
+```
+
+Check the response usage block to verify a hit:
+
+```python
+print(response.usage)
+# Usage(cache_creation_input_tokens=12000,    # first request — wrote cache
+#       cache_read_input_tokens=0,
+#       input_tokens=200, output_tokens=300)
+
+# Second request within TTL:
+# Usage(cache_creation_input_tokens=0,
+#       cache_read_input_tokens=12000,        # read from cache, ~10% cost
+#       input_tokens=200, output_tokens=300)
+```
+
+### OpenAI — automatic
+
+OpenAI auto-caches prompts over ~1024 tokens. No marker required, but
+the same "stable → volatile" ordering rule applies: changing the prefix
+invalidates the cached state. Cache hit visibility is in
+`usage.prompt_tokens_details.cached_tokens`.
+
+### Gemini — implicit + explicit context caching
+
+Gemini supports automatic context caching on supported models and
+explicit context caching via `cachedContent.create`. Prefer explicit
+caching for documents reused across many requests (the cache outlives
+a single session).
+
+### When caching is the wrong call
+
+- Prefix changes every request (e.g., includes the timestamp). Fix by
+  moving the variable part to a tool result instead of the system prompt.
+- One-shot requests with no repeat traffic.
+- Extended thinking turns invalidate the thinking portion — cache the
+  system prompt separately, not the thinking block.
+- Streaming with a different `system` block per request — verify the
+  block is byte-identical.
+
+### Caching for this repo's agents
+
+The kit's subagents read long static context (skills, ADRs, ARCHITECTURE).
+When using the Claude Agent SDK or building a wrapper, mark the skill
+file content and the ADRs as cache breakpoints — they change rarely and
+account for most of the system tokens.
+
+See [`docs/ai/MODEL_ROUTING.md`](../../docs/ai/MODEL_ROUTING.md) for the
+broader cost / latency discussion.
 
 ---
 
