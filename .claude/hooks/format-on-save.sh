@@ -68,8 +68,14 @@ find_dotnet_project() {
 
 EXT="${FILE##*.}"
 
+# Source-code extensions only. Issue #152: previously the prettier arm
+# also matched json|css|scss|html|md|yaml|yml — running on every doc /
+# config edit. Each invocation pays bash + parser cost even when the
+# formatter is a no-op. Trimmed to JS/TS source; .md / .json / .yml /
+# .css edits no longer trigger the hook body. Users who want prettier
+# on docs can run it manually or add a project-level pre-commit hook.
 case "$EXT" in
-    js|mjs|cjs|ts|tsx|jsx|json|css|scss|html|md|yaml|yml)
+    js|mjs|cjs|ts|tsx|jsx)
         command -v prettier >/dev/null 2>&1 && prettier --write "$FILE" --log-level silent || true
         ;;
     py)
@@ -95,6 +101,13 @@ case "$EXT" in
         ;;
     kt|kts)
         command -v ktlint >/dev/null 2>&1 && ktlint -F "$FILE" >/dev/null 2>&1 || true
+        ;;
+    rb)
+        command -v rubocop >/dev/null 2>&1 && rubocop -a --force-exclusion "$FILE" >/dev/null 2>&1 || true
+        ;;
+    *)
+        # Non-source extension (md, json, yml, css, html, sh, ps1, …) —
+        # skip the hook body silently. Keeps Edit/Write fast for docs.
         ;;
 esac
 
