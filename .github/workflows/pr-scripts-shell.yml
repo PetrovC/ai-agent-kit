@@ -601,7 +601,7 @@ jobs:
           # Stand up a sandbox kit checkout so we can remove a source file
           # without breaking the real working tree for subsequent CI steps.
           KIT="$(mktemp -d)"
-          cp -r scripts tooling skills project-template examples "$KIT/"
+          cp -r VERSION scripts tooling skills project-template examples "$KIT/"
           T="$(mktemp -d)"
           bash "$KIT/scripts/install.sh" --target "$T" --tools claude >/dev/null
 
