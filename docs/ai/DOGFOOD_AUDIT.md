@@ -37,6 +37,21 @@ Tableau vivant : mis à jour à chaque PR qui résout un finding. Le rapport ci-
 | P2-B/C/D | Gaps structurels divers | PR-G + tests CI | 🔲 ouvert |
 | P3-A/B/C | Cleanup | PR-H | 🔲 ouvert |
 
+### Tests anti-dérive (Phase 2)
+
+Plan original = 8 tests CI permanents pour fermer structurellement les classes de bug trouvées. Tracking ci-dessous.
+
+| Test | Couvre | PR | Statut |
+|---|---|---|---|
+| T1 | Manifest exhaustivity (orphelins + manifest périmé) | PR-G | 🔲 ouvert |
+| T2 | Source ↔ dogfood byte-equal Gemini | [#217](https://github.com/PetrovC/ai-agent-kit/pull/217) | ✅ résolu |
+| T3 | Install → update dry-run = up-to-date | PR-G | 🔲 ouvert |
+| T4 | Cross-OS parity (bash vs ps1 produisent même set) | PR-G | 🔲 ouvert |
+| T5 | PR-classifier — refuse dogfood-only modifications | PR-E (déprio.) | 🔲 ouvert |
+| **T6** | **CHANGELOG entry required for feat/fix/perf** | **PR-F (en cours)** | **✅ résolu — `lint-changelog-presence` dans `pr-docs.yml`** |
+| T7 | Version sync (couvert par `pr-versioning.yml`) | déjà en place | ✅ existant |
+| T8 | Doc-reference validity (couvert partiellement par `routing-consistency`) | PR-G | 🟡 partiel |
+
 ---
 
 ## Section A — Cartographie des surfaces
