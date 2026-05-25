@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- **`docs(audit)` — dogfood audit report added at
+  `docs/ai/DOGFOOD_AUDIT.md`.** Read-only audit of the full repo
+  history covering eight sections: surface cartography, manifest
+  pivot, issue-to-source traceability, CHANGELOG completeness, doc
+  accuracy, repo hygiene, history scan, and installer parity. Findings
+  classified P0/P1/P2/P3 with a living **Statut de correction** table
+  at the top that tracks which PRs resolve which findings. P0-B (the
+  CHANGELOG drift identified by the audit) was already closed by
+  v1.20.0 ([#214](https://github.com/PetrovC/ai-agent-kit/pull/214));
+  remaining findings (hook permissions, Gemini validate coverage,
+  orphan source files) ship as separate follow-up PRs.
+
 ## [1.20.0] - 2026-05-25
 
 This release batches the PRs merged after 1.19.38 (#176, #198–#213).
