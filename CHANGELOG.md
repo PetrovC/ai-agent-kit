@@ -1,5 +1,117 @@
 # Changelog
 
+## [Unreleased]
+
+## [1.20.0] - 2026-05-25
+
+This release batches the PRs merged after 1.19.38 (#176, #198–#213).
+Notable features and fixes are grouped first; documentation improvements
+follow. No behavioural changes beyond what each listed PR introduced —
+this is a CHANGELOG and version catch-up, not a new code release.
+
+### Added
+
+- **`feat(versioning)` — root `VERSION` is the kit's single source of
+  truth (PR #211).** `scripts/install.{sh,ps1}` and
+  `scripts/update.{sh,ps1}` now read the version from the root `VERSION`
+  file; the lifecycle scripts no longer carry hardcoded release numbers.
+  `pr-versioning.yml` enforces
+  `VERSION == plugin.json.version == gemini-extension.json.version` and
+  refuses hardcoded `KIT_VERSION` / `$KitVersion` literals in lifecycle
+  scripts.
+
+- **`feat(codex)` — `features.*` flags documented; `features.hooks`
+  pinned to `true` (closes #185, PR #209).** Codex `features.*`
+  configuration knobs are now enumerated in `tooling/codex/AGENTS.md`;
+  `tooling/codex/config.toml` pins `features.hooks = true` so the
+  documented hook surface stays operational on fresh installs.
+
+### Changed
+
+- **`perf(claude)` — subagents aligned to Opus/Sonnet/Haiku per task
+  risk (closes #142, PR #199).** Reverses the v1.13 uniform-top-model
+  pattern: high-risk reviewers stay on Opus, mid-risk agents drop to
+  Sonnet, the rote runner uses Haiku. Token efficiency comes from
+  matching model class to task class, not from blanket downgrades.
+
+- **`perf(hooks)` — Codex `format-on-save` scoped to source extensions
+  only (closes #152, PR #208).** The hook previously triggered on every
+  patch; it now skips non-source files (markdown, configs, generated
+  artifacts) so format passes only run when they are actionable.
+
+- **`chore(settings)` — Claude `WebFetch` allowlist trimmed to 12
+  high-signal domains (closes #160, PR #205).** The default `WebFetch`
+  allowlist shipped in `tooling/claude/settings.json` is reduced from a
+  long list to the 12 domains agents actually reach for (docs,
+  registries, changelogs), narrowing the permission surface.
+
+- **`chore(agents)` — explicit stop-conditions added to Claude
+  subagents (closes #157, PR #204).** Each Claude subagent definition
+  in `tooling/claude/agents/` now states when it must hand control
+  back to the parent, preventing runaway nested delegation.
+
+### Fixed
+
+- **`fix(validate)` — dogfood source drift now caught by validate
+  (PR #213).** `scripts/validate.{sh,ps1}` now compare each tracked
+  file under `.claude/`, `.codex/`, `.agents/`, `AGENTS.md`,
+  `CLAUDE.md`, and `.mcp.example.jsonc` against its canonical source
+  under `tooling/` or `skills/`. PRs that touch dogfood without
+  updating the source are caught at PR time rather than silently
+  shipping a divergent install.
+
+### Documentation
+
+- **`docs(readme)` — install paths and OS support clarified
+  (PR #212).** README's install section now explicitly states which
+  paths are user-owned vs. kit-managed, and which operating systems
+  each script supports.
+
+- **`docs(contributing)` — contributor workflow guide added
+  (PR #210).** New `CONTRIBUTING.md` describes the end-to-end flow for
+  external contributors: issue triage, branch naming, PR template,
+  review expectations, and release cadence.
+
+- **`docs(codex)` — per-agent profile mapping documented in
+  `AGENTS.md` (closes #144, PR #201).** Each Codex subagent now lists
+  its target profile (model, allowed tools, sandbox posture) inline in
+  `tooling/codex/AGENTS.md`, making the agent-to-profile binding
+  reviewable.
+
+- **`docs(license)` — root `LICENSE` matches plugin metadata
+  (closes #136, PR #200).** Adds the MIT `LICENSE` at the repo root so
+  the license advertised in `plugin.json` / `marketplace.json` is
+  actually present, satisfying plugin marketplace metadata
+  requirements.
+
+- **`docs(ai-dev)` — prompt-caching guidance expanded with
+  `cache_control` patterns (closes #154, PR #203).**
+  `skills/ai-dev/SKILL.md` now documents `cache_control` placement,
+  TTL boundaries, and the trade-offs of caching system vs. message
+  blocks.
+
+- **`docs(skills)` — `head_limit` and Grep scope discipline
+  (closes #153, PR #207).** `skills/` documents the convention of
+  always passing `head_limit` to Grep and scoping searches to the
+  narrowest viable path/type, to keep agent token use predictable.
+
+- **`docs` — token-budget targets per slash command
+  (closes #155, PR #206).** Each slash command in `prompts/` and
+  `.claude/commands/` now publishes its expected token budget,
+  setting a verifiable performance contract.
+
+- **`docs` — `SECURITY.md` added (closes #137, PR #202).** Disclosure
+  policy and the hook-permission posture are now documented at the
+  repo root.
+
+- **`docs(backlog)` — provider parity audit findings (21 issues,
+  #177–#197) added to `docs/ai/BACKLOG.md` (PR #198).**
+
+- **`docs(backlog)` — living index of tracked issues added
+  (PR #176).**
+
+---
+
 ## [1.19.38] - 2026-05-24
 
 ### Fixed — document `skills/` frontmatter contract + lint shared `allowed-tools` shape (closes #92)
