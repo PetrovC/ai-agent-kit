@@ -29,8 +29,8 @@ Tableau vivant : mis à jour à chaque PR qui résout un finding. Le rapport ci-
 | **P0-A** | Permissions hooks dogfood non exécutables | **[#216](https://github.com/PetrovC/ai-agent-kit/pull/216)** | **✅ résolu — `chmod +x` + validate mode check** |
 | **P0-B** | CHANGELOG en retard de 17 PRs + pas de `[Unreleased]` | **[#214](https://github.com/PetrovC/ai-agent-kit/pull/214)** | **✅ résolu — v1.20.0** |
 | **P1-A** | Gemini sans check de dérive validate | **[#217](https://github.com/PetrovC/ai-agent-kit/pull/217)** | **✅ résolu — cases ajoutés + gate étendue** |
-| ~~P1-B~~ | ~~`tooling/gemini/gemini-extension.json` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:201`](README.md), validé par CI (`pr-versioning.yml` / `lint-plugin-manifest`)** |
-| ~~P1-C~~ | ~~`tooling/codex/global-config-template.toml` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:200`](README.md) (template `~/.codex/config.toml`, par-user, pas par-projet)** |
+| ~~P1-B~~ | ~~`tooling/gemini/gemini-extension.json` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:201`](../../README.md), validé par CI (`pr-versioning.yml` / `lint-plugin-manifest`)** |
+| ~~P1-C~~ | ~~`tooling/codex/global-config-template.toml` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:200`](../../README.md) (template `~/.codex/config.toml`, par-user, pas par-projet)** |
 | P1-D | Asymétrie `*.windows.json` ↔ `*.json` non vérifiée | (à planifier) | 🔲 ouvert |
 | **P1-E** | `validate.sh` ne compare pas les modes | **[#216](https://github.com/PetrovC/ai-agent-kit/pull/216)** | **✅ résolu — git ls-files mode parity** |
 | P2-A | Pas de `## [Unreleased]` dans CHANGELOG | inclus dans [#214](https://github.com/PetrovC/ai-agent-kit/pull/214) | ✅ résolu |
@@ -43,14 +43,14 @@ Plan original = 8 tests CI permanents pour fermer structurellement les classes d
 
 | Test | Couvre | PR | Statut |
 |---|---|---|---|
-| T1 | Manifest exhaustivity (orphelins + manifest périmé) | PR-G | 🔲 ouvert |
+| **T1** | **Manifest exhaustivity (orphelins + manifest périmé)** | **PR-G (en cours)** | **✅ résolu — reverse check dans `dogfood-install-policy`** |
 | T2 | Source ↔ dogfood byte-equal Gemini | [#217](https://github.com/PetrovC/ai-agent-kit/pull/217) | ✅ résolu |
-| T3 | Install → update dry-run = up-to-date | PR-G | 🔲 ouvert |
-| T4 | Cross-OS parity (bash vs ps1 produisent même set) | PR-G | 🔲 ouvert |
-| T5 | PR-classifier — refuse dogfood-only modifications | PR-E (déprio.) | 🔲 ouvert |
-| **T6** | **CHANGELOG entry required for feat/fix/perf** | **PR-F (en cours)** | **✅ résolu — `lint-changelog-presence` dans `pr-docs.yml`** |
+| T3 | Install → update dry-run = up-to-date | PR-H | 🔲 ouvert |
+| T4 | Cross-OS parity (bash vs ps1 produisent même set) | PR-H | 🔲 ouvert |
+| T5 | PR-classifier — refuse dogfood-only modifications | déprio. — fermé via #213/#216/#217/#219 | 🔁 redondant |
+| T6 | CHANGELOG entry required for feat/fix/perf | [#219](https://github.com/PetrovC/ai-agent-kit/pull/219) | ✅ résolu |
 | T7 | Version sync (couvert par `pr-versioning.yml`) | déjà en place | ✅ existant |
-| T8 | Doc-reference validity (couvert partiellement par `routing-consistency`) | PR-G | 🟡 partiel |
+| **T8** | **Doc-reference validity (liens markdown intra-repo)** | **PR-G (en cours)** | **✅ résolu — `lint-doc-links` dans `pr-docs.yml`** |
 
 ---
 

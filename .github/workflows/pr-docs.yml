@@ -249,6 +249,72 @@ jobs:
           echo "Conventional Commits type to docs/chore/ci/style/refactor/test."
           exit 1
 
+  lint-doc-links:
+    name: Intra-repo markdown links resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Audit T8: catch broken intra-repo markdown links. Links to external
+      # URLs (http/https/mailto) and pure anchors are skipped; links inside
+      # fenced code blocks or inline code spans are stripped before
+      # scanning. This catches both authoring mistakes (typos, renamed
+      # files) AND the subtler "relative path that works in the canonical
+      # source but breaks in the dogfood copy" pattern — skills/<x>/SKILL.md
+      # at depth 2 vs .claude/skills/<x>/SKILL.md at depth 3 means the same
+      # `../../docs/ai/<file>.md` resolves to different paths in each.
+      - name: Every relative markdown link must resolve to an existing file
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+
+          md_files = []
+          for root, dirs, files in os.walk('.'):
+              dirs[:] = [d for d in dirs if d not in ('.git', 'node_modules')]
+              for f in files:
+                  if f.endswith('.md'):
+                      p = os.path.join(root, f).replace('\\', '/')
+                      if p.startswith('./'):
+                          p = p[2:]
+                      md_files.append(p)
+
+          # Inline links only — not images (the negative lookbehind on `!`).
+          LINK = re.compile(r'(?<!!)\[([^\]]*)\]\(([^)]+)\)')
+
+          errs = []
+          for mdfile in sorted(md_files):
+              with open(mdfile, encoding='utf-8') as fh:
+                  content = fh.read()
+              # Strip fenced code blocks and inline code spans so example
+              # snippets inside skills/commands don't trip false positives.
+              text = re.sub(r'```[\s\S]*?```', '', content)
+              text = re.sub(r'`[^`\n]+`', '', text)
+
+              for m in LINK.finditer(text):
+                  target = m.group(2).strip()
+                  if target.startswith(('http://', 'https://', 'mailto:', '#')):
+                      continue
+                  # Drop optional title: `path "title"`.
+                  target = re.split(r'\s+', target, maxsplit=1)[0]
+                  # Drop anchor + query.
+                  target = target.split('#', 1)[0].split('?', 1)[0]
+                  if not target:
+                      continue
+                  srcdir = os.path.dirname(mdfile)
+                  resolved = os.path.normpath(os.path.join(srcdir, target))
+                  if not os.path.exists(resolved):
+                      errs.append(
+                          f"{mdfile}: broken link -> {target!r} "
+                          f"(resolves to {resolved!r})")
+
+          if errs:
+              print("\n".join(errs))
+              print(f"\n{len(md_files)} markdown files scanned, "
+                    f"{len(errs)} broken link(s)")
+              sys.exit(1)
+          print(f"OK: {len(md_files)} markdown files scanned, 0 broken links")
+          PY
+
   lint-workflow-semantics:
     name: GitHub Actions workflow semantics
     runs-on: ubuntu-latest

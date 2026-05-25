@@ -174,8 +174,8 @@ When using the Claude Agent SDK or building a wrapper, mark the skill
 file content and the ADRs as cache breakpoints — they change rarely and
 account for most of the system tokens.
 
-See [`docs/ai/MODEL_ROUTING.md`](../../docs/ai/MODEL_ROUTING.md) for the
-broader cost / latency discussion.
+See [`docs/ai/MODEL_ROUTING.md`](https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/MODEL_ROUTING.md)
+for the broader cost / latency discussion.
 
 ---
 

@@ -2,7 +2,41 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **`fix(docs)` — `skills/ai-dev/SKILL.md` link to `MODEL_ROUTING.md`
+  rewritten as absolute GitHub URL.** The previous relative form
+  `../../docs/ai/MODEL_ROUTING.md` resolved correctly from the
+  canonical `skills/ai-dev/SKILL.md` but broke in the three dogfood
+  copies (`.claude/skills/`, `.agents/skills/`, `.gemini/skills/`)
+  which sit one directory deeper, and broke entirely in
+  user-installed projects where `docs/ai/MODEL_ROUTING.md` doesn't
+  exist (not in `project-template/`). The link now uses
+  `https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/MODEL_ROUTING.md`
+  so it resolves identically from every copy and every install
+  location. Found by the new `lint-doc-links` CI job (T8 below).
+
 ### CI
+
+- **`ci(docs)` — `lint-doc-links` job catches broken intra-repo
+  markdown links (audit T8).** New job in `.github/workflows/pr-docs.yml`
+  walks every `*.md` in the repo (excluding `.git/` and
+  `node_modules/`), strips fenced code blocks and inline code spans,
+  then verifies every inline link `[label](path)` resolves to an
+  existing file relative to the source. External URLs (http/https/
+  mailto) and pure anchors (`#section`) are skipped. Catches both
+  authoring typos and the subtler "relative path correct in canonical
+  source but wrong in dogfood copy" pattern. First run found 4
+  broken links (3 fixed above plus 2 self-introduced links in
+  `DOGFOOD_AUDIT.md` corrected to `../../README.md`).
+
+- **`ci(docs)` — `dogfood-install-policy` extended with reverse
+  manifest check (audit T1).** `.github/workflows/pr-versioning.yml`
+  already verified that every `.kit-manifest` entry is tracked in git;
+  the reverse direction — every tracked file under `.claude/`,
+  `.codex/`, or `.agents/` must appear in `.kit-manifest` — was
+  missing, letting a new dogfood file slip in without an installable
+  source counterpart. Now both directions are enforced.
 
 - **`ci(docs)` — new `lint-changelog-presence` job blocks
   `feat`/`fix`/`perf`/breaking-marker PRs that don't touch
