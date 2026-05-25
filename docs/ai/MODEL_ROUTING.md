@@ -31,6 +31,21 @@ inappropriate for decision-bearing reports.
 - Use Sonnet for daily development.
 - Use Haiku only for narrow mechanical work.
 
+Per-subagent model assignment used in this repository (see
+`tooling/claude/agents/*.md`):
+
+| Subagent | Model | maxTurns | Justification |
+|---|---|---|---|
+| `architect` | `claude-opus-4-7` | 15 | Decision-bearing design assessment. |
+| `code-reviewer` | `claude-opus-4-7` | 12 | High-stakes review; tightened from 20 turns to curb drift. |
+| `security-reviewer` | `claude-opus-4-7` | 15 | Real exploitable vulnerabilities, not theoretical risk. |
+| `codebase-investigator` | `claude-sonnet-4-6` | 15 | Narrow, deterministic-search-first lookups; Sonnet is enough (ADR-017). |
+| `test-runner` | `claude-haiku-4-5` | 10 | Mechanical: run filtered tests, summarize output. |
+
+Verified GA models as of May 2026 (Anthropic): `claude-opus-4-7`,
+`claude-sonnet-4-6`, `claude-haiku-4-5`. See
+<https://platform.claude.com/docs/en/about-claude/models/overview>.
+
 ### Codex CLI
 
 - Use a deep or high reasoning profile for architecture, refactor planning, and
