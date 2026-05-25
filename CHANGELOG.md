@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### CI
+
+- **`ci(scripts)` — Windows smoke-install now asserts `update.ps1 -DryRun`
+  is a no-op after a fresh install (audit T3).** The job already ran the
+  dry-run but did not check its output; an asymmetry between
+  `install.ps1` (writes file X) and `update.ps1` (doesn't recognise X)
+  would have shipped silently. The new assertion mirrors the bash
+  `e2e-lifecycle` job's "Real update is a no-op right after install"
+  check (already in place since #127) and grep'd `Everything is up to
+  date` from the dry-run output. Together they close T3 on both OSes.
+
+- **`ci(scripts)` — new `pr-install-parity.yml` workflow asserts
+  `install.sh` and `install.ps1` produce byte-identical relative file
+  lists (audit T4).** Two parallel jobs install the kit on Ubuntu and
+  Windows runners, snapshot `find . -type f | LC_ALL=C sort` from the
+  target dir, upload as artifacts. A third job downloads both and runs
+  `diff -u`. Content differences (settings.json POSIX vs Windows
+  variant, `.kit-version` timestamp) are intentional and out of scope
+  — file *list* must match. Catches the class of bug where one script
+  silently forgets to copy a file the other ships.
+
 ### Fixed
 
 - **`fix(docs)` — `skills/ai-dev/SKILL.md` link to `MODEL_ROUTING.md`
