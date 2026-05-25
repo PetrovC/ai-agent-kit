@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **`fix(hooks)` — dogfood hook `.sh` files marked executable in git
+  (resolves audit P0-A and P1-E).** Seven dogfood hook scripts under
+  `.claude/hooks/` and `.codex/hooks/` were tracked at git mode `100644`
+  while their canonical sources under `tooling/{claude,codex}/hooks/`
+  are `100755`. On POSIX a fresh clone would receive non-executable
+  hooks, so the hook contract advertised by `tooling/` did not hold for
+  anyone working on this repo. `git update-index --chmod=+x` brings the
+  seven files (`format-on-save.sh`, `notify-done.sh`, `pre-bash-guard.sh`,
+  and Claude's `session-summary.sh`) back to `100755`.
+
+- **`fix(validate)` — `scripts/validate.{sh,ps1}` now enforce
+  git-tracked mode parity between dogfood and source (audit P1-E).** The
+  drift check added in #213 compared file *content* via `cmp` /
+  SHA-256 but ignored the executable bit, so the P0-A mode drift slipped
+  through CI. The check now also compares `git ls-files -s` modes for
+  every matched pair and fails on mismatch with a precise message
+  (`<path> git mode 100644 differs from source <src> mode 100755`).
+  Verified by temporarily reverting one hook's mode — the script flags
+  it.
+
 ### Documentation
 
 - **`docs(audit)` — dogfood audit report added at

@@ -212,12 +212,14 @@ if ((Test-Path -LiteralPath $manifestPath -PathType Leaf) `
 
         $sourceFound = $false
         $sourceMatch = $false
+        $matchedSrcRel = $null
         foreach ($candidate in $candidates) {
             $src = Join-TargetRelative $candidate
             if (Test-Path -LiteralPath $src -PathType Leaf) {
                 $sourceFound = $true
                 if (Test-SameFile $src $dst) {
                     $sourceMatch = $true
+                    $matchedSrcRel = $candidate
                     break
                 }
             }
@@ -230,7 +232,25 @@ if ((Test-Path -LiteralPath $manifestPath -PathType Leaf) `
             Warn "$rel differs from its source under tooling/ or skills/"
             $dogfoodFound = $true
         } else {
-            $dogfoodChecked++
+            # Content matches; also enforce git-tracked mode parity.
+            # A .sh source at 100755 must not become 100644 in dogfood —
+            # that breaks hook execution on POSIX.
+            $srcMode = $null
+            $dstMode = $null
+            try {
+                $srcLine = & git -C $Target ls-files -s -- $matchedSrcRel 2>$null | Select-Object -First 1
+                $dstLine = & git -C $Target ls-files -s -- $rel 2>$null | Select-Object -First 1
+                if ($srcLine) { $srcMode = ($srcLine -split '\s+')[0] }
+                if ($dstLine) { $dstMode = ($dstLine -split '\s+')[0] }
+            } catch {
+                $srcMode = $null; $dstMode = $null
+            }
+            if ($srcMode -and $dstMode -and ($srcMode -ne $dstMode)) {
+                Warn "$rel git mode $dstMode differs from source $matchedSrcRel mode $srcMode"
+                $dogfoodFound = $true
+            } else {
+                $dogfoodChecked++
+            }
         }
     }
 
