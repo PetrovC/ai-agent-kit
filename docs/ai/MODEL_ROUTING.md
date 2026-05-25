@@ -39,6 +39,22 @@ inappropriate for decision-bearing reports.
 - Use the readonly profile for exploration.
 - Use low effort only for mechanical scoped tasks.
 
+Per-subagent profile mapping used in this repository. All profiles run on
+`gpt-5.5`; the differentiator is `model_reasoning_effort`. Mirror in
+`tooling/codex/AGENTS.md`:
+
+| Subagent | Codex profile | `model_reasoning_effort` |
+|---|---|---|
+| `architect` | `deep` | `high` |
+| `code-reviewer` | `deep` | `high` |
+| `security-reviewer` | `deep` | `high` |
+| `codebase-investigator` | `standard` | `medium` |
+| `test-runner` | `readonly` | `low` |
+
+Verified GA model as of May 2026 (OpenAI): `gpt-5.5` with reasoning effort
+levels `none` / `low` / `medium` (default) / `high` / `xhigh`. See
+<https://developers.openai.com/codex/models>.
+
 ### Gemini CLI
 
 - Use a Pro model for architecture, security, review, and investigation.
