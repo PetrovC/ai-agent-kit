@@ -24,6 +24,15 @@ Rules:
 - Do not scan the entire repository.
 - Return concise findings: file paths, relevant code sections, and what they mean.
 
+Search discipline (see `docs/ai/SUBAGENT_GOVERNANCE.md`):
+- Default Grep `output_mode` to `files_with_matches`; switch to `content`
+  only after the candidate set is narrowed.
+- Cap `head_limit` at 50 by default. The tool default of 250 lines floods
+  the context with marginal hits.
+- Use `glob` and `type` filters before scanning the whole tree.
+- One pattern, one purpose. A pattern with 5+ alternatives means the
+  question is too broad — re-narrow before running.
+
 Output format:
 1. Question investigated.
 2. Files read (paths only).
