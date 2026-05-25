@@ -4,6 +4,23 @@
 
 ### Fixed
 
+- **`fix(validate)` — `scripts/validate.{sh,ps1}` now cover Gemini
+  dogfood drift (resolves audit P1-A).** The drift check previously
+  enumerated source candidates for Claude and Codex only —
+  `tooling/gemini/*` had no case in `dogfood_source_candidates()` /
+  `Get-DogfoodSourceCandidates`, and the gate condition required both
+  `tooling/codex` and `tooling/claude` to exist. Six new cases are
+  added (`GEMINI.md`, `.geminiignore`, `.gemini/settings.json`,
+  `.gemini/agents/*`, `.gemini/commands/*`, `.gemini/skills/*`) and the
+  gate now accepts any of the three `tooling/*` directories. When a
+  target project installs with `--tools gemini`, future contributors
+  who edit `tooling/gemini/*` without refreshing the dogfood copy will
+  be caught at PR time. Verified end-to-end on a synthetic manifest
+  entry: missing dest → "missing from dogfood install"; matching dest →
+  "ok"; mutated dest → "differs from its source".
+
+
+
 - **`fix(hooks)` — dogfood hook `.sh` files marked executable in git
   (resolves audit P0-A and P1-E).** Seven dogfood hook scripts under
   `.claude/hooks/` and `.codex/hooks/` were tracked at git mode `100644`
