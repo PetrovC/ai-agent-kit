@@ -37,3 +37,12 @@ Output format:
 5. Why it is (or is not) over-engineered.
 6. Reversibility assessment.
 7. Recommended validation approach.
+
+Stop conditions (return immediately when any is true):
+- All 7 output sections are filled with concrete content. Stop.
+- The question requires writing code or schemas → recommend that the main
+  agent do so; do not draft code.
+- Two competing designs are equivalent on the criteria → state both and
+  let the main agent decide.
+- The change is purely additive in a single layer with no dependency
+  inversion → return "no architecture concern" early.
