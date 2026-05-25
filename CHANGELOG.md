@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- **`docs(audit)` — `DOGFOOD_AUDIT.md` errata: P1-B and P1-C are
+  **false positives** (resolves PR-D).** Two files the audit flagged
+  as "orphan canonical sources" turned out to be intentional reference
+  scaffolds already documented in [`README.md:195-204`](README.md):
+    - `tooling/codex/global-config-template.toml` is a template for
+      `~/.codex/config.toml` (per-user, not per-project — the install
+      script intentionally never places it in a target project).
+    - `tooling/gemini/gemini-extension.json` is a scaffold for teams
+      distributing the kit via `gemini extensions install`; its
+      `version` is pinned to root `VERSION` by CI
+      (`pr-versioning.yml` / `lint-plugin-manifest`), so the "no
+      validation" claim was also wrong.
+
+  The audit's status table now lists both as ❌ faux positif. The
+  underlying cause was that the `codebase-investigator` subagent
+  producing section H read `tooling/` but missed the README's
+  "intentionally not placed by the install script" paragraph; no
+  source change is needed.
+
 ### Fixed
 
 - **`fix(validate)` — `scripts/validate.{sh,ps1}` now cover Gemini
