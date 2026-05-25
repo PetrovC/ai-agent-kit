@@ -42,7 +42,19 @@ if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
 }
 
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.38"
+$VersionFileRoot = Join-Path $KitRoot "VERSION"
+if (-not (Test-Path -LiteralPath $VersionFileRoot -PathType Leaf)) {
+    Write-Error "VERSION file not found at $VersionFileRoot"
+    exit 1
+}
+$KitVersion = (Get-Content -LiteralPath $VersionFileRoot -Raw) -replace "`r", ""
+if ($KitVersion.EndsWith("`n")) {
+    $KitVersion = $KitVersion.Substring(0, $KitVersion.Length - 1)
+}
+if ($KitVersion -notmatch "^\d+\.\d+\.\d+$") {
+    Write-Error "VERSION must contain a single semver value, got '$KitVersion'"
+    exit 1
+}
 
 function Get-OwningTool([string]$rel) {
     # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,

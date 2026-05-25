@@ -99,37 +99,43 @@ jobs:
               if not pl.get("name") or not pl.get("source"):
                   errs.append(f"marketplace plugin entry missing name/source: {pl}")
 
-          # plugin.json AND gemini-extension.json versions must match the kit
-          # version in install.sh, so every distribution path stays on the same
-          # release (this catches the v1.16.0 gemini-extension.json drift).
-          with open("scripts/install.sh") as f:
-              txt = f.read()
-          mt = re.search(r'KIT_VERSION="([^"]+)"', txt)
-          kit_ver = mt.group(1) if mt else None
+          # VERSION is the root source of truth. Manifests and lifecycle
+          # scripts must read it rather than carrying their own hardcoded
+          # release number.
+          try:
+              with open("VERSION", encoding="utf-8") as f:
+                  kit_ver = f.read().replace("\r", "")
+              if kit_ver.endswith("\n"):
+                  kit_ver = kit_ver[:-1]
+          except FileNotFoundError:
+              kit_ver = None
+              errs.append("VERSION file missing")
+          if kit_ver and not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", kit_ver):
+              errs.append(f"VERSION must contain semver only, got {kit_ver!r}")
+
           if kit_ver != p.get("version"):
-              errs.append(f"plugin.json version ({p.get('version')}) != KIT_VERSION ({kit_ver})")
+              errs.append(f"plugin.json version ({p.get('version')}) != VERSION ({kit_ver})")
 
           with open("tooling/gemini/gemini-extension.json") as f:
               ext = json.load(f)
           if kit_ver != ext.get("version"):
-              errs.append(f"gemini-extension.json version ({ext.get('version')}) != KIT_VERSION ({kit_ver})")
+              errs.append(f"gemini-extension.json version ({ext.get('version')}) != VERSION ({kit_ver})")
 
-          # Bash KIT_VERSION already enforced via install.sh. PowerShell ships
-          # the parallel install.ps1/update.ps1 with $KitVersion = "..."; that
-          # once drifted because the check only inspected install.sh. Pin all four.
-          for ps1 in ("scripts/install.ps1", "scripts/update.ps1"):
-              with open(ps1) as f:
-                  ps1_txt = f.read()
-              m = re.search(r'\$KitVersion\s*=\s*"([^"]+)"', ps1_txt)
-              ps1_ver = m.group(1) if m else None
-              if ps1_ver != kit_ver:
-                  errs.append(f"{ps1} $KitVersion ({ps1_ver}) != KIT_VERSION ({kit_ver})")
-          with open("scripts/update.sh") as f:
-              up_txt = f.read()
-          m = re.search(r'KIT_VERSION="([^"]+)"', up_txt)
-          up_ver = m.group(1) if m else None
-          if up_ver != kit_ver:
-              errs.append(f"scripts/update.sh KIT_VERSION ({up_ver}) != install.sh KIT_VERSION ({kit_ver})")
+          hardcoded = re.compile(
+              r'(?:KIT_VERSION|\$KitVersion)\s*=\s*["\'][0-9]+\.[0-9]+\.[0-9]+["\']')
+          expected_reads = {
+              "scripts/install.sh": 'VERSION_FILE="$KIT_ROOT/VERSION"',
+              "scripts/update.sh": 'VERSION_FILE="$KIT_ROOT/VERSION"',
+              "scripts/install.ps1": 'Join-Path $KitRoot "VERSION"',
+              "scripts/update.ps1": 'Join-Path $KitRoot "VERSION"',
+          }
+          for script, expected in expected_reads.items():
+              with open(script, encoding="utf-8") as f:
+                  script_txt = f.read()
+              if expected not in script_txt:
+                  errs.append(f"{script} does not read root VERSION")
+              if hardcoded.search(script_txt):
+                  errs.append(f"{script} still defines a hardcoded kit version")
 
           # marketplace plugin source must be a documented form: a relative
           # path starting with "./", or a {source: github|url|...} object.
@@ -153,5 +159,5 @@ jobs:
 
           if errs:
               print("\n".join(errs)); sys.exit(1)
-          print(f"OK: manifests valid + version-consistent ({kit_ver})")
+          print(f"OK: manifests valid + VERSION-consistent ({kit_ver})")
           PY

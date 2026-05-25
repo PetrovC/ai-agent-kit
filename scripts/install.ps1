@@ -35,7 +35,19 @@ $ErrorActionPreference = "Stop"
 
 # -- Paths -----------------------------------------------------------------
 $KitRoot    = Split-Path -Parent $PSScriptRoot
-$KitVersion = "1.19.38"
+$VersionFile = Join-Path $KitRoot "VERSION"
+if (-not (Test-Path -LiteralPath $VersionFile -PathType Leaf)) {
+    Write-Error "VERSION file not found at $VersionFile"
+    exit 1
+}
+$KitVersion = (Get-Content -LiteralPath $VersionFile -Raw) -replace "`r", ""
+if ($KitVersion.EndsWith("`n")) {
+    $KitVersion = $KitVersion.Substring(0, $KitVersion.Length - 1)
+}
+if ($KitVersion -notmatch "^\d+\.\d+\.\d+$") {
+    Write-Error "VERSION must contain a single semver value, got '$KitVersion'"
+    exit 1
+}
 $ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
 
 # Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
