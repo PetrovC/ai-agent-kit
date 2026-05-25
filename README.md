@@ -25,6 +25,30 @@ commands.
 
 ---
 
+## Choose Your Install
+
+| Path | Use when | What it installs |
+|---|---|---|
+| **Install script** | You want the full kit for Claude Code, Codex CLI, Gemini CLI, or more than one tool. | Tool routers, shared skills, commands, agents, hooks where supported, MCP examples, and `docs/ai/` project context. |
+| **Claude plugin marketplace** | You only use Claude Code and want the skills slice with no project scaffolding. | Namespaced Claude skills only. Run `/plugin marketplace add PetrovC/ai-agent-kit`, then `/plugin install ai-agent-kit@ai-agent-kit`. |
+| **Gemini extension scaffold** | You are building a custom Gemini CLI extension distribution. | A maintained starting point under `tooling/gemini/`; the script remains the canonical full install path. |
+
+### Tool x OS Support
+
+| Tool | Linux | macOS | Windows |
+|---|---|---|---|
+| **Claude Code** | Script install supported; plugin marketplace is available for skills-only installs. | Script install supported; plugin marketplace is available for skills-only installs. | PowerShell script install supported. Hooks require Git Bash utilities; plugin marketplace remains skills-only. |
+| **Codex CLI** | Script install supported. | Script install supported. | PowerShell script install supported. Hooks are wired through the PowerShell wrapper and still need Git Bash available. |
+| **Gemini CLI** | Script install supported. | Script install supported. | PowerShell script install supported. The kit does not install a Claude/Codex-style hook guardrail for Gemini. |
+
+Known Windows limitations are called out below: ExecutionPolicy can block `.ps1`
+files unless you use the bypass form, and hook wrappers need real Git Bash
+rather than the WSL `bash.exe` launcher. Maintainer command notes live in
+[docs/ai/COMMANDS.md](docs/ai/COMMANDS.md); Windows hook diagnostics are also
+tracked in [docs/ai/CONTEXT_SANITIZATION.md](docs/ai/CONTEXT_SANITIZATION.md).
+
+---
+
 ## Official resources
 
 The tools this kit targets, and their official documentation:
@@ -89,6 +113,10 @@ particular has no marketplace mechanism, so files must be placed in the repo.
 Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
 
 #### Windows notes
+
+For maintainer-side command references and hook diagnostics, see
+[docs/ai/COMMANDS.md](docs/ai/COMMANDS.md) and
+[docs/ai/CONTEXT_SANITIZATION.md](docs/ai/CONTEXT_SANITIZATION.md).
 
 - **PowerShell ExecutionPolicy.** A default Windows install ships with
   `Restricted`, which refuses to run script files
