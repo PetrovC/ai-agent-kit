@@ -156,6 +156,21 @@ Use subagents only when the task is noisy, exploratory, or specialized:
 
 Do not use subagents for simple one-file changes.
 
+### Agent → Codex profile mapping
+
+All profiles run on `gpt-5.5`; they differ by `model_reasoning_effort`:
+
+| Subagent | Codex profile | `model_reasoning_effort` | Why |
+|---|---|---|---|
+| `architect` | `deep` | `high` | Decision-bearing design assessment. |
+| `code-reviewer` | `deep` | `high` | High-stakes review of multi-file changes. |
+| `security-reviewer` | `deep` | `high` | Real exploitable vulnerabilities. |
+| `codebase-investigator` | `standard` | `medium` | Narrow lookups; deterministic search first per ADR-017. |
+| `test-runner` | `readonly` | `low` | Mechanical: filtered run + concise report. |
+
+Switch profile mid-session with `Alt+,` / `Alt+.` in the TUI, or pass
+`--profile <name>` at launch.
+
 ---
 
 ## Engineering principles

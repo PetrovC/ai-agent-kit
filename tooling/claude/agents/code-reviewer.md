@@ -6,7 +6,7 @@ description: >
   regressions, security, maintainability, and missing tests.
 tools: Read, Glob, Grep
 model: claude-opus-4-7
-maxTurns: 20
+maxTurns: 12
 permissionMode: default
 ---
 
