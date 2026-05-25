@@ -227,11 +227,13 @@ if [[ -f "$TARGET/.kit-manifest" && -d "$TARGET/tooling/codex" && -d "$TARGET/to
 
         source_found=false
         source_match=false
+        matched_src=""
         for src in "${candidates[@]}"; do
             if [[ -f "$src" ]]; then
                 source_found=true
                 if cmp -s "$src" "$dst"; then
                     source_match=true
+                    matched_src="$src"
                     break
                 fi
             fi
@@ -244,7 +246,18 @@ if [[ -f "$TARGET/.kit-manifest" && -d "$TARGET/tooling/codex" && -d "$TARGET/to
             warn "$rel differs from its source under tooling/ or skills/"
             dogfood_found=true
         else
-            dogfood_checked=$((dogfood_checked+1))
+            # Content matches; also enforce git-tracked mode parity.
+            # A .sh source at 100755 must not become 100644 in dogfood —
+            # that breaks hook execution on POSIX.
+            src_rel="${matched_src#"$TARGET/"}"
+            src_mode=$(cd "$TARGET" && git ls-files -s -- "$src_rel" 2>/dev/null | awk 'NR==1{print $1}')
+            dst_mode=$(cd "$TARGET" && git ls-files -s -- "$rel" 2>/dev/null | awk 'NR==1{print $1}')
+            if [[ -n "$src_mode" && -n "$dst_mode" && "$src_mode" != "$dst_mode" ]]; then
+                warn "$rel git mode $dst_mode differs from source $src_rel mode $src_mode"
+                dogfood_found=true
+            else
+                dogfood_checked=$((dogfood_checked+1))
+            fi
         fi
     done < "$TARGET/.kit-manifest"
 
