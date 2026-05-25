@@ -29,3 +29,12 @@ Output format:
 3. Failing tests: name + short failure reason (trimmed stack trace).
 4. New failures vs pre-existing failures (if determinable).
 5. Recommended fix direction for new failures only.
+
+Stop conditions (return immediately when any is true):
+- The filtered test run finished and the 5 output sections are populated.
+  Stop.
+- More than 20 failures → list the first 5 with full detail, then a
+  count of the rest; do not dump every failure.
+- Tests cannot run (missing toolchain, missing fixture) → report the
+  blocker and stop; do not attempt to install or configure tooling.
+- Do not propose fixes beyond a one-line direction per new failure.
