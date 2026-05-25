@@ -179,6 +179,29 @@ Use subagents only when the task is noisy, exploratory, or specialized:
 
 Do not use subagents for simple one-file changes.
 
+### Agent → Codex profile mapping
+
+Codex CLI 2026 routes work through profiles defined in `~/.codex/config.toml`
+(`readonly` / `standard` / `deep` / `review`). All profiles run on `gpt-5.5`;
+they differ by `model_reasoning_effort`. Use the following mapping so Codex
+matches the per-agent risk tiering used by Claude (Opus/Sonnet/Haiku) and
+Gemini (Pro/Flash):
+
+| Subagent | Codex profile | `model_reasoning_effort` | Why |
+|---|---|---|---|
+| `architect` | `deep` | `high` | Decision-bearing design assessment. |
+| `code-reviewer` | `deep` | `high` | High-stakes review of multi-file changes. |
+| `security-reviewer` | `deep` | `high` | Real exploitable vulnerabilities, not theoretical risk. |
+| `codebase-investigator` | `standard` | `medium` | Narrow lookups; deterministic search first per ADR-017. |
+| `test-runner` | `readonly` | `low` | Mechanical: filtered run + concise report. |
+
+Switch profile mid-session with `Alt+,` (lower) / `Alt+.` (raise) in the TUI,
+or pass `--profile <name>` at launch.
+
+Verified GA model as of May 2026 (OpenAI): `gpt-5.5` with reasoning effort
+levels `none` / `low` / `medium` (default) / `high` / `xhigh`. See
+<https://developers.openai.com/codex/models>.
+
 ---
 
 ## Engineering principles
