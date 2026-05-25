@@ -294,7 +294,7 @@ fi
 #   - a partial --tools run never prunes another tool's files, and preserves
 #     that tool's manifest entries (KEEP_FROM_OLD) so a later full run is sane.
 if [[ -f "$MANIFEST_FILE" && ${#MANAGED[@]} -gt 0 ]]; then
-    while IFS= read -r p; do
+    while IFS= read -r p || [[ -n "$p" ]]; do
         [[ -z "$p" ]] && continue
         otool="$(owning_tool "$p")"
         [[ -z "$otool" ]] && continue                 # not a kit artifact → ignore
