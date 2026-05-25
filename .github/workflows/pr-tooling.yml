@@ -252,3 +252,63 @@ jobs:
         run: |
           python3 -c "import json; d=json.load(open('tooling/gemini/gemini-extension.json')); assert d.get('name') and d.get('version'), 'name/version required'"
           echo "OK: gemini-extension.json"
+
+  lint-platform-variant-parity:
+    name: POSIX/Windows JSON variants must share the same key set
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Audit P1-D. install.sh copies tooling/{claude/settings.json,
+      # codex/hooks.json}; install.ps1 copies the *.windows.json sibling.
+      # validate.sh accepts either as a source candidate, so byte-for-byte
+      # divergence is expected (paths, command flags differ by OS). What
+      # MUST stay aligned is the JSON *key shape* — a key added on one side
+      # but not the other means one platform silently loses a hook /
+      # setting. This check compares the recursive key set of each pair
+      # and fails on any drift.
+      - name: Claude settings + Codex hooks pairs must have identical key sets
+        run: |
+          python3 - <<'PY'
+          import json, sys
+
+          def key_paths(node, prefix=""):
+              if isinstance(node, dict):
+                  for k, v in node.items():
+                      p = f"{prefix}.{k}" if prefix else k
+                      yield p
+                      yield from key_paths(v, p)
+              elif isinstance(node, list):
+                  # Use a stable index-agnostic marker so an array's items
+                  # don't have to be ordered identically between the two
+                  # variants. Within an item the recursive keys still match.
+                  for item in node:
+                      yield from key_paths(item, f"{prefix}[]")
+
+          pairs = [
+              ("tooling/claude/settings.json", "tooling/claude/settings.windows.json"),
+              ("tooling/codex/hooks.json",     "tooling/codex/hooks.windows.json"),
+          ]
+
+          errs = []
+          for posix, windows in pairs:
+              with open(posix) as f:    p_keys = set(key_paths(json.load(f)))
+              with open(windows) as f:  w_keys = set(key_paths(json.load(f)))
+              only_posix   = sorted(p_keys - w_keys)
+              only_windows = sorted(w_keys - p_keys)
+              if only_posix or only_windows:
+                  errs.append(f"\n{posix}  vs  {windows}")
+                  if only_posix:
+                      errs.append(f"  in POSIX only:   {only_posix}")
+                  if only_windows:
+                      errs.append(f"  in Windows only: {only_windows}")
+              else:
+                  print(f"OK: {posix}  <->  {windows}  ({len(p_keys)} keys)")
+
+          if errs:
+              print("\nKEY-SET DIVERGENCE between platform variants:")
+              for e in errs: print(e)
+              print("\nA key added on one side must be added on the other — "
+                    "otherwise one platform silently loses a hook / setting.")
+              sys.exit(1)
+          PY
