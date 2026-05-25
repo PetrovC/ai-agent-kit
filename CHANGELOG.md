@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### CI
+
+- **`ci(docs)` — new `lint-changelog-presence` job blocks
+  `feat`/`fix`/`perf`/breaking-marker PRs that don't touch
+  `CHANGELOG.md` (audit test T6).** The job lives in
+  `.github/workflows/pr-docs.yml` next to the other lint jobs, parses
+  the PR title for the Conventional Commits type (including the `!`
+  breaking marker and scoped/unscoped variants), and compares the
+  PR diff against `${{ pull_request.base.sha }}..head.sha` to
+  confirm `CHANGELOG.md` is in the diff. PRs typed `docs`, `chore`,
+  `ci`, `style`, `refactor`, or `test` are exempt — they are either
+  non-user-facing or already documented by their nature. Closes the
+  drift class that caused the 17-PR backlog resolved by v1.20.0
+  ([#214](https://github.com/PetrovC/ai-agent-kit/pull/214));
+  going forward the gap cannot reopen without an explicit
+  Conventional-Commits-type override on the offending PR. Verified
+  by a local regex matrix across 9 sample titles (feat/fix/perf/
+  scoped/!/chore/docs/refactor/test) — the matcher classifies each
+  correctly.
+
 ### Documentation
 
 - **`docs(audit)` — `DOGFOOD_AUDIT.md` errata: P1-B and P1-C are

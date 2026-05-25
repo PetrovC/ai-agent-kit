@@ -199,6 +199,56 @@ jobs:
           [[ "$errors" -eq 0 ]] || exit 1
           echo "OK: counts/version consistent (skills=$skills, version=$kit_ver)"
 
+  lint-changelog-presence:
+    name: CHANGELOG entry required for feat/fix/perf
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Resolves audit finding T6: PRs that introduce user-facing change
+      # (Conventional Commits `feat`, `fix`, `perf`, or any breaking-marker
+      # `!` variant) must touch CHANGELOG.md, so the per-PR drift between
+      # the code and the release notes that produced v1.20.0 (#214) cannot
+      # silently reopen. `docs`, `chore`, `ci`, `style`, `refactor`, `test`
+      # are exempt — they're either non-user-facing or already documented
+      # by their nature.
+      - name: feat/fix/perf PRs must add a CHANGELOG entry
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          needs_entry=0
+          # Match `<feat|fix|perf>(<scope>)?!?:` — covers feat:, feat(scope):,
+          # feat!:, feat(scope)!:, and the same for fix / perf.
+          if [[ "$PR_TITLE" =~ ^(feat|fix|perf)(\([^\)]+\))?!?:[[:space:]] ]]; then
+            needs_entry=1
+          # Any-type breaking-marker (`<anytype>!:`) is also user-facing.
+          elif [[ "$PR_TITLE" =~ ^[a-z]+(\([^\)]+\))?!:[[:space:]] ]]; then
+            needs_entry=1
+          fi
+
+          if [[ "$needs_entry" -eq 0 ]]; then
+            echo "PR title '$PR_TITLE' is not feat/fix/perf/breaking — CHANGELOG entry not required."
+            exit 0
+          fi
+
+          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -qx 'CHANGELOG.md'; then
+            echo "OK: '$PR_TITLE' touches CHANGELOG.md"
+            exit 0
+          fi
+
+          echo ""
+          echo "::error::PR title '$PR_TITLE' is feat/fix/perf/breaking but CHANGELOG.md was not modified."
+          echo ""
+          echo "Add an entry under '## [Unreleased]' in CHANGELOG.md describing the"
+          echo "user-visible change. If this PR is not user-facing, change the"
+          echo "Conventional Commits type to docs/chore/ci/style/refactor/test."
+          exit 1
+
   lint-workflow-semantics:
     name: GitHub Actions workflow semantics
     runs-on: ubuntu-latest
