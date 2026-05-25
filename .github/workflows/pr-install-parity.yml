@@ -34,14 +34,17 @@ jobs:
           set -euo pipefail
           T="$(mktemp -d)"
           bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
-          (cd "$T" && find . -type f | LC_ALL=C sort) > /tmp/install-list-linux.txt
+          # Write into $RUNNER_TEMP rather than /tmp so the same shell path
+          # works on Windows runners too (where /tmp is a Git-Bash mount
+          # that actions/upload-artifact cannot see).
+          (cd "$T" && find . -type f | LC_ALL=C sort) > "$RUNNER_TEMP/install-list-linux.txt"
           echo "--- linux file count ---"
-          wc -l /tmp/install-list-linux.txt
+          wc -l "$RUNNER_TEMP/install-list-linux.txt"
 
       - uses: actions/upload-artifact@v4
         with:
           name: install-list-linux
-          path: /tmp/install-list-linux.txt
+          path: ${{ runner.temp }}/install-list-linux.txt
 
   install-windows:
     name: Install + capture file list (PowerShell)
@@ -65,15 +68,20 @@ jobs:
           # cygpath converts the Windows path the previous step exported
           # ("C:\\Users\\...\\parity-target") to a Git-Bash-compatible
           # ("/c/Users/.../parity-target") form that `cd` and `find` accept.
+          # $RUNNER_TEMP is also a Windows path in bash on Windows runners
+          # (e.g. "D:\\a\\_temp"), so we cygpath that too — but we write the
+          # output under that path because that is where the upload action
+          # (which uses the Windows path) looks for it.
           target_unix="$(cygpath -u "$PARITY_TARGET")"
-          (cd "$target_unix" && find . -type f | LC_ALL=C sort) > /tmp/install-list-windows.txt
+          out_unix="$(cygpath -u "$RUNNER_TEMP")/install-list-windows.txt"
+          (cd "$target_unix" && find . -type f | LC_ALL=C sort) > "$out_unix"
           echo "--- windows file count ---"
-          wc -l /tmp/install-list-windows.txt
+          wc -l "$out_unix"
 
       - uses: actions/upload-artifact@v4
         with:
           name: install-list-windows
-          path: /tmp/install-list-windows.txt
+          path: ${{ runner.temp }}/install-list-windows.txt
 
   parity:
     name: Bash and PowerShell installs produce identical file lists
