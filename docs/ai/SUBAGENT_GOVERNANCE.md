@@ -49,6 +49,24 @@ workflow names, route-file references, hook names, and version constants. A
 subagent is more useful for cross-provider parity review, security review,
 public-release readiness, or noisy CI/test output.
 
+### Scope discipline for search-heavy subagents
+
+When an investigator-style subagent uses Grep / search tools, default to
+narrow, predictable output. The kit's expectation:
+
+- **Default output mode** is `files_with_matches`, not `content`. Switch to
+  `content` only after you've narrowed the candidate set.
+- **Cap `head_limit` at 50** by default. The tool default of 250 lines
+  flood s context with marginally relevant hits; tighten before you widen.
+- **Prefer `glob` and `type` filters** over scanning the whole tree.
+- **One pattern, one purpose.** If the pattern needs `|` with 5 alternatives,
+  it usually means the question is too broad — re-narrow before running.
+- **Stop reading at the first useful answer.** Subagents are not auditors;
+  they answer one question and exit.
+
+The `codebase-investigator` agent prompt restates these rules; this section
+is the cross-cutting governance reference.
+
 ## Main Agent Responsibility
 
 - Task understanding.
