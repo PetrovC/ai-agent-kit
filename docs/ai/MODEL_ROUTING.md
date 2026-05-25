@@ -90,3 +90,24 @@ for routine documentation edits and narrow, verifiable command updates.
 Cheap or fast models are acceptable for repetitive Markdown formatting or
 fixture-like edits only when the scope is narrow and the result is easy to
 verify.
+
+## Web access — WebSearch before WebFetch
+
+The kit's Claude allowlist (`tooling/claude/settings*.json`) is trimmed to 12
+high-signal domains: the three provider doc sites
+(`code.claude.com` / `platform.claude.com` / `developers.openai.com` /
+`geminicli.com`), GitHub, and one canonical reference per major language
+runtime (Microsoft Learn, Node.js, npm, Python, Go, Rust, Kubernetes). This
+keeps WebFetch usage scoped and predictable.
+
+Rules:
+
+- **Prefer `WebSearch` first** when the exact URL is unknown. Search returns
+  a short summary; WebFetch dumps full HTML and is much more expensive in
+  tokens.
+- **Use `WebFetch` only when** you already know the exact URL and need the
+  full content (e.g., a specific reference page, a release note, an issue).
+- **Target projects extend the list** in `.claude/settings.local.json` for
+  their actual stack (Vue, Angular, Spring, Flutter, …). The kit
+  intentionally does not ship a 30-domain catch-all — every entry is a
+  small attack surface and a context-bloat risk.
