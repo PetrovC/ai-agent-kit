@@ -2,166 +2,151 @@
 
 ## [Unreleased]
 
-### CI
+## [1.20.1] - 2026-05-25
 
-- **`ci(scripts)` — Windows smoke-install now asserts `update.ps1 -DryRun`
-  is a no-op after a fresh install (audit T3).** The job already ran the
-  dry-run but did not check its output; an asymmetry between
-  `install.ps1` (writes file X) and `update.ps1` (doesn't recognise X)
-  would have shipped silently. The new assertion mirrors the bash
-  `e2e-lifecycle` job's "Real update is a no-op right after install"
-  check (already in place since #127) and grep'd `Everything is up to
-  date` from the dry-run output. Together they close T3 on both OSes.
-
-- **`ci(scripts)` — new `pr-install-parity.yml` workflow asserts
-  `install.sh` and `install.ps1` produce byte-identical relative file
-  lists (audit T4).** Two parallel jobs install the kit on Ubuntu and
-  Windows runners, snapshot `find . -type f | LC_ALL=C sort` from the
-  target dir, upload as artifacts. A third job downloads both and runs
-  `diff -u`. Content differences (settings.json POSIX vs Windows
-  variant, `.kit-version` timestamp) are intentional and out of scope
-  — file *list* must match. Catches the class of bug where one script
-  silently forgets to copy a file the other ships.
-
-- **`ci(tooling)` — new `lint-platform-variant-parity` job asserts
-  POSIX/Windows JSON variants share the same key set (audit P1-D).**
-  `install.sh` copies `tooling/{claude/settings.json,
-  codex/hooks.json}`; `install.ps1` copies their `*.windows.json`
-  siblings. Byte-for-byte divergence is expected (paths, command flags
-  differ by OS), but the JSON *key shape* must stay aligned — a key
-  added on one side but not the other means one platform silently
-  loses a hook / setting. The new job recursively extracts every key
-  path from both files of each pair and fails on any drift. Current
-  state at this PR: Claude settings (30 keys) and Codex hooks (17
-  keys) both align perfectly — the check locks that contract in.
+This patch release ships the deliverable of a full-repo dogfood audit
+(see [`docs/ai/DOGFOOD_AUDIT.md`](docs/ai/DOGFOOD_AUDIT.md)). Two P0
+findings fixed, four P1 findings fixed, seven anti-drift CI tests
+locked in. No new features and no behavioural changes for installed
+target projects beyond the hook-permission fix in `fix(hooks)` below.
 
 ### Fixed
 
+- **`fix(hooks)` — dogfood hook `.sh` files marked executable in git
+  (resolves audit P0-A,
+  [#216](https://github.com/PetrovC/ai-agent-kit/pull/216)).** Seven
+  dogfood hook scripts under `.claude/hooks/` and `.codex/hooks/` were
+  tracked at git mode `100644` while their canonical sources under
+  `tooling/{claude,codex}/hooks/` are `100755`. On POSIX a fresh clone
+  would receive non-executable hooks, so the hook contract advertised
+  by `tooling/` did not hold for anyone working on this repo.
+  `git update-index --chmod=+x` brings the seven files
+  (`format-on-save.sh`, `notify-done.sh`, `pre-bash-guard.sh`, and
+  Claude's `session-summary.sh`) back to `100755`.
+
+- **`fix(validate)` — `scripts/validate.{sh,ps1}` now enforce
+  git-tracked mode parity between dogfood and source (audit P1-E,
+  [#216](https://github.com/PetrovC/ai-agent-kit/pull/216)).** The
+  drift check added in #213 compared file *content* via `cmp` /
+  SHA-256 but ignored the executable bit, so the P0-A mode drift
+  slipped through CI. The check now also compares `git ls-files -s`
+  modes for every matched pair and fails on mismatch with a precise
+  message (`<path> git mode 100644 differs from source <src> mode
+  100755`). Verified by temporarily reverting one hook's mode — the
+  script flags it.
+
+- **`fix(validate)` — `scripts/validate.{sh,ps1}` now cover Gemini
+  dogfood drift (resolves audit P1-A,
+  [#217](https://github.com/PetrovC/ai-agent-kit/pull/217)).** The
+  drift check previously enumerated source candidates for Claude and
+  Codex only — `tooling/gemini/*` had no case in
+  `dogfood_source_candidates()` / `Get-DogfoodSourceCandidates`, and
+  the gate condition required both `tooling/codex` and `tooling/claude`
+  to exist. Six new cases are added (`GEMINI.md`, `.geminiignore`,
+  `.gemini/settings.json`, `.gemini/agents/*`, `.gemini/commands/*`,
+  `.gemini/skills/*`) and the gate now accepts any of the three
+  `tooling/*` directories. When a target project installs with
+  `--tools gemini`, future contributors who edit `tooling/gemini/*`
+  without refreshing the dogfood copy will be caught at PR time.
+  Verified end-to-end on a synthetic manifest entry: missing dest →
+  "missing from dogfood install"; matching dest → "ok"; mutated dest
+  → "differs from its source".
+
 - **`fix(docs)` — `skills/ai-dev/SKILL.md` link to `MODEL_ROUTING.md`
-  rewritten as absolute GitHub URL.** The previous relative form
-  `../../docs/ai/MODEL_ROUTING.md` resolved correctly from the
-  canonical `skills/ai-dev/SKILL.md` but broke in the three dogfood
-  copies (`.claude/skills/`, `.agents/skills/`, `.gemini/skills/`)
-  which sit one directory deeper, and broke entirely in
-  user-installed projects where `docs/ai/MODEL_ROUTING.md` doesn't
-  exist (not in `project-template/`). The link now uses
+  rewritten as absolute GitHub URL
+  ([#220](https://github.com/PetrovC/ai-agent-kit/pull/220)).** The
+  previous relative form `../../docs/ai/MODEL_ROUTING.md` resolved
+  correctly from the canonical `skills/ai-dev/SKILL.md` but broke in
+  the three dogfood copies (`.claude/skills/`, `.agents/skills/`,
+  `.gemini/skills/`) which sit one directory deeper, and broke
+  entirely in user-installed projects where `docs/ai/MODEL_ROUTING.md`
+  doesn't exist (not in `project-template/`). The link now uses
   `https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/MODEL_ROUTING.md`
   so it resolves identically from every copy and every install
   location. Found by the new `lint-doc-links` CI job (T8 below).
 
 ### CI
 
-- **`ci(docs)` — `lint-doc-links` job catches broken intra-repo
-  markdown links (audit T8).** New job in `.github/workflows/pr-docs.yml`
-  walks every `*.md` in the repo (excluding `.git/` and
-  `node_modules/`), strips fenced code blocks and inline code spans,
-  then verifies every inline link `[label](path)` resolves to an
-  existing file relative to the source. External URLs (http/https/
-  mailto) and pure anchors (`#section`) are skipped. Catches both
-  authoring typos and the subtler "relative path correct in canonical
-  source but wrong in dogfood copy" pattern. First run found 4
-  broken links (3 fixed above plus 2 self-introduced links in
-  `DOGFOOD_AUDIT.md` corrected to `../../README.md`).
-
-- **`ci(docs)` — `dogfood-install-policy` extended with reverse
-  manifest check (audit T1).** `.github/workflows/pr-versioning.yml`
-  already verified that every `.kit-manifest` entry is tracked in git;
-  the reverse direction — every tracked file under `.claude/`,
-  `.codex/`, or `.agents/` must appear in `.kit-manifest` — was
-  missing, letting a new dogfood file slip in without an installable
-  source counterpart. Now both directions are enforced.
-
 - **`ci(docs)` — new `lint-changelog-presence` job blocks
   `feat`/`fix`/`perf`/breaking-marker PRs that don't touch
-  `CHANGELOG.md` (audit test T6).** The job lives in
-  `.github/workflows/pr-docs.yml` next to the other lint jobs, parses
+  `CHANGELOG.md` (audit test T6,
+  [#219](https://github.com/PetrovC/ai-agent-kit/pull/219)).** Parses
   the PR title for the Conventional Commits type (including the `!`
-  breaking marker and scoped/unscoped variants), and compares the
-  PR diff against `${{ pull_request.base.sha }}..head.sha` to
-  confirm `CHANGELOG.md` is in the diff. PRs typed `docs`, `chore`,
-  `ci`, `style`, `refactor`, or `test` are exempt — they are either
-  non-user-facing or already documented by their nature. Closes the
-  drift class that caused the 17-PR backlog resolved by v1.20.0
-  ([#214](https://github.com/PetrovC/ai-agent-kit/pull/214));
-  going forward the gap cannot reopen without an explicit
-  Conventional-Commits-type override on the offending PR. Verified
-  by a local regex matrix across 9 sample titles (feat/fix/perf/
-  scoped/!/chore/docs/refactor/test) — the matcher classifies each
-  correctly.
+  breaking marker and scoped/unscoped variants), compares the PR diff
+  against `pull_request.base.sha..head.sha` to confirm `CHANGELOG.md`
+  is in the diff. `docs`, `chore`, `ci`, `style`, `refactor`, `test`
+  are exempt. Closes the drift class that caused the 17-PR CHANGELOG
+  backlog resolved by v1.20.0 (#214).
 
-### Documentation
+- **`ci(docs)` — `dogfood-install-policy` extended with reverse
+  manifest check (audit test T1,
+  [#220](https://github.com/PetrovC/ai-agent-kit/pull/220)).**
+  `.github/workflows/pr-versioning.yml` already verified that every
+  `.kit-manifest` entry is tracked in git; the reverse direction —
+  every tracked file under `.claude/`, `.codex/`, or `.agents/` must
+  appear in `.kit-manifest` — was missing, letting a new dogfood file
+  slip in without an installable source counterpart.
 
-- **`docs(audit)` — `DOGFOOD_AUDIT.md` errata: P1-B and P1-C are
-  **false positives** (resolves PR-D).** Two files the audit flagged
-  as "orphan canonical sources" turned out to be intentional reference
-  scaffolds already documented in [`README.md:195-204`](README.md):
-    - `tooling/codex/global-config-template.toml` is a template for
-      `~/.codex/config.toml` (per-user, not per-project — the install
-      script intentionally never places it in a target project).
-    - `tooling/gemini/gemini-extension.json` is a scaffold for teams
-      distributing the kit via `gemini extensions install`; its
-      `version` is pinned to root `VERSION` by CI
-      (`pr-versioning.yml` / `lint-plugin-manifest`), so the "no
-      validation" claim was also wrong.
+- **`ci(docs)` — new `lint-doc-links` job catches broken intra-repo
+  markdown links (audit test T8,
+  [#220](https://github.com/PetrovC/ai-agent-kit/pull/220)).** Walks
+  every `*.md` in the repo (excluding `.git/`, `node_modules/`),
+  strips fenced code blocks and inline code spans, verifies every
+  inline link `[label](path)` resolves to an existing file relative
+  to the source. External URLs and pure anchors are skipped. Catches
+  both authoring typos and the subtler "relative path correct in
+  canonical source but wrong in dogfood copy" pattern.
 
-  The audit's status table now lists both as ❌ faux positif. The
-  underlying cause was that the `codebase-investigator` subagent
-  producing section H read `tooling/` but missed the README's
-  "intentionally not placed by the install script" paragraph; no
-  source change is needed.
+- **`ci(scripts)` — Windows `smoke-install` now asserts
+  `update.ps1 -DryRun` is a no-op after a fresh install (audit test
+  T3, [#221](https://github.com/PetrovC/ai-agent-kit/pull/221)).**
+  Mirrors the bash `e2e-lifecycle` job's "Real update is a no-op
+  right after install" check (in place since #127). Together they
+  close T3 on both OSes.
 
-### Fixed
+- **`ci(scripts)` — new `pr-install-parity.yml` workflow asserts
+  `install.sh` and `install.ps1` produce byte-identical relative file
+  lists (audit test T4,
+  [#221](https://github.com/PetrovC/ai-agent-kit/pull/221)).** Two
+  parallel jobs install the kit on Ubuntu and Windows, snapshot
+  `find . -type f | LC_ALL=C sort` from each target, upload as
+  artifacts; a third job downloads both and runs `diff -u`. File
+  list parity only — content differences (settings.json POSIX vs
+  Windows variant, `.kit-version` timestamp) are intentional and
+  handled by `validate.sh` against the canonical sources.
 
-- **`fix(validate)` — `scripts/validate.{sh,ps1}` now cover Gemini
-  dogfood drift (resolves audit P1-A).** The drift check previously
-  enumerated source candidates for Claude and Codex only —
-  `tooling/gemini/*` had no case in `dogfood_source_candidates()` /
-  `Get-DogfoodSourceCandidates`, and the gate condition required both
-  `tooling/codex` and `tooling/claude` to exist. Six new cases are
-  added (`GEMINI.md`, `.geminiignore`, `.gemini/settings.json`,
-  `.gemini/agents/*`, `.gemini/commands/*`, `.gemini/skills/*`) and the
-  gate now accepts any of the three `tooling/*` directories. When a
-  target project installs with `--tools gemini`, future contributors
-  who edit `tooling/gemini/*` without refreshing the dogfood copy will
-  be caught at PR time. Verified end-to-end on a synthetic manifest
-  entry: missing dest → "missing from dogfood install"; matching dest →
-  "ok"; mutated dest → "differs from its source".
-
-
-
-- **`fix(hooks)` — dogfood hook `.sh` files marked executable in git
-  (resolves audit P0-A and P1-E).** Seven dogfood hook scripts under
-  `.claude/hooks/` and `.codex/hooks/` were tracked at git mode `100644`
-  while their canonical sources under `tooling/{claude,codex}/hooks/`
-  are `100755`. On POSIX a fresh clone would receive non-executable
-  hooks, so the hook contract advertised by `tooling/` did not hold for
-  anyone working on this repo. `git update-index --chmod=+x` brings the
-  seven files (`format-on-save.sh`, `notify-done.sh`, `pre-bash-guard.sh`,
-  and Claude's `session-summary.sh`) back to `100755`.
-
-- **`fix(validate)` — `scripts/validate.{sh,ps1}` now enforce
-  git-tracked mode parity between dogfood and source (audit P1-E).** The
-  drift check added in #213 compared file *content* via `cmp` /
-  SHA-256 but ignored the executable bit, so the P0-A mode drift slipped
-  through CI. The check now also compares `git ls-files -s` modes for
-  every matched pair and fails on mismatch with a precise message
-  (`<path> git mode 100644 differs from source <src> mode 100755`).
-  Verified by temporarily reverting one hook's mode — the script flags
-  it.
+- **`ci(tooling)` — new `lint-platform-variant-parity` job asserts
+  POSIX/Windows JSON variants share the same key set (audit P1-D,
+  [#222](https://github.com/PetrovC/ai-agent-kit/pull/222)).**
+  `install.sh` copies `tooling/{claude/settings.json,
+  codex/hooks.json}`; `install.ps1` copies their `*.windows.json`
+  siblings. A key added on one side but not the other would silently
+  drop a hook / setting on one platform. The job recursively
+  compares key sets and fails on any drift. At this release: Claude
+  settings (30 keys) and Codex hooks (17 keys) both align.
 
 ### Documentation
 
 - **`docs(audit)` — dogfood audit report added at
-  `docs/ai/DOGFOOD_AUDIT.md`.** Read-only audit of the full repo
-  history covering eight sections: surface cartography, manifest
-  pivot, issue-to-source traceability, CHANGELOG completeness, doc
-  accuracy, repo hygiene, history scan, and installer parity. Findings
-  classified P0/P1/P2/P3 with a living **Statut de correction** table
-  at the top that tracks which PRs resolve which findings. P0-B (the
-  CHANGELOG drift identified by the audit) was already closed by
-  v1.20.0 ([#214](https://github.com/PetrovC/ai-agent-kit/pull/214));
-  remaining findings (hook permissions, Gemini validate coverage,
-  orphan source files) ship as separate follow-up PRs.
+  [`docs/ai/DOGFOOD_AUDIT.md`](docs/ai/DOGFOOD_AUDIT.md)
+  ([#215](https://github.com/PetrovC/ai-agent-kit/pull/215)).**
+  Read-only audit of the full repo history covering eight sections:
+  surface cartography, manifest pivot, issue-to-source traceability,
+  CHANGELOG completeness, doc accuracy, repo hygiene, history scan,
+  installer parity. Findings classified P0/P1/P2/P3 with a living
+  **Statut de correction** table at the top that tracks which PRs
+  resolve which findings. All actionable findings (P0-A, P0-B, P1-A,
+  P1-D, P1-E, P2-A) closed by the PRs that ship this release.
+
+- **`docs(audit)` — P1-B and P1-C marked as false positives
+  ([#218](https://github.com/PetrovC/ai-agent-kit/pull/218)).** Two
+  files the audit flagged as "orphan canonical sources" turned out to
+  be intentional reference scaffolds already documented in
+  `README.md:195-204`: `tooling/codex/global-config-template.toml`
+  (per-user `~/.codex/config.toml` template) and
+  `tooling/gemini/gemini-extension.json` (Gemini CLI extension
+  scaffold, version-pinned by `pr-versioning.yml`). No source change
+  required; status table updated.
 
 ## [1.20.0] - 2026-05-25
 
