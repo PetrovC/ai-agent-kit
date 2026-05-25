@@ -29,3 +29,11 @@ Output format:
 2. Files read (paths only).
 3. Findings: what was found, where, and why it matters for the task.
 4. Recommended next step for the main agent.
+
+Stop conditions (return immediately when any is true):
+- The question is answered with evidence from ≤ 8 files. Stop.
+- More than 15 files would be needed → return what you have plus the list
+  of remaining unknowns and recommend the main agent escalate scope.
+- The same Grep pattern returns nothing twice with reasonable variants →
+  report "not found" instead of expanding scope.
+- Confidence in the answer is low → say so explicitly rather than padding.

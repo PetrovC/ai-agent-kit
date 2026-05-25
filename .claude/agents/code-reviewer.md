@@ -45,3 +45,12 @@ Low-risk cleanup.
 Optional, for a later ticket.
 
 Each finding: file path + risk explanation + suggested direction.
+
+Stop conditions (return immediately when any is true):
+- No Blocker or Important finding remains to surface, and at most 5 Minor
+  findings are cited. Stop.
+- The diff is fewer than 30 changed lines and no risk surfaced after 2 read
+  passes → return "no significant findings".
+- A finding requires re-reading 5+ unrelated files → recommend that the
+  main agent open a separate investigation issue rather than dive in.
+- Do not write fix code. Always describe direction, not implementation.
