@@ -34,7 +34,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\new-skill.ps1 
 | `install.ps1` / `install.sh` | `Target` or `--target`; `Tools` or `--tools` | Installs managed kit files. No dry-run mode exists. Valid tools: `codex`, `claude`, `gemini`. |
 | `update.ps1` / `update.sh` | `Target` or `--target`; optional `Tools` or `--tools`; `DryRun` or `--dry-run` | Refreshes managed kit files. Does not overwrite `docs/ai`. |
 | `uninstall.ps1` / `uninstall.sh` | `Target` or `--target`; optional `Tools` or `--tools`; `DryRun` or `--dry-run` | Removes managed files by manifest. Preserves `docs/ai` and user-added files. |
-| `validate.ps1` / `validate.sh` | `Target` or `--target` | Checks required `docs/ai` files, template warning notices, HTML placeholders, common template placeholders, and repo-local Claude/Codex dogfood drift when run against this source tree. |
+| `validate.ps1` / `validate.sh` | `Target` or `--target` | Checks required `docs/ai` files, template warning notices, HTML placeholders, common template placeholders, and repo-local Claude/Codex/Gemini dogfood drift (content + git mode) when run against this source tree. |
 | `new-skill.ps1` / `new-skill.sh` | `Name` or `--name`; optional `Description` or `--description` | Scaffolds `skills/<name>/SKILL.md` and routing placeholders. |
 
 ## Repository Smoke Commands
