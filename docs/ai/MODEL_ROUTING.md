@@ -90,3 +90,14 @@ for routine documentation edits and narrow, verifiable command updates.
 Cheap or fast models are acceptable for repetitive Markdown formatting or
 fixture-like edits only when the scope is narrow and the result is easy to
 verify.
+
+## Prompt Caching
+
+Model power is not the only cost lever. Prompt caching cuts input tokens
+50–90% on the cached portion and 30–80% off time-to-first-token on long
+system prompts. For any wrapper, agent, or tool that calls the Anthropic /
+OpenAI / Gemini APIs from this repo, prefer caching long stable content
+(tool defs, system prompt, RAG context) and keeping the user message last.
+
+Provider notes and full code examples live in the
+[`ai-dev` skill](../../skills/ai-dev/SKILL.md#prompt-caching).
