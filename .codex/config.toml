@@ -73,6 +73,27 @@ max_bytes = 10485760  # 10 MiB
 # For personal machine-level notification, set the `notify` key (an array
 # of program + args) in `~/.codex/config.toml`, NOT in this file.
 
+# ── Feature flags ─────────────────────────────────────────────────────────────
+# Codex CLI 2026 exposes a [features] section toggling subsystems. The kit
+# pins only the flags it actively depends on; the rest follow the Codex
+# defaults. Documented so future maintainers can see what we rely on at a
+# glance. Reference: https://developers.openai.com/codex/config-reference
+#
+# Available flags (Codex defaults shown in [brackets]):
+#   features.unified_exec   [on]  — unified Bash/Exec tool (kept on; default)
+#   features.multi_agent    [off] — multi-agent orchestration (kit ships its
+#                                   own subagent governance — keep default off)
+#   features.memories       [off] — Codex auto-memories (kit prefers explicit
+#                                   docs/ai/ context — keep default off)
+#   features.network_proxy  [off] — outbound HTTP proxy support (off; opt-in)
+#   features.hooks          [on]  — lifecycle hook execution (kit ships hooks,
+#                                   pinned on below so it never silently turns
+#                                   off if the default changes)
+#   features.web_search     [on]  — web_search tool (gated by `web_search`
+#                                   above; flag stays default)
+[features]
+hooks = true
+
 # ── MCP servers ───────────────────────────────────────────────────────────────
 # Codex supports Model Context Protocol servers (stdio + HTTP). Uncomment and
 # configure per project. This mirrors Claude's .mcp.json and Gemini's
