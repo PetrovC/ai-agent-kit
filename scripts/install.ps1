@@ -226,6 +226,7 @@ if ($ToolList -contains "gemini") {
     Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\agents")   (Join-Path $Target ".gemini\agents")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\commands") (Join-Path $Target ".gemini\commands")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\hooks")    (Join-Path $Target ".gemini\hooks")
+    Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\policies") (Join-Path $Target ".gemini\policies")
 }
 
 # -- Project template (docs/ai/) - preserved if it exists ------------------

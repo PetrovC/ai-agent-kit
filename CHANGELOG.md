@@ -4,6 +4,49 @@
 
 ### Added
 
+- **`feat(gemini)` — ship `policies/` directory with supply-chain
+  rules (closes [#184](https://github.com/PetrovC/ai-agent-kit/issues/184)).**
+  Gemini extensions auto-discover `.toml` policy files placed in a
+  `policies/` directory at extension root (per the
+  [extensions reference](https://geminicli.com/docs/extensions/reference/)).
+  The kit now ships two:
+    - `tooling/gemini/policies/destructive-git.toml` —
+      `[[rule]]` with `decision = "ask_user"` for any MCP server
+      whose name advertises destructive-git behaviour.
+    - `tooling/gemini/policies/rm-rf.toml` — same `ask_user`
+      posture for MCP servers exposing recursive-delete tools.
+
+  **Layer separation.** `tooling/gemini/hooks/pre-bash-guard.sh`
+  remains the authoritative runtime guard for native
+  `run_shell_command` — it walks the rm operands, classifies them,
+  and blocks `rm -rf` on dangerous targets (force-push, branch -D,
+  reset --hard, etc.). These policy files cover the *parallel
+  supply-chain risk* of a third-party MCP tool performing the same
+  operation outside the shell layer. Two layers, same denylist
+  intent, no overlap because the surfaces are distinct (`bash` vs
+  `mcp_*` tool names).
+
+  **Why `[[rule]]` only matches MCP names, not shell-command
+  bodies.** Gemini CLI's public extensions reference documents
+  shell-command pattern matching through the `excludeTools`
+  manifest array (`run_shell_command(<pattern>)`); it does not yet
+  publish a stable regex syntax inside `[[rule]]` for matching
+  shell command bodies. Until that surface stabilises, native shell
+  enforcement stays in the hook (where the contract is documented
+  and tested) and policies/ scope themselves to the documented
+  MCP-tool form.
+
+  Lifecycle scripts:
+    - `install.{sh,ps1}` and `update.{sh,ps1}` deploy `.gemini/policies/`
+    - `uninstall.{sh,ps1}` `reconstruct_gemini` sub-dirs now include
+      `policies`
+    - `validate.{sh,ps1}` add `.gemini/policies/* -> tooling/gemini/policies/*`
+      to the drift-check candidate list
+
+  `tooling/gemini/GEMINI.md` "Safety model" gains a new layer in
+  the numbered list (policies as the MCP-supply-chain layer
+  alongside the hook).
+
 - **`feat(gemini)` — `advanced.excludedEnvVars` migrated to
   `security.environmentVariableRedaction` (closes
   [#183](https://github.com/PetrovC/ai-agent-kit/issues/183)).** Gemini

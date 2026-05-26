@@ -167,7 +167,7 @@ reconstruct_gemini() {
     echo "GEMINI.md"
     echo ".geminiignore"
     echo ".gemini/settings.json"
-    for sub in agents commands hooks; do
+    for sub in agents commands hooks policies; do
         [[ -d "$KIT_ROOT/tooling/gemini/$sub" ]] && \
             find "$KIT_ROOT/tooling/gemini/$sub" -type f \
                  -printf ".gemini/$sub/%P\n"

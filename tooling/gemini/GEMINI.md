@@ -84,11 +84,20 @@ Safety layers on Gemini, in order:
 2. **`pre-bash-guard` (this release).** Denylist over the raw command
    string. Best-effort, not a sandbox — see the script header for the
    honest scope and limits, and ADR-008 for the design contract.
-3. **`.geminiignore`.** Keeps secrets and runtime files out of model
+3. **Extension policies (`.gemini/policies/`).** Auto-discovered by
+   Gemini at extension load time. The kit ships
+   `destructive-git.toml` and `rm-rf.toml` covering the MCP-supply-
+   chain layer (`[[rule]]` with `decision = "ask_user"` for MCP
+   servers whose name advertises destructive behaviour). The hook
+   above remains authoritative for native `run_shell_command` —
+   policies cover the parallel risk of a third-party MCP tool
+   performing the same operation outside the shell layer. See the
+   policy file headers for the exact contract.
+4. **`.geminiignore`.** Keeps secrets and runtime files out of model
    context.
-4. **CI.** The kit's GitHub Actions workflows reject merges that
+5. **CI.** The kit's GitHub Actions workflows reject merges that
    violate policy regardless of the local CLI.
-5. **Router guidance below.** "Git rules" and "Security rules" remain
+6. **Router guidance below.** "Git rules" and "Security rules" remain
    self-enforced by the model as defense-in-depth.
 
 Practical rules:
