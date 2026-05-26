@@ -125,6 +125,19 @@ Keep this router small. Long-run context policy lives in
 [`docs/ai/CONTEXT_GOVERNANCE.md`](https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/CONTEXT_GOVERNANCE.md),
 and model routing details live in
 [`docs/ai/MODEL_ROUTING.md`](https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/MODEL_ROUTING.md).
+Subagent cost rules live in
+[`docs/ai/SUBAGENT_GOVERNANCE.md`](https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/SUBAGENT_GOVERNANCE.md).
+
+### Codex long-run mode
+
+Use this checklist when a Codex session starts to feel context-heavy:
+
+- Keep one GitHub issue per session by default; before switching issues, summarize and end the old context.
+- Run `/compact` before broad reads, large logs, or refactors once context feels heavy.
+- Do not paste `AGENTS.md` into chat; Codex already loads it at startup.
+- Prefer targeted `rg`, GitHub issue/PR reads, and narrow file reads over broad scans.
+- Use `readonly` for audit/exploration, `standard` for daily implementation, and `deep` only for design/review/security decisions.
+- Use subagents only when they reduce main-context cost; see `docs/ai/SUBAGENT_GOVERNANCE.md`.
 
 ---
 
