@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-05-26
+
+Minor bump: adds `feat(gemini)` — `pre-bash-guard` `BeforeTool` hook
+brings runtime safety parity across all three CLIs. Also bundles two
+post-1.20.1 hygiene PRs (cleanup + ADR-008 rewrite).
+
 ### Added
 
 - **`feat(gemini)` — `pre-bash-guard` `BeforeTool` hook shipped on
