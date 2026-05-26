@@ -282,6 +282,7 @@ if contains "gemini"; then
     update_dir         "$KIT_ROOT/tooling/gemini/agents"         "$TARGET/.gemini/agents"
     update_dir         "$KIT_ROOT/tooling/gemini/commands"       "$TARGET/.gemini/commands"
     update_dir         "$KIT_ROOT/tooling/gemini/hooks"          "$TARGET/.gemini/hooks"
+    update_dir         "$KIT_ROOT/tooling/gemini/policies"       "$TARGET/.gemini/policies"
 fi
 
 # NOTE: docs/ai/ is intentionally NOT updated — it contains project-specific content.

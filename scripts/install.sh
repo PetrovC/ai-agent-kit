@@ -233,6 +233,7 @@ if contains "gemini"; then
     copy_dir  "$KIT_ROOT/tooling/gemini/agents"         "$TARGET/.gemini/agents"
     copy_dir  "$KIT_ROOT/tooling/gemini/commands"       "$TARGET/.gemini/commands"
     copy_dir  "$KIT_ROOT/tooling/gemini/hooks"          "$TARGET/.gemini/hooks"
+    copy_dir  "$KIT_ROOT/tooling/gemini/policies"       "$TARGET/.gemini/policies"
 fi
 
 # ── Project template (docs/ai/) — preserved if it exists ───────────────────
