@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`feat(gemini)` — `context.fileName` switched to an array
+  (`["AGENTS.md", "GEMINI.md", "CONTEXT.md"]`) — closes
+  [#181](https://github.com/PetrovC/ai-agent-kit/issues/181).** Gemini
+  CLI 2026 supports loading multiple context files at startup and
+  concatenating them in declaration order (per
+  [geminicli.com/docs/cli/gemini-md](https://geminicli.com/docs/cli/gemini-md/)).
+  The previous single-string `"GEMINI.md"` value forced target
+  projects that also use Codex to duplicate routing content between
+  `AGENTS.md` and `GEMINI.md`. With the array form, a project that
+  installs both Codex and Gemini gets `AGENTS.md` merged into the
+  Gemini context automatically; a project-level `CONTEXT.md` (an
+  optional tool-agnostic context file) joins on the same channel.
+  Files that don't exist are silently skipped by Gemini — the kit
+  does not need to bootstrap empty placeholders. `GEMINI.md`'s
+  "How to run" section now documents the multi-file behaviour and
+  the concatenation order.
+
+  Out of scope: the Gemini Extension manifest (`gemini-extension.json`)
+  keeps `"contextFileName": "GEMINI.md"` — Extension distribution
+  uses a single context file by upstream design, distinct from the
+  `context.fileName` setting that this PR changes.
+
 ## [1.21.0] - 2026-05-26
 
 Minor bump: adds `feat(gemini)` — `pre-bash-guard` `BeforeTool` hook
