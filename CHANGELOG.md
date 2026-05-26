@@ -4,6 +4,26 @@
 
 ### Added
 
+- **`feat(gemini)` — three perf / context-economy settings enabled
+  in `tooling/gemini/settings.json` (closes
+  [#182](https://github.com/PetrovC/ai-agent-kit/issues/182)).**
+
+  | Setting | Kit value | Upstream default | Why |
+  |---|---|---|---|
+  | `model.compressionThreshold` | `0.6` | `0.5` | Aligns Gemini's automatic compression trigger with the kit's 60% context-governance checkpoint (see `docs/ai/CONTEXT_GOVERNANCE.md`). The 0.5 default fires inside the kit's 40–59% "evaluate" band, which forces compression before the user is supposed to even check in. |
+  | `model.maxSessionTurns` | `100` | `-1` (unlimited) | Runaway-prevention bound. Well above legitimate multi-step workflows (typically 30–60 turns) and well below catastrophic loops. Upstream's `-1` lets a stuck loop accumulate context indefinitely. |
+  | `tools.useRipgrep` | `true` | `true` (already) | Set explicitly so a future upstream default flip does not silently degrade search performance. ripgrep is the kit-preferred deterministic search per ADR-017. |
+
+  Documentation: `docs/ai/CONTEXT_GOVERNANCE.md` gains a new
+  "Provider settings that enforce these thresholds" section
+  explaining each chosen value. No behavioural change for Claude /
+  Codex installs — those CLIs do not currently expose equivalent
+  direct knobs.
+
+  Acceptance check from the issue (`grep -E
+  'useRipgrep|maxSessionTurns|compressionThreshold'
+  tooling/gemini/settings.json`) returns three matches.
+
 - **`feat(gemini)` — `context.fileName` switched to an array
   (`["AGENTS.md", "GEMINI.md", "CONTEXT.md"]`) — closes
   [#181](https://github.com/PetrovC/ai-agent-kit/issues/181).** Gemini
