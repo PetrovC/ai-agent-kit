@@ -29,6 +29,25 @@ Important nuance:
 | Codex CLI | `/compact` |
 | Gemini CLI | `/compress` |
 
+## Provider settings that enforce these thresholds
+
+The kit aligns provider-side knobs with the table above so the
+governance is enforced by configuration where the platform supports
+it, not only by agent discipline.
+
+### Gemini CLI (`tooling/gemini/settings.json`)
+
+| Setting | Kit value | Why this value |
+|---|---|---|
+| `model.compressionThreshold` | `0.6` | Triggers Gemini's automatic compression at the 60% checkpoint — the boundary where this document says compression should be the default unless the next step is very small. Upstream default is `0.5`; raising it to `0.6` gives a small safety margin before forced compression, matching the 40–59% "evaluate" band. |
+| `model.maxSessionTurns` | `100` | Caps user/model/tool conversation rounds retained per session. Upstream default is `-1` (unlimited); `100` is the runaway-prevention bound — well above legitimate multi-step workflows (typically 30–60 turns) and well below catastrophic loops. |
+| `tools.useRipgrep` | `true` | Already the upstream default, but the kit sets it explicitly so a future upstream default flip does not silently degrade search performance. ripgrep is the kit-preferred deterministic search per ADR-017. |
+
+Claude Code and Codex CLI do not expose equivalent direct knobs at
+the moment; their governance is enforced through hook guards
+(`pre-bash-guard`), the `docs/ai/SUBAGENT_GOVERNANCE.md` rules, and
+the `/compact` reminder above.
+
 ## Cache Freshness
 
 Short-lived prompt/context cache windows are signals, not correctness
