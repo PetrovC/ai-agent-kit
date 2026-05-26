@@ -219,6 +219,15 @@ never drifts, even though install/update/uninstall deliberately ignore both file
 > `gemini extensions install` distribution channel for their commands and
 > agents.
 
+### Codex long-run mode
+
+The Codex operating checklist lives in
+[`tooling/codex/AGENTS.md`](tooling/codex/AGENTS.md) and installs as project
+`AGENTS.md`. It keeps the root router short while pointing long-running
+sessions to [context governance](docs/ai/CONTEXT_GOVERNANCE.md),
+[model routing](docs/ai/MODEL_ROUTING.md), and
+[subagent governance](docs/ai/SUBAGENT_GOVERNANCE.md).
+
 ---
 
 ## Full kit (30 minutes)
@@ -492,7 +501,7 @@ Copy these to `.github/workflows/` in your project (they are **not** installed a
 | `install.ps1` / `install.sh` | **Always overwrites kit files** (skills, tooling configs, subagents, root `.md`). Reinstall to reset everything to baseline. |
 | `update.ps1` / `update.sh` | **Content-diff based** — only files that are missing or whose content differs are touched. `update.sh` also **prunes** files the kit no longer ships, via a `.kit-manifest` diff (scoped to `--tools`, never `docs/ai/` or user files; PowerShell parity tracked separately). Warns on version drift. Supports `--dry-run` / `-DryRun` to preview. |
 | `uninstall.ps1` / `uninstall.sh` | Removes only kit-installed files for the chosen tools, using `.kit-manifest` as the source of truth. User files added inside managed dirs (e.g. `.claude/agents/team-agent.md`, `.claude/settings.local.json`) are preserved. Falls back to a reconstructed file list when no manifest is present. Preserves `docs/ai/`. |
-| `validate.ps1` / `validate.sh` | Verifies `docs/ai/` templates have been filled, guards Codex router context budget/link hygiene, prints a compact largest Codex-facing file summary, and in this source repo flags Claude/Codex dogfood drift from `tooling/` or `skills/`. |
+| `validate.ps1` / `validate.sh` | Verifies `docs/ai/` templates have been filled, guards Codex router context budget plus context/model/subagent link hygiene, prints a compact largest Codex-facing file summary, and in this source repo flags Claude/Codex dogfood drift from `tooling/` or `skills/`. |
 | `new-skill.ps1` / `new-skill.sh` | Scaffolds a new skill under `skills/<name>/` with the standard template — for kit contributors. |
 
 **`docs/ai/` is never overwritten** by either install / update script — it holds your project-specific

@@ -10,7 +10,7 @@
       - Non-comment placeholders still present (empty table rows, "TBD" cells,
         pure-dots list items, "<key>: ..." placeholder values).
       - Codex router files stay under the documented context budget and link
-        to the long-run context/model-routing guidance.
+        to the long-run context/model/subagent guidance.
       - A compact context audit lists the largest Codex-facing files.
       - In this source repository only, tracked Claude/Codex/Gemini dogfood
         files drifted (content or git mode) from their canonical sources
@@ -48,7 +48,11 @@ if (-not (Test-Path -LiteralPath $DocsAi)) {
 $Required = @("PROJECT.md", "ARCHITECTURE.md", "COMMANDS.md", "DECISIONS.md", "GLOSSARY.md", "ROADMAP.md", "TESTING.md")
 $CodexRouterMaxLines = 320
 $CodexRouterMaxBytes = 16384
-$CodexRequiredLinks = @("docs/ai/CONTEXT_GOVERNANCE.md", "docs/ai/MODEL_ROUTING.md")
+$CodexRequiredLinks = @(
+    "docs/ai/CONTEXT_GOVERNANCE.md",
+    "docs/ai/MODEL_ROUTING.md",
+    "docs/ai/SUBAGENT_GOVERNANCE.md"
+)
 $AgentContextTopN = 5
 $Issues = 0
 
@@ -217,7 +221,7 @@ if ($codexRouterFiles.Count -eq 0) {
     }
 
     if (-not $codexRouterFailed) {
-        Ok "Codex routers stay within $CodexRouterMaxLines lines / $CodexRouterMaxBytes bytes and link long-run guidance"
+        Ok "Codex routers stay within $CodexRouterMaxLines lines / $CodexRouterMaxBytes bytes and link context/model/subagent guidance"
     }
 }
 

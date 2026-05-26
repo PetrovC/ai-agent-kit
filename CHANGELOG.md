@@ -4,6 +4,21 @@
 
 ### Added
 
+- **`docs(codex)` - document Codex long-run mode (closes
+  [#174](https://github.com/PetrovC/ai-agent-kit/issues/174)).**
+  `tooling/codex/AGENTS.md` now carries a short checklist for
+  context-heavy Codex sessions: one GitHub issue per session, compact
+  before broad reads/logs/refactors, do not paste `AGENTS.md` back into
+  chat, prefer targeted `rg`/GitHub reads, and choose
+  `readonly`/`standard`/`deep` profiles by task risk. The checklist
+  links out to `docs/ai/CONTEXT_GOVERNANCE.md`,
+  `docs/ai/MODEL_ROUTING.md`, and `docs/ai/SUBAGENT_GOVERNANCE.md`
+  so the router stays small.
+
+  Validation now requires Codex routers to keep the subagent-governance
+  link alongside the existing context/model-routing links, and README
+  points users to the Codex long-run mode.
+
 - **`feat(gemini)` — ship `policies/` directory with supply-chain
   rules (closes [#184](https://github.com/PetrovC/ai-agent-kit/issues/184)).**
   Gemini extensions auto-discover `.toml` policy files placed in a
