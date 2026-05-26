@@ -121,6 +121,10 @@ Do not read every file. Read only what is needed, in this order:
 7. Source files directly related to the task.
 
 Do not scan the entire repository unless the task explicitly requires it.
+Keep this router small. Long-run context policy lives in
+[`docs/ai/CONTEXT_GOVERNANCE.md`](https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/CONTEXT_GOVERNANCE.md),
+and model routing details live in
+[`docs/ai/MODEL_ROUTING.md`](https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/MODEL_ROUTING.md).
 
 ---
 

@@ -114,6 +114,18 @@
   uses a single context file by upstream design, distinct from the
   `context.fileName` setting that this PR changes.
 
+### CI
+
+- **`test(codex)` - guard router context budget and long-run links
+  (closes [#232](https://github.com/PetrovC/ai-agent-kit/issues/232)).**
+  `validate.{sh,ps1}` now fails when Codex router files exceed 320 lines
+  or 16 KiB, or when they lose links to
+  `docs/ai/CONTEXT_GOVERNANCE.md` and `docs/ai/MODEL_ROUTING.md`.
+  The same validation pass prints the five largest Codex-facing files
+  so maintainers can spot context bloat without opening a broad audit.
+  `tooling/codex/AGENTS.md` now points at both long-run guidance files,
+  and the root Codex dogfood install is refreshed from that source.
+
 ## [1.21.0] - 2026-05-26
 
 Minor bump: adds `feat(gemini)` — `pre-bash-guard` `BeforeTool` hook
