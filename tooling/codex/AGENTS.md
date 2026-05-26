@@ -79,7 +79,8 @@ Beyond approval/sandbox, the kit's `config.toml` sets:
   `*_SECRET`/`*_TOKEN`/`*_KEY`/`*_PASSWORD`/`OPENAI_*`/`ANTHROPIC_*`/`AWS_*`/`GCP_*`/`GOOGLE_*`
   **plus** connection strings (`*_URL`/`*_URI`/`*_DSN`) — `DATABASE_URL`-class
   values routinely embed `user:password@host` and matched none of the older
-  patterns. Codex equivalent of Gemini's `advanced.excludedEnvVars`.
+  patterns. Codex equivalent of Gemini's
+  `security.environmentVariableRedaction.blocked`.
 - **`[history]`** — `persistence = "save-all"`, `max_bytes = 10 MiB`. Set
   `persistence = "none"` for repos that must not persist transcripts.
 - **`[mcp_servers.<name>]`** — commented stdio + HTTP examples (GitHub,

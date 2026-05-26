@@ -32,7 +32,7 @@ network_access = false
 
 # ── Environment policy ────────────────────────────────────────────────────────
 # Controls which environment variables are exposed to subprocesses Codex spawns.
-# This is the Codex equivalent of Gemini's advanced.excludedEnvVars and exists to
+# This is the Codex equivalent of Gemini's security.environmentVariableRedaction.blocked and exists to
 # keep secrets out of tool subprocesses. `inherit = "all"` keeps the dev workflow
 # working (PATH etc.) while `exclude` scrubs common secret-bearing patterns.
 [shell_environment_policy]

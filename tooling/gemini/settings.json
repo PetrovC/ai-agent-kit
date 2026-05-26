@@ -47,20 +47,23 @@
     ]
   },
 
-  "advanced": {
-    "excludedEnvVars": [
-      "*_SECRET",
-      "*_TOKEN",
-      "*_KEY",
-      "*_PASSWORD",
-      "OPENAI_*",
-      "ANTHROPIC_*",
-      "AWS_*",
-      "GCP_*",
-      "GOOGLE_*",
-      "*_URL",
-      "*_URI",
-      "*_DSN"
-    ]
+  "security": {
+    "environmentVariableRedaction": {
+      "enabled": true,
+      "blocked": [
+        "*_SECRET",
+        "*_TOKEN",
+        "*_KEY",
+        "*_PASSWORD",
+        "OPENAI_*",
+        "ANTHROPIC_*",
+        "AWS_*",
+        "GCP_*",
+        "GOOGLE_*",
+        "*_URL",
+        "*_URI",
+        "*_DSN"
+      ]
+    }
   }
 }
