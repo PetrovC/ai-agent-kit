@@ -4,6 +4,31 @@
 
 ### Added
 
+- **`feat(gemini)` — `advanced.excludedEnvVars` migrated to
+  `security.environmentVariableRedaction` (closes
+  [#183](https://github.com/PetrovC/ai-agent-kit/issues/183)).** Gemini
+  CLI 2026 deprecated the legacy key in favor of a structured
+  `security.environmentVariableRedaction.{enabled, allowed, blocked}`
+  triple. The kit now ships:
+    ```json
+    "security": {
+      "environmentVariableRedaction": {
+        "enabled": true,
+        "blocked": ["*_SECRET", "*_TOKEN", "*_KEY", "*_PASSWORD",
+                    "OPENAI_*", "ANTHROPIC_*", "AWS_*", "GCP_*",
+                    "GOOGLE_*", "*_URL", "*_URI", "*_DSN"]
+      }
+    }
+    ```
+  The 12 redaction patterns are preserved byte-for-byte — same
+  denylist semantics, just under the supported key. The
+  `advanced` block is dropped entirely (it had no other entries).
+  Cross-references in `tooling/codex/AGENTS.md` and
+  `tooling/codex/config.toml` (and their dogfood copies at the repo
+  root) that called out the Codex equivalent of "Gemini's
+  `advanced.excludedEnvVars`" now point at
+  `security.environmentVariableRedaction.blocked`.
+
 - **`feat(gemini)` — three perf / context-economy settings enabled
   in `tooling/gemini/settings.json` (closes
   [#182](https://github.com/PetrovC/ai-agent-kit/issues/182)).**
