@@ -7,6 +7,9 @@
 #   - HTML comment placeholders still present (<!-- ... -->).
 #   - Non-comment placeholders still present (empty table rows, "TBD" cells,
 #     pure-dots list items, "<key>: ..." placeholder values).
+#   - Codex router files stay under the documented context budget and link to
+#     the long-run context/model-routing guidance.
+#   - A compact context audit lists the largest Codex-facing files.
 #   - In this source repository only, tracked Claude/Codex/Gemini dogfood files
 #     drifted (content or git mode) from their canonical sources under tooling/
 #     or skills/.
@@ -54,6 +57,10 @@ if [[ ! -d "$DOCS_AI" ]]; then
 fi
 
 REQUIRED=(PROJECT.md ARCHITECTURE.md COMMANDS.md DECISIONS.md GLOSSARY.md ROADMAP.md TESTING.md)
+CODEX_ROUTER_MAX_LINES=320
+CODEX_ROUTER_MAX_BYTES=16384
+CODEX_REQUIRED_LINKS=(docs/ai/CONTEXT_GOVERNANCE.md docs/ai/MODEL_ROUTING.md)
+AGENT_CONTEXT_TOP_N=5
 
 issues=0
 warn() { echo -e "  \033[33m! $1\033[0m"; issues=$((issues+1)); }
@@ -150,6 +157,86 @@ for f in "$DOCS_AI"/*.md; do
     fi
 done
 $non_comment_found || ok "no non-comment placeholders remaining"
+
+echo ""
+echo "> Codex router context budget"
+codex_router_files=()
+[[ -f "$TARGET/AGENTS.md" ]] && codex_router_files+=(AGENTS.md)
+[[ -f "$TARGET/tooling/codex/AGENTS.md" ]] && codex_router_files+=(tooling/codex/AGENTS.md)
+codex_router_failed=false
+
+if ((${#codex_router_files[@]} == 0)); then
+    ok "no Codex router files found"
+else
+    for rel in "${codex_router_files[@]}"; do
+        path="$TARGET/$rel"
+        line_count=$(wc -l < "$path" | tr -d '[:space:]')
+        byte_count=$(wc -c < "$path" | tr -d '[:space:]')
+
+        if (( line_count > CODEX_ROUTER_MAX_LINES )); then
+            warn "$rel has $line_count lines; budget is $CODEX_ROUTER_MAX_LINES"
+            codex_router_failed=true
+        fi
+        if (( byte_count > CODEX_ROUTER_MAX_BYTES )); then
+            warn "$rel is $byte_count bytes; budget is $CODEX_ROUTER_MAX_BYTES"
+            codex_router_failed=true
+        fi
+
+        for link in "${CODEX_REQUIRED_LINKS[@]}"; do
+            if ! grep -qF "$link" "$path"; then
+                warn "$rel missing link to $link"
+                codex_router_failed=true
+            fi
+        done
+    done
+
+    $codex_router_failed || ok "Codex routers stay within $CODEX_ROUTER_MAX_LINES lines / $CODEX_ROUTER_MAX_BYTES bytes and link long-run guidance"
+fi
+
+add_agent_context_file() {
+    local rel="$1"
+    if [[ -f "$TARGET/$rel" ]]; then
+        agent_context_files+=("$TARGET/$rel")
+    fi
+    return 0
+}
+
+add_agent_context_files() {
+    local rel="$1"
+    local name="$2"
+    [[ -d "$TARGET/$rel" ]] || return 0
+    while IFS= read -r -d '' file; do
+        agent_context_files+=("$file")
+    done < <(find "$TARGET/$rel" -type f -name "$name" -print0)
+}
+
+echo ""
+echo "> Codex-facing context audit (largest files)"
+agent_context_files=()
+add_agent_context_file AGENTS.md
+add_agent_context_files docs/ai '*.md'
+add_agent_context_files skills SKILL.md
+add_agent_context_files .agents/skills SKILL.md
+add_agent_context_file .codex/config.toml
+add_agent_context_file .codex/hooks.json
+add_agent_context_file tooling/codex/AGENTS.md
+add_agent_context_files tooling/codex '*.toml'
+add_agent_context_files tooling/codex '*.json'
+
+if ((${#agent_context_files[@]} == 0)); then
+    ok "no Codex-facing files found"
+else
+    for file in "${agent_context_files[@]}"; do
+        size=$(wc -c < "$file" | tr -d '[:space:]')
+        rel="${file#"$TARGET/"}"
+        printf '%s\t%s\n' "$size" "$rel"
+    done |
+        sort -rn |
+        awk -v limit="$AGENT_CONTEXT_TOP_N" 'NR <= limit { print }' |
+        while IFS=$'\t' read -r size rel; do
+            awk -v size="$size" -v rel="$rel" 'BEGIN { printf "  %6.1f KiB  %s\n", size / 1024, rel }'
+        done
+fi
 
 dogfood_source_candidates() {
     local rel="$1" tail=""

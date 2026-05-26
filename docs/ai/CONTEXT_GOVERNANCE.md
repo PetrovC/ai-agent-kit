@@ -29,6 +29,22 @@ Important nuance:
 | Codex CLI | `/compact` |
 | Gemini CLI | `/compress` |
 
+## Codex Router Budget
+
+Codex reads router files at session start, so keep them as pointers rather than
+full policy documents. `scripts/validate.{sh,ps1}` enforces this budget for
+`AGENTS.md` and `tooling/codex/AGENTS.md`:
+
+| File | Budget |
+|---|---|
+| `AGENTS.md` | <= 320 lines and <= 16 KiB |
+| `tooling/codex/AGENTS.md` | <= 320 lines and <= 16 KiB |
+
+Both routers must link to this file and to `docs/ai/MODEL_ROUTING.md`. If a
+router needs to grow past the budget, open a dedicated issue that explains why
+the detail cannot live in `docs/ai/`, a skill, or a provider-specific config
+file, then update the validator constants in the same PR.
+
 ## Provider settings that enforce these thresholds
 
 The kit aligns provider-side knobs with the table above so the

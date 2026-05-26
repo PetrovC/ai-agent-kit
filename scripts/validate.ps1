@@ -9,6 +9,9 @@
       - HTML-comment placeholders still present (<!-- ... -->).
       - Non-comment placeholders still present (empty table rows, "TBD" cells,
         pure-dots list items, "<key>: ..." placeholder values).
+      - Codex router files stay under the documented context budget and link
+        to the long-run context/model-routing guidance.
+      - A compact context audit lists the largest Codex-facing files.
       - In this source repository only, tracked Claude/Codex/Gemini dogfood
         files drifted (content or git mode) from their canonical sources
         under tooling/ or skills/.
@@ -43,6 +46,10 @@ if (-not (Test-Path -LiteralPath $DocsAi)) {
 }
 
 $Required = @("PROJECT.md", "ARCHITECTURE.md", "COMMANDS.md", "DECISIONS.md", "GLOSSARY.md", "ROADMAP.md", "TESTING.md")
+$CodexRouterMaxLines = 320
+$CodexRouterMaxBytes = 16384
+$CodexRequiredLinks = @("docs/ai/CONTEXT_GOVERNANCE.md", "docs/ai/MODEL_ROUTING.md")
+$AgentContextTopN = 5
 $Issues = 0
 
 function Warn([string]$msg) {
@@ -76,7 +83,7 @@ Write-Host ""
 Write-Host "> Templates still showing STOP notice (must be filled)"
 $stopFound = $false
 Get-ChildItem -LiteralPath $DocsAi -Filter "*.md" -File | ForEach-Object {
-    if (Select-String -LiteralPath $_.FullName -Pattern "^> .*STOP|⚠️.*STOP" -Quiet) {
+    if (Select-String -LiteralPath $_.FullName -Pattern "^> .*STOP|⚠️.*STOP" -Quiet -CaseSensitive) {
         Warn "$($_.Name) still contains a STOP notice"
         $stopFound = $true
     }
@@ -145,6 +152,98 @@ function Join-TargetRelative([string]$rel) {
         }
     }
     return $path
+}
+
+function Convert-ToTargetRelative([string]$path) {
+    $root = (Resolve-Path -LiteralPath $Target).Path.TrimEnd([char]'\', [char]'/')
+    $full = (Resolve-Path -LiteralPath $path).Path
+    if ($full.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $full.Substring($root.Length).TrimStart([char]'\', [char]'/') -replace "\\", "/"
+    }
+    return $path -replace "\\", "/"
+}
+
+function Add-AgentContextFile([hashtable]$files, [string]$rel) {
+    $path = Join-TargetRelative $rel
+    if (Test-Path -LiteralPath $path -PathType Leaf) {
+        $item = Get-Item -LiteralPath $path
+        $files[$item.FullName] = $item
+    }
+}
+
+function Add-AgentContextFiles([hashtable]$files, [string]$rel, [string]$filter) {
+    $path = Join-TargetRelative $rel
+    if (Test-Path -LiteralPath $path -PathType Container) {
+        Get-ChildItem -LiteralPath $path -Filter $filter -File -Recurse | ForEach-Object {
+            $files[$_.FullName] = $_
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "> Codex router context budget"
+$codexRouterFailed = $false
+$codexRouterFiles = @(@("AGENTS.md", "tooling/codex/AGENTS.md") | Where-Object {
+    Test-Path -LiteralPath (Join-TargetRelative $_) -PathType Leaf
+})
+
+if ($codexRouterFiles.Count -eq 0) {
+    Ok "no Codex router files found"
+} else {
+    foreach ($rel in $codexRouterFiles) {
+        $path = Join-TargetRelative $rel
+        $content = Get-Content -LiteralPath $path -Raw
+        $lineCount = ([regex]::Matches($content, "`n")).Count
+        if ($content.Length -gt 0 -and -not $content.EndsWith("`n")) {
+            $lineCount++
+        }
+        $byteCount = (Get-Item -LiteralPath $path).Length
+
+        if ($lineCount -gt $CodexRouterMaxLines) {
+            Warn "$rel has $lineCount lines; budget is $CodexRouterMaxLines"
+            $codexRouterFailed = $true
+        }
+        if ($byteCount -gt $CodexRouterMaxBytes) {
+            Warn "$rel is $byteCount bytes; budget is $CodexRouterMaxBytes"
+            $codexRouterFailed = $true
+        }
+
+        foreach ($link in $CodexRequiredLinks) {
+            if (-not $content.Contains($link)) {
+                Warn "$rel missing link to $link"
+                $codexRouterFailed = $true
+            }
+        }
+    }
+
+    if (-not $codexRouterFailed) {
+        Ok "Codex routers stay within $CodexRouterMaxLines lines / $CodexRouterMaxBytes bytes and link long-run guidance"
+    }
+}
+
+Write-Host ""
+Write-Host "> Codex-facing context audit (largest files)"
+$agentContextFiles = @{}
+Add-AgentContextFile $agentContextFiles "AGENTS.md"
+Add-AgentContextFiles $agentContextFiles "docs/ai" "*.md"
+Add-AgentContextFiles $agentContextFiles "skills" "SKILL.md"
+Add-AgentContextFiles $agentContextFiles ".agents/skills" "SKILL.md"
+Add-AgentContextFile $agentContextFiles ".codex/config.toml"
+Add-AgentContextFile $agentContextFiles ".codex/hooks.json"
+Add-AgentContextFile $agentContextFiles "tooling/codex/AGENTS.md"
+Add-AgentContextFiles $agentContextFiles "tooling/codex" "*.toml"
+Add-AgentContextFiles $agentContextFiles "tooling/codex" "*.json"
+
+if ($agentContextFiles.Count -eq 0) {
+    Ok "no Codex-facing files found"
+} else {
+    $agentContextFiles.Values |
+        Sort-Object Length -Descending |
+        Select-Object -First $AgentContextTopN |
+        ForEach-Object {
+            $size = $_.Length / 1KB
+            Write-Host ("  {0,6:n1} KiB  {1}" -f $size, (Convert-ToTargetRelative $_.FullName))
+        }
 }
 
 function Get-DogfoodSourceCandidates([string]$rel) {
