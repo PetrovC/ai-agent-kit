@@ -281,6 +281,7 @@ if contains "gemini"; then
     compare_and_update "$KIT_ROOT/tooling/gemini/settings.json"  "$TARGET/.gemini/settings.json"
     update_dir         "$KIT_ROOT/tooling/gemini/agents"         "$TARGET/.gemini/agents"
     update_dir         "$KIT_ROOT/tooling/gemini/commands"       "$TARGET/.gemini/commands"
+    update_dir         "$KIT_ROOT/tooling/gemini/hooks"          "$TARGET/.gemini/hooks"
 fi
 
 # NOTE: docs/ai/ is intentionally NOT updated — it contains project-specific content.

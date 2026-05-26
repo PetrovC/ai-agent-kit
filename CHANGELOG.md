@@ -2,6 +2,63 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`feat(gemini)` — `pre-bash-guard` `BeforeTool` hook shipped on
+  Gemini (partial close of
+  [#178](https://github.com/PetrovC/ai-agent-kit/issues/178)).** Gemini
+  installs now get the same denylist runtime guard Claude and Codex
+  have had since v1.16.5. Wired via `tooling/gemini/settings.json`:
+    ```json
+    "hooks": { "BeforeTool": [{
+      "matcher": "run_shell_command",
+      "hooks": [{ "type": "command",
+                  "command": "bash .gemini/hooks/pre-bash-guard.sh",
+                  "timeout": 5000 }] }] }
+    ```
+  The hook script under `tooling/gemini/hooks/pre-bash-guard.sh` is
+  byte-equivalent to the Claude / Codex version — same denylist
+  (force/mirror/delete push, ref deletion, `git reset --hard/--keep`,
+  `git switch --discard-changes`, `git clean -f`, `rm -rf` on unsafe
+  targets, unapproved SQL `DROP`), same fail-closed contract on
+  unparseable stdin, same exit code 2 = block semantics. Gemini's
+  `tool_input.command` field for `run_shell_command` matches the
+  Claude / Codex schema, so the parser path
+  (`jq → python3 → sed`) ports directly.
+
+  **Acceptance test (per issue #178):** dangerous bash command
+  rejected under Gemini. Verified end-to-end:
+    ```
+    $ echo '{"hook_event_name":"BeforeTool","tool_name":"run_shell_command",
+             "tool_input":{"command":"rm -rf /"}}' \
+        | bash .gemini/hooks/pre-bash-guard.sh
+    BLOCKED: recursive force-delete (rm -rf) includes an unsafe target.
+    $ echo $?
+    2
+    ```
+  Same matrix covered by CI in `pr-hooks.yml` alongside the Claude
+  and Codex pre-bash-guards.
+
+  **Out of scope for this PR:** format-on-save, notify-done, and
+  session-summary hooks for Gemini. Their adaptation depends on the
+  exact `tool_input` schema for `write_file` / `replace` and the
+  payload of `SessionEnd` / `PreCompress` events — which the public
+  Gemini hooks documentation does not yet fully specify. Tracked as
+  the remaining checkbox of #178; #178 stays open with a 🟡 partial
+  status in `docs/ai/BACKLOG.md` until they ship.
+
+  Scripts: `install.{sh,ps1}` and `update.{sh,ps1}` deploy
+  `.gemini/hooks/`; `uninstall.{sh,ps1}` `reconstruct_gemini` now
+  includes the hooks subdir; `validate.{sh,ps1}` `.gemini/hooks/*` is
+  in the drift-check candidate list. `pr-scripts-shell.yml`
+  `smoke-install` adds `.gemini/hooks/pre-bash-guard.sh` to the
+  required-files list and to the executable-bit check.
+
+- **`docs(adr)` — ADR-008 amended in-place (no number change) to
+  record the new Gemini hook parity baseline.** The kit now ships
+  `pre-bash-guard` on all three CLIs; Gemini `yolo` is no longer the
+  "no second layer" outlier the previous ADR warned about.
+
 ### Fixed
 
 - **`fix(scripts)` — `.kit-version` refreshed to match `VERSION` after

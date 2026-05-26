@@ -179,6 +179,7 @@ function Get-DogfoodSourceCandidates([string]$rel) {
         "^\.gemini/settings\.json$" { return @("tooling/gemini/settings.json") }
         "^\.gemini/agents/(.+)$" { return @("tooling/gemini/agents/$($Matches[1])") }
         "^\.gemini/commands/(.+)$" { return @("tooling/gemini/commands/$($Matches[1])") }
+        "^\.gemini/hooks/(.+)$" { return @("tooling/gemini/hooks/$($Matches[1])") }
         "^\.gemini/skills/(.+)$" { return @("skills/$($Matches[1])") }
     }
     return @()

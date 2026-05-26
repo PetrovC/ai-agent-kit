@@ -273,6 +273,7 @@ if ($ToolList -contains "gemini") {
     Compare-And-Update (Join-Path $KitRoot "tooling\gemini\settings.json")  (Join-Path $Target ".gemini\settings.json")
     Update-Directory   (Join-Path $KitRoot "tooling\gemini\agents")         (Join-Path $Target ".gemini\agents")
     Update-Directory   (Join-Path $KitRoot "tooling\gemini\commands")       (Join-Path $Target ".gemini\commands")
+    Update-Directory   (Join-Path $KitRoot "tooling\gemini\hooks")          (Join-Path $Target ".gemini\hooks")
 }
 
 # NOTE: docs/ai/ is intentionally NOT updated - it contains project-specific content.

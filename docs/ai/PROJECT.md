@@ -154,12 +154,10 @@ Current maturity assessment:
 - Script robustness is better than a first glance suggests, with meaningful
   Bash and PowerShell care already present, but it still needs isolated helper
   tests and parity checks.
-- Runtime security: Claude and Codex ship a kit-provided `pre-bash-guard`
-  hook; Gemini CLI 2026 supports the same class of hook (`BeforeTool`
-  family) but the kit has not yet adopted it — see ADR-008 and
-  [#178](https://github.com/PetrovC/ai-agent-kit/issues/178). Until that
-  lands, Gemini installs rely on approval mode (`default` / `auto_edit`),
-  `.geminiignore`, and CI to provide the same outcome.
+- Runtime security: all three CLIs (Claude, Codex, Gemini) ship the
+  kit-provided `pre-bash-guard` hook on `Bash` / `run_shell_command`.
+  Approval mode (`default` / `auto_edit`), `.geminiignore`, and CI
+  remain complementary layers; see ADR-008.
 - Public release maturity needs work before broad public adoption.
 - Evolution potential is excellent, but advanced features should come after
   stabilizing the core.
@@ -167,10 +165,12 @@ Current maturity assessment:
 ## Known Risks
 
 - Bash and PowerShell behavior can drift without parity checks.
-- Gemini CLI 2026 supports hooks, but the kit has not yet adopted them
-  (tracked by [#178](https://github.com/PetrovC/ai-agent-kit/issues/178));
-  in the meantime, Gemini installs depend on approval mode + CI for the
-  guarantees Claude / Codex get from `pre-bash-guard`.
+- Gemini hook adoption beyond `pre-bash-guard` (format-on-save,
+  notify-done, session-summary) is pending — the `tool_input` / event
+  payload schemas for `write_file` / `replace` / `SessionEnd` /
+  `PreCompress` need to be confirmed against live Gemini behaviour
+  before porting the existing Claude/Codex scripts. Tracked
+  separately.
 - Optional GitHub Actions templates can drift from actual provider behavior.
 - MCP examples and mutable GitHub Action tags carry supply-chain risk.
 - The kit could become over-engineered if it grows beyond configurator scope.

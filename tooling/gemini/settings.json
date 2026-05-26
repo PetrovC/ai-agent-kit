@@ -23,6 +23,27 @@
   "mcpServers": {
   },
 
+  "hooksConfig": {
+    "enabled": true
+  },
+
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .gemini/hooks/pre-bash-guard.sh",
+            "name": "pre-bash-guard",
+            "timeout": 5000,
+            "description": "Denylist guard: blocks force-push, branch -D, ref deletion, reset --hard, switch --discard-changes, clean -f, rm -rf on dangerous targets, and unapproved SQL DROP."
+          }
+        ]
+      }
+    ]
+  },
+
   "advanced": {
     "excludedEnvVars": [
       "*_SECRET",

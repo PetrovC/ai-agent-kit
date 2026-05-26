@@ -114,6 +114,7 @@ jobs:
             "/tmp/smoke-target/.agents/skills/security-reviewer/SKILL.md"
             "/tmp/smoke-target/.gemini/commands/bug-fix.toml"
             "/tmp/smoke-target/.gemini/commands/security-audit.toml"
+            "/tmp/smoke-target/.gemini/hooks/pre-bash-guard.sh"
             "/tmp/smoke-target/docs/ai/PROJECT.md"
           )
           for f in "${files[@]}"; do
@@ -126,7 +127,7 @@ jobs:
 
       - name: Verify hook scripts are executable
         run: |
-          for f in /tmp/smoke-target/.claude/hooks/*.sh /tmp/smoke-target/.codex/hooks/*.sh; do
+          for f in /tmp/smoke-target/.claude/hooks/*.sh /tmp/smoke-target/.codex/hooks/*.sh /tmp/smoke-target/.gemini/hooks/*.sh; do
             if [[ ! -x "$f" ]]; then
               echo "NOT EXECUTABLE: $f"
               exit 1
