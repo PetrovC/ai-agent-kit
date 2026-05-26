@@ -39,7 +39,7 @@ commands.
 |---|---|---|---|
 | **Claude Code** | Script install supported; plugin marketplace is available for skills-only installs. | Script install supported; plugin marketplace is available for skills-only installs. | PowerShell script install supported. Hooks require Git Bash utilities; plugin marketplace remains skills-only. |
 | **Codex CLI** | Script install supported. | Script install supported. | PowerShell script install supported. Hooks are wired through the PowerShell wrapper and still need Git Bash available. |
-| **Gemini CLI** | Script install supported. | Script install supported. | PowerShell script install supported. The kit does not yet install a Claude/Codex-style hook guardrail for Gemini — Gemini CLI 2026 supports the hook surface, adoption tracked by [#178](https://github.com/PetrovC/ai-agent-kit/issues/178). |
+| **Gemini CLI** | Script install supported; `pre-bash-guard` `BeforeTool` hook deployed. | Script install supported; `pre-bash-guard` `BeforeTool` hook deployed. | PowerShell script install supported; `pre-bash-guard` `BeforeTool` hook deployed (uses Git Bash, same as Claude/Codex on Windows). |
 
 Known Windows limitations are called out below: ExecutionPolicy can block `.ps1`
 files unless you use the bypass form, and hook wrappers need real Git Bash
@@ -265,11 +265,11 @@ Codex   PreToolUse(Bash)        → pre-bash-guard.sh   → same hardened guard
 ```
 
 Codex has no `PreCompact` event, so `session-summary` is Claude-only. Gemini
-CLI 2026 supports an equivalent hook surface (`BeforeTool` / `AfterTool` /
-`SessionStart` / …) but the kit has not yet adopted it — until
-[#178](https://github.com/PetrovC/ai-agent-kit/issues/178) lands,
-safety/formatting on Gemini rely on approval mode + CI. See the detailed
-Hooks section further down for the exact behaviour.
+gets the `pre-bash-guard` `BeforeTool` hook (same denylist as Claude/Codex);
+`format-on-save`, `notify-done`, and `session-summary` for Gemini are not in
+this release (the relevant `tool_input` / event payload schemas need to be
+confirmed against live Gemini behaviour first). See the detailed Hooks
+section further down for the exact behaviour.
 
 ### Rules *(Claude Code only)*
 

@@ -81,36 +81,46 @@ issue changes direction.
 > [geminicli.com/docs/reference/configuration](https://geminicli.com/docs/reference/configuration/).
 
 - Context: All three CLIs (Claude, Codex, Gemini) now expose a hooks
-  surface. The kit currently ships a `pre-bash-guard` hook for Claude
-  and Codex but not for Gemini — not because Gemini cannot run hooks,
-  but because the kit has not yet adopted Gemini's hook API.
-- Decision: Treat the Gemini guard gap as **kit-side work, not a
-  platform limitation.** Adoption is tracked in
-  [#178](https://github.com/PetrovC/ai-agent-kit/issues/178). Until
-  it lands, the Gemini install layers safety as:
-  1. **Approval mode** — `default` / `auto_edit` prompt the human
-     before shell execution; `yolo` bypasses prompts. Documentation
-     recommends `default` / `auto_edit` for any repo with real
-     history or data.
-  2. **`.geminiignore`** — excludes secrets and runtime files from
+  surface. The kit ships a `pre-bash-guard` hook on all three —
+  wired to Claude `PreToolUse(Bash)`, Codex `PreToolUse(Bash)`, and
+  (since [#178](https://github.com/PetrovC/ai-agent-kit/issues/178))
+  Gemini `BeforeTool(run_shell_command)`. The denylist logic
+  (force-push, ref deletion, `git reset --hard`, `rm -rf` on unsafe
+  targets, unapproved SQL `DROP`, …) is identical across the three
+  installs.
+- Decision: Maintain hook parity across the three CLIs as a first-class
+  goal — when a hook is added on one provider, the equivalent must
+  follow on the other two unless the provider's hook surface genuinely
+  cannot express it. Adoption status:
+  1. **`pre-bash-guard`** — Claude ✅, Codex ✅, Gemini ✅ (#178).
+  2. **Approval mode** — kept as a complementary first layer on every
+     provider. `default` / `auto_edit` prompt the human before shell
+     execution; `yolo` bypasses prompts but Gemini still runs the
+     `BeforeTool` hook below it (`exit 2` blocks the command and
+     surfaces stderr to Gemini as a tool error).
+  3. **`.geminiignore`** — excludes secrets and runtime files from
      model context.
-  3. **CI** — workflows reject merges that violate kit policy
+  4. **CI** — workflows reject merges that violate kit policy
      regardless of the local CLI.
-  4. **Router guidance in `GEMINI.md`** — the model is instructed to
-     refuse destructive commands itself.
+  5. **Router guidance in `GEMINI.md`** — kept as defense-in-depth so
+     the model also refuses destructive commands itself.
+  Pending follow-ups: format-on-save, notify-done, session-summary
+  hooks for Gemini depend on the exact `tool_input` schema for
+  `write_file` / `replace`, the `SessionEnd` payload, and the
+  `PreCompress` payload respectively — to be added once those are
+  confirmed against live Gemini behaviour.
 - Consequences:
-  - Documentation no longer frames Gemini's hook surface as
-    structurally inferior to Claude/Codex's; it states honestly that
-    the kit does not yet adopt Gemini's hook API. See
-    [#178](https://github.com/PetrovC/ai-agent-kit/issues/178) for the
-    migration path.
-  - Once [#178](https://github.com/PetrovC/ai-agent-kit/issues/178)
-    lands, this ADR will be updated again to record the final
-    Gemini hook contract; the "lacks an equivalent" framing in
-    `PROJECT.md` and `GEMINI.md` will be removed in the same PR.
+  - Gemini installs now get the same `pre-bash-guard` second layer
+    that Claude and Codex have had since v1.16.5 — `yolo` mode is
+    materially less risky than before because the BeforeTool hook
+    still fires.
+  - `PROJECT.md`, `tooling/gemini/GEMINI.md`, and `README.md` describe
+    the new baseline and no longer claim Gemini lacks an equivalent
+    runtime safety surface.
   - The Gemini CLI wrapper experiment ([#169](https://github.com/PetrovC/ai-agent-kit/issues/169))
-    is recommended for `wontfix` because the upstream CLI now
-    provides the surface the wrapper was meant to emulate.
+    is recommended for `wontfix` — the upstream CLI provides the
+    surface the wrapper was meant to emulate, and the kit now uses
+    it directly.
 
 ## ADR-009: MCPs are opt-in
 

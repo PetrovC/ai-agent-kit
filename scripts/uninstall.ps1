@@ -167,7 +167,7 @@ function Get-ReconstructedFiles([string]$tool) {
             $out.Add("GEMINI.md")
             $out.Add(".geminiignore")
             $out.Add(".gemini/settings.json")
-            foreach ($sub in @("agents","commands")) {
+            foreach ($sub in @("agents","commands","hooks")) {
                 $d = Join-Path $KitRoot "tooling/gemini/$sub"
                 if (Test-Path -LiteralPath $d) {
                     Get-ChildItem -LiteralPath $d -Recurse -File | ForEach-Object {

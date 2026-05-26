@@ -103,7 +103,7 @@ Findings from a May 2026 audit against the official docs of Claude Code, Codex C
 | Status | Issue | Title |
 |---|---|---|
 | 🟢 | [#177](https://github.com/PetrovC/ai-agent-kit/issues/177) | docs(adr): rewrite ADR-008 — Gemini now supports hooks (2026 update) |
-| ⏸ | [#178](https://github.com/PetrovC/ai-agent-kit/issues/178) | feat(gemini): adopt hooks (BeforeTool/AfterTool/SessionStart/...) — depends on #177 |
+| 🟡 | [#178](https://github.com/PetrovC/ai-agent-kit/issues/178) | feat(gemini): adopt hooks — `pre-bash-guard` shipped; format-on-save / notify-done / session-summary pending live-schema confirmation |
 | ⏸ | [#179](https://github.com/PetrovC/ai-agent-kit/issues/179) | feat(codex): migrate subagents to native `[agents.<name>]` tables — depends on #144 |
 | 🟢 | [#180](https://github.com/PetrovC/ai-agent-kit/issues/180) | feat(claude): adopt unused hook events (SubagentStop, SessionStart/End, UserPromptSubmit, Notification) |
 | 🟢 | [#181](https://github.com/PetrovC/ai-agent-kit/issues/181) | feat(gemini): switch context.fileName to array (AGENTS.md + GEMINI.md + CONTEXT.md) |

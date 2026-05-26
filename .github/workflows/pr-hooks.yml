@@ -21,7 +21,7 @@ jobs:
       - name: Verify hook scripts exist and are executable
         run: |
           errors=0
-          for f in tooling/claude/hooks/*.sh tooling/codex/hooks/*.sh; do
+          for f in tooling/claude/hooks/*.sh tooling/codex/hooks/*.sh tooling/gemini/hooks/*.sh; do
             if [[ ! -x "$f" ]]; then
               echo "NOT EXECUTABLE: $f"
               errors=$((errors+1))
@@ -140,6 +140,7 @@ jobs:
           }
           run_matrix tooling/claude/hooks/pre-bash-guard.sh
           run_matrix tooling/codex/hooks/pre-bash-guard.sh
+          run_matrix tooling/gemini/hooks/pre-bash-guard.sh
           [[ "$fail" -eq 0 ]] || exit 1
 
       - name: Non-guard hooks must exit 0 on the inputs they actually receive

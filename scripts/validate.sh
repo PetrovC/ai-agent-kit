@@ -211,6 +211,10 @@ dogfood_source_candidates() {
             tail="${rel#.gemini/commands/}"
             printf '%s\n' "$TARGET/tooling/gemini/commands/$tail"
             ;;
+        .gemini/hooks/*)
+            tail="${rel#.gemini/hooks/}"
+            printf '%s\n' "$TARGET/tooling/gemini/hooks/$tail"
+            ;;
         .gemini/skills/*)
             tail="${rel#.gemini/skills/}"
             printf '%s\n' "$TARGET/skills/$tail"

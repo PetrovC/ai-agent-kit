@@ -51,43 +51,51 @@ time to see which skills are discovered.
 
 ## Safety model — read this
 
-**The kit does not (yet) ship a Gemini `pre-bash-guard` hook.** Claude
-Code and Codex CLI both install a `BeforeTool` / PreToolUse hook that
-*mechanically blocks* force/mirror/delete push, `git reset --hard/--keep`,
-ref deletion, `rm -rf` on dangerous targets, and unapproved SQL `DROP`
-(exit 2 = blocked). Gemini CLI 2026 supports the same class of hook
-(`BeforeTool` family in `hooksConfig` / `hooks` — see the [official
-configuration reference](https://geminicli.com/docs/reference/configuration/)),
-but the kit has not yet adopted it. Adoption is tracked by
-[#178](https://github.com/PetrovC/ai-agent-kit/issues/178); ADR-008
-in `docs/ai/DECISIONS.md` records the current state.
+**The kit ships a Gemini `pre-bash-guard` hook in this release.** Wired
+via `.gemini/settings.json` as a `BeforeTool` hook matching
+`run_shell_command`, it *mechanically blocks* force/mirror/delete push,
+`git reset --hard/--keep`, ref deletion, `git switch --discard-changes`,
+`git clean -f`, `rm -rf` on unsafe targets, and unapproved SQL `DROP`.
+The denylist is byte-equivalent to the Claude / Codex `pre-bash-guard`
+the kit has shipped since v1.16.5; the only difference is the wiring
+(Gemini's `hooksConfig` / `hooks` schema vs Claude's `settings.json`
+hooks block vs Codex's `hooks.json`). When a command matches a rule
+the hook prints the reason to stderr and exits 2 — Gemini surfaces
+that as a tool error and the turn continues.
 
-Until the Gemini guard ships, the kit's safety layers on Gemini are:
+Safety layers on Gemini, in order:
 
-- **Approval mode.** `default` / `auto_edit` prompt before shell
-  execution — a destructive command can be caught by the human.
-  `yolo` skips the prompt and, *because the kit has not yet wired
-  Gemini's `BeforeTool` hook*, there is no second layer to fall
-  back on. Treat `yolo` on Gemini as materially riskier than Claude
-  `--dangerously-skip-permissions` or Codex `approval_policy=never`,
-  which still run their PreToolUse guard.
-- **`.geminiignore`.** Keeps secrets and runtime files out of the
-  model context.
-- **CI.** The kit's GitHub Actions workflows reject merges that
-  violate policy regardless of the local CLI.
-- **Router guidance below.** "Git rules" and "Security rules" must be
-  **self-enforced** by the model until the upstream hook lands.
+1. **Approval mode.** `default` / `auto_edit` prompt the human before
+   shell execution. `yolo` skips the prompt — but **the `BeforeTool`
+   pre-bash-guard still fires** under it. `yolo` on Gemini is now at
+   the same risk level as Claude `--dangerously-skip-permissions` or
+   Codex `approval_policy=never`: prompts are off, but the guard
+   remains the second layer.
+2. **`pre-bash-guard` (this release).** Denylist over the raw command
+   string. Best-effort, not a sandbox — see the script header for the
+   honest scope and limits, and ADR-008 for the design contract.
+3. **`.geminiignore`.** Keeps secrets and runtime files out of model
+   context.
+4. **CI.** The kit's GitHub Actions workflows reject merges that
+   violate policy regardless of the local CLI.
+5. **Router guidance below.** "Git rules" and "Security rules" remain
+   self-enforced by the model as defense-in-depth.
 
-Practical rules until [#178](https://github.com/PetrovC/ai-agent-kit/issues/178) lands:
+Practical rules:
 
-- Do **not** use `yolo` on a repo with real history/data. Reserve it
-  for sandboxed / throw-away checkouts.
+- The hook is a denylist, not a sandbox. Deliberate obfuscation
+  (`base64 | eval`, here-strings, `bash -c "$(...)"`) can still slip
+  through. Keep approval mode at `default` or `auto_edit` on any repo
+  with real history/data; `yolo` is for sandboxed / throw-away
+  checkouts.
 - For anything touching git history, bulk deletion, or a database,
-  stay in `default` / `auto_edit` and let the human approve the
-  command.
-- The current safety net on Gemini is **approval mode + code review
-  + CI**, not the runtime. After [#178](https://github.com/PetrovC/ai-agent-kit/issues/178)
-  the runtime layer will join the other two.
+  prefer the prompt path over the hook — the hook is the cheap
+  safety net, the human is the smart one.
+- Format-on-save, notify-done, and session-summary hooks for Gemini
+  are not in this release; their `tool_input` / event payload schemas
+  for `write_file` / `replace` / `SessionEnd` / `PreCompress` need to
+  be confirmed against live Gemini behaviour first. Tracked
+  separately.
 
 ---
 
