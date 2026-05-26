@@ -4,7 +4,7 @@
   },
 
   "context": {
-    "fileName": "GEMINI.md"
+    "fileName": ["AGENTS.md", "GEMINI.md", "CONTEXT.md"]
   },
 
   "general": {

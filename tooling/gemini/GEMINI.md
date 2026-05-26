@@ -32,7 +32,17 @@ Useful flags:
 - `--checkpointing` — enable automatic checkpointing so Gemini can resume after an error or long pause.
 - `--debug` — verbose output showing tool calls and model reasoning.
 
-Gemini CLI reads this file at startup. Skills under `.gemini/skills/<name>/SKILL.md`
+Gemini CLI reads this file at startup. The kit configures `context.fileName`
+as an array (`["AGENTS.md", "GEMINI.md", "CONTEXT.md"]`), so Gemini loads
+**all three files when present** and concatenates them in that order —
+target projects that also use Codex get `AGENTS.md` merged in without
+duplicating its content into `GEMINI.md`, and a project-level `CONTEXT.md`
+(if the project chooses to add one) joins automatically. Files that don't
+exist are silently skipped; you do not have to create the placeholders.
+See [geminicli.com/docs/cli/gemini-md](https://geminicli.com/docs/cli/gemini-md/)
+for the upstream multi-file behaviour.
+
+Skills under `.gemini/skills/<name>/SKILL.md`
 are **Native Agent Skills**: Gemini auto-discovers them at session start and
 activates them based on their `description:` frontmatter. The routing table
 below is the kit's policy for **deterministic activation** — it tells Gemini
