@@ -31,6 +31,24 @@ frontmatter matches the files you open. Skills are lazy-loaded via the routing t
 
 ---
 
+## Session hygiene
+
+Actions, not philosophy. See [`docs/ai/CONTEXT_GOVERNANCE.md`](docs/ai/CONTEXT_GOVERNANCE.md) for the 40/60/80% thresholds.
+
+| Context state | Action |
+|---|---|
+| 0–39% | Continue normally. |
+| 40–59% | Evaluate: compact before any broad read, large log dump, or multi-file refactor. |
+| 60–79% | Run `/compact` before the next step. Default to compaction. |
+| 80%+ | Stop. Summarize state, then start a fresh session. |
+
+- **`/compact`** — summarises conversation + tool outputs; preserves the working summary. Use it proactively.
+- **`/clear`** — resets conversation history but keeps file cache. Rarely the right choice: it discards the summary without reducing file-context cost. Prefer `/compact` or quit + new session.
+- **`claude --continue`** — resumes the previous session (reuses Anthropic's prompt cache). Use when the next task is the same task and the session was recently idle.
+- **Auto-compact threshold** — Claude Code does not yet expose a configurable auto-compact trigger (unlike Gemini's `model.compressionThreshold = 0.6`). Use `/compact` manually at the 60% checkpoint.
+
+---
+
 ## Slash commands
 
 The kit ships eleven reusable workflow prompts as slash commands under `.claude/commands/`.

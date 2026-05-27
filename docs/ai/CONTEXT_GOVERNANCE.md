@@ -29,6 +29,8 @@ Important nuance:
 | Codex CLI | `/compact` |
 | Gemini CLI | `/compress` |
 
+Claude Code session-hygiene details (when to use `--continue`, `/compact`, `/clear`; why auto-compact is not yet configurable) live in the **Session hygiene** section of `tooling/claude/CLAUDE.md`.
+
 ## Codex Router Budget
 
 Codex reads router files at session start, so keep them as pointers rather than
