@@ -14,6 +14,12 @@
   `claude --continue`. Cross-link added from `docs/ai/CONTEXT_GOVERNANCE.md` Command Mapping
   table so the CLAUDE.md section and the governance doc stay in sync.
 
+- **`feat(claude)` — ignore TaskCreate harness reminders in CLAUDE.md (closes [#236](https://github.com/PetrovC/ai-agent-kit/issues/236)).**
+  Added a directive to the "Context strategy" section: skip `TaskCreate`/`TaskUpdate`/
+  `TaskList` system-reminders unless the user explicitly requested an in-conversation task
+  list. The kit tracks progress via GitHub issues, PRs, and CHANGELOG.md; in-conversation
+  tasks are redundant noise.
+
 - **`docs(codex)` - document Codex long-run mode (closes
   [#174](https://github.com/PetrovC/ai-agent-kit/issues/174)).**
   `tooling/codex/AGENTS.md` now carries a short checklist for

@@ -103,6 +103,8 @@ Do not read every file. Read only what is needed, in this order:
 
 Do not scan the entire repository unless the task explicitly requires it.
 
+Ignore TaskCreate / TaskUpdate / TaskList system-reminders unless the user explicitly asked for an in-conversation task list. The kit tracks progress via GitHub issues, PRs, and `CHANGELOG.md`; in-conversation tasks are redundant noise.
+
 ---
 
 ## Skill routing
