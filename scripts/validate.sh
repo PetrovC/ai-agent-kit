@@ -19,11 +19,13 @@
 #   1 — issues found (or usage error)
 #
 # Usage:
-#   ./validate.sh --target /path/to/project
+#   ./validate.sh --target /path/to/project [--strict] [--router-max-lines N]
 #
 set -euo pipefail
 
 TARGET=""
+STRICT_MODE=0
+ROUTER_MAX_LINES_OVERRIDE=""
 
 # Validate that a flag's value argument is present and is not another flag.
 require_value() {
@@ -41,12 +43,14 @@ require_value() {
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --target) require_value "$1" "${2-}" "$#"; TARGET="$2"; shift 2 ;;
+        --strict) STRICT_MODE=1; shift ;;
+        --router-max-lines) require_value "$1" "${2-}" "$#"; ROUTER_MAX_LINES_OVERRIDE="$2"; shift 2 ;;
         *) echo "Unknown argument: $1"; exit 1 ;;
     esac
 done
 
 if [[ -z "$TARGET" ]]; then
-    echo "Usage: $0 --target /path/to/project"
+    echo "Usage: $0 --target /path/to/project [--strict] [--router-max-lines N]"
     exit 1
 fi
 
@@ -57,7 +61,14 @@ if [[ ! -d "$DOCS_AI" ]]; then
 fi
 
 REQUIRED=(PROJECT.md ARCHITECTURE.md COMMANDS.md DECISIONS.md GLOSSARY.md ROADMAP.md TESTING.md)
-CODEX_ROUTER_MAX_LINES=320
+ROUTER_MAX_LINES="${AAK_ROUTER_MAX_LINES:-320}"
+if [[ -n "$ROUTER_MAX_LINES_OVERRIDE" ]]; then
+    ROUTER_MAX_LINES="$ROUTER_MAX_LINES_OVERRIDE"
+fi
+if ! [[ "$ROUTER_MAX_LINES" =~ ^[0-9]+$ ]] || (( ROUTER_MAX_LINES <= 0 )); then
+    echo "Error: router max lines must be a positive integer (got '$ROUTER_MAX_LINES')" >&2
+    exit 1
+fi
 CODEX_ROUTER_MAX_BYTES=16384
 CODEX_REQUIRED_LINKS=(
     docs/ai/CONTEXT_GOVERNANCE.md
@@ -163,38 +174,83 @@ done
 $non_comment_found || ok "no non-comment placeholders remaining"
 
 echo ""
-echo "> Codex router context budget"
-codex_router_files=()
-[[ -f "$TARGET/AGENTS.md" ]] && codex_router_files+=(AGENTS.md)
-[[ -f "$TARGET/tooling/codex/AGENTS.md" ]] && codex_router_files+=(tooling/codex/AGENTS.md)
-codex_router_failed=false
+echo "> Router line budget"
+router_files=()
+[[ -f "$TARGET/AGENTS.md" ]] && router_files+=(AGENTS.md)
+[[ -f "$TARGET/CLAUDE.md" ]] && router_files+=(CLAUDE.md)
+[[ -f "$TARGET/GEMINI.md" ]] && router_files+=(GEMINI.md)
+[[ -f "$TARGET/tooling/codex/AGENTS.md" ]] && router_files+=(tooling/codex/AGENTS.md)
+[[ -f "$TARGET/tooling/claude/CLAUDE.md" ]] && router_files+=(tooling/claude/CLAUDE.md)
+[[ -f "$TARGET/tooling/gemini/GEMINI.md" ]] && router_files+=(tooling/gemini/GEMINI.md)
+router_failed=false
 
-if ((${#codex_router_files[@]} == 0)); then
-    ok "no Codex router files found"
+if ((${#router_files[@]} == 0)); then
+    ok "no router files found"
 else
-    for rel in "${codex_router_files[@]}"; do
+    for rel in "${router_files[@]}"; do
         path="$TARGET/$rel"
         line_count=$(wc -l < "$path" | tr -d '[:space:]')
-        byte_count=$(wc -c < "$path" | tr -d '[:space:]')
-
-        if (( line_count > CODEX_ROUTER_MAX_LINES )); then
-            warn "$rel has $line_count lines; budget is $CODEX_ROUTER_MAX_LINES"
-            codex_router_failed=true
-        fi
-        if (( byte_count > CODEX_ROUTER_MAX_BYTES )); then
-            warn "$rel is $byte_count bytes; budget is $CODEX_ROUTER_MAX_BYTES"
-            codex_router_failed=true
+        if (( line_count > ROUTER_MAX_LINES )); then
+            warn "$rel has $line_count lines; budget is $ROUTER_MAX_LINES"
+            router_failed=true
         fi
 
-        for link in "${CODEX_REQUIRED_LINKS[@]}"; do
-            if ! grep -qF "$link" "$path"; then
-                warn "$rel missing link to $link"
-                codex_router_failed=true
-            fi
-        done
+        case "$rel" in
+            AGENTS.md|tooling/codex/AGENTS.md)
+                byte_count=$(wc -c < "$path" | tr -d '[:space:]')
+                if (( byte_count > CODEX_ROUTER_MAX_BYTES )); then
+                    warn "$rel is $byte_count bytes; budget is $CODEX_ROUTER_MAX_BYTES"
+                    router_failed=true
+                fi
+                for link in "${CODEX_REQUIRED_LINKS[@]}"; do
+                    if ! grep -qF "$link" "$path"; then
+                        warn "$rel missing link to $link"
+                        router_failed=true
+                    fi
+                done
+                ;;
+        esac
     done
 
-    $codex_router_failed || ok "Codex routers stay within $CODEX_ROUTER_MAX_LINES lines / $CODEX_ROUTER_MAX_BYTES bytes and link context/model/subagent guidance"
+    if [[ "$router_failed" == false ]]; then
+        ok "router files stay within $ROUTER_MAX_LINES lines"
+        if [[ -f "$TARGET/AGENTS.md" || -f "$TARGET/tooling/codex/AGENTS.md" ]]; then
+            ok "Codex AGENTS routers stay within $CODEX_ROUTER_MAX_BYTES bytes and link context/model/subagent guidance"
+        fi
+    fi
+fi
+
+echo ""
+echo "> Strict mode: project-owned update guard"
+if [[ "$STRICT_MODE" -eq 0 ]]; then
+    ok "strict checks disabled (use --strict)"
+else
+    if [[ -f "$TARGET/.kit-manifest" ]] \
+       && { [[ -d "$TARGET/tooling/codex" ]] || [[ -d "$TARGET/tooling/claude" ]] || [[ -d "$TARGET/tooling/gemini" ]]; }; then
+        update_script="$TARGET/scripts/update.sh"
+        if [[ ! -f "$update_script" ]]; then
+            ok "no scripts/update.sh in target; skipping strict update guard"
+        else
+            set +e
+            update_out="$(bash "$update_script" --target "$TARGET" --dry-run 2>&1)"
+            update_rc=$?
+            set -e
+            if [[ "$update_rc" -ne 0 ]]; then
+                warn "strict update guard: scripts/update.sh --dry-run failed"
+            else
+                strict_hits="$(printf '%s\n' "$update_out" | grep -E '^[[:space:]]*(NEW|UPDATED|PRUNED|REMOVED)[[:space:]]+(docs/ai/|\.mcp\.json([[:space:]]|$))' || true)"
+                if [[ -n "$strict_hits" ]]; then
+                    while IFS= read -r hit; do
+                        [[ -n "$hit" ]] && warn "strict update guard: would modify project-owned path -> $hit"
+                    done <<< "$strict_hits"
+                else
+                    ok "update dry-run preserves docs/ai/ and .mcp.json"
+                fi
+            fi
+        fi
+    else
+        ok "not a dogfood source tree; skipping strict update guard"
+    fi
 fi
 
 add_agent_context_file() {

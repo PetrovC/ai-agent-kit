@@ -29,7 +29,11 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [string]$Target
+    [string]$Target,
+
+    [switch]$Strict,
+
+    [Nullable[int]]$RouterMaxLines = $null
 )
 
 Set-StrictMode -Version Latest
@@ -46,7 +50,22 @@ if (-not (Test-Path -LiteralPath $DocsAi)) {
 }
 
 $Required = @("PROJECT.md", "ARCHITECTURE.md", "COMMANDS.md", "DECISIONS.md", "GLOSSARY.md", "ROADMAP.md", "TESTING.md")
-$CodexRouterMaxLines = 320
+$ResolvedRouterMaxLines = 320
+if ($env:AAK_ROUTER_MAX_LINES) {
+    $envValue = 0
+    if (-not [int]::TryParse($env:AAK_ROUTER_MAX_LINES, [ref]$envValue) -or $envValue -le 0) {
+        Write-Error "AAK_ROUTER_MAX_LINES must be a positive integer. Got '$($env:AAK_ROUTER_MAX_LINES)'."
+        exit 1
+    }
+    $ResolvedRouterMaxLines = $envValue
+}
+if ($PSBoundParameters.ContainsKey('RouterMaxLines')) {
+    if ($null -eq $RouterMaxLines -or [int]$RouterMaxLines -le 0) {
+        Write-Error "RouterMaxLines must be a positive integer."
+        exit 1
+    }
+    $ResolvedRouterMaxLines = [int]$RouterMaxLines
+}
 $CodexRouterMaxBytes = 16384
 $CodexRequiredLinks = @(
     "docs/ai/CONTEXT_GOVERNANCE.md",
@@ -185,43 +204,109 @@ function Add-AgentContextFiles([hashtable]$files, [string]$rel, [string]$filter)
 }
 
 Write-Host ""
-Write-Host "> Codex router context budget"
-$codexRouterFailed = $false
-$codexRouterFiles = @(@("AGENTS.md", "tooling/codex/AGENTS.md") | Where-Object {
+Write-Host "> Router line budget"
+$routerFailed = $false
+$routerFiles = @(@(
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    "tooling/codex/AGENTS.md",
+    "tooling/claude/CLAUDE.md",
+    "tooling/gemini/GEMINI.md"
+) | Where-Object {
     Test-Path -LiteralPath (Join-TargetRelative $_) -PathType Leaf
 })
 
-if ($codexRouterFiles.Count -eq 0) {
-    Ok "no Codex router files found"
+if ($routerFiles.Count -eq 0) {
+    Ok "no router files found"
 } else {
-    foreach ($rel in $codexRouterFiles) {
+    foreach ($rel in $routerFiles) {
         $path = Join-TargetRelative $rel
         $content = Get-Content -LiteralPath $path -Raw
         $lineCount = ([regex]::Matches($content, "`n")).Count
         if ($content.Length -gt 0 -and -not $content.EndsWith("`n")) {
             $lineCount++
         }
-        $byteCount = (Get-Item -LiteralPath $path).Length
 
-        if ($lineCount -gt $CodexRouterMaxLines) {
-            Warn "$rel has $lineCount lines; budget is $CodexRouterMaxLines"
-            $codexRouterFailed = $true
-        }
-        if ($byteCount -gt $CodexRouterMaxBytes) {
-            Warn "$rel is $byteCount bytes; budget is $CodexRouterMaxBytes"
-            $codexRouterFailed = $true
+        if ($lineCount -gt $ResolvedRouterMaxLines) {
+            Warn "$rel has $lineCount lines; budget is $ResolvedRouterMaxLines"
+            $routerFailed = $true
         }
 
-        foreach ($link in $CodexRequiredLinks) {
-            if (-not $content.Contains($link)) {
-                Warn "$rel missing link to $link"
-                $codexRouterFailed = $true
+        if ($rel -in @("AGENTS.md", "tooling/codex/AGENTS.md")) {
+            $byteCount = (Get-Item -LiteralPath $path).Length
+            if ($byteCount -gt $CodexRouterMaxBytes) {
+                Warn "$rel is $byteCount bytes; budget is $CodexRouterMaxBytes"
+                $routerFailed = $true
+            }
+            foreach ($link in $CodexRequiredLinks) {
+                if (-not $content.Contains($link)) {
+                    Warn "$rel missing link to $link"
+                    $routerFailed = $true
+                }
             }
         }
     }
 
-    if (-not $codexRouterFailed) {
-        Ok "Codex routers stay within $CodexRouterMaxLines lines / $CodexRouterMaxBytes bytes and link context/model/subagent guidance"
+    if (-not $routerFailed) {
+        Ok "router files stay within $ResolvedRouterMaxLines lines"
+        if (($routerFiles -contains "AGENTS.md") -or ($routerFiles -contains "tooling/codex/AGENTS.md")) {
+            Ok "Codex AGENTS routers stay within $CodexRouterMaxBytes bytes and link context/model/subagent guidance"
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "> Strict mode: project-owned update guard"
+if (-not $Strict) {
+    Ok "strict checks disabled (use -Strict)"
+} else {
+    $strictManifest = Join-Path $Target ".kit-manifest"
+    $strictHasManifest = Test-Path -LiteralPath $strictManifest -PathType Leaf
+    $strictHasToolSource = (Test-Path -LiteralPath (Join-Path $Target "tooling\codex") -PathType Container) `
+        -or (Test-Path -LiteralPath (Join-Path $Target "tooling\claude") -PathType Container) `
+        -or (Test-Path -LiteralPath (Join-Path $Target "tooling\gemini") -PathType Container)
+
+    if (-not ($strictHasManifest -and $strictHasToolSource)) {
+        Ok "not a dogfood source tree; skipping strict update guard"
+    } else {
+        $updateScript = Join-Path $Target "scripts\update.ps1"
+        if (-not (Test-Path -LiteralPath $updateScript -PathType Leaf)) {
+            Ok "no scripts/update.ps1 in target; skipping strict update guard"
+        } else {
+            $powershellCmd = Get-Command powershell.exe -ErrorAction SilentlyContinue
+            if (-not $powershellCmd) {
+                Warn "strict update guard: powershell.exe not found"
+            } else {
+                $previousErrorActionPreference = $ErrorActionPreference
+                $ErrorActionPreference = "Continue"
+                try {
+                    $updateOutput = @(& $powershellCmd.Source -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $updateScript -Target $Target -DryRun 2>&1)
+                    $updateExitCode = $LASTEXITCODE
+                } finally {
+                    $ErrorActionPreference = $previousErrorActionPreference
+                }
+
+                if ($updateExitCode -ne 0) {
+                    Warn "strict update guard: scripts/update.ps1 -DryRun failed"
+                } else {
+                    $strictHits = @(
+                        $updateOutput |
+                            ForEach-Object { $_.ToString() } |
+                            Where-Object {
+                                $_ -match '^\s*(NEW|UPDATED|PRUNED|REMOVED)\s+(docs[\\/]+ai[\\/]|\.mcp\.json(\s|$))'
+                            }
+                    )
+                    if ($strictHits.Count -gt 0) {
+                        foreach ($line in $strictHits) {
+                            Warn "strict update guard: would modify project-owned path -> $line"
+                        }
+                    } else {
+                        Ok "update dry-run preserves docs/ai/ and .mcp.json"
+                    }
+                }
+            }
+        }
     }
 }
 
