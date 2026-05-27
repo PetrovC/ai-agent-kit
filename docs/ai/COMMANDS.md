@@ -14,6 +14,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -T
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\update.ps1 -Target "C:\path\to\project" -DryRun
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1 -Target "C:\path\to\project" -DryRun
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Target "C:\path\to\project"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Target "C:\path\to\project" -Strict
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Target "C:\path\to\project" -RouterMaxLines 300
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\new-skill.ps1 -Name "skill-name" -Description "Use when building a focused capability."
 ```
 
@@ -24,6 +26,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\new-skill.ps1 
 ./scripts/update.sh --target /path/to/project --dry-run
 ./scripts/uninstall.sh --target /path/to/project --dry-run
 ./scripts/validate.sh --target /path/to/project
+./scripts/validate.sh --target /path/to/project --strict
+./scripts/validate.sh --target /path/to/project --router-max-lines 300
 ./scripts/new-skill.sh --name skill-name --description "Use when building a focused capability."
 ```
 
@@ -34,7 +38,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\new-skill.ps1 
 | `install.ps1` / `install.sh` | `Target` or `--target`; `Tools` or `--tools` | Installs managed kit files. No dry-run mode exists. Valid tools: `codex`, `claude`, `gemini`. |
 | `update.ps1` / `update.sh` | `Target` or `--target`; optional `Tools` or `--tools`; `DryRun` or `--dry-run` | Refreshes managed kit files. Does not overwrite `docs/ai`. |
 | `uninstall.ps1` / `uninstall.sh` | `Target` or `--target`; optional `Tools` or `--tools`; `DryRun` or `--dry-run` | Removes managed files by manifest. Preserves `docs/ai` and user-added files. |
-| `validate.ps1` / `validate.sh` | `Target` or `--target` | Checks required `docs/ai` files, template warning notices, HTML placeholders, common template placeholders, Codex router budget plus context/model/subagent link hygiene, largest Codex-facing context files, and repo-local Claude/Codex/Gemini dogfood drift (content + git mode) when run against this source tree. |
+| `validate.ps1` / `validate.sh` | `Target` or `--target`; optional `Strict` or `--strict`; optional `RouterMaxLines` or `--router-max-lines` | Checks required `docs/ai` files, template warning notices, HTML placeholders, common template placeholders, router line budgets (default 320 lines; override via flag or `AAK_ROUTER_MAX_LINES`), Codex context/model/subagent link hygiene, largest Codex-facing context files, and repo-local Claude/Codex/Gemini dogfood drift (content + git mode) when run against this source tree. In strict mode, fails if update dry-run would modify project-owned `docs/ai/` or `.mcp.json`. |
 | `new-skill.ps1` / `new-skill.sh` | `Name` or `--name`; optional `Description` or `--description` | Scaffolds `skills/<name>/SKILL.md` and routing placeholders. |
 
 ## Repository Smoke Commands
@@ -45,7 +49,7 @@ runtime commands here unless they are clearly examples for target projects.
 
 ```powershell
 # Validate this repository's docs/ai folder and Claude/Codex dogfood drift.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Target "."
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Target "." -Strict
 
 # Validate the filled example project context.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Target "examples\filled-project"
@@ -65,7 +69,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Pester tests/
 
 ```bash
 # Validate this repository's docs/ai folder and Claude/Codex dogfood drift.
-./scripts/validate.sh --target .
+./scripts/validate.sh --target . --strict
 
 # Validate the filled example project context.
 ./scripts/validate.sh --target examples/filled-project

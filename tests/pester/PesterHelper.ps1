@@ -79,9 +79,11 @@ function Invoke-AakUninstall {
 }
 
 function Invoke-AakValidate {
+    param([string[]]$Arguments = @())
+
     Invoke-AakPowerShellScript `
         -Script (Join-Path $script:KitRoot "scripts\validate.ps1") `
-        -Arguments @("-Target", $script:Target)
+        -Arguments (@("-Target", $script:Target) + $Arguments)
 }
 
 function Assert-AakSuccess {
