@@ -4,6 +4,9 @@
 
 ### Added
 
+- **`feat(claude)` — add `/context-report` slash command for per-surface token estimate (closes [#234](https://github.com/PetrovC/ai-agent-kit/issues/234)).**
+  New command `tooling/claude/commands/context-report.md` estimates the token cost of each surface loaded in the current session (CLAUDE.md, skills, recently-read files) using the chars/4 approximation. Runs locally, no API call, flags any surface above 5% of the 200K window as a compaction candidate.
+
 - **`docs(codex)` - document Codex long-run mode (closes
   [#174](https://github.com/PetrovC/ai-agent-kit/issues/174)).**
   `tooling/codex/AGENTS.md` now carries a short checklist for
