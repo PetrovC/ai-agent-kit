@@ -242,6 +242,33 @@ else
         done
 fi
 
+# Closes #193: every shared skill under skills/<name>/SKILL.md must declare
+# an `allowed-tools:` block in its YAML frontmatter, so Claude can scope tool
+# access predictably. The pr-docs lint already enforces the SHAPE of each
+# entry (`Bash(<cmd>:*)`); this check guarantees the field is present at all.
+# Skipped silently in target projects that do not ship a top-level skills/
+# directory (the kit installs skills under .claude/.agents/.gemini instead).
+echo ""
+echo "> Skill frontmatter: allowed-tools required"
+if [[ -d "$TARGET/skills" ]] && compgen -G "$TARGET/skills/*/SKILL.md" > /dev/null; then
+    skill_at_missing=false
+    for f in "$TARGET"/skills/*/SKILL.md; do
+        [[ -f "$f" ]] || continue
+        if ! awk '
+            /^---$/ { c++; if (c >= 2) { exit found ? 0 : 1 } ; next }
+            c == 1 && /^allowed-tools:[[:space:]]*$/ { found = 1 }
+            END { exit found ? 0 : 1 }
+        ' "$f"; then
+            rel="${f#"$TARGET/"}"
+            warn "$rel missing allowed-tools in frontmatter"
+            skill_at_missing=true
+        fi
+    done
+    $skill_at_missing || ok "all shared skills declare allowed-tools"
+else
+    ok "no shared skills/ directory to check"
+fi
+
 dogfood_source_candidates() {
     local rel="$1" tail=""
     case "$rel" in

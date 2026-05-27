@@ -4,6 +4,9 @@ description: >
   Use when adding or reviewing internationalization / localization: translation
   files, date / number / currency formatting, plural rules, RTL layouts,
   language detection, locale switching, ICU MessageFormat, translation flow.
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(npx:*)"
 ---
 
 # Internationalization (i18n) Skill

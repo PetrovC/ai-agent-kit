@@ -5,6 +5,13 @@ description: >
   open-weights): prompt engineering, prompt caching, tool use / function
   calling, structured outputs, RAG, embeddings, vector stores, agentic
   workflows, evals, cost / latency optimization.
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(npx:*)"
+  - "Bash(python:*)"
+  - "Bash(python3:*)"
+  - "Bash(uv:*)"
+  - "Bash(pip:*)"
 ---
 
 # AI Development Skill

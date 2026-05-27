@@ -4,6 +4,9 @@ description: >
   Use when designing or reviewing error handling, retries, timeouts,
   circuit breakers, bulkheads, fallback strategies, exception design,
   resilience patterns, or recovery flows across any language / stack.
+allowed-tools:
+  - "Bash(git:*)"
+  - "Bash(rg:*)"
 ---
 
 # Error-Handling Skill

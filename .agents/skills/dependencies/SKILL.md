@@ -15,6 +15,18 @@ paths:
   - "**/pyproject.toml"
   - "**/pom.xml"
   - "**/requirements*.txt"
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(pnpm:*)"
+  - "Bash(yarn:*)"
+  - "Bash(pip:*)"
+  - "Bash(uv:*)"
+  - "Bash(cargo:*)"
+  - "Bash(go:*)"
+  - "Bash(mvn:*)"
+  - "Bash(./gradlew:*)"
+  - "Bash(dotnet:*)"
+  - "Bash(pip-audit:*)"
 ---
 
 # Dependencies Skill

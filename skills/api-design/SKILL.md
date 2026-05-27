@@ -5,6 +5,10 @@ description: >
   error contracts, pagination, versioning, idempotency,
   or any externally consumed REST/HTTP API surface.
   For GraphQL implementation, use the graphql skill instead.
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(npx:*)"
+  - "Bash(pnpm:*)"
 ---
 
 # API Design Skill

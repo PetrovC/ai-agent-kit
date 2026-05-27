@@ -4,6 +4,10 @@ description: >
   Use when adding or reviewing logs, metrics, traces, health checks,
   alerting, SLOs / SLIs, structured logging, OpenTelemetry instrumentation,
   or anything that helps answer "what is the system doing right now?".
+allowed-tools:
+  - "Bash(otelcol:*)"
+  - "Bash(curl:*)"
+  - "Bash(jq:*)"
 ---
 
 # Observability Skill

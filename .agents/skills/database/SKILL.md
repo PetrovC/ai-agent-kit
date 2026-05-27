@@ -10,6 +10,12 @@ paths:
   - "**/migrations/**"
   - "**/schema.prisma"
   - "**/prisma/**"
+allowed-tools:
+  - "Bash(psql:*)"
+  - "Bash(mysql:*)"
+  - "Bash(sqlite3:*)"
+  - "Bash(redis-cli:*)"
+  - "Bash(mongosh:*)"
 ---
 
 # Database Skill
