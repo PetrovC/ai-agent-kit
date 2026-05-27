@@ -38,7 +38,7 @@ setup() {
     run bash "$KIT_ROOT/scripts/sanitize.sh" <<< "$input"
     assert_success
     assert_output_contains "[REDACTED_INTERNAL_HOST]"
-    assert_output_contains 'password="[REDACTED_SECRET]"'
+    assert_output_contains 'password=[REDACTED_SECRET]'
 }
 
 @test "sanitize.sh supports --input and --output" {

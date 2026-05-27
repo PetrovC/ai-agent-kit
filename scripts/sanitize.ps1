@@ -52,7 +52,7 @@ function Invoke-Sanitization {
     $text = [regex]::Replace($text, '\b(10(\.[0-9]{1,3}){3}|192\.168(\.[0-9]{1,3}){2}|172\.(1[6-9]|2[0-9]|3[0-1])(\.[0-9]{1,3}){2})\b', '[REDACTED_PRIVATE_IP]')
     $text = [regex]::Replace($text, '\b([A-Za-z0-9-]+\.)+(internal|corp|localdomain)\b', '[REDACTED_INTERNAL_HOST]')
     $text = [regex]::Replace($text, '("?(password|secret|token|api[_-]?key)"?\s*:\s*)"[^"]*"', '$1"[REDACTED_SECRET]"', 'IgnoreCase')
-    $text = [regex]::Replace($text, '\b([A-Z0-9_]*(TOKEN|SECRET|PASSWORD|API_KEY)[A-Z0-9_]*\s*[:=]\s*)[^\s]+', '$1[REDACTED_SECRET]')
+    $text = [regex]::Replace($text, '\b([A-Za-z0-9_]*(TOKEN|SECRET|PASSWORD|API_KEY)[A-Za-z0-9_]*\s*[:=]\s*)[^\s]+', '$1[REDACTED_SECRET]', 'IgnoreCase')
     return $text
 }
 

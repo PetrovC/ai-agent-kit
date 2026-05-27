@@ -67,7 +67,7 @@ sanitize_stream() {
         -e 's/\b(10(\.[0-9]{1,3}){3}|192\.168(\.[0-9]{1,3}){2}|172\.(1[6-9]|2[0-9]|3[0-1])(\.[0-9]{1,3}){2})\b/[REDACTED_PRIVATE_IP]/g' \
         -e 's/\b([A-Za-z0-9-]+\.)+(internal|corp|localdomain)\b/[REDACTED_INTERNAL_HOST]/g' \
         -e 's/("?(password|secret|token|api[_-]?key)"?[[:space:]]*:[[:space:]]*)"[^"]*"/\1"[REDACTED_SECRET]"/g' \
-        -e 's/\b([A-Z0-9_]*(TOKEN|SECRET|PASSWORD|API_KEY)[A-Z0-9_]*[[:space:]]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED_SECRET]/g'
+        -e 's/\b([A-Za-z0-9_]*(TOKEN|SECRET|PASSWORD|API_KEY)[A-Za-z0-9_]*[[:space:]]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED_SECRET]/gI'
 }
 
 if [[ -n "$INPUT_PATH" ]]; then

@@ -1,4 +1,23 @@
 Describe "sanitize.ps1 redaction coverage" {
+    BeforeAll {
+        function Invoke-SanitizeFile {
+            param([Parameter(Mandatory = $true)][string]$Content)
+
+            $inputPath = Join-Path $script:Target "raw.log"
+            $outputPath = Join-Path $script:Target "sanitized.log"
+            [System.IO.File]::WriteAllText($inputPath, $Content, (New-Object System.Text.UTF8Encoding($false)))
+
+            $result = Invoke-AakPowerShellScript `
+                -Script (Join-Path $script:KitRoot "scripts\sanitize.ps1") `
+                -Arguments @("-InputPath", $inputPath, "-OutputPath", $outputPath)
+
+            [pscustomobject]@{
+                Result = $result
+                Output = if (Test-Path -LiteralPath $outputPath) { Get-Content -LiteralPath $outputPath -Raw } else { "" }
+            }
+        }
+    }
+
     BeforeEach {
         . "$PSScriptRoot\PesterHelper.ps1"
         Initialize-AakPesterTest
@@ -7,23 +26,6 @@ Describe "sanitize.ps1 redaction coverage" {
     AfterEach {
         if (Get-Command Remove-AakPesterTarget -ErrorAction SilentlyContinue) {
             Remove-AakPesterTarget
-        }
-    }
-
-    function Invoke-SanitizeFile {
-        param([Parameter(Mandatory = $true)][string]$Content)
-
-        $inputPath = Join-Path $script:Target "raw.log"
-        $outputPath = Join-Path $script:Target "sanitized.log"
-        [System.IO.File]::WriteAllText($inputPath, $Content, (New-Object System.Text.UTF8Encoding($false)))
-
-        $result = Invoke-AakPowerShellScript `
-            -Script (Join-Path $script:KitRoot "scripts\sanitize.ps1") `
-            -Arguments @("-InputPath", $inputPath, "-OutputPath", $outputPath)
-
-        [pscustomobject]@{
-            Result = $result
-            Output = if (Test-Path -LiteralPath $outputPath) { Get-Content -LiteralPath $outputPath -Raw } else { "" }
         }
     }
 
