@@ -1,0 +1,93 @@
+#!/usr/bin/env bats
+#
+# .kit-manifest read/write coverage.
+#
+# install.sh writes the manifest; update.sh reads it (manifest-diff GC) and
+# rewrites it; uninstall.sh consults it to know what to delete. These tests
+# pin the cross-script contract so a refactor cannot silently break manifest
+# scoping (partial-install merge, manifest-driven uninstall).
+
+load 'bats_helper'
+
+setup() {
+    aak_setup
+}
+
+@test "install writes a non-empty .kit-manifest and .kit-version" {
+    aak_install --tools claude
+    assert_file_exists "$TARGET/.kit-manifest"
+    assert_file_exists "$TARGET/.kit-version"
+    # Manifest must list at least CLAUDE.md and .claude/settings.json — the
+    # two anchor entries every Claude install ships.
+    run grep -Fx "CLAUDE.md" "$TARGET/.kit-manifest"
+    assert_success
+    run grep -Fx ".claude/settings.json" "$TARGET/.kit-manifest"
+    assert_success
+    # Manifest is sorted (LC_ALL=C sort -u) — verify no duplicate lines.
+    run bash -c "sort -u '$TARGET/.kit-manifest' | diff -q - '$TARGET/.kit-manifest'"
+    assert_success
+}
+
+@test "install scopes the manifest to --tools" {
+    aak_install --tools claude
+    # No codex- or gemini-owned paths should appear.
+    run grep -E '^AGENTS\.md$|^GEMINI\.md$|^\.codex/|^\.agents/|^\.gemini/' "$TARGET/.kit-manifest"
+    [[ "$status" -ne 0 ]] || {
+        echo "unexpected non-Claude entries:"
+        echo "$output"
+        return 1
+    }
+}
+
+@test "partial install preserves the prior tool's manifest entries" {
+    aak_install --tools claude
+    before_count="$(wc -l < "$TARGET/.kit-manifest" | tr -d ' ')"
+    # Add Gemini on top — Claude's entries must survive.
+    aak_install --tools gemini
+    run grep -Fx "CLAUDE.md" "$TARGET/.kit-manifest"
+    assert_success
+    run grep -Fx "GEMINI.md" "$TARGET/.kit-manifest"
+    assert_success
+    after_count="$(wc -l < "$TARGET/.kit-manifest" | tr -d ' ')"
+    # The manifest must have grown, not been replaced.
+    [[ "$after_count" -gt "$before_count" ]] || {
+        echo "expected manifest to grow after adding gemini: $before_count -> $after_count"
+        return 1
+    }
+    # .kit-version must record the UNION in canonical order.
+    run cat "$TARGET/.kit-version"
+    assert_success
+    assert_output_contains "tools: claude,gemini"
+}
+
+@test "uninstall reads the manifest and removes only listed files" {
+    aak_install --tools claude
+    # Drop a user file alongside the installed tree — uninstall must not touch it.
+    mkdir -p "$TARGET/.claude/agents"
+    user_file="$TARGET/.claude/agents/my-agent.md"
+    echo "user-owned" > "$user_file"
+    run aak_uninstall --tools claude
+    assert_success
+    assert_file_missing "$TARGET/CLAUDE.md"
+    # The user file survives.
+    assert_file_exists "$user_file"
+    # Manifest + version files are removed when no tools remain.
+    assert_file_missing "$TARGET/.kit-manifest"
+    assert_file_missing "$TARGET/.kit-version"
+}
+
+@test "partial uninstall rewrites manifest to the remaining tool's entries" {
+    aak_install --tools claude,gemini
+    run aak_uninstall --tools claude
+    assert_success
+    assert_file_exists "$TARGET/.kit-manifest"
+    # Manifest must keep Gemini entries and drop Claude entries.
+    run grep -Fx "GEMINI.md" "$TARGET/.kit-manifest"
+    assert_success
+    run grep -Fx "CLAUDE.md" "$TARGET/.kit-manifest"
+    assert_failure
+    # .kit-version updated to remaining tools only.
+    run cat "$TARGET/.kit-version"
+    assert_success
+    assert_output_contains "tools: gemini"
+}
