@@ -59,6 +59,26 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
+      - name: Every Claude subagent must declare explicit Stop conditions
+        run: |
+          # Guards issues #157 / #161. Stop conditions keep subagents from
+          # open-ended exploration; without them, investigator-style agents
+          # silently scale and the report becomes padding.
+          errors=0
+          for f in tooling/claude/agents/*.md; do
+            if ! grep -qE '^Stop conditions' "$f"; then
+              echo "MISSING 'Stop conditions' section in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          # The codebase-investigator must additionally state a file-read
+          # budget so it escalates instead of silently scaling.
+          if ! grep -qE 'files would be needed|file.*budget' tooling/claude/agents/codebase-investigator.md; then
+            echo "MISSING file-read budget in: tooling/claude/agents/codebase-investigator.md"
+            errors=$((errors+1))
+          fi
+          [[ "$errors" -eq 0 ]] || exit 1
+
       - name: Each .claude/commands/*.md must declare a description
         run: |
           errors=0
@@ -217,6 +237,22 @@ jobs:
               errors=$((errors+1))
             fi
           done
+          [[ "$errors" -eq 0 ]] || exit 1
+
+      - name: Every Gemini subagent must declare explicit Stop conditions
+        run: |
+          # Guards issues #157 / #161 for Gemini parity with Claude.
+          errors=0
+          for f in tooling/gemini/agents/*.md; do
+            if ! grep -qE '^Stop conditions' "$f"; then
+              echo "MISSING 'Stop conditions' section in: $f"
+              errors=$((errors+1))
+            fi
+          done
+          if ! grep -qE 'files would be needed|file.*budget' tooling/gemini/agents/codebase-investigator.md; then
+            echo "MISSING file-read budget in: tooling/gemini/agents/codebase-investigator.md"
+            errors=$((errors+1))
+          fi
           [[ "$errors" -eq 0 ]] || exit 1
 
       - name: No Gemini agent or settings must reference a preview model
