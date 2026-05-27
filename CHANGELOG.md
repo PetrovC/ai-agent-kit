@@ -7,6 +7,13 @@
 - **`feat(claude)` — add `/context-report` slash command for per-surface token estimate (closes [#234](https://github.com/PetrovC/ai-agent-kit/issues/234)).**
   New command `tooling/claude/commands/context-report.md` estimates the token cost of each surface loaded in the current session (CLAUDE.md, skills, recently-read files) using the chars/4 approximation. Runs locally, no API call, flags any surface above 5% of the 200K window as a compaction candidate.
 
+- **`feat(claude)` — add Session hygiene section to CLAUDE.md (closes [#235](https://github.com/PetrovC/ai-agent-kit/issues/235)).**
+  `tooling/claude/CLAUDE.md` now carries an explicit Session hygiene section after the
+  "How to run Claude Code" block. It provides a four-row threshold table (0–39% / 40–59% /
+  60–79% / 80%+) with concrete actions, plus one-line guidance for `/compact`, `/clear`, and
+  `claude --continue`. Cross-link added from `docs/ai/CONTEXT_GOVERNANCE.md` Command Mapping
+  table so the CLAUDE.md section and the governance doc stay in sync.
+
 - **`docs(codex)` - document Codex long-run mode (closes
   [#174](https://github.com/PetrovC/ai-agent-kit/issues/174)).**
   `tooling/codex/AGENTS.md` now carries a short checklist for
