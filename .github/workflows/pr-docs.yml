@@ -434,11 +434,17 @@ jobs:
                               "invoking Gemini (issue #83)")
                   break
 
-          # 11. Gemini model name must stay consistent across all Gemini
+          # 11. Gemini model names must all be GA-stable across all Gemini
           #     surfaces (settings.json, every subagent's frontmatter, the
           #     GEMINI.md `--model` hint, and the README capability table).
-          #     A bumped model in one file but stale in another is silent
-          #     drift — the kit needs one canonical name (issue #43 regression).
+          #     Tiered models are allowed (different agents may use different
+          #     models based on task risk), but every model must be in the
+          #     approved GA list — preview / unreleased models are rejected.
+          #     (issue #43 regression + issue #143 tiering).
+          APPROVED_GEMINI_MODELS = {
+              "gemini-3.1-pro", "gemini-3-flash", "gemini-3.1-flash-lite",
+              "gemini-3-pro", "gemini-2.5-pro", "gemini-2.5-flash",
+          }
           # Each pattern captures `[a-z0-9.-]+` so trailing punctuation in
           # prose (e.g. the backtick-fenced "`--model <name>`" hint in
           # GEMINI.md) isn't included in the captured model name.
@@ -471,10 +477,13 @@ jobs:
                   seen_models.setdefault(m.group(1), []).append("README.md")
           except FileNotFoundError:
               pass
-          if len(seen_models) > 1:
-              parts = "; ".join(f"{name!r} in {sorted(set(files))}" for name, files in seen_models.items())
-              errs.append(f"Gemini model name drift: {parts}. Pick one canonical "
-                          "name and update every file (issue #43)")
+          # Reject any model not in the approved GA list.
+          for name, files in seen_models.items():
+              if name not in APPROVED_GEMINI_MODELS:
+                  errs.append(
+                      f"Non-GA Gemini model '{name}' found in {sorted(set(files))}. "
+                      f"Use one of: {sorted(APPROVED_GEMINI_MODELS)} (issue #43/#143)"
+                  )
 
           # 12. MCP `npx -y` example blocks must pin the package version with
           #     `@<x.y.z>` (or a real `@N.N.N`) — `npx -y <pkg>` without a
