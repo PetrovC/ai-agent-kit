@@ -1,0 +1,39 @@
+name: PR — BATS
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'scripts/*.sh'
+      - 'tooling/**/*.sh'
+      - 'tests/bats/**'
+      - '.github/workflows/pr-bats.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  bats:
+    name: BATS (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: |
+          set -euo pipefail
+          # Pin a tag rather than a moving branch — release notes are clear
+          # about each bump and the suite is small enough that a green run
+          # against a specific version is meaningful evidence.
+          BATS_VERSION="v1.11.0"
+          git clone --depth 1 --branch "$BATS_VERSION" \
+            https://github.com/bats-core/bats-core.git /tmp/bats-core
+          sudo /tmp/bats-core/install.sh /usr/local
+          bats --version
+
+      - name: Run BATS suite
+        run: bats --print-output-on-failure tests/bats/

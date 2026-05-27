@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`test(scripts)` — bootstrap BATS suite for Bash helpers (closes [#145](https://github.com/PetrovC/ai-agent-kit/issues/145)).**
+  New `tests/bats/` suite covers the contract surface that script refactors keep tripping
+  on: arg parsing (`--target`, `--tools`, `--dry-run`, unknown flags), `.kit-manifest`
+  read/write (partial install merge, partial uninstall filter, manifest-driven file
+  removal), and idempotent file copy (repeat install is a no-op, `update` reports
+  "up to date", local drift is restored, stale manifest entries are pruned). Shared
+  helpers live in `tests/bats/bats_helper.bash`; tests run against per-test `mktemp -d`
+  targets so they never touch the repo. A new `pr-bats.yml` workflow installs
+  bats-core v1.11.0 and runs the suite on PRs touching `scripts/*.sh`, `tooling/**/*.sh`,
+  `tests/bats/**`, or the workflow itself. `docs/ai/COMMANDS.md` documents the local
+  `bats tests/bats/` invocation.
+
 ### Changed
 
 - **`perf(gemini)` — replace preview models with GA models in all agents (closes [#143](https://github.com/PetrovC/ai-agent-kit/issues/143)).**

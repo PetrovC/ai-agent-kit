@@ -76,6 +76,11 @@ bash -n scripts/*.sh tooling/claude/hooks/*.sh tooling/codex/hooks/*.sh
 
 # Optional if ShellCheck is installed.
 shellcheck --severity=warning -e SC1090,SC1091 scripts/*.sh tooling/claude/hooks/*.sh tooling/codex/hooks/*.sh
+
+# Run the BATS suite for the Bash lifecycle scripts.
+# Requires bats-core (https://github.com/bats-core/bats-core); on Debian/Ubuntu
+# `sudo apt-get install bats` or clone+install from the upstream repo.
+bats tests/bats/
 ```
 
 ## GitHub Actions Checks
