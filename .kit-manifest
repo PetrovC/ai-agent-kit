@@ -40,6 +40,7 @@
 .claude/agents/security-reviewer.md
 .claude/agents/test-runner.md
 .claude/commands/bug-fix.md
+.claude/commands/context-report.md
 .claude/commands/code-review.md
 .claude/commands/daily-ticket.md
 .claude/commands/dependency-update.md

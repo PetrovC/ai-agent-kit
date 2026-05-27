@@ -138,40 +138,13 @@ Recommend `/compress` proactively when you observe 4+ sequential reads, a large 
 
 ## Skill routing
 
-Read the relevant skill file before editing. Do not rely on inline summaries — load the file.
+Match the task domain to the skill name — load the file before editing. Gemini auto-discovers skills via `description:` frontmatter; this list is the kit's deterministic override.
 
-| Task touches | Read this file first |
-|---|---|
-| C#, .NET, ASP.NET, EF Core, xUnit | `.gemini/skills/dotnet/SKILL.md` |
-| Java, Kotlin, Spring Boot, Ktor, JPA, Gradle/Maven, Android | `.gemini/skills/java-kotlin/SKILL.md` |
-| Python, FastAPI, Django, pytest | `.gemini/skills/python/SKILL.md` |
-| Node.js backend (Express, NestJS, Fastify) | `.gemini/skills/node/SKILL.md` |
-| Go (modules, services, CLIs) | `.gemini/skills/go/SKILL.md` |
-| Rust (cargo, tokio, services, CLIs) | `.gemini/skills/rust/SKILL.md` |
-| Angular components, services, routing, signals | `.gemini/skills/angular/SKILL.md` |
-| Vue components, composables, Pinia | `.gemini/skills/vue/SKILL.md` |
-| Svelte components, SvelteKit routes, stores, form actions | `.gemini/skills/svelte/SKILL.md` |
-| React, Next.js, Remix, hooks, RSC | `.gemini/skills/react/SKILL.md` |
-| React Native (Expo or bare RN) | `.gemini/skills/mobile-rn/SKILL.md` |
-| Flutter (widgets, Riverpod / BLoC, Dart) | `.gemini/skills/mobile-flutter/SKILL.md` |
-| SQL / NoSQL schemas, migrations, queries (any engine) | `.gemini/skills/database/SKILL.md` |
-| Docker, Kubernetes, Terraform, CI/CD pipelines | `.gemini/skills/infrastructure/SKILL.md` |
-| REST / OpenAPI contracts, versioning, error contracts, API design | `.gemini/skills/api-design/SKILL.md` |
-| GraphQL schemas, resolvers, dataloaders, subscriptions, codegen | `.gemini/skills/graphql/SKILL.md` |
-| Module boundaries, layers, DDD, CQRS, design | `.gemini/skills/architecture/SKILL.md` |
-| Adding/updating/reviewing tests | `.gemini/skills/testing/SKILL.md` |
-| PR review, quality check | `.gemini/skills/code-review/SKILL.md` |
-| Authentication, authorization, secrets, input validation | `.gemini/skills/security/SKILL.md` |
-| Adding, updating, or replacing any library/package | `.gemini/skills/dependencies/SKILL.md` |
-| Issues, PRs, branches, commits, CI | `.gemini/skills/github-workflow/SKILL.md` |
-| Logs / metrics / traces / SLO / alerting | `.gemini/skills/observability/SKILL.md` |
-| Kafka / RabbitMQ / SQS / event-driven / outbox / idempotency | `.gemini/skills/messaging/SKILL.md` |
-| Retries / timeouts / circuit breakers / exception design | `.gemini/skills/error-handling/SKILL.md` |
-| Nx / Turborepo / pnpm-cargo-go workspaces / build caching | `.gemini/skills/monorepo/SKILL.md` |
-| Accessibility (WCAG, ARIA, keyboard, screen readers) | `.gemini/skills/accessibility/SKILL.md` |
-| Internationalization (translation, ICU, RTL, formats) | `.gemini/skills/i18n/SKILL.md` |
-| LLM apps, RAG, tool use, agents, prompt caching, evals | `.gemini/skills/ai-dev/SKILL.md` |
-| Profiling, benchmarking, query plans, Core Web Vitals, caching strategy | `.gemini/skills/performance/SKILL.md` |
+Backends: `.gemini/skills/dotnet/SKILL.md` · `.gemini/skills/java-kotlin/SKILL.md` · `.gemini/skills/python/SKILL.md` · `.gemini/skills/node/SKILL.md` · `.gemini/skills/go/SKILL.md` · `.gemini/skills/rust/SKILL.md`  
+Frontends: `.gemini/skills/angular/SKILL.md` · `.gemini/skills/vue/SKILL.md` · `.gemini/skills/svelte/SKILL.md` · `.gemini/skills/react/SKILL.md` · `.gemini/skills/mobile-rn/SKILL.md` · `.gemini/skills/mobile-flutter/SKILL.md`  
+Data/Infra: `.gemini/skills/database/SKILL.md` · `.gemini/skills/infrastructure/SKILL.md` · `.gemini/skills/api-design/SKILL.md` · `.gemini/skills/graphql/SKILL.md`  
+Quality: `.gemini/skills/architecture/SKILL.md` · `.gemini/skills/testing/SKILL.md` · `.gemini/skills/code-review/SKILL.md` · `.gemini/skills/security/SKILL.md` · `.gemini/skills/dependencies/SKILL.md` · `.gemini/skills/github-workflow/SKILL.md`  
+Ops/X-cut: `.gemini/skills/observability/SKILL.md` · `.gemini/skills/messaging/SKILL.md` · `.gemini/skills/error-handling/SKILL.md` · `.gemini/skills/monorepo/SKILL.md` · `.gemini/skills/accessibility/SKILL.md` · `.gemini/skills/i18n/SKILL.md` · `.gemini/skills/ai-dev/SKILL.md` · `.gemini/skills/performance/SKILL.md`
 
 ---
 

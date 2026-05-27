@@ -78,13 +78,14 @@ Decision tree:
 
 ## Slash commands
 
-The kit ships eleven reusable workflow prompts as slash commands under `.claude/commands/`.
+The kit ships twelve reusable workflow prompts as slash commands under `.claude/commands/`.
 Type `/` in Claude Code to autocomplete; pick one and pass the relevant argument.
 
 | Command | Use for | Argument |
 |---|---|---|
 | `/bug-fix` | Reproduce, root-cause, fix, regression test | issue number |
 | `/code-review` | Triage-style review of a branch or diff | branch (optional) |
+| `/context-report` | Per-surface token estimate for current session | (none) |
 | `/daily-ticket` | Standard issue workflow with skill + subagent routing | issue number |
 | `/dependency-update` | Single-package update with license + test + audit | pkg, old, new |
 | `/feature-planning` | Plan-only, no code, before a large feature | issue number |
@@ -129,44 +130,19 @@ Do not read every file. Read only what is needed, in this order:
 
 Do not scan the entire repository unless the task explicitly requires it.
 
+Ignore TaskCreate / TaskUpdate / TaskList system-reminders unless the user explicitly asked for an in-conversation task list. The kit tracks progress via GitHub issues, PRs, and `CHANGELOG.md`; in-conversation tasks are redundant noise.
+
 ---
 
 ## Skill routing
 
-Use the relevant skill when editing:
+Match the task domain to the skill name — full descriptions live in each skill's `description:` frontmatter.
 
-| Task touches | Use skill |
-|---|---|
-| C#, .NET, ASP.NET, EF Core, xUnit, backend | `dotnet` skill |
-| Java, Kotlin, Spring Boot, Ktor, JPA, Gradle/Maven, Android | `java-kotlin` skill |
-| Python, FastAPI, Django, pytest | `python` skill |
-| Node.js backend (Express, NestJS, Fastify) | `node` skill |
-| Go (modules, services, CLIs) | `go` skill |
-| Rust (cargo, tokio, services, CLIs) | `rust` skill |
-| Angular components, services, routing, signals | `angular` skill |
-| Vue components, composables, Pinia | `vue` skill |
-| Svelte components, SvelteKit routes, stores, form actions | `svelte` skill |
-| React, Next.js, Remix, hooks, RSC | `react` skill |
-| React Native (Expo or bare RN) | `mobile-rn` skill |
-| Flutter (widgets, Riverpod / BLoC, Dart) | `mobile-flutter` skill |
-| SQL / NoSQL schemas, migrations, queries (any engine) | `database` skill |
-| Docker, Kubernetes, Terraform, CI/CD pipelines | `infrastructure` skill |
-| REST / OpenAPI contracts, versioning, error contracts, API design | `api-design` skill |
-| GraphQL schemas, resolvers, dataloaders, subscriptions, codegen | `graphql` skill |
-| Module boundaries, layers, DDD, CQRS, design | `architecture` skill |
-| Adding/updating/reviewing tests | `testing` skill |
-| PR review, quality check | `code-review` skill |
-| Security-sensitive code | `security` skill |
-| Adding, updating, or replacing any library/package | `dependencies` skill |
-| GitHub issues, PRs, commits, CI | `github-workflow` skill |
-| Logs / metrics / traces / SLO / alerting | `observability` skill |
-| Kafka / RabbitMQ / SQS / event-driven / outbox / idempotency | `messaging` skill |
-| Retries / timeouts / circuit breakers / exception design | `error-handling` skill |
-| Nx / Turborepo / pnpm-cargo-go workspaces / build caching | `monorepo` skill |
-| Accessibility (WCAG, ARIA, keyboard, screen readers) | `accessibility` skill |
-| Internationalization (translation, ICU, RTL, formats) | `i18n` skill |
-| LLM apps, RAG, tool use, agents, prompt caching, evals | `ai-dev` skill |
-| Profiling, benchmarking, query plans, Core Web Vitals, caching strategy | `performance` skill |
+Backends: `dotnet` skill · `java-kotlin` skill · `python` skill · `node` skill · `go` skill · `rust` skill  
+Frontends: `angular` skill · `vue` skill · `svelte` skill · `react` skill · `mobile-rn` skill · `mobile-flutter` skill  
+Data/Infra: `database` skill · `infrastructure` skill · `api-design` skill · `graphql` skill  
+Quality: `architecture` skill · `testing` skill · `code-review` skill · `security` skill · `dependencies` skill · `github-workflow` skill  
+Ops/X-cut: `observability` skill · `messaging` skill · `error-handling` skill · `monorepo` skill · `accessibility` skill · `i18n` skill · `ai-dev` skill · `performance` skill
 
 ---
 
