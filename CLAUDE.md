@@ -33,13 +33,14 @@ frontmatter matches the files you open. Skills are lazy-loaded via the routing t
 
 ## Slash commands
 
-The kit ships eleven reusable workflow prompts as slash commands under `.claude/commands/`.
+The kit ships twelve reusable workflow prompts as slash commands under `.claude/commands/`.
 Type `/` in Claude Code to autocomplete; pick one and pass the relevant argument.
 
 | Command | Use for | Argument |
 |---|---|---|
 | `/bug-fix` | Reproduce, root-cause, fix, regression test | issue number |
 | `/code-review` | Triage-style review of a branch or diff | branch (optional) |
+| `/context-report` | Per-surface token estimate for current session | (none) |
 | `/daily-ticket` | Standard issue workflow with skill + subagent routing | issue number |
 | `/dependency-update` | Single-package update with license + test + audit | pkg, old, new |
 | `/feature-planning` | Plan-only, no code, before a large feature | issue number |
