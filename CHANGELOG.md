@@ -4,6 +4,13 @@
 
 ### Added
 
+- **`feat(scripts)` - add context sanitization scripts for logs and pasted text (closes [#171](https://github.com/PetrovC/ai-agent-kit/issues/171)).**
+  Added `scripts/sanitize.sh` and `scripts/sanitize.ps1` to redact common
+  sensitive context before sharing logs with agents. Coverage includes emails,
+  URL credentials, GitHub tokens, bearer tokens, AWS key IDs, private IPs,
+  internal hostnames, and common secret key/value fields. Added matching BATS
+  and Pester tests for cross-shell parity.
+
 - **`docs(security)` - add threat model for hooks, MCP examples, and lifecycle scripts (closes [#163](https://github.com/PetrovC/ai-agent-kit/issues/163)).**
   Added `docs/ai/THREAT_MODEL.md` with STRIDE-style analysis for the three runtime
   surfaces shipped by the kit (hooks, MCP examples, lifecycle scripts), including
