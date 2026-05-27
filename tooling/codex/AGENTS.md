@@ -133,7 +133,7 @@ Subagent cost rules live in
 Use this checklist when a Codex session starts to feel context-heavy:
 
 - Keep one GitHub issue per session by default; before switching issues, summarize and end the old context.
-- Run `/compact` before broad reads, large logs, or refactors once context feels heavy.
+- Run `/compact` before broad reads, large logs, or refactors once context feels heavy. Recommend it proactively when you observe 4+ sequential reads, a large tool-output dump, ~20 turns, or an upcoming broad investigation — surface the recommendation before the heavy step, then wait for the user to type the command.
 - Do not paste `AGENTS.md` into chat; Codex already loads it at startup.
 - Prefer targeted `rg`, GitHub issue/PR reads, and narrow file reads over broad scans.
 - Use `readonly` for audit/exploration, `standard` for daily implementation, and `deep` only for design/review/security decisions.
