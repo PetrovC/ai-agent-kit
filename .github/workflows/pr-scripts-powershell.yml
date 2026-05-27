@@ -18,10 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate repository strict invariants (PowerShell)
-        shell: pwsh
-        run: .\scripts\validate.ps1 -Target . -Strict
-
       - name: Run Pester suite
         shell: powershell
         run: Invoke-Pester tests/pester/

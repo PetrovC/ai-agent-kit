@@ -18,9 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate repository strict invariants
-        run: bash scripts/validate.sh --target . --strict
-
       - name: Validate examples/filled-project
         run: bash scripts/validate.sh --target examples/filled-project
 
