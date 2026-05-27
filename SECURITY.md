@@ -106,6 +106,7 @@ For target projects:
 ## References
 
 - [ADR-007 — Hooks are guardrails, not a sandbox](./docs/ai/DECISIONS.md)
+- [Threat model](./docs/ai/THREAT_MODEL.md)
 - [MCP policy](./docs/ai/MCP_POLICY.md)
 - [Context sanitization](./docs/ai/CONTEXT_SANITIZATION.md)
 - [Workflow](./docs/ai/WORKFLOW.md)

@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`docs(security)` - add threat model for hooks, MCP examples, and lifecycle scripts (closes [#163](https://github.com/PetrovC/ai-agent-kit/issues/163)).**
+  Added `docs/ai/THREAT_MODEL.md` with STRIDE-style analysis for the three runtime
+  surfaces shipped by the kit (hooks, MCP examples, lifecycle scripts), including
+  trust boundaries, existing mitigations, and known residual gaps. Added a cross-link
+  from `SECURITY.md`.
+
 - **`test(scripts)` - bootstrap Pester suite for PowerShell helpers (closes [#146](https://github.com/PetrovC/ai-agent-kit/issues/146)).**
   New `tests/pester/` coverage mirrors the BATS helper substrate for the PowerShell lifecycle
   scripts: argument validation, `.kit-manifest` read/write, idempotent install/update behavior,
