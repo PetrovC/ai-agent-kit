@@ -29,7 +29,7 @@ Important nuance:
 | Codex CLI | `/compact` |
 | Gemini CLI | `/compress` |
 
-Claude Code session-hygiene details (when to use `--continue`, `/compact`, `/clear`; why auto-compact is not yet configurable) live in the **Session hygiene** section of `tooling/claude/CLAUDE.md`. That section includes the agent-side directive: when to proactively recommend `/compact` before a heavy step.
+Claude Code session-hygiene details (when to use `--continue`, `/compact`, `/clear`; why auto-compact is not yet configurable) live in the **Session hygiene** section of `tooling/claude/CLAUDE.md`. That section includes the agent-side directive for proactively recommending `/compact`, and the **Session pattern** subsection covering PR-level discipline: one PR per session, with a decision tree for when `--continue` vs a fresh start is correct.
 
 ## Codex Router Budget
 

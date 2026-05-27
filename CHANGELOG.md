@@ -15,6 +15,16 @@
 
 ### Added
 
+- **`feat(claude)` — session pattern directive, PR/commit settings docs, and hardening section (closes [#238](https://github.com/PetrovC/ai-agent-kit/issues/238), closes [#192](https://github.com/PetrovC/ai-agent-kit/issues/192), closes [#196](https://github.com/PetrovC/ai-agent-kit/issues/196)).**
+  Added "Session pattern" subsection to `Session hygiene` with a 4-row decision tree for
+  the one-PR-per-session habit and `--continue` vs fresh-start choice. Added "PR and commit
+  settings" section documenting `attribution`, `prUrlTemplate`, and `includeGitInstructions`;
+  set `includeGitInstructions: false` in `settings.json` and `settings.windows.json` since
+  the kit ships its own Git rules. Added "Hardening and integration" section documenting
+  `autoMemoryEnabled`, `apiKeyHelper`, and `disableSkillShellExecution` with single-line
+  trade-offs. All changes reflected in the dogfood install at `.claude/settings.json` and
+  root `CLAUDE.md`. `docs/ai/CONTEXT_GOVERNANCE.md` cross-link updated.
+
 - **`feat(gemini)` — add stop conditions + file-read budget to subagents (closes [#157](https://github.com/PetrovC/ai-agent-kit/issues/157), closes [#161](https://github.com/PetrovC/ai-agent-kit/issues/161)).**
   All five Gemini subagents under `tooling/gemini/agents/` now declare an explicit
   "Stop conditions" section mirroring the Claude counterparts, so investigator-style
