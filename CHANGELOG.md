@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **`perf(gemini)` — replace preview models with GA models in all agents (closes [#143](https://github.com/PetrovC/ai-agent-kit/issues/143)).**
+  All five Gemini subagents referenced `gemini-3-pro-preview`. Replaced with GA-stable
+  models tiered by task risk: `gemini-3.1-pro` for architect / code-reviewer /
+  security-reviewer; `gemini-3-flash` for codebase-investigator / test-runner. Default
+  session model in `tooling/gemini/settings.json` updated to `gemini-3-flash`. Added
+  per-agent table and `gemini-3.5-flash` future-upgrade note to
+  `docs/ai/MODEL_ROUTING.md`. CI guard added to `pr-tooling.yml` to reject any
+  `-preview` model in Gemini agents or settings going forward.
+
 ### Added
 
 - **`feat(claude)` — add proactive /compact recommendation directive (closes [#237](https://github.com/PetrovC/ai-agent-kit/issues/237)).**

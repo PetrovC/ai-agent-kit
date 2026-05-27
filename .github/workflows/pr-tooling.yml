@@ -219,6 +219,19 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
+      - name: No Gemini agent or settings must reference a preview model
+        run: |
+          errors=0
+          for f in tooling/gemini/agents/*.md tooling/gemini/settings.json tooling/gemini/GEMINI.md; do
+            [[ -f "$f" ]] || continue
+            # Allow the word "preview" only inside shell comments (# ...)
+            if grep -E '^[^#]*-preview' "$f"; then
+              echo "PREVIEW model found in: $f (use a GA model — gemini-3.1-pro or gemini-3-flash)"
+              errors=$((errors+1))
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+
       - name: Each Gemini command .toml must declare prompt + description
         run: |
           errors=0

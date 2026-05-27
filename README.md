@@ -326,25 +326,24 @@ actionable. Uniform tier, no exceptions:
 
 | Agent | Task | Claude | Gemini |
 |---|---|---|---|
-| `architect` | Deep design reasoning | `claude-opus-4-7` | `gemini-3-pro-preview` |
-| `security-reviewer` | Vulnerability analysis | `claude-opus-4-7` | `gemini-3-pro-preview` |
-| `code-reviewer` | PR review | `claude-opus-4-7` | `gemini-3-pro-preview` |
-| `codebase-investigator` | Map usages / affected area | `claude-opus-4-7` | `gemini-3-pro-preview` |
-| `test-runner` | Run tests + summarize | `claude-opus-4-7` | `gemini-3-pro-preview` |
+| `architect` | Deep design reasoning | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `security-reviewer` | Vulnerability analysis | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `code-reviewer` | PR review | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `codebase-investigator` | Map usages / affected area | `claude-sonnet-4-6` | `gemini-3-flash` |
+| `test-runner` | Run tests + summarize | `claude-haiku-4-5` | `gemini-3-flash` |
 
 **Codex** does not pin a model per skill — the official Codex skill spec is
 `SKILL.md` with `name` + `description` only, so the five Codex agent-skills run
 on the **session model** (set in `~/.codex/config.toml` or `--model`). The
 behavioural role is identical across all three tools.
 
-**Rationale:** earlier versions used cheap models (`haiku`/`flash`) for the
-high-frequency `codebase-investigator` and `test-runner` to save tokens — but
-in practice their reports weren't consistently actionable. Report quality wins:
-all agents now use the top model. Token efficiency still comes from
-**lazy-loaded skills** and **short routers**, not from down-tiering agents.
-Override per project by editing the `model:` line in each agent file (e.g. set
-`claude-haiku-4-5` / `gemini-2.5-flash` on the read-only agents if you prefer
-the cost trade-off).
+**Rationale:** decision-bearing agents (`architect`, `security-reviewer`,
+`code-reviewer`) use the strongest available model — report quality matters more
+than token cost for high-stakes output. Mechanical agents (`codebase-investigator`,
+`test-runner`) use a balanced/fast model since their output is narrow and
+deterministic. Token efficiency still comes from **lazy-loaded skills** and
+**short routers**, not from over-tiering. Override per project by editing the
+`model:` line in each agent file.
 
 ---
 
