@@ -4,6 +4,13 @@
 
 ### Added
 
+- **`feat(claude)` — add proactive /compact recommendation directive (closes [#237](https://github.com/PetrovC/ai-agent-kit/issues/237)).**
+  Added a "When to proactively recommend /compact" subsection to the Session hygiene
+  section of `tooling/claude/CLAUDE.md`. Provides four concrete signals: tool output
+  exceeds 200 lines, switching issues, post-refactor before moving to the next task,
+  and before any multi-file read. Gemini and Codex routers updated with equivalent
+  `/compress` / compact guidance.
+
 - **`feat(claude)` — add `/context-report` slash command for per-surface token estimate (closes [#234](https://github.com/PetrovC/ai-agent-kit/issues/234)).**
   New command `tooling/claude/commands/context-report.md` estimates the token cost of each surface loaded in the current session (CLAUDE.md, skills, recently-read files) using the chars/4 approximation. Runs locally, no API call, flags any surface above 5% of the 200K window as a compaction candidate.
 
