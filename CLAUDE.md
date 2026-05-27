@@ -58,6 +58,19 @@ Recommend `/compact` **before** the heavy step when you observe any of:
 Say: *"I'd suggest `/compact` first — the next reads will add ~N lines of context."*  
 You cannot invoke `/compact` yourself; the user must type it. Surface the recommendation, then wait.
 
+### Session pattern
+
+One PR per session. Quit between PRs — merged-PR context adds cost with zero benefit.
+
+| Situation | Action |
+|---|---|
+| Same task, idle < 5 min | `claude --continue` |
+| Same task, idle ≥ 5 min | `claude --continue` (cold cache rebuilds cheaply) |
+| New task, previous session heavy | Quit + fresh `claude` |
+| New task, previous session clean | `/compact` then continue, or quit + fresh |
+
+Stay in session only when the next PR depends on the previous PR's **uncommitted reasoning**. Once the previous PR is merged, the dependency is in git — quit and start fresh.
+
 ---
 
 ## Slash commands
@@ -97,6 +110,14 @@ multi-tool setup (Codex + Gemini + hooks + commands + `docs/ai/`).
 Create a `CLAUDE.local.md` file in the project root (gitignored) for developer-specific
 preferences — local paths, personal aliases, preferred verbosity, machine-specific tools.
 It is merged with this file automatically by Claude Code. Do not commit it.
+
+## PR and commit settings
+
+Optional settings — add to `settings.json` or keep in `CLAUDE.local.json` for personal overrides:
+
+- **`attribution`** — override the commit/PR attribution footer. Example: `"Co-Authored-By: Claude <noreply@anthropic.com>"`.
+- **`prUrlTemplate`** — enable PR-badge links in responses. Example: `"https://github.com/{owner}/{repo}/pull/{number}"`.
+- **`includeGitInstructions`** — set to `false` to suppress Claude's built-in git briefing. Saves ~200 tokens per session; this kit's "Git rules" section replaces it. Already set in the kit's `settings.json`.
 
 ---
 
@@ -206,6 +227,16 @@ Always apply the "one concern per PR" rule — propose each maintenance item sep
 - Never print, expose, commit, or invent secrets.
 - Do not read `.env`, secret files, or credentials unless explicitly approved.
 - Do not weaken authentication, authorization, CORS, CSRF, CSP, or rate limits.
+
+---
+
+## Hardening and integration
+
+Optional Claude Code settings — not adopted by default. Add to `settings.json` if needed.
+
+- **`autoMemoryEnabled` / `autoMemoryDirectory`** — persists facts Claude discovers across sessions. Off by default. Review the directory periodically; stale facts accumulate silently.
+- **`apiKeyHelper` / `awsCredentialExport` / `gcpAuthRefresh`** — shell commands that supply credentials at runtime. Keep helper scripts outside the repo and out of version control.
+- **`disableSkillShellExecution`** — prevents skills from running shell commands during load. Useful in locked-down CI; trade-off: skills relying on dynamic tool output are silenced.
 
 ---
 
