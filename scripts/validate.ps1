@@ -416,6 +416,54 @@ if ($hasManifest -and $hasAnyToolSource) {
 }
 
 Write-Host ""
+Write-Host "> Release metadata"
+$changelogPath = Join-Path $Target "CHANGELOG.md"
+if (-not (Test-Path -LiteralPath $changelogPath -PathType Leaf)) {
+    Ok "no CHANGELOG.md; skipping release metadata checks"
+} else {
+    $cl = Get-Content -LiteralPath $changelogPath -Raw
+
+    # Exactly one [Unreleased] section
+    $clUnreleased = ([regex]::Matches($cl, "(?m)^## \[Unreleased\]")).Count
+    if ($clUnreleased -eq 0) {
+        Warn "CHANGELOG.md: no [Unreleased] section"
+    } elseif ($clUnreleased -gt 1) {
+        Warn "CHANGELOG.md: $clUnreleased [Unreleased] sections (expected exactly 1)"
+    } else {
+        Ok "CHANGELOG.md: exactly one [Unreleased] section"
+    }
+
+    # No duplicate version section headings (full version including pre-release suffix)
+    $versionMatches = [regex]::Matches($cl, "(?m)^## \[(\d+\.\d+\.\d+(-[A-Za-z0-9.]+)?)\]")
+    $seenVersions = @{}
+    $clHasDupe = $false
+    foreach ($m in $versionMatches) {
+        $v = $m.Groups[1].Value
+        if ($seenVersions.ContainsKey($v)) {
+            Warn "CHANGELOG.md: duplicate version section [$v]"
+            $clHasDupe = $true
+        } else {
+            $seenVersions[$v] = $true
+        }
+    }
+    if (-not $clHasDupe) { Ok "CHANGELOG.md: no duplicate version sections" }
+
+    # Version headings must use valid format:
+    #   ## [X.Y.Z] or ## [X.Y.Z-pre] or ## [X.Y.Z] - YYYY-MM-DD or ## [X.Y.Z-pre] - YYYY-MM-DD
+    $allHeadings = [regex]::Matches($cl, "(?m)^## \[.+")
+    $clBadHeadings = $false
+    foreach ($m in $allHeadings) {
+        $h = $m.Value.TrimEnd()
+        if ($h -match "^## \[Unreleased\]") { continue }
+        if ($h -notmatch "^## \[\d+\.\d+\.\d+(-[A-Za-z0-9.]+)?\]( - \d{4}-\d{2}-\d{2})?$") {
+            Warn "CHANGELOG.md: invalid heading format: $h"
+            $clBadHeadings = $true
+        }
+    }
+    if (-not $clBadHeadings) { Ok "CHANGELOG.md: all version headings use valid format" }
+}
+
+Write-Host ""
 if ($Issues -eq 0) {
     Write-Host "All checks passed." -ForegroundColor Green
     exit 0

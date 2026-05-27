@@ -195,3 +195,51 @@ jobs:
               print("\n".join(errs)); sys.exit(1)
           print(f"OK: manifests valid + VERSION-consistent ({kit_ver})")
           PY
+
+  lint-changelog:
+    name: CHANGELOG.md release metadata valid
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CHANGELOG.md invariants (one [Unreleased], no duplicate versions, valid heading format)
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          errs = []
+
+          try:
+              with open("CHANGELOG.md", encoding="utf-8") as f:
+                  changelog = f.read()
+          except FileNotFoundError:
+              print("CHANGELOG.md missing"); sys.exit(1)
+
+          # Exactly one [Unreleased] section
+          unreleased = re.findall(r"^## \[Unreleased\]", changelog, re.MULTILINE)
+          if not unreleased:
+              errs.append("CHANGELOG.md: no [Unreleased] section")
+          elif len(unreleased) > 1:
+              errs.append(f"CHANGELOG.md: {len(unreleased)} [Unreleased] sections (expected exactly 1)")
+
+          # No duplicate version section headings (full version including pre-release suffix)
+          versions = re.findall(r"^## \[(\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?)\]", changelog, re.MULTILINE)
+          seen: set = set()
+          for v in versions:
+              if v in seen:
+                  errs.append(f"CHANGELOG.md: duplicate version section [{v}]")
+              seen.add(v)
+
+          # All version headings must use valid format:
+          #   ## [X.Y.Z] or ## [X.Y.Z-pre] or ## [X.Y.Z] - YYYY-MM-DD or ## [X.Y.Z-pre] - YYYY-MM-DD
+          for h in re.findall(r"^## \[.+$", changelog, re.MULTILINE):
+              h = h.rstrip()
+              if re.match(r"^## \[Unreleased\]", h):
+                  continue
+              if not re.match(r"^## \[\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?\]( - \d{4}-\d{2}-\d{2})?$", h):
+                  errs.append(f"CHANGELOG.md: invalid heading format: {h!r}")
+
+          if errs:
+              print("\n".join(errs)); sys.exit(1)
+          print(f"OK: CHANGELOG.md — {len(unreleased)} [Unreleased] section, "
+                f"{len(seen)} release section(s), headings valid")
+          PY
