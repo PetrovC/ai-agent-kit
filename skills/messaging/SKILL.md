@@ -4,6 +4,11 @@ description: >
   Use when designing or modifying message-driven systems: Kafka, RabbitMQ,
   SQS, NATS, Redis Streams, EventBridge, in-process event buses, event sourcing,
   outbox pattern, idempotency, dead-letter queues, consumer groups, ordering.
+allowed-tools:
+  - "Bash(kafka-topics.sh:*)"
+  - "Bash(rabbitmqctl:*)"
+  - "Bash(redis-cli:*)"
+  - "Bash(aws:*)"
 ---
 
 # Messaging / Event-Driven Skill

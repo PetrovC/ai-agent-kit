@@ -4,6 +4,10 @@ description: >
   Use when building or reviewing user-facing UI (web, mobile, desktop) for
   accessibility: semantic HTML, ARIA, keyboard navigation, screen readers,
   contrast, focus management, motion sensitivity, WCAG conformance.
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(npx:*)"
+  - "Bash(pnpm:*)"
 ---
 
 # Accessibility (a11y) Skill

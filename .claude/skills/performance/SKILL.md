@@ -4,6 +4,12 @@ description: >
   Use when a task involves profiling, benchmarking, query optimization,
   memory usage, Core Web Vitals, API latency, caching strategy, or
   any measurable performance concern across backend or frontend.
+allowed-tools:
+  - "Bash(hyperfine:*)"
+  - "Bash(wrk:*)"
+  - "Bash(ab:*)"
+  - "Bash(npm:*)"
+  - "Bash(npx:*)"
 ---
 
 # Performance Skill

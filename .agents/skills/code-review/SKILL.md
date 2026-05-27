@@ -5,6 +5,10 @@ description: >
   Covers correctness, regression risk, security, maintainability, missing tests,
   architecture compliance, dependency changes, concurrency, data safety, and
   review comment quality.
+allowed-tools:
+  - "Bash(git:*)"
+  - "Bash(gh:*)"
+  - "Bash(rg:*)"
 ---
 
 # Code Review Skill

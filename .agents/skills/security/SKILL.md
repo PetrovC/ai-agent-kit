@@ -4,6 +4,13 @@ description: >
   Use when a task involves authentication, authorization, input validation,
   secrets management, CORS, CSRF, XSS, SQL/NoSQL injection, rate limiting,
   logging sensitive data, dependency vulnerabilities, or any security-sensitive change.
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(pip-audit:*)"
+  - "Bash(cargo:*)"
+  - "Bash(gitleaks:*)"
+  - "Bash(trivy:*)"
+  - "Bash(dotnet:*)"
 ---
 
 # Security Skill

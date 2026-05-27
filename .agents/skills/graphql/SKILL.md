@@ -10,6 +10,10 @@ paths:
   - "**/graphql.config.*"
   - "**/codegen.yml"
   - "**/codegen.yaml"
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(npx:*)"
+  - "Bash(pnpm:*)"
 ---
 
 # GraphQL Skill

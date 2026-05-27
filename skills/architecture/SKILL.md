@@ -4,6 +4,9 @@ description: >
   Use when a task affects module boundaries, layer dependencies, Clean Architecture,
   DDD, CQRS, Event Sourcing, service decomposition, bounded contexts, cross-cutting
   concerns, or long-term maintainability decisions.
+allowed-tools:
+  - "Bash(git:*)"
+  - "Bash(rg:*)"
 ---
 
 # Architecture Skill

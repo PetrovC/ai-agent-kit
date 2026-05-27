@@ -250,6 +250,46 @@ if ($agentContextFiles.Count -eq 0) {
         }
 }
 
+# Closes #193: every shared skill under skills/<name>/SKILL.md must declare
+# an `allowed-tools:` block in its YAML frontmatter, so Claude can scope tool
+# access predictably. The pr-docs lint already enforces the SHAPE of each
+# entry (`Bash(<cmd>:*)`); this check guarantees the field is present at all.
+# Skipped silently in target projects that do not ship a top-level skills/
+# directory (the kit installs skills under .claude/.agents/.gemini instead).
+Write-Host ""
+Write-Host "> Skill frontmatter: allowed-tools required"
+$skillsDir = Join-Path $Target "skills"
+if (Test-Path -LiteralPath $skillsDir -PathType Container) {
+    $skillFiles = @(Get-ChildItem -LiteralPath $skillsDir -Directory |
+        ForEach-Object { Join-Path $_.FullName "SKILL.md" } |
+        Where-Object { Test-Path -LiteralPath $_ -PathType Leaf })
+    if ($skillFiles.Count -eq 0) {
+        Ok "no shared skills/ directory to check"
+    } else {
+        $skillAtMissing = $false
+        foreach ($f in $skillFiles) {
+            $found = $false
+            $inFm = $false
+            $closed = $false
+            foreach ($line in (Get-Content -LiteralPath $f)) {
+                if ($line -match '^---\s*$') {
+                    if (-not $inFm) { $inFm = $true; continue }
+                    $closed = $true; break
+                }
+                if ($inFm -and $line -match '^allowed-tools:\s*$') { $found = $true }
+            }
+            if (-not $found) {
+                $rel = Convert-ToTargetRelative $f
+                Warn "$rel missing allowed-tools in frontmatter"
+                $skillAtMissing = $true
+            }
+        }
+        if (-not $skillAtMissing) { Ok "all shared skills declare allowed-tools" }
+    }
+} else {
+    Ok "no shared skills/ directory to check"
+}
+
 function Get-DogfoodSourceCandidates([string]$rel) {
     switch -Regex ($rel) {
         "^AGENTS\.md$" { return @("tooling/codex/AGENTS.md") }

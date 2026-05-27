@@ -5,6 +5,15 @@ description: >
   CI validation, regression coverage, test naming, or test infrastructure.
   Covers all backend languages (.NET, Python, Node, Go, Rust, Java) and
   frontend stacks (Vue, Angular, React).
+allowed-tools:
+  - "Bash(npm:*)"
+  - "Bash(pnpm:*)"
+  - "Bash(pytest:*)"
+  - "Bash(go:*)"
+  - "Bash(cargo:*)"
+  - "Bash(dotnet:*)"
+  - "Bash(mvn:*)"
+  - "Bash(./gradlew:*)"
 ---
 
 # Testing Skill
