@@ -4,6 +4,11 @@
 
 ### Added
 
+- **`feat(claude)` — add one-PR-per-session directive to CLAUDE.md (closes [#238](https://github.com/PetrovC/ai-agent-kit/issues/238)).**
+  Added a "Session pattern — one PR per session" subsection to the Session hygiene section.
+  Provides a decision table for when to use `claude --continue`, `/compact`, or start fresh,
+  and explains why `/clear` is rarely the right choice.
+
 - **`feat(claude)` — add proactive /compact recommendation directive (closes [#237](https://github.com/PetrovC/ai-agent-kit/issues/237)).**
   Added a "When to proactively recommend /compact" subsection to the Session hygiene
   section of `tooling/claude/CLAUDE.md`. Provides four concrete signals: tool output
