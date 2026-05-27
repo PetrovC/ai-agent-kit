@@ -76,6 +76,24 @@ levels `none` / `low` / `medium` (default) / `high` / `xhigh`. See
 - Use a balanced model for daily development.
 - Use a fast model only for narrow mechanical work.
 
+Per-subagent model assignment used in this repository (see
+`tooling/gemini/agents/*.md`):
+
+| Subagent | Model | max_turns | Justification |
+|---|---|---|---|
+| `architect` | `gemini-3.1-pro` | 15 | Decision-bearing design assessment. |
+| `code-reviewer` | `gemini-3.1-pro` | 20 | High-stakes review. |
+| `security-reviewer` | `gemini-3.1-pro` | 15 | Real exploitable vulnerabilities, not theoretical risk. |
+| `codebase-investigator` | `gemini-3-flash` | 15 | Narrow lookups; Flash is sufficient. |
+| `test-runner` | `gemini-3-flash` | 10 | Mechanical: run tests, summarize output. |
+
+Verified GA models as of May 2026 (Google): `gemini-3.1-pro` (GA April 2026),
+`gemini-3-flash` (GA stable), `gemini-3.1-flash-lite` (GA). Default session
+model in `tooling/gemini/settings.json`: `gemini-3-flash`.
+
+> **Future upgrade candidate**: `gemini-3.5-flash` (announced May 2026) offers
+> frontier agentic capability. Adopt as default once stable for ≥ 30 days.
+
 ## Command and Agent Guidance
 
 Current repository agents already use strong models in several sensitive areas.

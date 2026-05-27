@@ -28,7 +28,7 @@ Approval modes:
 - **yolo** — no confirmations; use only in sandboxed / throw-away environments.
 
 Useful flags:
-- `--model gemini-3-pro-preview` — override the model for this session.
+- `--model gemini-3.1-pro` — override the model for this session (GA as of April 2026).
 - `--checkpointing` — enable automatic checkpointing so Gemini can resume after an error or long pause.
 - `--debug` — verbose output showing tool calls and model reasoning.
 

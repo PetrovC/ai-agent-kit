@@ -8,7 +8,7 @@ tools:
   - read_file
   - search_file_content
   - list_directory
-model: gemini-3-pro-preview
+model: gemini-3-flash
 temperature: 0.1
 max_turns: 15
 ---
