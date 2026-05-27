@@ -4,6 +4,13 @@
 
 ### Added
 
+- **`test(scripts)` - bootstrap Pester suite for PowerShell helpers (closes [#146](https://github.com/PetrovC/ai-agent-kit/issues/146)).**
+  New `tests/pester/` coverage mirrors the BATS helper substrate for the PowerShell lifecycle
+  scripts: argument validation, `.kit-manifest` read/write, idempotent install/update behavior,
+  release metadata validation, and the `new-skill.ps1` invalid-name guard. The existing
+  Windows scripts PR workflow now runs `Invoke-Pester tests/pester/`, and
+  `docs/ai/COMMANDS.md` documents the local invocation.
+
 - **`ci(release)` — validate VERSION and CHANGELOG release invariants (closes [#253](https://github.com/PetrovC/ai-agent-kit/issues/253)).**
   `scripts/validate.sh` and `scripts/validate.ps1` gain a new "> Release metadata" section
   that checks `CHANGELOG.md` whenever it is present: exactly one `[Unreleased]` heading,

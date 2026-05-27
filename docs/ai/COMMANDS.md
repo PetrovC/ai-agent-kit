@@ -56,6 +56,11 @@ New-Item -ItemType Directory -Path $target -Force | Out-Null
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target $target -Tools "codex,claude,gemini"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\update.ps1 -Target $target -DryRun
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1 -Target $target -DryRun
+
+# Run the Pester suite for the PowerShell lifecycle scripts.
+# Requires Pester; Windows PowerShell 5.1 and GitHub-hosted Windows runners
+# include it, and newer Pester versions from PowerShell Gallery also work.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Pester tests/pester/"
 ```
 
 ```bash
