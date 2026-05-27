@@ -84,6 +84,9 @@ Add these through scoped issues and PRs. Do not mix public-release hygiene with
 script refactors, hook rewrites, new adapters, or roadmap feature
 implementation.
 
+For the step-by-step release preparation flow, safety invariants, and the
+agent/human responsibility boundary, see [RELEASE.md](./RELEASE.md).
+
 ## When Future Work Is Discovered
 
 Document the work as planned and recommend a scoped GitHub issue. A good issue

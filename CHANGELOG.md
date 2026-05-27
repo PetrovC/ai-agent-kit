@@ -11,6 +11,13 @@
   Windows scripts PR workflow now runs `Invoke-Pester tests/pester/`, and
   `docs/ai/COMMANDS.md` documents the local invocation.
 
+- **`docs(ai)` — document release workflow (closes [#251](https://github.com/PetrovC/ai-agent-kit/issues/251)).**
+  Added `docs/ai/RELEASE.md` covering: version sources of truth (`VERSION` + `CHANGELOG.md
+  [Unreleased]`), the 9-step release preparation flow, what agents may do automatically vs
+  what requires explicit human confirmation, safety invariants agents must enforce, CI
+  invariants enforced by `pr-versioning.yml`, and tag naming convention. Cross-link added
+  in `docs/ai/WORKFLOW.md` § Public-release Hygiene.
+
 - **`ci(release)` — validate VERSION and CHANGELOG release invariants (closes [#253](https://github.com/PetrovC/ai-agent-kit/issues/253)).**
   `scripts/validate.sh` and `scripts/validate.ps1` gain a new "> Release metadata" section
   that checks `CHANGELOG.md` whenever it is present: exactly one `[Unreleased]` heading,
