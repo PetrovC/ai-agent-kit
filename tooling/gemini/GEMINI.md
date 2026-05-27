@@ -132,7 +132,7 @@ Do not read every file. Read only what is needed, in this order:
 
 Do not scan the entire repository unless the task explicitly requires it.
 
-Recommend `/compress` proactively when you observe 4+ sequential reads, a large tool-output dump, ~20 turns, or an upcoming broad investigation — surface the recommendation before the heavy step, then wait for the user to type the command. See [`docs/ai/CONTEXT_GOVERNANCE.md`](docs/ai/CONTEXT_GOVERNANCE.md) for the 40/60/80% thresholds.
+Recommend `/compress` proactively when you observe 4+ sequential reads, a large tool-output dump, ~20 turns, or an upcoming broad investigation — surface the recommendation before the heavy step, then wait for the user to type the command. See `docs/ai/CONTEXT_GOVERNANCE.md` for the 40/60/80% thresholds.
 
 ---
 
