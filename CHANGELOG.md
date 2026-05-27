@@ -4,6 +4,18 @@
 
 ### Added
 
+- **`ci(release)` — validate VERSION and CHANGELOG release invariants (closes [#253](https://github.com/PetrovC/ai-agent-kit/issues/253)).**
+  `scripts/validate.sh` and `scripts/validate.ps1` gain a new "> Release metadata" section
+  that checks `CHANGELOG.md` whenever it is present: exactly one `[Unreleased]` heading,
+  no duplicate version section headings (including pre-release suffixes like `-rc1`), and
+  all version headings match `## [X.Y.Z]` or `## [X.Y.Z] - YYYY-MM-DD` (or with a
+  pre-release suffix). A new `lint-changelog` CI job in `pr-versioning.yml` runs the same
+  checks inline so malformed release metadata cannot be merged accidentally. Nine BATS
+  tests in `tests/bats/validate_release.bats` cover all pass and fail paths. Historical
+  CHANGELOG.md issues fixed: removed an orphaned duplicate `## [Unreleased]` heading
+  (CI workflow split entry is now part of the surrounding `[1.19.21]` section) and renamed
+  a duplicate `## [1.0.0]` entry to `## [1.0.1]`.
+
 - **`test(scripts)` — bootstrap BATS suite for Bash helpers (closes [#145](https://github.com/PetrovC/ai-agent-kit/issues/145)).**
   New `tests/bats/` suite covers the contract surface that script refactors keep tripping
   on: arg parsing (`--target`, `--tools`, `--dry-run`, unknown flags), `.kit-manifest`
@@ -1360,10 +1372,6 @@ preserved. A clear warning is printed in this fallback mode.
 Regression coverage in `.github/workflows/pr-scripts-shell.yml` exercises
 both the manifest-based path (kit files removed, user files kept across
 all four managed tool roots) and the legacy fallback path.
-
----
-
-## [Unreleased]
 
 ### Changed — CI workflows split by scope
 
@@ -3582,7 +3590,7 @@ have no paths — they are loaded explicitly via CLAUDE.md routing.
 
 ---
 
-## [1.0.0] - 2026-05-14
+## [1.0.1] - 2026-05-14
 
 ### Added
 

@@ -411,6 +411,46 @@ if [[ -f "$TARGET/.kit-manifest" ]] \
 fi
 
 echo ""
+echo "> Release metadata"
+if [[ ! -f "$TARGET/CHANGELOG.md" ]]; then
+    ok "no CHANGELOG.md; skipping release metadata checks"
+else
+    # Exactly one [Unreleased] section
+    cl_unreleased=$(grep -cE '^## \[Unreleased\]' "$TARGET/CHANGELOG.md" || true)
+    if [[ "$cl_unreleased" -eq 0 ]]; then
+        warn "CHANGELOG.md: no [Unreleased] section"
+    elif [[ "$cl_unreleased" -gt 1 ]]; then
+        warn "CHANGELOG.md: $cl_unreleased [Unreleased] sections (expected exactly 1)"
+    else
+        ok "CHANGELOG.md: exactly one [Unreleased] section"
+    fi
+
+    # No duplicate version section headings (full version including pre-release suffix)
+    cl_dupes=$(grep -E '^## \[[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?\]' "$TARGET/CHANGELOG.md" \
+               | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?' | sort | uniq -d || true)
+    if [[ -n "$cl_dupes" ]]; then
+        while IFS= read -r dup; do
+            [[ -n "$dup" ]] && warn "CHANGELOG.md: duplicate version section [$dup]"
+        done <<< "$cl_dupes"
+    else
+        ok "CHANGELOG.md: no duplicate version sections"
+    fi
+
+    # Version headings must use valid format:
+    #   ## [X.Y.Z] or ## [X.Y.Z-pre] or ## [X.Y.Z] - YYYY-MM-DD or ## [X.Y.Z-pre] - YYYY-MM-DD
+    cl_bad_headings=false
+    while IFS= read -r h; do
+        [[ -z "$h" ]] && continue
+        [[ "$h" =~ ^##\ \[Unreleased\] ]] && continue
+        if ! [[ "$h" =~ ^##\ \[[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?\](\ -\ [0-9]{4}-[0-9]{2}-[0-9]{2})?[[:space:]]*$ ]]; then
+            warn "CHANGELOG.md: invalid heading format: $h"
+            cl_bad_headings=true
+        fi
+    done < <(grep -E '^## \[' "$TARGET/CHANGELOG.md" || true)
+    $cl_bad_headings || ok "CHANGELOG.md: all version headings use valid format"
+fi
+
+echo ""
 if [[ "$issues" -eq 0 ]]; then
     echo -e "\033[32mAll checks passed.\033[0m"
     exit 0
