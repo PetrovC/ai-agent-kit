@@ -47,6 +47,17 @@ Actions, not philosophy. See `docs/ai/CONTEXT_GOVERNANCE.md` for the 40/60/80% t
 - **`claude --continue`** — resumes the previous session (reuses Anthropic's prompt cache). Use when the next task is the same task and the session was recently idle.
 - **Auto-compact threshold** — Claude Code does not yet expose a configurable auto-compact trigger (unlike Gemini's `model.compressionThreshold = 0.6`). Use `/compact` manually at the 60% checkpoint.
 
+### When to proactively recommend /compact
+
+Recommend `/compact` **before** the heavy step when you observe any of:
+- 4 or more sequential file reads in a single turn
+- A large tool-output dump (logs, diffs, test output) just landed
+- The conversation has crossed ~20 turns
+- The next step is a broad investigation or multi-file refactor
+
+Say: *"I'd suggest `/compact` first — the next reads will add ~N lines of context."*  
+You cannot invoke `/compact` yourself; the user must type it. Surface the recommendation, then wait.
+
 ---
 
 ## Slash commands
