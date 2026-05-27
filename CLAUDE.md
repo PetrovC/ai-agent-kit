@@ -33,7 +33,7 @@ frontmatter matches the files you open. Skills are lazy-loaded via the routing t
 
 ## Session hygiene
 
-Actions, not philosophy. See [`docs/ai/CONTEXT_GOVERNANCE.md`](docs/ai/CONTEXT_GOVERNANCE.md) for the 40/60/80% thresholds.
+Actions, not philosophy. See `docs/ai/CONTEXT_GOVERNANCE.md` for the 40/60/80% thresholds.
 
 | Context state | Action |
 |---|---|

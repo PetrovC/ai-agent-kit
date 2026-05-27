@@ -4,6 +4,13 @@
 
 ### Added
 
+- **`feat(claude)` — add Session hygiene section to CLAUDE.md (closes [#235](https://github.com/PetrovC/ai-agent-kit/issues/235)).**
+  `tooling/claude/CLAUDE.md` now carries an explicit Session hygiene section after the
+  "How to run Claude Code" block. It provides a four-row threshold table (0–39% / 40–59% /
+  60–79% / 80%+) with concrete actions, plus one-line guidance for `/compact`, `/clear`, and
+  `claude --continue`. Cross-link added from `docs/ai/CONTEXT_GOVERNANCE.md` Command Mapping
+  table so the CLAUDE.md section and the governance doc stay in sync.
+
 - **`docs(codex)` - document Codex long-run mode (closes
   [#174](https://github.com/PetrovC/ai-agent-kit/issues/174)).**
   `tooling/codex/AGENTS.md` now carries a short checklist for
