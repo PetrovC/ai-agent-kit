@@ -143,40 +143,13 @@ Use this checklist when a Codex session starts to feel context-heavy:
 
 ## Skill routing
 
-Activate the relevant skill before editing:
+Match the task domain to the skill name — full descriptions live in each skill's `description:` frontmatter. Activate with `$<name>`.
 
-| Task touches | Use skill |
-|---|---|
-| C#, .NET, ASP.NET, EF Core, xUnit, backend | `$dotnet` |
-| Java, Kotlin, Spring Boot, Ktor, JPA, Gradle/Maven, Android | `$java-kotlin` |
-| Python, FastAPI, Django, pytest | `$python` |
-| Node.js backend (Express, NestJS, Fastify) | `$node` |
-| Go (modules, services, CLIs) | `$go` |
-| Rust (cargo, tokio, services, CLIs) | `$rust` |
-| Angular components, services, routing, signals | `$angular` |
-| Vue components, composables, Pinia, Vite | `$vue` |
-| Svelte components, SvelteKit routes, stores, form actions | `$svelte` |
-| React, Next.js, Remix, hooks, RSC | `$react` |
-| React Native (Expo or bare RN) | `$mobile-rn` |
-| Flutter (widgets, Riverpod / BLoC, Dart) | `$mobile-flutter` |
-| SQL / NoSQL schemas, migrations, queries (any engine) | `$database` |
-| Docker, Kubernetes, Terraform, CI/CD pipelines | `$infrastructure` |
-| REST / OpenAPI contracts, versioning, error contracts, API design | `$api-design` |
-| GraphQL schemas, resolvers, dataloaders, subscriptions, codegen | `$graphql` |
-| Module boundaries, layers, DDD, CQRS, design decisions | `$architecture` |
-| Adding/updating/reviewing tests | `$testing` |
-| PR review, branch review, quality check | `$code-review` |
-| Authentication, authorization, secrets, input validation | `$security` |
-| Adding, updating, or replacing any library/package | `$dependencies` |
-| Issues, PRs, branches, commits, CI | `$github-workflow` |
-| Logs / metrics / traces / SLO / alerting | `$observability` |
-| Kafka / RabbitMQ / SQS / event-driven / outbox / idempotency | `$messaging` |
-| Retries / timeouts / circuit breakers / exception design | `$error-handling` |
-| Nx / Turborepo / pnpm-cargo-go workspaces / build caching | `$monorepo` |
-| Accessibility (WCAG, ARIA, keyboard, screen readers) | `$accessibility` |
-| Internationalization (translation, ICU, RTL, formats) | `$i18n` |
-| LLM apps, RAG, tool use, agents, prompt caching, evals | `$ai-dev` |
-| Profiling, benchmarking, query plans, Core Web Vitals, caching strategy | `$performance` |
+Backends: `$dotnet` · `$java-kotlin` · `$python` · `$node` · `$go` · `$rust`  
+Frontends: `$angular` · `$vue` · `$svelte` · `$react` · `$mobile-rn` · `$mobile-flutter`  
+Data/Infra: `$database` · `$infrastructure` · `$api-design` · `$graphql`  
+Quality: `$architecture` · `$testing` · `$code-review` · `$security` · `$dependencies` · `$github-workflow`  
+Ops/X-cut: `$observability` · `$messaging` · `$error-handling` · `$monorepo` · `$accessibility` · `$i18n` · `$ai-dev` · `$performance`
 
 Activate only the skills relevant to the current task.
 Do not activate all skills by default.
