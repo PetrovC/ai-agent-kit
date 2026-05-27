@@ -15,6 +15,15 @@
 
 ### Added
 
+- **`feat(gemini)` — add stop conditions + file-read budget to subagents (closes [#157](https://github.com/PetrovC/ai-agent-kit/issues/157), closes [#161](https://github.com/PetrovC/ai-agent-kit/issues/161)).**
+  All five Gemini subagents under `tooling/gemini/agents/` now declare an explicit
+  "Stop conditions" section mirroring the Claude counterparts, so investigator-style
+  runs escalate instead of silently scaling. The Gemini `codebase-investigator` also
+  declares a 15-file read budget plus the SUBAGENT_GOVERNANCE search-discipline rules.
+  CI lint added in `pr-tooling.yml` (both `lint-claude` and `lint-gemini` jobs) that
+  fails when any agent loses its `Stop conditions` section or when either investigator
+  loses its file-read budget — so the discipline stays enforced.
+
 - **`feat(claude)` — add proactive /compact recommendation directive (closes [#237](https://github.com/PetrovC/ai-agent-kit/issues/237)).**
   Added a "When to proactively recommend /compact" subsection to the Session hygiene
   section of `tooling/claude/CLAUDE.md`. Provides four concrete signals: tool output
