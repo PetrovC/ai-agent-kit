@@ -58,6 +58,22 @@ Recommend `/compact` **before** the heavy step when you observe any of:
 Say: *"I'd suggest `/compact` first — the next reads will add ~N lines of context."*  
 You cannot invoke `/compact` yourself; the user must type it. Surface the recommendation, then wait.
 
+### Session pattern — one PR per session
+
+Default: one PR per Claude session. Quit between PRs.  
+Exception: stay in the session only if the next PR genuinely depends on the current PR's uncommitted reasoning. Once a PR is merged, its context is in git; the session no longer adds value.
+
+Decision tree:
+
+| Situation | Action |
+|---|---|
+| Same task, recently idle | `claude --continue` (prompt cache still warm) |
+| Same task, idle ≥ 5 min | `claude --continue` (history reused; cache cold but cheap to rebuild) |
+| New task, previous session heavy | Quit → fresh `claude` |
+| New task, previous session clean | `/compact` then continue, or quit → fresh |
+
+**`/clear` is rarely right.** It wipes the conversation including the summary. Almost always prefer `/compact` (keeps summary) or quit + new session (fresh + cheaper).
+
 ---
 
 ## Slash commands
