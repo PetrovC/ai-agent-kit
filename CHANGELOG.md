@@ -4,6 +4,10 @@
 
 ### Added
 
+- **`feat(agent-audit)` - implement M0D central audit writer and report generator.**
+  Added local runtime and report generation scripts for the central anonymized agent audit.
+  Includes global configuration contract, Claude hook integration, and optional commit/push workflow.
+
 - **`feat(scripts)` - add context sanitization scripts for logs and pasted text (closes [#171](https://github.com/PetrovC/ai-agent-kit/issues/171)).**
   Added `scripts/sanitize.sh` and `scripts/sanitize.ps1` to redact common
   sensitive context before sharing logs with agents. Coverage includes emails,

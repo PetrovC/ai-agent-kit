@@ -20,65 +20,67 @@ Describe "PowerShell agent audit runtime" {
         }
     }
 
-    function Write-AuditConfig {
-        param([string]$Path)
+    BeforeAll {
+        function Write-AuditConfig {
+            param([string]$Path)
 
-        $config = [ordered]@{
-            schema_version = "0.1.0"
-            audit = [ordered]@{
-                enabled = $true
-                mode = "official-central-repo"
-                official_remote_url = "https://github.com/PetrovC/ai-agent-kit.git"
-                branch = "agent-audit-data"
-                runtime_path = $script:RuntimePath
-                central_repo_path = $script:CentralPath
-                source_project_write_policy = "never"
-                anonymization = [ordered]@{
-                    salt_scope = "local-only"
-                    drop_raw_content = $true
-                    forbid_exact_paths = $true
-                    forbid_repository_urls = $true
-                    forbid_branch_names = $true
-                }
-                push = [ordered]@{
-                    mode = "disabled"
-                    commit = $false
-                    unauthorized_fallback = "local-outbox"
+            $config = [ordered]@{
+                schema_version = "0.1.0"
+                audit = [ordered]@{
+                    enabled = $true
+                    mode = "official-central-repo"
+                    official_remote_url = "https://github.com/PetrovC/ai-agent-kit.git"
+                    branch = "agent-audit-data"
+                    runtime_path = $script:RuntimePath
+                    central_repo_path = $script:CentralPath
+                    source_project_write_policy = "never"
+                    anonymization = [ordered]@{
+                        salt_scope = "local-only"
+                        drop_raw_content = $true
+                        forbid_exact_paths = $true
+                        forbid_repository_urls = $true
+                        forbid_branch_names = $true
+                    }
+                    push = [ordered]@{
+                        mode = "disabled"
+                        commit = $false
+                        unauthorized_fallback = "local-outbox"
+                    }
                 }
             }
+            $json = $config | ConvertTo-Json -Depth 10
+            [System.IO.File]::WriteAllText($Path, $json, (New-Object System.Text.UTF8Encoding($false)))
         }
-        $json = $config | ConvertTo-Json -Depth 10
-        [System.IO.File]::WriteAllText($Path, $json, (New-Object System.Text.UTF8Encoding($false)))
-    }
 
-    function Write-AuditEvent {
-        param(
-            [string]$Path,
-            [string]$RunId = "run_20260528_120000_test",
-            [int]$Sequence = 1,
-            [hashtable]$Payload = @{
-                project_hash = "hmac_sha256_example_project"
-                task_type = "feature_implementation"
-                technical_scopes = @("tooling", "tests")
-                status = "completed"
-                validation_state = "passed"
-            },
-            [string]$EventType = "run.completed"
-        )
+        function Write-AuditEvent {
+            param(
+                [string]$Path,
+                [string]$RunId = "run_20260528_120000_test",
+                [int]$Sequence = 1,
+                [hashtable]$Payload = @{
+                    project_hash = "hmac_sha256_example_project"
+                    task_type = "feature_implementation"
+                    technical_scopes = @("tooling", "tests")
+                    status = "completed"
+                    validation_state = "passed"
+                },
+                [string]$EventType = "run.completed"
+            )
 
-        $event = [ordered]@{
-            schema_version = "0.1.0"
-            event_id = "evt_$Sequence"
-            audit_run_id = $RunId
-            sequence = $Sequence
-            occurred_at = "2026-05-28T12:00:00Z"
-            event_type = $EventType
-            actor_kind = "system"
-            invocation_id = $null
-            payload = $Payload
+            $event = [ordered]@{
+                schema_version = "0.1.0"
+                event_id = "evt_$Sequence"
+                audit_run_id = $RunId
+                sequence = $Sequence
+                occurred_at = "2026-05-28T12:00:00Z"
+                event_type = $EventType
+                actor_kind = "system"
+                invocation_id = $null
+                payload = $Payload
+            }
+            $json = $event | ConvertTo-Json -Depth 10 -Compress
+            [System.IO.File]::WriteAllText($Path, $json, (New-Object System.Text.UTF8Encoding($false)))
         }
-        $json = $event | ConvertTo-Json -Depth 10 -Compress
-        [System.IO.File]::WriteAllText($Path, $json, (New-Object System.Text.UTF8Encoding($false)))
     }
 
     It "records sanitized events outside the source project" {
