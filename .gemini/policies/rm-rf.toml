@@ -1,0 +1,44 @@
+# tooling/gemini/policies/rm-rf.toml
+#
+# Gemini extension policy — recursive force-delete commands.
+#
+# Auto-discovered by Gemini at extension load time (per
+# https://geminicli.com/docs/extensions/reference/ — the policies/
+# directory is scanned, no gemini-extension.json reference is required).
+#
+# RELATION TO THE HOOK LAYER
+#
+# tooling/gemini/hooks/pre-bash-guard.sh remains the authoritative
+# runtime guard for `rm -rf` on dangerous targets. The hook walks the
+# rm operands one by one, allows explicit `/tmp/…` / `/var/tmp/…`
+# targets, and blocks absolute paths, home, parent traversal, the
+# current directory (`.`), bare globs (`*`), variable / command-
+# substituted operands (`$VAR`, `$(...)`, backticks), and the `$IFS`
+# word-splitting obfuscation pattern. See the script for the full
+# operand-classification logic.
+#
+# This file is the *MCP supply-chain* counterpart: if a third-party
+# MCP server exposes a tool whose name advertises `rm -rf`-class
+# recursive-delete behaviour, Gemini's policy engine should require
+# explicit user approval before invoking it. The hook already covers
+# native `run_shell_command`; this file covers the parallel risk of
+# an MCP tool performing the same operation outside the shell layer.
+#
+# SHELL-COMMAND PATTERN MATCHING AT THE [[rule]] LEVEL
+#
+# Gemini CLI's public extensions reference exposes shell-command
+# pattern matching through the `excludeTools` manifest array
+# (`run_shell_command(<pattern>)`); it does not yet publish a stable
+# regex syntax inside `[[rule]]` for matching shell command bodies.
+# Native shell enforcement therefore stays in the hook (documented
+# contract, tested matrix), and this file scopes itself to the
+# documented MCP-tool form.
+
+# Supply-chain rule for MCP servers exposing `rm`-class destructive
+# tooling. `ask_user` mirrors the kit's approval-mode posture on
+# Claude / Codex for the same risk class.
+[[rule]]
+mcpName = "rm-rf"
+decision = "ask_user"
+priority = 100
+description = "Recursive force-delete operations exposed via MCP require explicit user approval (matches pre-bash-guard.sh rm -rf operand-classification intent at the supply-chain layer)."
