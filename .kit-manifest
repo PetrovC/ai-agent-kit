@@ -161,3 +161,5 @@
 AGENTS.md
 CLAUDE.md
 GEMINI.md
+.codex/hooks/agent-audit-event.sh
+.gemini/hooks/agent-audit-event.sh

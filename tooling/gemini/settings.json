@@ -44,6 +44,32 @@
           }
         ]
       }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .gemini/hooks/agent-audit-event.sh",
+            "name": "agent-audit",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .gemini/hooks/agent-audit-event.sh",
+            "name": "agent-audit",
+            "async": true
+          }
+        ]
+      }
     ]
   },
 
