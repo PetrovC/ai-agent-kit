@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1.0",
+  "evaluation_mode": "self_check",
+  "measurement_mode": "estimated",
+  "quality_score": 0.91,
+  "validation_state": "passed",
+  "checks": {
+    "required_artifacts_present": true,
+    "json_artifacts_parse": true,
+    "ndjson_events_parse": true,
+    "privacy_contract_followed": true,
+    "links_resolve": true,
+    "ci_passed": false
+  },
+  "warnings": [
+    {
+      "warning_kind": "ci_pending",
+      "severity": "low",
+      "resolved": false
+    }
+  ],
+  "review_summary": {
+    "blocking_finding_count": 0,
+    "non_blocking_finding_count": 1,
+    "recommendation_count": 2
+  }
+}

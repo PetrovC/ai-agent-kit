@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "blockers": [],
+  "retry_counters": {
+    "tool_retry_count": 0,
+    "test_retry_count": 0,
+    "implementation_retry_count": 1
+  },
+  "scope_narrowing": {
+    "narrowing_count": 0,
+    "reason_categories": []
+  },
+  "escalations": {
+    "model_escalation_count": 1,
+    "human_approval_count": 0,
+    "specialist_agent_count": 1
+  },
+  "rework": {
+    "rework_detected": true,
+    "reworked_files_bucket": "none",
+    "rework_token_estimate": 3600
+  },
+  "wasted_context_estimate": {
+    "measurement_mode": "estimated",
+    "confidence": "low",
+    "failed_attempt_tokens": 3600
+  },
+  "stop_reason": "completed_with_warnings"
+}

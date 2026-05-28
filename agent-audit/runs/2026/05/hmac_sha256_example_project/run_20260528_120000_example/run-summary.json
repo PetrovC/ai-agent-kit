@@ -1,0 +1,65 @@
+{
+  "schema_version": "0.1.0",
+  "audit_run_id": "run_20260528_120000_example",
+  "generated_at": "2026-05-28T12:18:00Z",
+  "project_ref": {
+    "project_hash": "hmac_sha256_example_project",
+    "hash_salt_scope": "local-only",
+    "project_kind": "repository"
+  },
+  "source_ref": {
+    "source_kind": "github_issue",
+    "source_hash": "hmac_sha256_example_source"
+  },
+  "task_profile": {
+    "task_type": "docs_update",
+    "task_subtype": "storage_layout",
+    "technical_scopes": ["docs", "ai", "architecture"],
+    "stack_ids": ["markdown", "json", "git"],
+    "risk_level": "low",
+    "complexity": "medium",
+    "expected_outputs": ["docs", "pr"]
+  },
+  "status": "completed_with_warnings",
+  "outcome": {
+    "validation_state": "passed",
+    "tests_run_count": 3,
+    "recommendation_count": 2,
+    "pr_created": true,
+    "merged": false
+  },
+  "duration_ms": 1098000,
+  "usage_summary": {
+    "measurement_mode": "estimated",
+    "confidence": "medium",
+    "total_tokens": 68400,
+    "peak_context_ratio": 0.48
+  },
+  "activity_summary": {
+    "tool_call_count": 26,
+    "file_read_count": 8,
+    "file_write_count": 10
+  },
+  "friction_summary": {
+    "retry_count": 1,
+    "blocker_count": 0,
+    "escalation_count": 1
+  },
+  "artifacts": {
+    "report": "README.md",
+    "events": "governance-events.ndjson",
+    "token_context": "token-context.json",
+    "invocations": "agent-invocations.json",
+    "friction": "friction.json",
+    "activity": "activity.json",
+    "report_quality": "report-quality.json",
+    "pricing": "pricing-estimate.json",
+    "recommendations": "recommendations.md"
+  },
+  "privacy": {
+    "redaction_status": "complete",
+    "dropped_field_count": 0,
+    "contains_raw_content": false,
+    "exact_paths_allowed": false
+  }
+}

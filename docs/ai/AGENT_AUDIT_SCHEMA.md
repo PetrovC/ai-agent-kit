@@ -631,6 +631,7 @@ If pricing is disabled:
 
 ## Related Documents
 
+- [AGENT_AUDIT_STORAGE.md](./AGENT_AUDIT_STORAGE.md)
 - [THREAT_MODEL.md](./THREAT_MODEL.md)
 - [CONTEXT_SANITIZATION.md](./CONTEXT_SANITIZATION.md)
 - [WORKFLOW.md](./WORKFLOW.md)

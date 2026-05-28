@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1.0",
+  "status": "disabled",
+  "currency": null,
+  "estimate_generated_at": "2026-05-28T12:18:00Z",
+  "token_estimate_ref": "token-context.json",
+  "pricing_table": null,
+  "input_cost_estimate": null,
+  "output_cost_estimate": null,
+  "tool_cost_estimate": null,
+  "total_cost_estimate": null,
+  "warnings": ["currency_estimate_disabled"]
+}
