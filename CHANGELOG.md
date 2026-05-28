@@ -4,6 +4,9 @@
 
 ### Added
 
+- **`feat(gemini)` - add Gemini to dogfood install alongside Claude and Codex.**
+  Included the full Gemini tooling (`.gemini/`, `GEMINI.md`, `.geminiignore`) in the repository root dogfood installation. Updated `.kit-version` and `.kit-manifest` to include Gemini. Added `.gemini` to the CI reverse manifest check.
+
 - **`feat(agent-audit)` - implement M0D central audit writer and report generator.**
   Added local runtime and report generation scripts for the central anonymized agent audit.
   Includes global configuration contract, Claude hook integration, and optional commit/push workflow.
