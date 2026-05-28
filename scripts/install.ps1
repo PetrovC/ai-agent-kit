@@ -15,7 +15,7 @@
     Path to the project root where the kit will be installed.
 
 .PARAMETER Tools
-    Comma-separated list of tools to configure. Options: codex, claude, gemini.
+    Comma-separated list of tools to configure. Options: codex, claude, agy.
     Default: all three.
 
 .PARAMETER Audit
@@ -32,7 +32,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Target,
 
-    [string]$Tools = "codex,claude,gemini",
+    [string]$Tools = "codex,claude,agy",
 
     [ValidateSet("disabled", "prompt", "official")]
     [string]$Audit = "disabled",
@@ -66,7 +66,7 @@ $ToolList   = @($Tools -split "," | ForEach-Object { $_.Trim().ToLower() } | Whe
 $Managed = [System.Collections.Generic.List[string]]::new()
 
 function Get-OwningTool([string]$rel) {
-    # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,
+    # Returns codex|claude|agy or "" for non-kit paths (docs/ai/,
     # .kit-version, .kit-manifest, .mcp.json, user files) — those are never
     # tracked in the manifest. `.mcp.json` is initialized by install and then
     # owned by the project; `.mcp.example.jsonc` is the versioned reference.
@@ -78,9 +78,9 @@ function Get-OwningTool([string]$rel) {
         "CLAUDE.md"          { return "claude" }
         ".mcp.example.jsonc" { return "claude" }
         ".claude/*"          { return "claude" }
-        "GEMINI.md"          { return "gemini" }
-        ".geminiignore"      { return "gemini" }
-        ".gemini/*"          { return "gemini" }
+        "AGY.md"          { return "agy" }
+        ".agyignore"      { return "agy" }
+        ".agy/*"          { return "agy" }
         default              { return "" }
     }
 }
@@ -92,14 +92,14 @@ function Write-Utf8NoBom([string]$path, [string]$text) {
     [System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))
 }
 
-$ValidTools = @("codex", "claude", "gemini")
+$ValidTools = @("codex", "claude", "agy")
 $invalid    = @($ToolList | Where-Object { $ValidTools -notcontains $_ })
 if ($invalid.Count -gt 0) {
-    Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, gemini"
+    Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, agy"
     exit 1
 }
 if ($ToolList.Count -eq 0) {
-    Write-Error "Unknown tool(s): (empty). Valid options: codex, claude, gemini"
+    Write-Error "Unknown tool(s): (empty). Valid options: codex, claude, agy"
     exit 1
 }
 $ManifestScope = @($ToolList + @("shared"))
@@ -261,9 +261,9 @@ if ($ToolList -contains "claude") {
     Copy-KitDirectory (Join-Path $KitRoot "skills") (Join-Path $Target ".claude\skills")
 }
 
-if ($ToolList -contains "gemini") {
-    Write-Step "Installing skills -> .gemini/skills/"
-    Copy-KitDirectory (Join-Path $KitRoot "skills") (Join-Path $Target ".gemini\skills")
+if ($ToolList -contains "agy") {
+    Write-Step "Installing skills -> .agy/skills/"
+    Copy-KitDirectory (Join-Path $KitRoot "skills") (Join-Path $Target ".agy\skills")
 }
 
 # -- Codex -----------------------------------------------------------------
@@ -302,16 +302,18 @@ if ($ToolList -contains "claude") {
     Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\rules")    (Join-Path $Target ".claude\rules")
 }
 
-# -- Gemini ----------------------------------------------------------------
-if ($ToolList -contains "gemini") {
-    Write-Step "Installing Gemini CLI tooling"
-    Copy-KitFile (Join-Path $KitRoot "tooling\gemini\GEMINI.md")     (Join-Path $Target "GEMINI.md")
-    Copy-KitFile (Join-Path $KitRoot "tooling\gemini\.geminiignore") (Join-Path $Target ".geminiignore")
-    Copy-KitFile (Join-Path $KitRoot "tooling\gemini\settings.json") (Join-Path $Target ".gemini\settings.json")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\agents")   (Join-Path $Target ".gemini\agents")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\commands") (Join-Path $Target ".gemini\commands")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\hooks")    (Join-Path $Target ".gemini\hooks")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\policies") (Join-Path $Target ".gemini\policies")
+# -- Antigravity ----------------------------------------------------------------
+if ($ToolList -contains "agy") {
+    Write-Step "Installing Antigravity CLI tooling"
+    Copy-KitFile (Join-Path $KitRoot "tooling\agy\AGY.md")     (Join-Path $Target "AGY.md")
+    Copy-KitFile (Join-Path $KitRoot "tooling\agy\.agyignore") (Join-Path $Target ".agyignore")
+    Copy-KitFile (Join-Path $KitRoot "tooling\agy\config.toml") (Join-Path $Target ".agy\config.toml")
+    Copy-KitFile (Join-Path $KitRoot "tooling\agy\hooks.json") (Join-Path $Target ".agy\hooks.json")
+    Copy-KitFile (Join-Path $KitRoot "tooling\agy\hooks.windows.json") (Join-Path $Target ".agy\hooks.windows.json")
+    Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\agents")   (Join-Path $Target ".agy\agents")
+    Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\commands") (Join-Path $Target ".agy\commands")
+    Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\hooks")    (Join-Path $Target ".agy\hooks")
+    Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\policies") (Join-Path $Target ".agy\policies")
 }
 
 # -- Shared audit runtime --------------------------------------------------
@@ -337,7 +339,7 @@ Get-ChildItem -LiteralPath (Join-Path $KitRoot "project-template") -File | ForEa
 }
 
 # -- .kit-version + .kit-manifest ------------------------------------------
-# A partial install (`-Tools gemini` on top of a codex+claude install) must
+# A partial install (`-Tools agy` on top of a codex+claude install) must
 # UNION its -Tools with the already-installed set in .kit-version, never
 # shrink it; and must MERGE the new manifest entries with the manifest
 # entries of tools NOT in this run, never overwrite them.
@@ -352,13 +354,13 @@ if (Test-Path -LiteralPath $versionFileOld) {
         $installedToolsOld = $Matches[1]
     }
 }
-# FullTools = union(installed_old, -Tools) in canonical codex,claude,gemini order.
+# FullTools = union(installed_old, -Tools) in canonical codex,claude,agy order.
 $oldList = @()
 if ($installedToolsOld) {
     $oldList = @($installedToolsOld -split "," | ForEach-Object { $_.Trim().ToLower() })
 }
 $fullTools = @()
-foreach ($ref in @("codex", "claude", "gemini")) {
+foreach ($ref in @("codex", "claude", "agy")) {
     if (($oldList -contains $ref) -or ($ToolList -contains $ref)) {
         $fullTools += $ref
     }
@@ -472,7 +474,7 @@ Write-Host ""
 Write-Host "To refresh kit-managed files while preserving docs/ai/ and .mcp.json:"
 Write-Host "  .\scripts\update.ps1 -Target `"$Target`""
 Write-Host ""
-Write-Host "  Note: update.ps1 refreshes managed kit files (CLAUDE.md, AGENTS.md, GEMINI.md,"
+Write-Host "  Note: update.ps1 refreshes managed kit files (CLAUDE.md, AGENTS.md, AGY.md,"
 Write-Host "        skills/, hooks/, settings.json, ...) byte-compared against the kit source."
 Write-Host "        Local edits to those files WILL be overwritten when they differ."
 Write-Host "        docs/ai/ and .mcp.json are project-owned and never touched."

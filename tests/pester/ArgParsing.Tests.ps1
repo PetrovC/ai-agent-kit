@@ -61,12 +61,12 @@ Describe "PowerShell lifecycle argument parsing" {
     }
 
     It "install.ps1 normalizes -Tools to lowercase and canonical order in .kit-version" {
-        $result = Invoke-AakInstall -Arguments @("-Tools", "Gemini, Claude")
+        $result = Invoke-AakInstall -Arguments @("-Tools", "agy, Claude")
         Assert-AakSuccess $result
 
         $version = Get-Content -LiteralPath (Join-Path $script:Target ".kit-version") -Raw
-        if ($version -notlike "*tools: claude,gemini*") {
-            throw "Expected .kit-version to record tools: claude,gemini. Content:`n$version"
+        if ($version -notlike "*tools: claude,agy*") {
+            throw "Expected .kit-version to record tools: claude,agy. Content:`n$version"
         }
     }
 

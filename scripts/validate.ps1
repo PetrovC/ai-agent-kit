@@ -12,7 +12,7 @@
       - Codex router files stay under the documented context budget and link
         to the long-run context/model/subagent guidance.
       - A compact context audit lists the largest Codex-facing files.
-      - In this source repository only, tracked Claude/Codex/Gemini dogfood
+      - In this source repository only, tracked Claude/Codex/Antigravity dogfood
         files drifted (content or git mode) from their canonical sources
         under tooling/ or skills/.
 
@@ -209,10 +209,10 @@ $routerFailed = $false
 $routerFiles = @(@(
     "AGENTS.md",
     "CLAUDE.md",
-    "GEMINI.md",
+    "AGY.md",
     "tooling/codex/AGENTS.md",
     "tooling/claude/CLAUDE.md",
-    "tooling/gemini/GEMINI.md"
+    "tooling/agy/AGY.md"
 ) | Where-Object {
     Test-Path -LiteralPath (Join-TargetRelative $_) -PathType Leaf
 })
@@ -265,7 +265,7 @@ if (-not $Strict) {
     $strictHasManifest = Test-Path -LiteralPath $strictManifest -PathType Leaf
     $strictHasToolSource = (Test-Path -LiteralPath (Join-Path $Target "tooling\codex") -PathType Container) `
         -or (Test-Path -LiteralPath (Join-Path $Target "tooling\claude") -PathType Container) `
-        -or (Test-Path -LiteralPath (Join-Path $Target "tooling\gemini") -PathType Container)
+        -or (Test-Path -LiteralPath (Join-Path $Target "tooling\agy") -PathType Container)
 
     if (-not ($strictHasManifest -and $strictHasToolSource)) {
         Ok "not a dogfood source tree; skipping strict update guard"
@@ -340,7 +340,7 @@ if ($agentContextFiles.Count -eq 0) {
 # access predictably. The pr-docs lint already enforces the SHAPE of each
 # entry (`Bash(<cmd>:*)`); this check guarantees the field is present at all.
 # Skipped silently in target projects that do not ship a top-level skills/
-# directory (the kit installs skills under .claude/.agents/.gemini instead).
+# directory (the kit installs skills under .claude/.agents/.agy instead).
 Write-Host ""
 Write-Host "> Skill frontmatter: allowed-tools required"
 $skillsDir = Join-Path $Target "skills"
@@ -403,14 +403,14 @@ function Get-DogfoodSourceCandidates([string]$rel) {
         "^\.claude/rules/(.+)$" { return @("tooling/claude/rules/$($Matches[1])") }
         "^\.claude/skills/(.+)$" { return @("skills/$($Matches[1])") }
 
-        "^GEMINI\.md$" { return @("tooling/gemini/GEMINI.md") }
-        "^\.geminiignore$" { return @("tooling/gemini/.geminiignore") }
-        "^\.gemini/settings\.json$" { return @("tooling/gemini/settings.json") }
-        "^\.gemini/agents/(.+)$" { return @("tooling/gemini/agents/$($Matches[1])") }
-        "^\.gemini/commands/(.+)$" { return @("tooling/gemini/commands/$($Matches[1])") }
-        "^\.gemini/hooks/(.+)$" { return @("tooling/gemini/hooks/$($Matches[1])") }
-        "^\.gemini/policies/(.+)$" { return @("tooling/gemini/policies/$($Matches[1])") }
-        "^\.gemini/skills/(.+)$" { return @("skills/$($Matches[1])") }
+        "^AGY\.md$" { return @("tooling/agy/AGY.md") }
+        "^\.agyignore$" { return @("tooling/agy/.agyignore") }
+        "^\.agy/settings\.json$" { return @("tooling/agy/settings.json") }
+        "^\.agy/agents/(.+)$" { return @("tooling/agy/agents/$($Matches[1])") }
+        "^\.agy/commands/(.+)$" { return @("tooling/agy/commands/$($Matches[1])") }
+        "^\.agy/hooks/(.+)$" { return @("tooling/agy/hooks/$($Matches[1])") }
+        "^\.agy/policies/(.+)$" { return @("tooling/agy/policies/$($Matches[1])") }
+        "^\.agy/skills/(.+)$" { return @("skills/$($Matches[1])") }
     }
     return @()
 }
@@ -426,11 +426,11 @@ function Test-SameFile([string]$left, [string]$right) {
 $manifestPath = Join-Path $Target ".kit-manifest"
 $codexSource = Join-Path $Target "tooling\codex"
 $claudeSource = Join-Path $Target "tooling\claude"
-$geminiSource = Join-Path $Target "tooling\gemini"
+$agySource = Join-Path $Target "tooling\agy"
 $hasManifest = Test-Path -LiteralPath $manifestPath -PathType Leaf
 $hasAnyToolSource = (Test-Path -LiteralPath $codexSource -PathType Container) `
     -or (Test-Path -LiteralPath $claudeSource -PathType Container) `
-    -or (Test-Path -LiteralPath $geminiSource -PathType Container)
+    -or (Test-Path -LiteralPath $agySource -PathType Container)
 if ($hasManifest -and $hasAnyToolSource) {
     Write-Host ""
     Write-Host "> Dogfood install drift (repo only)"

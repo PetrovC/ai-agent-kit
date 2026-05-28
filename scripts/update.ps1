@@ -57,7 +57,7 @@ if ($KitVersion -notmatch "^\d+\.\d+\.\d+$") {
 }
 
 function Get-OwningTool([string]$rel) {
-    # Returns codex|claude|gemini or "" for non-kit paths (docs/ai/,
+    # Returns codex|claude|agy or "" for non-kit paths (docs/ai/,
     # .kit-version, .kit-manifest, .mcp.json, user files) — those are never
     # pruned and never written to the manifest. `.mcp.json` is initialized by
     # install and then owned by the project; `.mcp.example.jsonc` is the
@@ -70,9 +70,9 @@ function Get-OwningTool([string]$rel) {
         "CLAUDE.md"          { return "claude" }
         ".mcp.example.jsonc" { return "claude" }
         ".claude/*"          { return "claude" }
-        "GEMINI.md"          { return "gemini" }
-        ".geminiignore"      { return "gemini" }
-        ".gemini/*"          { return "gemini" }
+        "AGY.md"          { return "agy" }
+        ".agyignore"      { return "agy" }
+        ".agy/*"          { return "agy" }
         default              { return "" }
     }
 }
@@ -109,7 +109,7 @@ function Write-Utf8NoBom([string]$path, [string]$text) {
 # -- Read installed version ------------------------------------------------
 $versionFile    = Join-Path $Target ".kit-version"
 $manifestFile   = Join-Path $Target ".kit-manifest"
-$installedTools = "codex,claude,gemini"
+$installedTools = "codex,claude,agy"
 $installedVersion = $null
 
 if (Test-Path -LiteralPath $versionFile) {
@@ -140,10 +140,10 @@ if ([string]::IsNullOrWhiteSpace($Tools)) {
 
 $ToolList = @($Tools -split "," | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ })
 
-$ValidTools = @("codex", "claude", "gemini")
+$ValidTools = @("codex", "claude", "agy")
 $invalid    = @($ToolList | Where-Object { $ValidTools -notcontains $_ })
 if ($invalid.Count -gt 0) {
-    Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, gemini"
+    Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, agy"
     exit 1
 }
 $ManifestScope = @($ToolList + @("shared"))
@@ -228,7 +228,7 @@ function Update-Directory([string]$srcDir, [string]$dstDir) {
 # -- Update skills ---------------------------------------------------------
 if ($ToolList -contains "codex")  { Update-Directory (Join-Path $KitRoot "skills") (Join-Path $Target ".agents\skills") }
 if ($ToolList -contains "claude") { Update-Directory (Join-Path $KitRoot "skills") (Join-Path $Target ".claude\skills") }
-if ($ToolList -contains "gemini") { Update-Directory (Join-Path $KitRoot "skills") (Join-Path $Target ".gemini\skills") }
+if ($ToolList -contains "agy") { Update-Directory (Join-Path $KitRoot "skills") (Join-Path $Target ".agy\skills") }
 
 # -- Update Codex tooling --------------------------------------------------
 if ($ToolList -contains "codex") {
@@ -268,15 +268,18 @@ if ($ToolList -contains "claude") {
     Update-Directory   (Join-Path $KitRoot "tooling\claude\rules")         (Join-Path $Target ".claude\rules")
 }
 
-# -- Update Gemini tooling -------------------------------------------------
-if ($ToolList -contains "gemini") {
-    Compare-And-Update (Join-Path $KitRoot "tooling\gemini\GEMINI.md")      (Join-Path $Target "GEMINI.md")
-    Compare-And-Update (Join-Path $KitRoot "tooling\gemini\.geminiignore")  (Join-Path $Target ".geminiignore")
-    Compare-And-Update (Join-Path $KitRoot "tooling\gemini\settings.json")  (Join-Path $Target ".gemini\settings.json")
-    Update-Directory   (Join-Path $KitRoot "tooling\gemini\agents")         (Join-Path $Target ".gemini\agents")
-    Update-Directory   (Join-Path $KitRoot "tooling\gemini\commands")       (Join-Path $Target ".gemini\commands")
-    Update-Directory   (Join-Path $KitRoot "tooling\gemini\hooks")          (Join-Path $Target ".gemini\hooks")
-    Update-Directory   (Join-Path $KitRoot "tooling\gemini\policies")       (Join-Path $Target ".gemini\policies")
+# -- Update Antigravity tooling -------------------------------------------------
+if ($ToolList -contains "agy") {
+    Compare-And-Update (Join-Path $KitRoot "tooling\agy\AGY.md")      (Join-Path $Target "AGY.md")
+    Compare-And-Update (Join-Path $KitRoot "tooling\agy\.agyignore")  (Join-Path $Target ".agyignore")
+
+    Compare-And-Update (Join-Path $KitRoot "tooling\agy\config.toml")  (Join-Path $Target ".agy\config.toml")
+    Compare-And-Update (Join-Path $KitRoot "tooling\agy\hooks.json")  (Join-Path $Target ".agy\hooks.json")
+    Compare-And-Update (Join-Path $KitRoot "tooling\agy\hooks.windows.json")  (Join-Path $Target ".agy\hooks.windows.json")
+    Update-Directory   (Join-Path $KitRoot "tooling\agy\agents")         (Join-Path $Target ".agy\agents")
+    Update-Directory   (Join-Path $KitRoot "tooling\agy\commands")       (Join-Path $Target ".agy\commands")
+    Update-Directory   (Join-Path $KitRoot "tooling\agy\hooks")          (Join-Path $Target ".agy\hooks")
+    Update-Directory   (Join-Path $KitRoot "tooling\agy\policies")       (Join-Path $Target ".agy\policies")
 }
 
 # -- Update shared audit runtime ------------------------------------------
@@ -313,7 +316,7 @@ if ((Test-Path -LiteralPath $manifestFile) -and ($Managed.Count -gt 0)) {
 # -- Update .kit-version + .kit-manifest -----------------------------------
 if (-not $DryRun) {
     # The installed tool set is independent of this run's -Tools scope:
-    # `update -Tools gemini` refreshes only Gemini files but must NOT shrink
+    # `update -Tools agy` refreshes only Antigravity files but must NOT shrink
     # the recorded installed set if codex/claude were also installed before.
     # Preserve $installedTools read at the top of the script.
     $stamp = "ai-agent-kit@$KitVersion - updated $(Get-Date -Format 'yyyy-MM-dd') - tools: $installedTools"

@@ -5,14 +5,14 @@
 .DESCRIPTION
     Removes only files the kit installed:
       - .kit-manifest is the source of truth: every kit-installed file is
-        listed, scoped by tool (codex / claude / gemini). Only manifest
+        listed, scoped by tool (codex / claude / agy). Only manifest
         entries whose owning tool is in -Tools are removed.
       - If .kit-manifest is missing (very old installs), the script
         reconstructs the kit's installed file list from the running kit
         sources (KitRoot) and removes only those exact paths. Anything else
         inside managed dirs is left in place.
 
-    Empty parent dirs under .agents\, .claude\, .codex\, .gemini\ are pruned
+    Empty parent dirs under .agents\, .claude\, .codex\, .agy\ are pruned
     after removal so a fully-uninstalled tool leaves no empty shell behind,
     while user files inside those dirs survive untouched.
 
@@ -65,21 +65,21 @@ if ([string]::IsNullOrWhiteSpace($Tools)) {
         }
     }
     if ([string]::IsNullOrWhiteSpace($Tools)) {
-        $Tools = "codex,claude,gemini"
+        $Tools = "codex,claude,agy"
     }
 }
 
 $ToolList = @($Tools -split "," | ForEach-Object { $_.Trim().ToLower() })
 
-$ValidTools = @("codex", "claude", "gemini")
+$ValidTools = @("codex", "claude", "agy")
 $invalid    = @($ToolList | Where-Object { $ValidTools -notcontains $_ })
 if ($invalid.Count -gt 0) {
-    Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, gemini"
+    Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, agy"
     exit 1
 }
 
 $versionFileForScope = Join-Path $Target ".kit-version"
-$installedForScope = "codex,claude,gemini"
+$installedForScope = "codex,claude,agy"
 if (Test-Path -LiteralPath $versionFileForScope) {
     $versionLineForScope = (Get-Content -LiteralPath $versionFileForScope -Raw).Trim()
     if ($versionLineForScope -match "tools: (.+)") {
@@ -105,7 +105,7 @@ function Get-OwningTool([string]$rel) {
     if ($r -eq "AGENTS.md" -or $r -like ".codex/*" -or $r -like ".agents/skills/*") { return "codex" }
     if ($r -like ".ai-agent-kit/audit/*") { return "shared" }
     if ($r -eq "CLAUDE.md" -or $r -eq ".mcp.example.jsonc" -or $r -like ".claude/*") { return "claude" }
-    if ($r -eq "GEMINI.md" -or $r -eq ".geminiignore" -or $r -like ".gemini/*") { return "gemini" }
+    if ($r -eq "AGY.md" -or $r -eq ".agyignore" -or $r -like ".agy/*") { return "agy" }
     return ""
 }
 
@@ -176,16 +176,19 @@ function Get-ReconstructedFiles([string]$tool) {
                 }
             }
         }
-        "gemini" {
-            $out.Add("GEMINI.md")
-            $out.Add(".geminiignore")
-            $out.Add(".gemini/settings.json")
+        "agy" {
+            $out.Add("AGY.md")
+            $out.Add(".agyignore")
+
+            $out.Add(".agy/config.toml")
+            $out.Add(".agy/hooks.json")
+            $out.Add(".agy/hooks.windows.json")
             foreach ($sub in @("agents","commands","hooks","policies")) {
-                $d = Join-Path $KitRoot "tooling/gemini/$sub"
+                $d = Join-Path $KitRoot "tooling/agy/$sub"
                 if (Test-Path -LiteralPath $d) {
                     Get-ChildItem -LiteralPath $d -Recurse -File | ForEach-Object {
                         $rel = $_.FullName.Substring($d.Length).TrimStart('\','/') -replace "\\", "/"
-                        $out.Add(".gemini/$sub/$rel")
+                        $out.Add(".agy/$sub/$rel")
                     }
                 }
             }
@@ -193,7 +196,7 @@ function Get-ReconstructedFiles([string]$tool) {
             if (Test-Path -LiteralPath $sharedSkillsDir) {
                 Get-ChildItem -LiteralPath $sharedSkillsDir -Recurse -File | ForEach-Object {
                     $rel = $_.FullName.Substring($sharedSkillsDir.Length).TrimStart('\','/') -replace "\\", "/"
-                    $out.Add(".gemini/skills/$rel")
+                    $out.Add(".agy/skills/$rel")
                 }
             }
         }
@@ -255,7 +258,7 @@ foreach ($tool in $ToolList) {
     switch ($tool) {
         "codex"  { Step "Removing Codex tooling" }
         "claude" { Step "Removing Claude Code tooling" }
-        "gemini" { Step "Removing Gemini CLI tooling" }
+        "agy" { Step "Removing Antigravity CLI tooling" }
     }
     $any = $false
     foreach ($rel in $ToRemove) {
@@ -284,7 +287,7 @@ if ($RemoveSharedAudit) {
 # -- Prune empty kit directories ------------------------------------------
 # Walk deepest first; rmdir leaves user-populated dirs alive.
 if (-not $DryRun) {
-    foreach ($top in @(".agents", ".claude", ".codex", ".gemini", ".ai-agent-kit")) {
+    foreach ($top in @(".agents", ".claude", ".codex", ".agy", ".ai-agent-kit")) {
         $topDir = Join-Path $Target $top
         if (-not (Test-Path -LiteralPath $topDir)) { continue }
         $dirs = @(Get-ChildItem -LiteralPath $topDir -Recurse -Directory -ErrorAction SilentlyContinue) +
@@ -302,14 +305,14 @@ if (-not $DryRun) {
 
 # -- .kit-version + .kit-manifest -----------------------------------------
 # Partial uninstall must rewrite both metadata files to reflect the REMAINING
-# tools — leaving the stale "tools: codex,claude,gemini" line after
+# tools — leaving the stale "tools: codex,claude,agy" line after
 # `uninstall -Tools codex` makes the next default update think Codex is still
 # installed and silently re-install its files. Manifest entries belonging to
 # removed tools must be dropped too.
 $versionFile = Join-Path $Target ".kit-version"
 if (Test-Path -LiteralPath $versionFile) {
     $versionLine = (Get-Content -LiteralPath $versionFile -Raw).Trim()
-    $installedRaw = "codex,claude,gemini"
+    $installedRaw = "codex,claude,agy"
     if ($versionLine -match "tools: (.+)") {
         $installedRaw = $Matches[1].Trim()
     }

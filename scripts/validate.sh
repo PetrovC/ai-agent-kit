@@ -10,7 +10,7 @@
 #   - Codex router files stay under the documented context budget and link to
 #     the long-run context/model/subagent guidance.
 #   - A compact context audit lists the largest Codex-facing files.
-#   - In this source repository only, tracked Claude/Codex/Gemini dogfood files
+#   - In this source repository only, tracked Claude/Codex/Antigravity dogfood files
 #     drifted (content or git mode) from their canonical sources under tooling/
 #     or skills/.
 #
@@ -178,10 +178,10 @@ echo "> Router line budget"
 router_files=()
 [[ -f "$TARGET/AGENTS.md" ]] && router_files+=(AGENTS.md)
 [[ -f "$TARGET/CLAUDE.md" ]] && router_files+=(CLAUDE.md)
-[[ -f "$TARGET/GEMINI.md" ]] && router_files+=(GEMINI.md)
+[[ -f "$TARGET/AGY.md" ]] && router_files+=(AGY.md)
 [[ -f "$TARGET/tooling/codex/AGENTS.md" ]] && router_files+=(tooling/codex/AGENTS.md)
 [[ -f "$TARGET/tooling/claude/CLAUDE.md" ]] && router_files+=(tooling/claude/CLAUDE.md)
-[[ -f "$TARGET/tooling/gemini/GEMINI.md" ]] && router_files+=(tooling/gemini/GEMINI.md)
+[[ -f "$TARGET/tooling/agy/AGY.md" ]] && router_files+=(tooling/agy/AGY.md)
 router_failed=false
 
 if ((${#router_files[@]} == 0)); then
@@ -226,7 +226,7 @@ if [[ "$STRICT_MODE" -eq 0 ]]; then
     ok "strict checks disabled (use --strict)"
 else
     if [[ -f "$TARGET/.kit-manifest" ]] \
-       && { [[ -d "$TARGET/tooling/codex" ]] || [[ -d "$TARGET/tooling/claude" ]] || [[ -d "$TARGET/tooling/gemini" ]]; }; then
+       && { [[ -d "$TARGET/tooling/codex" ]] || [[ -d "$TARGET/tooling/claude" ]] || [[ -d "$TARGET/tooling/agy" ]]; }; then
         update_script="$TARGET/scripts/update.sh"
         if [[ ! -f "$update_script" ]]; then
             ok "no scripts/update.sh in target; skipping strict update guard"
@@ -303,7 +303,7 @@ fi
 # access predictably. The pr-docs lint already enforces the SHAPE of each
 # entry (`Bash(<cmd>:*)`); this check guarantees the field is present at all.
 # Skipped silently in target projects that do not ship a top-level skills/
-# directory (the kit installs skills under .claude/.agents/.gemini instead).
+# directory (the kit installs skills under .claude/.agents/.agy instead).
 echo ""
 echo "> Skill frontmatter: allowed-tools required"
 if [[ -d "$TARGET/skills" ]] && compgen -G "$TARGET/skills/*/SKILL.md" > /dev/null; then
@@ -378,34 +378,37 @@ dogfood_source_candidates() {
             printf '%s\n' "$TARGET/skills/$tail"
             ;;
 
-        GEMINI.md) printf '%s\n' "$TARGET/tooling/gemini/GEMINI.md" ;;
-        .geminiignore) printf '%s\n' "$TARGET/tooling/gemini/.geminiignore" ;;
-        .gemini/settings.json) printf '%s\n' "$TARGET/tooling/gemini/settings.json" ;;
-        .gemini/agents/*)
-            tail="${rel#.gemini/agents/}"
-            printf '%s\n' "$TARGET/tooling/gemini/agents/$tail"
+        AGY.md) printf '%s\n' "$TARGET/tooling/agy/AGY.md" ;;
+        .agyignore) printf '%s\n' "$TARGET/tooling/agy/.agyignore" ;;
+
+        .agy/config.toml) printf '%s\n' "$TARGET/tooling/agy/config.toml" ;;
+        .agy/hooks.json) printf '%s\n' "$TARGET/tooling/agy/hooks.json" ;;
+        .agy/hooks.windows.json) printf '%s\n' "$TARGET/tooling/agy/hooks.windows.json" ;;
+        .agy/agents/*)
+            tail="${rel#.agy/agents/}"
+            printf '%s\n' "$TARGET/tooling/agy/agents/$tail"
             ;;
-        .gemini/commands/*)
-            tail="${rel#.gemini/commands/}"
-            printf '%s\n' "$TARGET/tooling/gemini/commands/$tail"
+        .agy/commands/*)
+            tail="${rel#.agy/commands/}"
+            printf '%s\n' "$TARGET/tooling/agy/commands/$tail"
             ;;
-        .gemini/hooks/*)
-            tail="${rel#.gemini/hooks/}"
-            printf '%s\n' "$TARGET/tooling/gemini/hooks/$tail"
+        .agy/hooks/*)
+            tail="${rel#.agy/hooks/}"
+            printf '%s\n' "$TARGET/tooling/agy/hooks/$tail"
             ;;
-        .gemini/policies/*)
-            tail="${rel#.gemini/policies/}"
-            printf '%s\n' "$TARGET/tooling/gemini/policies/$tail"
+        .agy/policies/*)
+            tail="${rel#.agy/policies/}"
+            printf '%s\n' "$TARGET/tooling/agy/policies/$tail"
             ;;
-        .gemini/skills/*)
-            tail="${rel#.gemini/skills/}"
+        .agy/skills/*)
+            tail="${rel#.agy/skills/}"
             printf '%s\n' "$TARGET/skills/$tail"
             ;;
     esac
 }
 
 if [[ -f "$TARGET/.kit-manifest" ]] \
-   && { [[ -d "$TARGET/tooling/codex" ]] || [[ -d "$TARGET/tooling/claude" ]] || [[ -d "$TARGET/tooling/gemini" ]]; }; then
+   && { [[ -d "$TARGET/tooling/codex" ]] || [[ -d "$TARGET/tooling/claude" ]] || [[ -d "$TARGET/tooling/agy" ]]; }; then
     echo ""
     echo "> Dogfood install drift (repo only)"
     dogfood_checked=0

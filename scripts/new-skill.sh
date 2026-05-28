@@ -44,7 +44,7 @@ fi
 # Validate name as a cross-tool identifier. The slug becomes:
 #   - a directory under skills/<name>/
 #   - a Codex activation token written as `$<name>` in AGENTS.md
-#   - a Gemini path .gemini/skills/<name>/SKILL.md
+#   - a Antigravity path .agy/skills/<name>/SKILL.md
 #   - a row in three routing tables installed into target projects.
 # So it must be true kebab-case (alphanumeric segments joined by single hyphens),
 # not just "matches [a-z][a-z0-9-]*" which would also accept "foo-" or "foo--bar".
@@ -78,7 +78,7 @@ done
 
 if [[ ${#PYTHON_CMD[@]} -eq 0 ]]; then
     echo "Error: no working Python interpreter found (tried: python3, python, py -3)." >&2
-    echo "       new-skill.sh uses Python to insert routing rows into CLAUDE.md / AGENTS.md / GEMINI.md." >&2
+    echo "       new-skill.sh uses Python to insert routing rows into CLAUDE.md / AGENTS.md / AGY.md." >&2
     echo "       Install Python 3 (https://python.org, apt, brew, or the Windows Store launcher) and re-run." >&2
     exit 1
 fi
@@ -190,15 +190,15 @@ PYEOF
 
 CLAUDE_ROW="| TODO: describe when to use $NAME | \`$NAME\` skill |"
 AGENTS_ROW="| TODO: describe when to use $NAME | \`\$$NAME\` |"
-GEMINI_ROW="| TODO: describe when to use $NAME | \`.gemini/skills/$NAME/SKILL.md\` |"
+AGY_ROW="| TODO: describe when to use $NAME | \`.agy/skills/$NAME/SKILL.md\` |"
 
 # Anchor: the blank line + --- that ends the skill routing table
-ANCHOR_CLAUDE_GEMINI=$'\n\n---\n\n## Subagent routing'
+ANCHOR_CLAUDE_AGY=$'\n\n---\n\n## Subagent routing'
 ANCHOR_AGENTS=$'\n\nActivate only the skills relevant to the current task.'
 
-insert_routing_row "$KIT_ROOT/tooling/claude/CLAUDE.md"   "$CLAUDE_ROW" "$ANCHOR_CLAUDE_GEMINI"
+insert_routing_row "$KIT_ROOT/tooling/claude/CLAUDE.md"   "$CLAUDE_ROW" "$ANCHOR_CLAUDE_AGY"
 insert_routing_row "$KIT_ROOT/tooling/codex/AGENTS.md"    "$AGENTS_ROW" "$ANCHOR_AGENTS"
-insert_routing_row "$KIT_ROOT/tooling/gemini/GEMINI.md"   "$GEMINI_ROW" "$ANCHOR_CLAUDE_GEMINI"
+insert_routing_row "$KIT_ROOT/tooling/agy/AGY.md"   "$AGY_ROW" "$ANCHOR_CLAUDE_AGY"
 
 # ── Done ───────────────────────────────────────────────────────────────────
 echo "+--------------------------------------+"
@@ -220,7 +220,7 @@ echo "  1. Edit skills/$NAME/SKILL.md and fill the placeholders."
 echo "  2. Replace the TODO routing rows with a real description in:"
 echo "       tooling/claude/CLAUDE.md"
 echo "       tooling/codex/AGENTS.md"
-echo "       tooling/gemini/GEMINI.md"
+echo "       tooling/agy/AGY.md"
 echo "  3. Add an entry to CHANGELOG.md under [Unreleased] -> Added -> New skills."
 echo "  4. Re-run the install script in any target project to deploy."
 

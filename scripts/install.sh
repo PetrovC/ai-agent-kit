@@ -28,7 +28,7 @@ if [[ ! "$KIT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     exit 1
 fi
 TARGET=""
-TOOLS="codex,claude,gemini"
+TOOLS="codex,claude,agy"
 AUDIT="disabled"
 AUDIT_CONFIG=""
 
@@ -79,7 +79,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$TARGET" ]]; then
-    echo "Usage: $0 --target /path/to/project [--tools codex,claude,gemini]"
+    echo "Usage: $0 --target /path/to/project [--tools codex,claude,agy]"
     exit 1
 fi
 
@@ -104,12 +104,12 @@ case "$AUDIT" in
     *) echo "Error: unknown audit mode '$AUDIT'. Valid options: disabled, prompt, official" >&2; exit 1 ;;
 esac
 
-VALID_TOOLS=("codex" "claude" "gemini")
+VALID_TOOLS=("codex" "claude" "agy")
 for t in "${TOOL_LIST[@]}"; do
     valid=false
     for v in "${VALID_TOOLS[@]}"; do [[ "$t" == "$v" ]] && valid=true && break; done
     if [[ "$valid" == "false" ]]; then
-        echo "Error: unknown tool '$t'. Valid options: codex, claude, gemini"
+        echo "Error: unknown tool '$t'. Valid options: codex, claude, agy"
         exit 1
     fi
 done
@@ -130,7 +130,7 @@ owning_tool() {
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
         .ai-agent-kit/audit/*)                           echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
-        GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
+        AGY.md|.agyignore|.agy/*)               echo agy ;;
         *)                                               echo ""     ;;
     esac
 }
@@ -263,9 +263,9 @@ if contains "claude"; then
     copy_dir "$KIT_ROOT/skills" "$TARGET/.claude/skills"
 fi
 
-if contains "gemini"; then
-    step "Installing skills -> .gemini/skills/"
-    copy_dir "$KIT_ROOT/skills" "$TARGET/.gemini/skills"
+if contains "agy"; then
+    step "Installing skills -> .agy/skills/"
+    copy_dir "$KIT_ROOT/skills" "$TARGET/.agy/skills"
 fi
 
 # ── Codex ──────────────────────────────────────────────────────────────────
@@ -306,16 +306,18 @@ if contains "claude"; then
     find "$TARGET/.claude/hooks" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 fi
 
-# ── Gemini ─────────────────────────────────────────────────────────────────
-if contains "gemini"; then
-    step "Installing Gemini CLI tooling"
-    copy_file "$KIT_ROOT/tooling/gemini/GEMINI.md"      "$TARGET/GEMINI.md"
-    copy_file "$KIT_ROOT/tooling/gemini/.geminiignore"  "$TARGET/.geminiignore"
-    copy_file "$KIT_ROOT/tooling/gemini/settings.json"  "$TARGET/.gemini/settings.json"
-    copy_dir  "$KIT_ROOT/tooling/gemini/agents"         "$TARGET/.gemini/agents"
-    copy_dir  "$KIT_ROOT/tooling/gemini/commands"       "$TARGET/.gemini/commands"
-    copy_dir  "$KIT_ROOT/tooling/gemini/hooks"          "$TARGET/.gemini/hooks"
-    copy_dir  "$KIT_ROOT/tooling/gemini/policies"       "$TARGET/.gemini/policies"
+# ── Antigravity ─────────────────────────────────────────────────────────────────
+if contains "agy"; then
+    step "Installing Antigravity CLI tooling"
+    copy_file "$KIT_ROOT/tooling/agy/AGY.md"      "$TARGET/AGY.md"
+    copy_file "$KIT_ROOT/tooling/agy/.agyignore"  "$TARGET/.agyignore"
+    copy_file "$KIT_ROOT/tooling/agy/config.toml"  "$TARGET/.agy/config.toml"
+    copy_file "$KIT_ROOT/tooling/agy/hooks.json"  "$TARGET/.agy/hooks.json"
+    copy_file "$KIT_ROOT/tooling/agy/hooks.windows.json"  "$TARGET/.agy/hooks.windows.json"
+    copy_dir  "$KIT_ROOT/tooling/agy/agents"         "$TARGET/.agy/agents"
+    copy_dir  "$KIT_ROOT/tooling/agy/commands"       "$TARGET/.agy/commands"
+    copy_dir  "$KIT_ROOT/tooling/agy/hooks"          "$TARGET/.agy/hooks"
+    copy_dir  "$KIT_ROOT/tooling/agy/policies"       "$TARGET/.agy/policies"
 fi
 
 # -- Shared audit runtime --------------------------------------------------
@@ -342,7 +344,7 @@ find "$KIT_ROOT/project-template" -maxdepth 1 -type f | while read -r src_file; 
 done
 
 # ── .kit-version + .kit-manifest ───────────────────────────────────────────
-# A partial install (`--tools gemini` on top of a codex+claude install) must
+# A partial install (`--tools agy` on top of a codex+claude install) must
 # UNION its --tools with the already-installed set in .kit-version, never
 # shrink it; and must MERGE the new manifest entries with the manifest
 # entries of tools NOT in this run, never overwrite them. The previous
@@ -358,9 +360,9 @@ if [[ -f "$TARGET/.kit-version" ]]; then
         INSTALLED_TOOLS_OLD="${BASH_REMATCH[1]}"
     fi
 fi
-# FULL_TOOLS = union(installed_old, --tools) in canonical codex,claude,gemini order.
+# FULL_TOOLS = union(installed_old, --tools) in canonical codex,claude,agy order.
 FULL_TOOLS=()
-for ref in codex claude gemini; do
+for ref in codex claude agy; do
     keep=false
     if [[ -n "$INSTALLED_TOOLS_OLD" ]]; then
         IFS=',' read -ra OLD_LIST <<< "$INSTALLED_TOOLS_OLD"
@@ -451,7 +453,7 @@ echo ""
 echo "To refresh kit-managed files while preserving docs/ai/ and .mcp.json:"
 echo "  ./scripts/update.sh --target $TARGET"
 echo ""
-echo "  Note: update.sh refreshes managed kit files (CLAUDE.md, AGENTS.md, GEMINI.md,"
+echo "  Note: update.sh refreshes managed kit files (CLAUDE.md, AGENTS.md, AGY.md,"
 echo "        skills/, hooks/, settings.json, …) byte-compared against the kit source."
 echo "        Local edits to those files WILL be overwritten when they differ."
 echo "        docs/ai/ and .mcp.json are project-owned and never touched."

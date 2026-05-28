@@ -57,16 +57,16 @@ setup() {
 
 @test "install.sh normalises --tools to lowercase + canonical order in .kit-version" {
     # Mixed case + whitespace + reversed order — must canonicalise.
-    run aak_install --tools "Gemini, Claude"
+    run aak_install --tools "agy, Claude"
     assert_success
     assert_file_exists "$TARGET/.kit-version"
     run cat "$TARGET/.kit-version"
     assert_success
-    # Canonical order is codex,claude,gemini; install.sh writes the union of
+    # Canonical order is codex,claude,agy; install.sh writes the union of
     # already-installed + --tools in that order. A fresh install with claude
-    # and gemini must therefore record `tools: claude,gemini`, not
-    # `tools: Gemini,Claude` or `tools: gemini,claude`.
-    assert_output_contains "tools: claude,gemini"
+    # and agy must therefore record `tools: claude,agy`, not
+    # `tools: agy,Claude` or `tools: agy,claude`.
+    assert_output_contains "tools: claude,agy"
 }
 
 @test "update.sh --dry-run does not modify the target" {

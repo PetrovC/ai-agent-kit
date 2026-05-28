@@ -39,10 +39,10 @@ Describe "PowerShell .kit-manifest lifecycle" {
         $manifest = Get-Content -LiteralPath (Join-Path $script:Target ".kit-manifest")
         $unexpected = @($manifest | Where-Object {
             $_ -eq "AGENTS.md" -or
-            $_ -eq "GEMINI.md" -or
+            $_ -eq "AGY.md" -or
             $_ -like ".codex/*" -or
             $_ -like ".agents/*" -or
-            $_ -like ".gemini/*"
+            $_ -like ".agy/*"
         })
 
         if ($unexpected.Count -gt 0) {
@@ -54,22 +54,22 @@ Describe "PowerShell .kit-manifest lifecycle" {
         Assert-AakSuccess (Invoke-AakInstall -Arguments @("-Tools", "claude"))
         $beforeCount = @(Get-Content -LiteralPath (Join-Path $script:Target ".kit-manifest")).Count
 
-        Assert-AakSuccess (Invoke-AakInstall -Arguments @("-Tools", "gemini"))
+        Assert-AakSuccess (Invoke-AakInstall -Arguments @("-Tools", "agy"))
         $manifest = @(Get-Content -LiteralPath (Join-Path $script:Target ".kit-manifest"))
 
         if ($manifest -notcontains "CLAUDE.md") {
             throw "Partial install dropped CLAUDE.md from manifest"
         }
-        if ($manifest -notcontains "GEMINI.md") {
-            throw "Partial install did not add GEMINI.md to manifest"
+        if ($manifest -notcontains "AGY.md") {
+            throw "Partial install did not add AGY.md to manifest"
         }
         if ($manifest.Count -le $beforeCount) {
-            throw "Expected manifest to grow after adding gemini: $beforeCount -> $($manifest.Count)"
+            throw "Expected manifest to grow after adding agy: $beforeCount -> $($manifest.Count)"
         }
 
         $version = Get-Content -LiteralPath (Join-Path $script:Target ".kit-version") -Raw
-        if ($version -notlike "*tools: claude,gemini*") {
-            throw "Expected .kit-version to record tools: claude,gemini. Content:`n$version"
+        if ($version -notlike "*tools: claude,agy*") {
+            throw "Expected .kit-version to record tools: claude,agy. Content:`n$version"
         }
     }
 
@@ -90,26 +90,26 @@ Describe "PowerShell .kit-manifest lifecycle" {
     }
 
     It "partial uninstall rewrites manifest to the remaining tool entries" {
-        Assert-AakSuccess (Invoke-AakInstall -Arguments @("-Tools", "claude,gemini"))
+        Assert-AakSuccess (Invoke-AakInstall -Arguments @("-Tools", "claude,agy"))
         Assert-AakSuccess (Invoke-AakUninstall -Arguments @("-Tools", "claude"))
 
         $manifestPath = Join-Path $script:Target ".kit-manifest"
         Assert-AakFileExists $manifestPath
 
         $manifest = @(Get-Content -LiteralPath $manifestPath)
-        if ($manifest -notcontains "GEMINI.md") {
-            throw "Partial uninstall dropped GEMINI.md from manifest"
+        if ($manifest -notcontains "AGY.md") {
+            throw "Partial uninstall dropped AGY.md from manifest"
         }
         if ($manifest -contains "CLAUDE.md") {
             throw "Partial uninstall left CLAUDE.md in manifest"
         }
         if ($manifest -notcontains ".ai-agent-kit/audit/record-event.ps1") {
-            throw "Partial uninstall dropped shared audit runtime while Gemini remains installed"
+            throw "Partial uninstall dropped shared audit runtime while agy remains installed"
         }
 
         $version = Get-Content -LiteralPath (Join-Path $script:Target ".kit-version") -Raw
-        if ($version -notlike "*tools: gemini*") {
-            throw "Expected .kit-version to record tools: gemini. Content:`n$version"
+        if ($version -notlike "*tools: agy*") {
+            throw "Expected .kit-version to record tools: agy. Content:`n$version"
         }
     }
 

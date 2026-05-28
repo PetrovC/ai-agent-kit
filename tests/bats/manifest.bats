@@ -32,8 +32,8 @@ setup() {
 
 @test "install scopes the manifest to --tools" {
     aak_install --tools claude
-    # No codex- or gemini-owned paths should appear.
-    run grep -E '^AGENTS\.md$|^GEMINI\.md$|^\.codex/|^\.agents/|^\.gemini/' "$TARGET/.kit-manifest"
+    # No codex- or agy-owned paths should appear.
+    run grep -E '^AGENTS\.md$|^AGY\.md$|^\.codex/|^\.agents/|^\.agy/' "$TARGET/.kit-manifest"
     [[ "$status" -ne 0 ]] || {
         echo "unexpected non-Claude entries:"
         echo "$output"
@@ -44,22 +44,22 @@ setup() {
 @test "partial install preserves the prior tool's manifest entries" {
     aak_install --tools claude
     before_count="$(wc -l < "$TARGET/.kit-manifest" | tr -d ' ')"
-    # Add Gemini on top — Claude's entries must survive.
-    aak_install --tools gemini
+    # Add agy on top — Claude's entries must survive.
+    aak_install --tools agy
     run grep -Fx "CLAUDE.md" "$TARGET/.kit-manifest"
     assert_success
-    run grep -Fx "GEMINI.md" "$TARGET/.kit-manifest"
+    run grep -Fx "AGY.md" "$TARGET/.kit-manifest"
     assert_success
     after_count="$(wc -l < "$TARGET/.kit-manifest" | tr -d ' ')"
     # The manifest must have grown, not been replaced.
     [[ "$after_count" -gt "$before_count" ]] || {
-        echo "expected manifest to grow after adding gemini: $before_count -> $after_count"
+        echo "expected manifest to grow after adding agy: $before_count -> $after_count"
         return 1
     }
     # .kit-version must record the UNION in canonical order.
     run cat "$TARGET/.kit-version"
     assert_success
-    assert_output_contains "tools: claude,gemini"
+    assert_output_contains "tools: claude,agy"
 }
 
 @test "uninstall reads the manifest and removes only listed files" {
@@ -79,12 +79,12 @@ setup() {
 }
 
 @test "partial uninstall rewrites manifest to the remaining tool's entries" {
-    aak_install --tools claude,gemini
+    aak_install --tools claude,agy
     run aak_uninstall --tools claude
     assert_success
     assert_file_exists "$TARGET/.kit-manifest"
-    # Manifest must keep Gemini entries and drop Claude entries.
-    run grep -Fx "GEMINI.md" "$TARGET/.kit-manifest"
+    # Manifest must keep agy entries and drop Claude entries.
+    run grep -Fx "AGY.md" "$TARGET/.kit-manifest"
     assert_success
     run grep -Fx "CLAUDE.md" "$TARGET/.kit-manifest"
     assert_failure
@@ -93,7 +93,7 @@ setup() {
     # .kit-version updated to remaining tools only.
     run cat "$TARGET/.kit-version"
     assert_success
-    assert_output_contains "tools: gemini"
+    assert_output_contains "tools: agy"
 }
 
 @test "full uninstall removes shared audit runtime with the last tool" {

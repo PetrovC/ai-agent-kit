@@ -39,7 +39,7 @@ function Write-Utf8NoBom([string]$path, [string]$text) {
 }
 
 # Validate name as a cross-tool identifier. The slug becomes a directory, a
-# Codex activation token, a Gemini path, and a row in three routing tables —
+# Codex activation token, a Antigravity path, and a row in three routing tables —
 # the previous "[a-z][a-z0-9-]*" regex also accepted "foo-" and "foo--bar".
 if ($Name -notmatch '^[a-z][a-z0-9]*(-[a-z0-9]+)*$') {
     Write-Error "Skill name must be lowercase alphanumeric segments joined by single hyphens (e.g. graphql-server). Got: $Name"
@@ -153,7 +153,7 @@ function Insert-RoutingRow([string]$file, [string]$row, [string]$anchor) {
     $script:routingResults += "$base : row added"
 }
 
-$anchorClaudeGemini = "`n`n---`n`n## Subagent routing"
+$anchorClaudeAntigravity = "`n`n---`n`n## Subagent routing"
 $anchorAgents       = "`n`nActivate only the skills relevant to the current task."
 
 # The AGENTS.md row contains a literal `$<Name>` Codex activation token. The
@@ -162,11 +162,11 @@ $anchorAgents       = "`n`nActivate only the skills relevant to the current task
 # unambiguous and matches the bash side byte-for-byte.
 $claudeRow = '| TODO: describe when to use ' + $Name + ' | `' + $Name + '` skill |'
 $agentsRow = '| TODO: describe when to use ' + $Name + ' | `$' + $Name + '` |'
-$geminiRow = '| TODO: describe when to use ' + $Name + ' | `.gemini/skills/' + $Name + '/SKILL.md` |'
+$agyRow = '| TODO: describe when to use ' + $Name + ' | `.agy/skills/' + $Name + '/SKILL.md` |'
 
-Insert-RoutingRow (Join-Path $KitRoot "tooling\claude\CLAUDE.md") $claudeRow $anchorClaudeGemini
+Insert-RoutingRow (Join-Path $KitRoot "tooling\claude\CLAUDE.md") $claudeRow $anchorClaudeAntigravity
 Insert-RoutingRow (Join-Path $KitRoot "tooling\codex\AGENTS.md")  $agentsRow $anchorAgents
-Insert-RoutingRow (Join-Path $KitRoot "tooling\gemini\GEMINI.md") $geminiRow $anchorClaudeGemini
+Insert-RoutingRow (Join-Path $KitRoot "tooling\agy\AGY.md") $agyRow $anchorClaudeAntigravity
 
 # -- Done ------------------------------------------------------------------
 Write-Host "+--------------------------------------+" -ForegroundColor Green
@@ -188,7 +188,7 @@ Write-Host "  1. Edit skills/$Name/SKILL.md and fill the placeholders."
 Write-Host "  2. Replace the TODO routing rows with a real description in:"
 Write-Host "       tooling/claude/CLAUDE.md"
 Write-Host "       tooling/codex/AGENTS.md"
-Write-Host "       tooling/gemini/GEMINI.md"
+Write-Host "       tooling/agy/AGY.md"
 Write-Host "  3. Add an entry to CHANGELOG.md under [Unreleased] -> Added -> New skills."
 Write-Host "  4. Re-run the install script in any target project to deploy."
 

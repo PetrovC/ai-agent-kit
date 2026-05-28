@@ -69,7 +69,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$TARGET" ]]; then
-    echo "Usage: $0 --target /path/to/project [--tools codex,claude,gemini] [--dry-run]"
+    echo "Usage: $0 --target /path/to/project [--tools codex,claude,agy] [--dry-run]"
     exit 1
 fi
 
@@ -81,7 +81,7 @@ fi
 # ── Read installed version ─────────────────────────────────────────────────
 VERSION_FILE="$TARGET/.kit-version"
 MANIFEST_FILE="$TARGET/.kit-manifest"
-INSTALLED_TOOLS="codex,claude,gemini"
+INSTALLED_TOOLS="codex,claude,agy"
 INSTALLED_VERSION=""
 
 if [[ -f "$VERSION_FILE" ]]; then
@@ -118,12 +118,12 @@ if [[ ${#TOOL_LIST[@]} -eq 0 ]]; then
     exit 1
 fi
 
-VALID_TOOLS=("codex" "claude" "gemini")
+VALID_TOOLS=("codex" "claude" "agy")
 for t in "${TOOL_LIST[@]}"; do
     valid=false
     for v in "${VALID_TOOLS[@]}"; do [[ "$t" == "$v" ]] && valid=true && break; done
     if [[ "$valid" == "false" ]]; then
-        echo "Error: unknown tool '$t'. Valid options: codex, claude, gemini"
+        echo "Error: unknown tool '$t'. Valid options: codex, claude, agy"
         exit 1
     fi
 done
@@ -163,7 +163,7 @@ owning_tool() {
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
         .ai-agent-kit/audit/*)                           echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
-        GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
+        AGY.md|.agyignore|.agy/*)               echo agy ;;
         *)                                               echo ""     ;;
     esac
 }
@@ -232,7 +232,7 @@ update_dir() {
 # ── Update skills ──────────────────────────────────────────────────────────
 contains "codex"  && update_dir "$KIT_ROOT/skills" "$TARGET/.agents/skills"
 contains "claude" && update_dir "$KIT_ROOT/skills" "$TARGET/.claude/skills"
-contains "gemini" && update_dir "$KIT_ROOT/skills" "$TARGET/.gemini/skills"
+contains "agy" && update_dir "$KIT_ROOT/skills" "$TARGET/.agy/skills"
 
 # ── Update Codex tooling ───────────────────────────────────────────────────
 if contains "codex"; then
@@ -281,15 +281,18 @@ if contains "claude"; then
         find "$TARGET/.claude/hooks" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 fi
 
-# ── Update Gemini tooling ──────────────────────────────────────────────────
-if contains "gemini"; then
-    compare_and_update "$KIT_ROOT/tooling/gemini/GEMINI.md"      "$TARGET/GEMINI.md"
-    compare_and_update "$KIT_ROOT/tooling/gemini/.geminiignore"  "$TARGET/.geminiignore"
-    compare_and_update "$KIT_ROOT/tooling/gemini/settings.json"  "$TARGET/.gemini/settings.json"
-    update_dir         "$KIT_ROOT/tooling/gemini/agents"         "$TARGET/.gemini/agents"
-    update_dir         "$KIT_ROOT/tooling/gemini/commands"       "$TARGET/.gemini/commands"
-    update_dir         "$KIT_ROOT/tooling/gemini/hooks"          "$TARGET/.gemini/hooks"
-    update_dir         "$KIT_ROOT/tooling/gemini/policies"       "$TARGET/.gemini/policies"
+# ── Update Antigravity tooling ──────────────────────────────────────────────────
+if contains "agy"; then
+    compare_and_update "$KIT_ROOT/tooling/agy/AGY.md"      "$TARGET/AGY.md"
+    compare_and_update "$KIT_ROOT/tooling/agy/.agyignore"  "$TARGET/.agyignore"
+
+    compare_and_update "$KIT_ROOT/tooling/agy/config.toml"  "$TARGET/.agy/config.toml"
+    compare_and_update "$KIT_ROOT/tooling/agy/hooks.json"  "$TARGET/.agy/hooks.json"
+    compare_and_update "$KIT_ROOT/tooling/agy/hooks.windows.json"  "$TARGET/.agy/hooks.windows.json"
+    update_dir         "$KIT_ROOT/tooling/agy/agents"         "$TARGET/.agy/agents"
+    update_dir         "$KIT_ROOT/tooling/agy/commands"       "$TARGET/.agy/commands"
+    update_dir         "$KIT_ROOT/tooling/agy/hooks"          "$TARGET/.agy/hooks"
+    update_dir         "$KIT_ROOT/tooling/agy/policies"       "$TARGET/.agy/policies"
 fi
 
 # -- Update shared audit runtime ------------------------------------------
@@ -326,7 +329,7 @@ fi
 # ── Update .kit-version + .kit-manifest ────────────────────────────────────
 if [[ "$DRY_RUN" == "false" ]]; then
     # The installed tool set is independent of this run's --tools scope:
-    # `update --tools gemini` refreshes only Gemini files but must NOT shrink
+    # `update --tools agy` refreshes only Antigravity files but must NOT shrink
     # the recorded installed set if codex/claude were also installed before.
     # Preserve INSTALLED_TOOLS read at the top of the script.
     echo "ai-agent-kit@$KIT_VERSION - updated $(date +%Y-%m-%d) - tools: $INSTALLED_TOOLS" > "$VERSION_FILE"

@@ -3,14 +3,14 @@
 #
 # Removes only files the kit installed:
 #   - .kit-manifest is the source of truth: every kit-installed file is listed,
-#     scoped by tool (codex / claude / gemini). Only manifest entries whose
+#     scoped by tool (codex / claude / agy). Only manifest entries whose
 #     owning tool is in --tools are removed.
 #   - If .kit-manifest is missing (very old installs), the script reconstructs
 #     the kit's installed file list from the running kit sources (KIT_ROOT) and
 #     removes only those exact paths. Anything else inside managed dirs is left
 #     in place.
 #
-# Empty parent dirs under .agents/, .claude/, .codex/, .gemini/ are pruned
+# Empty parent dirs under .agents/, .claude/, .codex/, .agy/ are pruned
 # after removal so a fully-uninstalled tool leaves no empty shell behind, while
 # user files inside those dirs survive untouched.
 #
@@ -20,7 +20,7 @@
 #   - Anything outside the kit layout.
 #
 # Usage:
-#   ./uninstall.sh --target /path/to/project [--tools codex,claude,gemini] [--dry-run]
+#   ./uninstall.sh --target /path/to/project [--tools codex,claude,agy] [--dry-run]
 #
 set -euo pipefail
 
@@ -65,7 +65,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$TARGET" ]]; then
-    echo "Usage: $0 --target /path/to/project [--tools codex,claude,gemini] [--dry-run]"
+    echo "Usage: $0 --target /path/to/project [--tools codex,claude,agy] [--dry-run]"
     exit 1
 fi
 
@@ -82,7 +82,7 @@ if [[ -z "$TOOLS" ]]; then
             TOOLS="${BASH_REMATCH[1]}"
         fi
     fi
-    [[ -z "$TOOLS" ]] && TOOLS="codex,claude,gemini"
+    [[ -z "$TOOLS" ]] && TOOLS="codex,claude,agy"
 fi
 
 normalize_tools "$TOOLS"
@@ -93,12 +93,12 @@ if [[ ${#TOOL_LIST[@]} -eq 0 ]]; then
     exit 1
 fi
 
-VALID_TOOLS=("codex" "claude" "gemini")
+VALID_TOOLS=("codex" "claude" "agy")
 for t in "${TOOL_LIST[@]}"; do
     valid=false
     for v in "${VALID_TOOLS[@]}"; do [[ "$t" == "$v" ]] && valid=true && break; done
     if [[ "$valid" == "false" ]]; then
-        echo "Error: unknown tool '$t'. Valid options: codex, claude, gemini"
+        echo "Error: unknown tool '$t'. Valid options: codex, claude, agy"
         exit 1
     fi
 done
@@ -119,7 +119,7 @@ contains() {
     return 1
 }
 
-INSTALLED_FOR_SCOPE="codex,claude,gemini"
+INSTALLED_FOR_SCOPE="codex,claude,agy"
 if [[ -f "$TARGET/.kit-version" ]]; then
     VERSION_LINE_FOR_SCOPE="$(cat "$TARGET/.kit-version")"
     if [[ "$VERSION_LINE_FOR_SCOPE" =~ tools:\ ([^[:space:]]+) ]]; then
@@ -144,7 +144,7 @@ owning_tool() {
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
         .ai-agent-kit/audit/*)                           echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
-        GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
+        AGY.md|.agyignore|.agy/*)               echo agy ;;
         *)                                               echo ""     ;;
     esac
 }
@@ -181,18 +181,21 @@ reconstruct_claude() {
              -printf '.claude/skills/%P\n'
 }
 
-reconstruct_gemini() {
-    echo "GEMINI.md"
-    echo ".geminiignore"
-    echo ".gemini/settings.json"
+reconstruct_agy() {
+    echo "AGY.md"
+    echo ".agyignore"
+
+    echo ".agy/config.toml"
+    echo ".agy/hooks.json"
+    echo ".agy/hooks.windows.json"
     for sub in agents commands hooks policies; do
-        [[ -d "$KIT_ROOT/tooling/gemini/$sub" ]] && \
-            find "$KIT_ROOT/tooling/gemini/$sub" -type f \
-                 -printf ".gemini/$sub/%P\n"
+        [[ -d "$KIT_ROOT/tooling/agy/$sub" ]] && \
+            find "$KIT_ROOT/tooling/agy/$sub" -type f \
+                 -printf ".agy/$sub/%P\n"
     done
     [[ -d "$KIT_ROOT/skills" ]] && \
         find "$KIT_ROOT/skills" -type f \
-             -printf '.gemini/skills/%P\n'
+             -printf '.agy/skills/%P\n'
 }
 
 reconstruct_shared() {
@@ -232,7 +235,7 @@ else
     warn "User-added files inside managed dirs are preserved by design."
     contains "codex"  && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_codex)
     contains "claude" && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_claude)
-    contains "gemini" && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_gemini)
+    contains "agy" && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_agy)
     [[ "$REMOVE_SHARED_AUDIT" == "true" ]] && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_shared)
 fi
 
@@ -246,7 +249,7 @@ for tool in "${TOOL_LIST[@]}"; do
     case "$tool" in
         codex)  step "Removing Codex tooling"      ;;
         claude) step "Removing Claude Code tooling";;
-        gemini) step "Removing Gemini CLI tooling" ;;
+        agy) step "Removing Antigravity CLI tooling" ;;
     esac
     any=false
     for rel in "${TO_REMOVE[@]}"; do
@@ -296,7 +299,7 @@ fi
 # pass `-empty` on the next visit — `-exec rmdir {} +` cannot do that because
 # it batches removals after the whole traversal completes.
 if [[ "$DRY_RUN" == "false" ]]; then
-    for top in .agents .claude .codex .gemini .ai-agent-kit; do
+    for top in .agents .claude .codex .agy .ai-agent-kit; do
         dir="$TARGET/$top"
         [[ -d "$dir" ]] || continue
         find "$dir" -depth -type d -empty -delete 2>/dev/null || true
@@ -305,7 +308,7 @@ fi
 
 # ── .kit-version + .kit-manifest ──────────────────────────────────────────
 # Partial uninstall must rewrite both metadata files to reflect the REMAINING
-# tools — leaving the stale "tools: codex,claude,gemini" line after
+# tools — leaving the stale "tools: codex,claude,agy" line after
 # `uninstall --tools codex` makes the next default update think Codex is still
 # installed and silently re-install its files. Similarly, manifest entries
 # belonging to removed tools must be dropped so update's manifest-diff GC
