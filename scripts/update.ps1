@@ -272,10 +272,8 @@ if ($ToolList -contains "claude") {
 if ($ToolList -contains "agy") {
     Compare-And-Update (Join-Path $KitRoot "tooling\agy\AGY.md")      (Join-Path $Target "AGY.md")
     Compare-And-Update (Join-Path $KitRoot "tooling\agy\.agyignore")  (Join-Path $Target ".agyignore")
-
     Compare-And-Update (Join-Path $KitRoot "tooling\agy\config.toml")  (Join-Path $Target ".agy\config.toml")
-    Compare-And-Update (Join-Path $KitRoot "tooling\agy\hooks.json")  (Join-Path $Target ".agy\hooks.json")
-    Compare-And-Update (Join-Path $KitRoot "tooling\agy\hooks.windows.json")  (Join-Path $Target ".agy\hooks.windows.json")
+    Compare-And-Update (Join-Path $KitRoot "tooling\agy\hooks.windows.json")  (Join-Path $Target ".agy\hooks.json")
     Update-Directory   (Join-Path $KitRoot "tooling\agy\agents")         (Join-Path $Target ".agy\agents")
     Update-Directory   (Join-Path $KitRoot "tooling\agy\commands")       (Join-Path $Target ".agy\commands")
     Update-Directory   (Join-Path $KitRoot "tooling\agy\hooks")          (Join-Path $Target ".agy\hooks")
