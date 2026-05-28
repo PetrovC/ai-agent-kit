@@ -30,5 +30,6 @@ This is an anonymized fixture, not real audit data.
 - `friction.json`
 - `activity.json`
 - `report-quality.json`
+- `governance-recommendations.json`
 - `pricing-estimate.json`
 - `recommendations.md`

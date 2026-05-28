@@ -23,6 +23,8 @@ Each run may write one folder containing these machine-readable artifacts:
 | `agent-invocations.json` | No | Main-agent and subagent invocation records. |
 | `friction.json` | No | Retries, blockers, escalations, rework, and stop reasons. |
 | `activity.json` | No | Tool and file-activity counters without raw command output or paths. |
+| `report-quality.json` | No | Quality, noise, model-fit, and governance decision metadata. |
+| `governance-recommendations.json` | No | Machine-readable governance recommendations for human review. |
 | `pricing-estimate.json` | No | Optional approximate currency estimate with staleness metadata. |
 
 Artifacts referenced from `run-summary.json` must be relative file names inside
@@ -632,6 +634,7 @@ If pricing is disabled:
 ## Related Documents
 
 - [AGENT_AUDIT_STORAGE.md](./AGENT_AUDIT_STORAGE.md)
+- [AGENT_AUDIT_GOVERNANCE.md](./AGENT_AUDIT_GOVERNANCE.md)
 - [THREAT_MODEL.md](./THREAT_MODEL.md)
 - [CONTEXT_SANITIZATION.md](./CONTEXT_SANITIZATION.md)
 - [WORKFLOW.md](./WORKFLOW.md)

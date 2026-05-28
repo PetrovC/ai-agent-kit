@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1.0",
+  "recommendations": [
+    {
+      "recommendation_id": "rec_001",
+      "category": "validation",
+      "summary_code": "add_fixture_parse_validator",
+      "recommended_action": "add_validation",
+      "evidence_strength": "moderate",
+      "confidence": "medium",
+      "human_review_required": true,
+      "task_type": "docs_update",
+      "agent_category": "main",
+      "observed_model_tier": "standard",
+      "observed_failures": [],
+      "supporting_event_ids": ["evt_008"],
+      "supporting_invocation_ids": ["inv_001"],
+      "issue_candidate": {
+        "should_open_issue": false,
+        "reason": "single_fixture_signal",
+        "suggested_issue_type": "test"
+      }
+    },
+    {
+      "recommendation_id": "rec_002",
+      "category": "context_management",
+      "summary_code": "monitor_medium_noise",
+      "recommended_action": "monitor",
+      "evidence_strength": "weak",
+      "confidence": "medium",
+      "human_review_required": true,
+      "task_type": "docs_update",
+      "agent_category": "review",
+      "observed_model_tier": "standard",
+      "observed_failures": ["weak_output_retry"],
+      "supporting_event_ids": ["evt_004", "evt_005"],
+      "supporting_invocation_ids": ["inv_002", "inv_003"],
+      "issue_candidate": {
+        "should_open_issue": false,
+        "reason": "needs_repeated_evidence",
+        "suggested_issue_type": "docs"
+      }
+    }
+  ]
+}
