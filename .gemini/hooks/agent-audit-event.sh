@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Best-effort Claude hook integration for anonymized agent audit metadata.
+# Best-effort agy hook integration for anonymized agent audit metadata.
 # It exits zero when audit is disabled, unavailable, or unable to record so
-# normal Claude behavior is unchanged.
+# normal agy behavior is unchanged.
 
 set +e
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+PROJECT_DIR="${agy_PROJECT_DIR:-$(pwd)}"
 AUDIT_SCRIPT="$PROJECT_DIR/.ai-agent-kit/audit/record-event.sh"
 CONFIG_PATH="${AAK_AUDIT_CONFIG:-$HOME/.ai-agent-kit/config.json}"
 
@@ -65,15 +65,15 @@ elif tool_name != "unknown":
 else:
     event_type = "hook.observed"
 
-project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
-seed = os.environ.get("CLAUDE_SESSION_ID") or f"{os.environ.get('USER', 'user')}:{project_dir}"
+project_dir = os.environ.get("agy_PROJECT_DIR") or os.getcwd()
+seed = os.environ.get("agy_SESSION_ID") or f"{os.environ.get('USER', 'user')}:{project_dir}"
 run_hash = hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
-run_id = os.environ.get("AAK_AUDIT_RUN_ID") or f"run_claude_{time.strftime('%Y%m%d')}_{run_hash}"
+run_id = os.environ.get("AAK_AUDIT_RUN_ID") or f"run_agy_{time.strftime('%Y%m%d')}_{run_hash}"
 project_hash = "hmac_sha256_" + hashlib.sha256(project_dir.encode("utf-8")).hexdigest()[:16]
 sequence = int(time.time() * 1000)
 event = {
     "schema_version": "0.1.0",
-    "event_id": f"evt_claude_{sequence}",
+    "event_id": f"evt_agy_{sequence}",
     "audit_run_id": run_id,
     "sequence": sequence,
     "occurred_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -81,7 +81,7 @@ event = {
     "actor_kind": "hook",
     "invocation_id": None,
     "payload": {
-        "provider": "claude",
+        "provider": "agy",
         "hook_name": hook_name,
         "tool_category": tool_category,
         "project_hash": project_hash,

@@ -1,0 +1,46 @@
+# tooling/agy/policies/destructive-git.toml
+#
+# Antigravity extension policy — destructive git commands.
+#
+# Auto-discovered by Antigravity at extension load time (per
+# https://agycli.com/docs/extensions/reference/ — the policies/
+# directory is scanned, no agy-extension.json reference is required).
+#
+# RELATION TO THE HOOK LAYER
+#
+# tooling/agy/hooks/pre-bash-guard.sh remains the authoritative
+# runtime guard. When Antigravity fires `BeforeTool(run_shell_command)`,
+# the hook inspects `tool_input.command` and exits 2 to block
+# destructive git operations (force-push, mirror, delete, branch -D,
+# update-ref -d, reset --hard/--keep, switch --discard-changes,
+# clean -f). That layer enforces the kit's denylist regardless of
+# whether the extension is installed.
+#
+# These policy entries are a *complementary supply-chain layer*: when
+# the kit is distributed as a Antigravity extension (`agy extensions
+# install …`), they instruct Antigravity's policy engine to require
+# explicit user approval for any MCP-server tool that advertises
+# destructive-git behaviour. The hook covers native shell commands;
+# this file covers third-party MCP tools that could bypass the
+# shell-layer guard by performing git operations directly.
+#
+# SHELL-COMMAND PATTERN MATCHING AT THE [[rule]] LEVEL
+#
+# Antigravity CLI's public extensions reference documents `[[rule]]` with
+# `mcpName` / `toolName` fields and exposes shell-command pattern
+# matching through the `excludeTools` manifest array
+# (`run_shell_command(<pattern>)`). It does not yet publish a stable
+# regex syntax for matching shell command bodies inside `[[rule]]`.
+# Until that surface stabilises, native shell enforcement stays in
+# the hook (where the contract is documented and tested) and this
+# file scopes itself to the documented MCP-tool form.
+
+# Default supply-chain rule for MCP servers whose name advertises a
+# destructive-git role. Teams that ship such an MCP via the kit's
+# extension get an `ask_user` prompt by default — same posture as
+# Claude / Codex approval modes.
+[[rule]]
+mcpName = "destructive-git"
+decision = "ask_user"
+priority = 100
+description = "Destructive git operations exposed via MCP require explicit user approval (matches pre-bash-guard.sh denylist intent at the supply-chain layer)."

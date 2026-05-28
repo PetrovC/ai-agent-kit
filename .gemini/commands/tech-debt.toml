@@ -1,0 +1,24 @@
+description = "Triage-only technical-debt scan across categories. Does not fix anything."
+
+prompt = """
+Audit the codebase for technical debt. Use the @codebase-investigator subagent to search broadly.
+
+First read:
+- docs/ai/PROJECT.md — product context and current milestone.
+- docs/ai/ARCHITECTURE.md — expected layer structure.
+
+Categories to audit:
+1. Outdated dependencies (run the appropriate audit tool; list packages > 1 major behind, esp. with CVEs).
+2. Deprecated API calls (check framework upgrade guides; flag with a migration path).
+3. Layer violations (infra in Domain/Application; business logic in controllers/resolvers; circular imports).
+4. Missing test coverage (business logic with zero coverage — file path + function/class name).
+5. Dead code (unused exports, commented blocks > 10 lines, stale feature flags, TODOs > 90 days).
+6. Oversized units (files > 500 lines / functions > 50 lines where complexity is a real risk).
+7. Configuration & secrets hygiene (hardcoded URLs, magic numbers, .env.example out of sync).
+
+For each item: category, file + location, why it is debt (concrete risk),
+effort (small <1d / medium 1-3d / large >3d), risk if left (low/medium/high).
+
+Sort: high risk + small effort first. Group remaining by category.
+Do NOT fix anything. Output is the input for a planning session.
+"""

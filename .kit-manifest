@@ -52,7 +52,6 @@
 .agy/commands/tech-debt.toml
 .agy/config.toml
 .agy/hooks.json
-.agy/hooks.windows.json
 .agy/hooks/agent-audit-event.sh
 .agy/hooks/pre-bash-guard.sh
 .agy/hooks/run-hook.ps1
