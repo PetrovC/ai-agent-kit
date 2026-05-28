@@ -66,6 +66,7 @@ function Get-OwningTool([string]$rel) {
         "AGENTS.md"          { return "codex" }
         ".codex/*"           { return "codex" }
         ".agents/skills/*"   { return "codex" }
+        ".ai-agent-kit/audit/*" { return "shared" }
         "CLAUDE.md"          { return "claude" }
         ".mcp.example.jsonc" { return "claude" }
         ".claude/*"          { return "claude" }
@@ -137,7 +138,7 @@ if ([string]::IsNullOrWhiteSpace($Tools)) {
     $Tools = $installedTools
 }
 
-$ToolList = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
+$ToolList = @($Tools -split "," | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ })
 
 $ValidTools = @("codex", "claude", "gemini")
 $invalid    = @($ToolList | Where-Object { $ValidTools -notcontains $_ })
@@ -145,6 +146,7 @@ if ($invalid.Count -gt 0) {
     Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, gemini"
     exit 1
 }
+$ManifestScope = @($ToolList + @("shared"))
 
 Write-Host "Kit version: $KitVersion"
 Write-Host "Target     : $Target"
@@ -277,6 +279,9 @@ if ($ToolList -contains "gemini") {
     Update-Directory   (Join-Path $KitRoot "tooling\gemini\policies")       (Join-Path $Target ".gemini\policies")
 }
 
+# -- Update shared audit runtime ------------------------------------------
+Update-Directory (Join-Path $KitRoot "tooling\shared\agent-audit") (Join-Path $Target ".ai-agent-kit\audit")
+
 # NOTE: docs/ai/ is intentionally NOT updated - it contains project-specific content.
 
 # -- Garbage-collect files the kit no longer ships -------------------------
@@ -293,7 +298,7 @@ if ((Test-Path -LiteralPath $manifestFile) -and ($Managed.Count -gt 0)) {
         if (-not $p) { return }
         $otool = Get-OwningTool $p
         if (-not $otool) { return }                        # not a kit artifact -> ignore
-        if ($ToolList -notcontains $otool) {
+        if ($ManifestScope -notcontains $otool) {
             $KeepFromOld.Add($p)                           # other tool, out of scope
             return
         }

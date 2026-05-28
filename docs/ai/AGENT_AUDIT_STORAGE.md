@@ -5,9 +5,9 @@ anonymized agent audit reports. It builds on
 [AGENT_AUDIT_SCHEMA.md](./AGENT_AUDIT_SCHEMA.md), which defines the payload
 schemas and privacy contract.
 
-The storage contract is documentation and fixture guidance only. It does not
-implement writers, Git automation, installer prompts, provider hooks, ingestion
-jobs, or dashboard generation.
+The storage contract defines the central layout and safety rules. M0D adds the
+local opt-in runtime in [AGENT_AUDIT_RUNTIME.md](./AGENT_AUDIT_RUNTIME.md);
+ingestion jobs and dashboard generation remain out of scope.
 
 ## Storage Goals
 

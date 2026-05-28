@@ -24,6 +24,9 @@ Describe "PowerShell .kit-manifest lifecycle" {
         if ($manifest -notcontains ".claude/settings.json") {
             throw "Manifest does not contain .claude/settings.json"
         }
+        if ($manifest -notcontains ".ai-agent-kit/audit/record-event.ps1") {
+            throw "Manifest does not contain shared audit runtime"
+        }
         $sorted = @($manifest | Sort-Object -Unique)
         if (($sorted -join "`n") -ne ($manifest -join "`n")) {
             throw "Manifest is not sorted or contains duplicate lines"
@@ -100,10 +103,51 @@ Describe "PowerShell .kit-manifest lifecycle" {
         if ($manifest -contains "CLAUDE.md") {
             throw "Partial uninstall left CLAUDE.md in manifest"
         }
+        if ($manifest -notcontains ".ai-agent-kit/audit/record-event.ps1") {
+            throw "Partial uninstall dropped shared audit runtime while Gemini remains installed"
+        }
 
         $version = Get-Content -LiteralPath (Join-Path $script:Target ".kit-version") -Raw
         if ($version -notlike "*tools: gemini*") {
             throw "Expected .kit-version to record tools: gemini. Content:`n$version"
+        }
+    }
+
+    It "full uninstall removes shared audit runtime with the last tool" {
+        Assert-AakSuccess (Invoke-AakInstall -Arguments @("-Tools", "codex"))
+
+        Assert-AakFileExists (Join-Path $script:Target ".ai-agent-kit\audit\record-event.ps1")
+
+        Assert-AakSuccess (Invoke-AakUninstall -Arguments @("-Tools", "codex"))
+
+        Assert-AakFileMissing (Join-Path $script:Target ".ai-agent-kit\audit\record-event.ps1")
+        Assert-AakFileMissing (Join-Path $script:Target ".kit-manifest")
+        Assert-AakFileMissing (Join-Path $script:Target ".kit-version")
+    }
+
+    It "official audit opt-in writes global config outside the target project" {
+        $configPath = Join-Path ([System.IO.Path]::GetTempPath()) "aak-audit-$([guid]::NewGuid().ToString('N'))\config.json"
+        try {
+            Assert-AakSuccess (Invoke-AakInstall -Arguments @("-Tools", "codex", "-Audit", "official", "-AuditConfig", $configPath))
+
+            Assert-AakFileExists $configPath
+            Assert-AakFileMissing (Join-Path $script:Target ".ai-agent-kit\config.json")
+
+            $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+            if ($config.audit.enabled -ne $true) {
+                throw "Expected audit.enabled true in global config"
+            }
+            if ($config.audit.source_project_write_policy -ne "never") {
+                throw "Expected source_project_write_policy never"
+            }
+            if ($config.audit.runtime_path.StartsWith($script:Target, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "Runtime path is inside target project"
+            }
+        } finally {
+            $configDir = Split-Path -Parent $configPath
+            if (Test-Path -LiteralPath $configDir) {
+                Remove-Item -LiteralPath $configDir -Recurse -Force
+            }
         }
     }
 }

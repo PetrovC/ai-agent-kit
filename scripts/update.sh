@@ -147,6 +147,12 @@ contains() {
     return 1
 }
 
+owner_in_manifest_scope() {
+    local owner="$1"
+    [[ "$owner" == "shared" ]] && return 0
+    contains "$owner"
+}
+
 # Map a kit-managed rel path to its owning tool. Returns "" for anything that
 # is NOT a kit-managed artifact (docs/ai, .kit-version, .kit-manifest, user
 # files, .mcp.json) — those are never pruned and never carried in the
@@ -155,6 +161,7 @@ contains() {
 owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
+        .ai-agent-kit/audit/*)                           echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
         *)                                               echo ""     ;;
@@ -285,6 +292,11 @@ if contains "gemini"; then
     update_dir         "$KIT_ROOT/tooling/gemini/policies"       "$TARGET/.gemini/policies"
 fi
 
+# -- Update shared audit runtime ------------------------------------------
+update_dir "$KIT_ROOT/tooling/shared/agent-audit" "$TARGET/.ai-agent-kit/audit"
+[[ "$DRY_RUN" == "false" && -d "$TARGET/.ai-agent-kit/audit" ]] && \
+    find "$TARGET/.ai-agent-kit/audit" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+
 # NOTE: docs/ai/ is intentionally NOT updated — it contains project-specific content.
 
 # ── Garbage-collect files the kit no longer ships ──────────────────────────
@@ -300,7 +312,7 @@ if [[ -f "$MANIFEST_FILE" && ${#MANAGED[@]} -gt 0 ]]; then
         [[ -z "$p" ]] && continue
         otool="$(owning_tool "$p")"
         [[ -z "$otool" ]] && continue                 # not a kit artifact → ignore
-        if ! contains "$otool"; then
+        if ! owner_in_manifest_scope "$otool"; then
             KEEP_FROM_OLD+=("$p")                      # other tool, out of scope
             continue
         fi

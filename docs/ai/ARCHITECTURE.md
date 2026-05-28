@@ -35,7 +35,7 @@ extension scaffolds must not become hidden core dependencies.
 | `tooling/claude/` | Claude-specific configuration, agents, commands, hooks, rules, and future output style or statusline assets. |
 | `tooling/codex/` | Codex-specific configuration, hooks, skills, profiles, and future context or telemetry assets. |
 | `tooling/gemini/` | Gemini-specific configuration, commands, agents, settings fragments, and extension scaffold. |
-| `tooling/shared/` | Not present yet. Intended future home for shared multi-agent governance assets if a scoped issue approves it. |
+| `tooling/shared/` | Shared installable assets used across providers, including the opt-in agent audit runtime. |
 | `project-template/` | `docs/ai` templates installed into target projects. |
 | `scripts/` | Install, update, uninstall, validate, and skill-scaffolding scripts for Windows and POSIX shells. |
 | `prompts/` | Copy-paste workflow prompts and GitHub Actions templates. |
@@ -57,6 +57,7 @@ the canonical source for provider behavior.
 | `.agents/skills/` | Shared `skills/` plus Codex-only agent skills under `tooling/codex/skills/` |
 | `CLAUDE.md`, `.claude/settings.json`, `.claude/agents/`, `.claude/commands/`, `.claude/hooks/`, `.claude/rules/` | `tooling/claude/CLAUDE.md`, platform-specific `tooling/claude/settings*.json`, and matching `tooling/claude/*/` directories |
 | `.claude/skills/` | Shared `skills/` |
+| `.ai-agent-kit/audit/` | Shared `tooling/shared/agent-audit/` runtime |
 | Future root Gemini dogfood files | Not tracked today. If that changes, update ADR-004, `.kit-manifest`, validation, and CI in the same scoped issue. Canonical Gemini source remains `tooling/gemini/`. |
 
 Edit the canonical source first, then refresh this repository's dogfood install

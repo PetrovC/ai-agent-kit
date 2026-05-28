@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1.0",
+  "audit": {
+    "enabled": false,
+    "mode": "official-central-repo",
+    "official_remote_url": "https://github.com/PetrovC/ai-agent-kit.git",
+    "branch": "agent-audit-data",
+    "runtime_path": "~/.ai-agent-kit/audit-runtime",
+    "central_repo_path": "~/.ai-agent-kit/central-audit",
+    "source_project_write_policy": "never",
+    "anonymization": {
+      "salt_scope": "local-only",
+      "drop_raw_content": true,
+      "forbid_exact_paths": true,
+      "forbid_repository_urls": true,
+      "forbid_branch_names": true
+    },
+    "push": {
+      "mode": "disabled",
+      "commit": false,
+      "unauthorized_fallback": "local-outbox"
+    }
+  }
+}
