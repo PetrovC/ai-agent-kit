@@ -1,0 +1,27 @@
+description = "Performance audit: baseline, find bottleneck, propose fixes, re-measure."
+
+prompt = """
+Audit the performance of: {{args}}
+
+Read .gemini/skills/performance/SKILL.md first.
+
+── Step 1: Establish a baseline ─────────────────────────────────────────────
+Backend: time the slow endpoint end-to-end (p50/p95/p99); EXPLAIN ANALYZE slowest queries; count DB queries per request (N+1).
+Frontend: Lighthouse on the affected page; Core Web Vitals (LCP/INP/CLS); JS bundle size.
+Document the baseline numbers — you cannot know if an optimization helped without them.
+
+── Step 2: Identify the bottleneck ──────────────────────────────────────────
+Classify before optimizing: Database / Network / Application code / Frontend rendering / Caching.
+Profile one layer at a time. Biggest bottleneck first.
+
+── Step 3: Propose targeted fixes ───────────────────────────────────────────
+Per bottleneck: state the problem precisely, propose the smallest change,
+estimate the expected gain, state trade-offs. Do NOT optimize without a clear bottleneck.
+
+── Step 4: Apply and re-measure ─────────────────────────────────────────────
+Re-run the same benchmark. Report actual gain, not estimated.
+If gain < 10%, question whether the change is worth the complexity.
+
+── Report ────────────────────────────────────────────────────────────────────
+Baseline numbers, bottleneck (layer + root cause), changes applied, measured results, follow-ups.
+"""

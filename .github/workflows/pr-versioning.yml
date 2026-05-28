@@ -13,23 +13,24 @@ concurrency:
 
 jobs:
   dogfood-install-policy:
-    name: Claude/Codex dogfood install policy
+    name: Claude/Codex/Gemini dogfood install policy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Only intended root AI config may be tracked
         run: |
-          # This repository intentionally dogfoods its own Claude + Codex
-          # installation so agents can use the kit while maintaining the kit.
-          # That means AGENTS.md, CLAUDE.md, .agents/, .claude/, .codex/,
+          # This repository intentionally dogfoods its own Claude + Codex +
+          # Gemini installation so agents can use the kit while maintaining
+          # the kit. That means AGENTS.md, CLAUDE.md, GEMINI.md,
+          # .agents/, .claude/, .codex/, .gemini/, .geminiignore,
           # .mcp.json, .mcp.example.jsonc, .kit-version, .kit-manifest, and
           # docs/ai/ may be tracked here on purpose.
           #
-          # Still forbidden: Gemini install output for this repo and local/runtime
-          # Claude files that are machine/session-specific.
+          # Still forbidden: local/runtime Claude files that are
+          # machine/session-specific.
           bad=0
-          for p in GEMINI.md .geminiignore .gemini CLAUDE.local.md \
+          for p in CLAUDE.local.md \
                    .claude/settings.local.json .claude/session-log \
                    .claude/worktrees; do
             if git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
@@ -44,7 +45,9 @@ jobs:
           done
 
           for p in .kit-version .kit-manifest .mcp.json AGENTS.md CLAUDE.md \
+                   GEMINI.md .geminiignore \
                    .codex/config.toml .codex/hooks.json .claude/settings.json \
+                   .gemini/settings.json \
                    docs/ai/PROJECT.md; do
             if ! git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
               echo "MISSING TRACKED DOGFOOD FILE: $p"
@@ -67,9 +70,9 @@ jobs:
 
           # Reverse manifest check (audit T1): every tracked file under the
           # dogfood roots must appear in .kit-manifest. Catches orphans
-          # added to .claude/, .codex/, .agents/ without updating the
-          # manifest — same class of bug as a dogfood-only PR that bypasses
-          # the source/install pipeline.
+          # added to .claude/, .codex/, .agents/, .gemini/ without updating
+          # the manifest — same class of bug as a dogfood-only PR that
+          # bypasses the source/install pipeline.
           if [[ -f .kit-manifest ]]; then
             while IFS= read -r p; do
               [[ -n "$p" ]] || continue
@@ -77,11 +80,11 @@ jobs:
                 echo "ORPHAN dogfood file (not in .kit-manifest): $p"
                 bad=1
               fi
-            done < <(git ls-files .claude .codex .agents)
+            done < <(git ls-files .claude .codex .agents .gemini)
           fi
 
-          [[ "$bad" -eq 0 ]] || { echo "Claude/Codex dogfood install policy failed."; exit 1; }
-          echo "OK: Claude/Codex dogfood install tracked; runtime/Gemini outputs excluded; no manifest orphans"
+          [[ "$bad" -eq 0 ]] || { echo "Claude/Codex/Gemini dogfood install policy failed."; exit 1; }
+          echo "OK: Claude/Codex/Gemini dogfood install tracked; runtime outputs excluded; no manifest orphans"
 
   lint-plugin-manifest:
     name: Claude plugin + marketplace manifests valid
@@ -152,7 +155,7 @@ jobs:
               elif m.group(1) != kit_ver:
                   errs.append(
                       f".kit-version @{m.group(1)} != VERSION {kit_ver} — "
-                      "run `scripts/update.sh --target . --tools codex,claude` "
+                      "run `scripts/update.sh --target . --tools codex,claude,gemini` "
                       "to refresh the dogfood install state file")
 
           hardcoded = re.compile(

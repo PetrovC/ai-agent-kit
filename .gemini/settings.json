@@ -1,0 +1,69 @@
+{
+  "model": {
+    "name": "gemini-3-flash",
+    "maxSessionTurns": 100,
+    "compressionThreshold": 0.6
+  },
+
+  "context": {
+    "fileName": ["AGENTS.md", "GEMINI.md", "CONTEXT.md"]
+  },
+
+  "general": {
+    "checkpointing": {
+      "enabled": true
+    }
+  },
+
+  "tools": {
+    "sandbox": false,
+    "useRipgrep": true,
+    "core": [],
+    "allowed": [],
+    "exclude": []
+  },
+
+  "mcpServers": {
+  },
+
+  "hooksConfig": {
+    "enabled": true
+  },
+
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .gemini/hooks/pre-bash-guard.sh",
+            "name": "pre-bash-guard",
+            "timeout": 5000,
+            "description": "Denylist guard: blocks force-push, branch -D, ref deletion, reset --hard, switch --discard-changes, clean -f, rm -rf on dangerous targets, and unapproved SQL DROP."
+          }
+        ]
+      }
+    ]
+  },
+
+  "security": {
+    "environmentVariableRedaction": {
+      "enabled": true,
+      "blocked": [
+        "*_SECRET",
+        "*_TOKEN",
+        "*_KEY",
+        "*_PASSWORD",
+        "OPENAI_*",
+        "ANTHROPIC_*",
+        "AWS_*",
+        "GCP_*",
+        "GOOGLE_*",
+        "*_URL",
+        "*_URI",
+        "*_DSN"
+      ]
+    }
+  }
+}

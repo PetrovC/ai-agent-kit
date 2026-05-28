@@ -1,0 +1,49 @@
+# Build outputs
+bin/
+obj/
+dist/
+out/
+.next/
+.nuxt/
+
+# Dependencies
+node_modules/
+packages/
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# Secrets
+.env
+.env.*
+*.local.json
+*.local.toml
+
+# Git
+.git/
+
+# Logs
+*.log
+logs/
+
+# Test results
+TestResults/
+coverage/
+*.trx
+*.xml
+
+# Generated
+*.generated.cs
+*.Designer.cs
+Migrations/*.cs
+
+# Large binary assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.pdf
+*.zip
+*.tar.gz

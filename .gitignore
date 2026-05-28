@@ -34,8 +34,3 @@ CLAUDE.local.md
 
 # Local release-readiness signal written by the /cut-release command.
 .verify-state
-
-# Gemini install outputs are not dogfooded in this repository.
-/GEMINI.md
-/.geminiignore
-/.gemini/
