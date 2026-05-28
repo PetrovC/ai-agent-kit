@@ -1,0 +1,105 @@
+{
+  "schema_version": "0.1.0",
+  "invocations": [
+    {
+      "invocation_id": "inv_001",
+      "parent_invocation_id": null,
+      "agent_key": "main",
+      "agent_category": "main",
+      "provider": "codex",
+      "model_tier": "standard",
+      "assigned_task": {
+        "task_type": "docs_update",
+        "technical_scopes": ["docs", "ai", "architecture"]
+      },
+      "selection_reason": "user_requested",
+      "started_at": "2026-05-28T12:00:00Z",
+      "completed_at": "2026-05-28T12:18:00Z",
+      "duration_ms": 1080000,
+      "status": "success",
+      "result_summary": {
+        "result_kind": "artifact_updated",
+        "files_changed_count": 10,
+        "findings_count": 0,
+        "confidence": "high"
+      },
+      "retry_of_invocation_id": null,
+      "escalated_to_invocation_id": null
+    },
+    {
+      "invocation_id": "inv_002",
+      "parent_invocation_id": "inv_001",
+      "agent_key": "code-reviewer",
+      "agent_category": "review",
+      "provider": "codex",
+      "model_tier": "standard",
+      "assigned_task": {
+        "task_type": "code_review",
+        "technical_scopes": ["docs", "security"]
+      },
+      "selection_reason": "specialized_review",
+      "started_at": "2026-05-28T12:03:00Z",
+      "completed_at": "2026-05-28T12:05:30Z",
+      "duration_ms": 150000,
+      "status": "weak_output",
+      "result_summary": {
+        "result_kind": "needs_retry",
+        "files_changed_count": 0,
+        "findings_count": 1,
+        "confidence": "low"
+      },
+      "retry_of_invocation_id": null,
+      "escalated_to_invocation_id": "inv_003"
+    },
+    {
+      "invocation_id": "inv_003",
+      "parent_invocation_id": "inv_001",
+      "agent_key": "code-reviewer",
+      "agent_category": "review",
+      "provider": "codex",
+      "model_tier": "standard",
+      "assigned_task": {
+        "task_type": "code_review",
+        "technical_scopes": ["docs", "security"]
+      },
+      "selection_reason": "retry",
+      "started_at": "2026-05-28T12:06:00Z",
+      "completed_at": "2026-05-28T12:07:10Z",
+      "duration_ms": 70000,
+      "status": "success",
+      "result_summary": {
+        "result_kind": "no_blocking_findings",
+        "files_changed_count": 0,
+        "findings_count": 0,
+        "confidence": "medium"
+      },
+      "retry_of_invocation_id": "inv_002",
+      "escalated_to_invocation_id": null
+    },
+    {
+      "invocation_id": "inv_004",
+      "parent_invocation_id": "inv_001",
+      "agent_key": "security-reviewer",
+      "agent_category": "security",
+      "provider": "codex",
+      "model_tier": "deep",
+      "assigned_task": {
+        "task_type": "security_review",
+        "technical_scopes": ["security", "docs"]
+      },
+      "selection_reason": "escalation",
+      "started_at": "2026-05-28T12:08:00Z",
+      "completed_at": "2026-05-28T12:11:45Z",
+      "duration_ms": 225000,
+      "status": "success",
+      "result_summary": {
+        "result_kind": "privacy_contract_confirmed",
+        "files_changed_count": 0,
+        "findings_count": 0,
+        "confidence": "high"
+      },
+      "retry_of_invocation_id": null,
+      "escalated_to_invocation_id": null
+    }
+  ]
+}

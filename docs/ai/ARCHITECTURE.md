@@ -40,6 +40,7 @@ extension scaffolds must not become hidden core dependencies.
 | `scripts/` | Install, update, uninstall, validate, and skill-scaffolding scripts for Windows and POSIX shells. |
 | `prompts/` | Copy-paste workflow prompts and GitHub Actions templates. |
 | `docs/ai/` | Repository-specific AI context for maintaining this kit itself. |
+| `agent-audit/` | Anonymized audit storage policy and fixtures on `master`; generated run data belongs on the future `agent-audit-data` branch. |
 | `AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, `.codex/` | Tracked Claude/Codex dogfood install for maintaining this repository with the kit itself. |
 | `examples/filled-project/` | Example filled `docs/ai` content for a fictional target project. |
 | `.claude-plugin/` | Claude plugin marketplace metadata for the skills-only distribution path. |
@@ -77,6 +78,8 @@ the POSIX or Windows source variant.
   target has no existing project context.
 - `prompts/` contains reference prompts and optional workflow templates; it is
   not auto-installed by default.
+- `agent-audit/` on `master` contains policy and anonymized fixtures only; real
+  generated audit run data belongs on the dedicated `agent-audit-data` branch.
 - `.mcp.json` is bootstrapped once in target projects and then becomes
   project-owned.
 - `.mcp.example.jsonc` remains kit-owned reference documentation.
