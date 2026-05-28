@@ -80,6 +80,7 @@ agent-audit/
             friction.json
             activity.json
             report-quality.json
+            governance-recommendations.json
             pricing-estimate.json
             recommendations.md
 ```
@@ -127,7 +128,8 @@ optional artifacts are absent.
 | `activity.json` | Tool and file activity counters. |
 | `pricing-estimate.json` | Optional approximate cost estimate with staleness metadata. |
 | `report-quality.json` | Structured evaluation of report quality and validation confidence. |
-| `recommendations.md` | Sanitized human-readable recommendations. |
+| `governance-recommendations.json` | Machine-readable governance recommendations for human review. |
+| `recommendations.md` | Sanitized human-readable companion to the machine-readable recommendations. |
 
 `token-context.json` is the canonical filename because it covers both token
 usage and context pressure. Readers may treat legacy `token-usage.json` as an

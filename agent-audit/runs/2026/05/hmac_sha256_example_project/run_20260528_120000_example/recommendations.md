@@ -4,10 +4,10 @@ This fixture contains sanitized recommendations only.
 
 ## Medium Priority
 
-- Add a future lightweight validator that checks run folders for valid JSON,
-  valid NDJSON, required artifacts, and in-folder artifact references.
-- Add generated monthly and project indexes only after the writer contract is
-  implemented.
+- Review the machine-readable recommendations in
+  `governance-recommendations.json`.
+- Consider a future lightweight validator for run-folder JSON, NDJSON, required
+  artifacts, and in-folder artifact references after writer work is approved.
 
 ## Not Included
 

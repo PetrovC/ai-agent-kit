@@ -53,6 +53,7 @@
     "friction": "friction.json",
     "activity": "activity.json",
     "report_quality": "report-quality.json",
+    "governance_recommendations": "governance-recommendations.json",
     "pricing": "pricing-estimate.json",
     "recommendations": "recommendations.md"
   },

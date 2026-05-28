@@ -9,3 +9,4 @@ Current policy sources:
 
 - [AGENT_AUDIT_SCHEMA.md](../../docs/ai/AGENT_AUDIT_SCHEMA.md)
 - [AGENT_AUDIT_STORAGE.md](../../docs/ai/AGENT_AUDIT_STORAGE.md)
+- [AGENT_AUDIT_GOVERNANCE.md](../../docs/ai/AGENT_AUDIT_GOVERNANCE.md)
