@@ -14,12 +14,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh",
-            "async": true
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh"
           }
         ]
       },
@@ -35,12 +34,11 @@
     ],
     "Stop": [
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh",
-            "async": true
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh"
           },
           {
             "type": "command",
