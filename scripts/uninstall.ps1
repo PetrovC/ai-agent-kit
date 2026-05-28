@@ -78,6 +78,18 @@ if ($invalid.Count -gt 0) {
     exit 1
 }
 
+$versionFileForScope = Join-Path $Target ".kit-version"
+$installedForScope = "codex,claude,gemini"
+if (Test-Path -LiteralPath $versionFileForScope) {
+    $versionLineForScope = (Get-Content -LiteralPath $versionFileForScope -Raw).Trim()
+    if ($versionLineForScope -match "tools: (.+)") {
+        $installedForScope = $Matches[1].Trim()
+    }
+}
+$installedScopeList = @($installedForScope -split "," | ForEach-Object { $_.Trim().ToLower() })
+$remainingScopeList = @($installedScopeList | Where-Object { $ToolList -notcontains $_ })
+$RemoveSharedAudit = $remainingScopeList.Count -eq 0
+
 # -- Helpers ---------------------------------------------------------------
 function Step([string]$msg)      { Write-Host "`n> $msg" -ForegroundColor Cyan }
 function Removed([string]$msg)   { Write-Host "  [removed] $msg" -ForegroundColor Red }
@@ -91,6 +103,7 @@ function Warn([string]$msg)      { Write-Host "  ! $msg" -ForegroundColor Yellow
 function Get-OwningTool([string]$rel) {
     $r = $rel -replace "\\", "/"
     if ($r -eq "AGENTS.md" -or $r -like ".codex/*" -or $r -like ".agents/skills/*") { return "codex" }
+    if ($r -like ".ai-agent-kit/audit/*") { return "shared" }
     if ($r -eq "CLAUDE.md" -or $r -eq ".mcp.example.jsonc" -or $r -like ".claude/*") { return "claude" }
     if ($r -eq "GEMINI.md" -or $r -eq ".geminiignore" -or $r -like ".gemini/*") { return "gemini" }
     return ""
@@ -184,6 +197,15 @@ function Get-ReconstructedFiles([string]$tool) {
                 }
             }
         }
+        "shared" {
+            $auditDir = Join-Path $KitRoot "tooling/shared/agent-audit"
+            if (Test-Path -LiteralPath $auditDir) {
+                Get-ChildItem -LiteralPath $auditDir -Recurse -File | ForEach-Object {
+                    $rel = $_.FullName.Substring($auditDir.Length).TrimStart('\','/') -replace "\\", "/"
+                    $out.Add(".ai-agent-kit/audit/$rel")
+                }
+            }
+        }
     }
     return $out
 }
@@ -209,7 +231,7 @@ if (Test-Path -LiteralPath $ManifestFile) {
         $p = $_.Trim()
         if ([string]::IsNullOrEmpty($p)) { return }
         $otool = Get-OwningTool $p
-        if (-not [string]::IsNullOrEmpty($otool) -and $ToolList -contains $otool) {
+        if (-not [string]::IsNullOrEmpty($otool) -and (($ToolList -contains $otool) -or ($otool -eq "shared" -and $RemoveSharedAudit))) {
             $ToRemove.Add($p)
         }
     }
@@ -219,6 +241,9 @@ if (Test-Path -LiteralPath $ManifestFile) {
     Warn "User-added files inside managed dirs are preserved by design."
     foreach ($t in $ToolList) {
         Get-ReconstructedFiles $t | ForEach-Object { $ToRemove.Add($_) }
+    }
+    if ($RemoveSharedAudit) {
+        Get-ReconstructedFiles "shared" | ForEach-Object { $ToRemove.Add($_) }
     }
 }
 
@@ -243,10 +268,23 @@ foreach ($tool in $ToolList) {
     }
 }
 
+if ($RemoveSharedAudit) {
+    Step "Removing shared audit runtime"
+    $any = $false
+    foreach ($rel in $ToRemove) {
+        if ((Get-OwningTool $rel) -ne "shared") { continue }
+        $any = $true
+        Remove-RelPath $rel
+    }
+    if (-not $any) {
+        Write-Host "  (no files to remove for shared audit runtime)"
+    }
+}
+
 # -- Prune empty kit directories ------------------------------------------
 # Walk deepest first; rmdir leaves user-populated dirs alive.
 if (-not $DryRun) {
-    foreach ($top in @(".agents", ".claude", ".codex", ".gemini")) {
+    foreach ($top in @(".agents", ".claude", ".codex", ".gemini", ".ai-agent-kit")) {
         $topDir = Join-Path $Target $top
         if (-not (Test-Path -LiteralPath $topDir)) { continue }
         $dirs = @(Get-ChildItem -LiteralPath $topDir -Recurse -Directory -ErrorAction SilentlyContinue) +

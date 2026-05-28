@@ -119,12 +119,30 @@ contains() {
     return 1
 }
 
+INSTALLED_FOR_SCOPE="codex,claude,gemini"
+if [[ -f "$TARGET/.kit-version" ]]; then
+    VERSION_LINE_FOR_SCOPE="$(cat "$TARGET/.kit-version")"
+    if [[ "$VERSION_LINE_FOR_SCOPE" =~ tools:\ ([^[:space:]]+) ]]; then
+        INSTALLED_FOR_SCOPE="${BASH_REMATCH[1]}"
+    fi
+fi
+IFS=',' read -ra INSTALLED_SCOPE_LIST <<< "$INSTALLED_FOR_SCOPE"
+remaining_scope=()
+for t in "${INSTALLED_SCOPE_LIST[@]}"; do
+    contains "$t" || remaining_scope+=("$t")
+done
+REMOVE_SHARED_AUDIT=false
+if [[ ${#remaining_scope[@]} -eq 0 ]]; then
+    REMOVE_SHARED_AUDIT=true
+fi
+
 # Map a kit-managed rel path to its owning tool, or "" if not a kit artifact.
 # Mirrors install.sh / update.sh so the manifest and uninstall agree exactly.
 # `.mcp.json` is project-owned after install and is never tracked or removed.
 owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
+        .ai-agent-kit/audit/*)                           echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         GEMINI.md|.geminiignore|.gemini/*)               echo gemini ;;
         *)                                               echo ""     ;;
@@ -177,6 +195,12 @@ reconstruct_gemini() {
              -printf '.gemini/skills/%P\n'
 }
 
+reconstruct_shared() {
+    [[ -d "$KIT_ROOT/tooling/shared/agent-audit" ]] && \
+        find "$KIT_ROOT/tooling/shared/agent-audit" -type f \
+             -printf '.ai-agent-kit/audit/%P\n'
+}
+
 # ── Header ─────────────────────────────────────────────────────────────────
 echo ""
 echo "+--------------------------------------+"
@@ -198,7 +222,9 @@ if [[ -f "$MANIFEST_FILE" ]]; then
         [[ -z "$p" ]] && continue
         otool="$(owning_tool "$p")"
         [[ -z "$otool" ]] && continue
-        contains "$otool" && TO_REMOVE+=("$p")
+        if contains "$otool" || [[ "$otool" == "shared" && "$REMOVE_SHARED_AUDIT" == "true" ]]; then
+            TO_REMOVE+=("$p")
+        fi
     done < "$MANIFEST_FILE"
 else
     step "No .kit-manifest found — reconstructing from kit sources"
@@ -207,6 +233,7 @@ else
     contains "codex"  && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_codex)
     contains "claude" && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_claude)
     contains "gemini" && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_gemini)
+    [[ "$REMOVE_SHARED_AUDIT" == "true" ]] && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_shared)
 fi
 
 # Sort + dedupe (a path can be listed twice if two tools share a parent dir).
@@ -241,13 +268,35 @@ for tool in "${TOOL_LIST[@]}"; do
     [[ "$any" == "false" ]] && echo "  (no files to remove for $tool)"
 done
 
+if [[ "$REMOVE_SHARED_AUDIT" == "true" ]]; then
+    step "Removing shared audit runtime"
+    any=false
+    for rel in "${TO_REMOVE[@]}"; do
+        otool="$(owning_tool "$rel")"
+        [[ "$otool" == "shared" ]] || continue
+        any=true
+        path="$TARGET/$rel"
+        if [[ -e "$path" ]]; then
+            if [[ "$DRY_RUN" == "true" ]]; then
+                dryrun "$rel"
+            else
+                rm -f "$path"
+                removed "$rel"
+            fi
+        else
+            absent "$rel"
+        fi
+    done
+    [[ "$any" == "false" ]] && echo "  (no files to remove for shared audit runtime)"
+fi
+
 # ── Prune empty kit directories ───────────────────────────────────────────
 # Walk children before parents and delete empty dirs inline. `-delete` evaluates
 # at visit time (after `-depth` ordering), so removing a leaf lets its parent
 # pass `-empty` on the next visit — `-exec rmdir {} +` cannot do that because
 # it batches removals after the whole traversal completes.
 if [[ "$DRY_RUN" == "false" ]]; then
-    for top in .agents .claude .codex .gemini; do
+    for top in .agents .claude .codex .gemini .ai-agent-kit; do
         dir="$TARGET/$top"
         [[ -d "$dir" ]] || continue
         find "$dir" -depth -type d -empty -delete 2>/dev/null || true

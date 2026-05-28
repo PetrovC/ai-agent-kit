@@ -18,16 +18,26 @@
     Comma-separated list of tools to configure. Options: codex, claude, gemini.
     Default: all three.
 
+.PARAMETER Audit
+    Optional anonymized audit setup mode. Options: disabled, prompt, official.
+    Default: disabled.
+
 .EXAMPLE
     .\install.ps1 -Target "C:\Projects\my-project"
     .\install.ps1 -Target "C:\Projects\my-project" -Tools "codex,claude"
+    .\install.ps1 -Target "C:\Projects\my-project" -Audit official
 #>
 
 param(
     [Parameter(Mandatory = $true)]
     [string]$Target,
 
-    [string]$Tools = "codex,claude,gemini"
+    [string]$Tools = "codex,claude,gemini",
+
+    [ValidateSet("disabled", "prompt", "official")]
+    [string]$Audit = "disabled",
+
+    [string]$AuditConfig = ""
 )
 
 Set-StrictMode -Version Latest
@@ -48,7 +58,7 @@ if ($KitVersion -notmatch "^\d+\.\d+\.\d+$") {
     Write-Error "VERSION must contain a single semver value, got '$KitVersion'"
     exit 1
 }
-$ToolList   = $Tools -split "," | ForEach-Object { $_.Trim().ToLower() }
+$ToolList   = @($Tools -split "," | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ })
 
 # Kit-managed rel paths (forward-slashed, for cross-shell manifest parity with
 # bash install.sh — a Windows install followed by a Git-Bash update on the same
@@ -64,6 +74,7 @@ function Get-OwningTool([string]$rel) {
         "AGENTS.md"          { return "codex" }
         ".codex/*"           { return "codex" }
         ".agents/skills/*"   { return "codex" }
+        ".ai-agent-kit/audit/*" { return "shared" }
         "CLAUDE.md"          { return "claude" }
         ".mcp.example.jsonc" { return "claude" }
         ".claude/*"          { return "claude" }
@@ -87,6 +98,11 @@ if ($invalid.Count -gt 0) {
     Write-Error "Unknown tool(s): $($invalid -join ', '). Valid options: codex, claude, gemini"
     exit 1
 }
+if ($ToolList.Count -eq 0) {
+    Write-Error "Unknown tool(s): (empty). Valid options: codex, claude, gemini"
+    exit 1
+}
+$ManifestScope = @($ToolList + @("shared"))
 
 # -- Helpers ---------------------------------------------------------------
 function Write-Step([string]$msg) {
@@ -146,6 +162,74 @@ function Copy-KitDirectory([string]$srcDir, [string]$dstDir) {
     }
 }
 
+function Get-AuditConfigPath {
+    if (-not [string]::IsNullOrWhiteSpace($AuditConfig)) {
+        return $AuditConfig
+    }
+    $homeDir = [Environment]::GetFolderPath("UserProfile")
+    if ([string]::IsNullOrWhiteSpace($homeDir)) {
+        $homeDir = $env:USERPROFILE
+    }
+    if ([string]::IsNullOrWhiteSpace($homeDir)) {
+        $homeDir = $env:HOME
+    }
+    return (Join-Path $homeDir ".ai-agent-kit\config.json")
+}
+
+function Initialize-AuditConfig([string]$mode) {
+    if ($mode -eq "disabled") {
+        Write-Host "  [skip] anonymized audit remains disabled by default" -ForegroundColor Yellow
+        return
+    }
+
+    if ($mode -eq "prompt") {
+        $answer = Read-Host "Enable anonymized central audit metadata? This stores counters only, no prompts/responses/paths. Type 'yes' to enable"
+        if ($answer -ne "yes") {
+            Write-Host "  [skip] anonymized audit not enabled" -ForegroundColor Yellow
+            return
+        }
+    }
+
+    $configPath = Get-AuditConfigPath
+    $configDir = Split-Path -Parent $configPath
+    if (-not (Test-Path -LiteralPath $configDir)) {
+        [System.IO.Directory]::CreateDirectory($configDir) | Out-Null
+    }
+    $homeDir = Split-Path -Parent $configDir
+    $runtimePath = Join-Path $configDir "audit-runtime"
+    $centralRepoPath = Join-Path $configDir "central-audit"
+    [System.IO.Directory]::CreateDirectory($runtimePath) | Out-Null
+
+    $config = [ordered]@{
+        schema_version = "0.1.0"
+        audit = [ordered]@{
+            enabled = $true
+            mode = "official-central-repo"
+            official_remote_url = "https://github.com/PetrovC/ai-agent-kit.git"
+            branch = "agent-audit-data"
+            runtime_path = $runtimePath
+            central_repo_path = $centralRepoPath
+            source_project_write_policy = "never"
+            anonymization = [ordered]@{
+                salt_scope = "local-only"
+                drop_raw_content = $true
+                forbid_exact_paths = $true
+                forbid_repository_urls = $true
+                forbid_branch_names = $true
+            }
+            push = [ordered]@{
+                mode = "disabled"
+                commit = $false
+                unauthorized_fallback = "local-outbox"
+            }
+        }
+    }
+    $json = ($config | ConvertTo-Json -Depth 10)
+    Write-Utf8NoBom $configPath ($json + "`n")
+    Write-Ok "global audit config -> $configPath"
+    Write-Host "  Audit data/runtime paths are outside the target project." -ForegroundColor Cyan
+}
+
 # -- Validate target -------------------------------------------------------
 # -LiteralPath: treat $Target as a literal string, not a wildcard pattern
 # (so brackets / glob chars in paths are not silently expanded).
@@ -164,6 +248,7 @@ Write-Host "  Target : $Target"
 Write-Host "  Tools  : $($ToolList -join ', ')"
 Write-Host "  Version: $KitVersion"
 Write-Host "  Mode   : OVERWRITE (kit files only; docs/ai/ preserved)" -ForegroundColor Yellow
+Write-Host "  Audit  : $Audit"
 
 # -- Skills ----------------------------------------------------------------
 if ($ToolList -contains "codex") {
@@ -229,6 +314,14 @@ if ($ToolList -contains "gemini") {
     Copy-KitDirectory (Join-Path $KitRoot "tooling\gemini\policies") (Join-Path $Target ".gemini\policies")
 }
 
+# -- Shared audit runtime --------------------------------------------------
+Write-Step "Installing shared audit runtime -> .ai-agent-kit/audit/"
+Copy-KitDirectory (Join-Path $KitRoot "tooling\shared\agent-audit") (Join-Path $Target ".ai-agent-kit\audit")
+
+# -- Optional global audit config -----------------------------------------
+Write-Step "Anonymized audit setup"
+Initialize-AuditConfig $Audit
+
 # -- Project template (docs/ai/) - preserved if it exists ------------------
 Write-Step "Installing project template -> docs/ai/"
 
@@ -287,7 +380,7 @@ if (Test-Path -LiteralPath $manifestFileOld) {
         if (-not $p) { continue }
         $otool = Get-OwningTool $p
         if (-not $otool) { continue }
-        if ($ToolList -notcontains $otool) {
+        if ($ManifestScope -notcontains $otool) {
             $manifestKeepFromOld += $p
         }
     }

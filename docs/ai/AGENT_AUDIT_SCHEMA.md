@@ -362,6 +362,9 @@ Event types:
 - `escalation.started`
 - `recommendation.created`
 - `blocker.recorded`
+- `tool.observed`
+- `hook.observed`
+- `compact.observed`
 
 Example:
 

@@ -34,6 +34,13 @@
 .agents/skills/testing/SKILL.md
 .agents/skills/test-runner/SKILL.md
 .agents/skills/vue/SKILL.md
+.ai-agent-kit/audit/README.md
+.ai-agent-kit/audit/audit_runtime.py
+.ai-agent-kit/audit/config.example.json
+.ai-agent-kit/audit/finalize-run.ps1
+.ai-agent-kit/audit/finalize-run.sh
+.ai-agent-kit/audit/record-event.ps1
+.ai-agent-kit/audit/record-event.sh
 .claude/agents/architect.md
 .claude/agents/codebase-investigator.md
 .claude/agents/code-reviewer.md
@@ -51,6 +58,7 @@
 .claude/commands/run-tests.md
 .claude/commands/security-audit.md
 .claude/commands/tech-debt.md
+.claude/hooks/agent-audit-event.sh
 .claude/hooks/format-on-save.sh
 .claude/hooks/notify-done.sh
 .claude/hooks/pre-bash-guard.sh
