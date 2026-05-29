@@ -83,4 +83,4 @@ Tags use the form `vA.B.C` where `A.B.C` matches the content of `VERSION` at tim
 
 - [WORKFLOW.md](./WORKFLOW.md) — issue-first, PR-first workflow contract.
 - [COMMANDS.md](./COMMANDS.md) — local validation commands.
-- [BACKLOG.md](./BACKLOG.md) — open release-related issues.
+- Release-related work is tracked as GitHub issues (labels `kind:release`, `roadmap:*`); see the audit tracking epic [#308](https://github.com/PetrovC/ai-agent-kit/issues/308).
