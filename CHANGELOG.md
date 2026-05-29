@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Removed
+
+- **`chore(prompts)` - remove the Gemini Code Assist GitHub-Action templates.**
+  Deleted `prompts/github-actions/gemini-{assistant,dispatch,issue-triage,pr-review}.yml`
+  and dropped the Gemini step from `ai-fallback-dispatch.yml` (now a Claude → Codex
+  chain). There is no Antigravity GitHub Action yet, so the Gemini-CLI-based Action
+  surface is removed until an Antigravity equivalent ships. Updated the README
+  templates table and removed the now-obsolete Gemini-specific checks from
+  `pr-docs.yml`. The GA Gemini *model* names used by the Antigravity subagents are
+  unaffected.
+
 ### Fixed
 
 - **`fix(agy)` - wire Antigravity hooks via `settings.json`, not Codex-style `hooks.json`.**

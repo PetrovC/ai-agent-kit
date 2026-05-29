@@ -1,6 +1,6 @@
-# AI Fallback Dispatch — Claude -> Codex -> Gemini, with a verified hand-off
+# AI Fallback Dispatch — Claude -> Codex, with a verified hand-off
 #
-# Orchestrates the three agents SEQUENTIALLY on one issue. The chain only
+# Orchestrates the two agents SEQUENTIALLY on one issue. The chain only
 # advances when a provider did NOT finish, and "finished" is decided by an
 # observable git fact, never by a process exit code:
 #
@@ -8,7 +8,7 @@
 #             and whose body contains `Closes #<N>`.
 #
 # Why this is robust (not best-effort log parsing):
-#   - All three providers work on the SAME branch `ai/issue-<N>`. Partial work
+#   - Both providers work on the SAME branch `ai/issue-<N>`. Partial work
 #     is pushed as commits, so the next provider RESUMES instead of restarting
 #     (cumulative progress, no wasted budget).
 #   - A provider opens the PR ONLY when the task is genuinely complete. Pushing
@@ -23,7 +23,7 @@
 #     keeps getting picked up until one provider lands a PR.
 #   - "Wait for whoever is free first" is approximated: there is no real-time
 #     cross-vendor availability signal. A rate-limited (429) / failing provider
-#     simply yields to the next. If all three yield, the scheduled retry below
+#     simply yields to the next. If both yield, the scheduled retry below
 #     re-attempts later — capped naturally because the gate short-circuits the
 #     moment a contract-compliant PR exists.
 #   - The ONE behavioral contract: an agent must open the PR only when done,
@@ -35,7 +35,7 @@
 # Copy to .github/workflows/ai-fallback-dispatch.yml in your project.
 #
 # SETUP:
-#   1. Repository secrets: ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY.
+#   1. Repository secrets: ANTHROPIC_API_KEY, OPENAI_API_KEY.
 #      (Drop a provider's step if you don't have its key — the chain still works.)
 #   2. Create a label named `ai-fallback`.
 #   3. Add the `ai-fallback` label to any issue you want auto-implemented.
@@ -47,7 +47,6 @@
 # DOCS:
 #   https://github.com/anthropics/claude-code-action
 #   https://github.com/openai/codex-action
-#   https://github.com/google-github-actions/run-gemini-cli
 
 name: AI Fallback Dispatch
 
@@ -125,7 +124,7 @@ jobs:
           done
 
   dispatch:
-    name: Claude -> Codex -> Gemini
+    name: Claude -> Codex
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' ||
@@ -260,33 +259,7 @@ jobs:
           sandbox: "workspace-write"
           safety-strategy: "drop-sudo"
 
-      - name: Gate (after Codex)
-        id: gate2
-        env:
-          BRANCH: ${{ steps.setup.outputs.branch }}
-          N: ${{ steps.setup.outputs.n }}
-        run: |
-          set -euo pipefail
-          URL="$(gh pr list --head "$BRANCH" --state all \
-              --json url,isDraft,state,body | \
-              jq -r --arg n "$N" 'first(.[] | select(.isDraft==false and (.state=="OPEN" or .state=="MERGED") and ((.body // "") | contains("Closes #" + $n)))) | .url // empty')"
-          if [ -n "$URL" ]; then echo "done=true" >> "$GITHUB_OUTPUT"; echo "url=$URL" >> "$GITHUB_OUTPUT";
-          else echo "done=false" >> "$GITHUB_OUTPUT"; fi
-
-      - name: Gemini
-        if: steps.gate2.outputs.done != 'true'
-        continue-on-error: true
-        uses: google-github-actions/run-gemini-cli@v0
-        with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          # Pinned for supply-chain safety — this CLI runs with the job's
-          # write scope, so an unpinned "latest" would auto-run a future
-          # (possibly compromised/regressed) release. Bump deliberately after
-          # reading https://github.com/google-gemini/gemini-cli/releases
-          gemini_cli_version: "0.42.0"
-          prompt: "Read ./.ai-task/PROMPT.md and complete the task exactly as it specifies, including the BRANCH / PR CONTRACT. Use run_shell_command with git and gh to push and (only when done) open the PR."
-
-      - name: Gate (after Gemini) + report
+      - name: Gate (after Codex) + report
         id: final
         env:
           BRANCH: ${{ steps.setup.outputs.branch }}
@@ -300,7 +273,7 @@ jobs:
             gh issue comment "$N" --body "AI fallback dispatch: a provider completed this issue. PR: ${URL}"
             echo "Done -> ${URL}"
           else
-            gh issue comment "$N" --body "AI fallback dispatch: Claude, Codex and Gemini all yielded without completing issue #${N} (token/quota/error). Partial work, if any, is on branch \`${BRANCH}\`. It will be retried on the next scheduled run, or re-run manually via Actions -> AI Fallback Dispatch."
+            gh issue comment "$N" --body "AI fallback dispatch: Claude and Codex both yielded without completing issue #${N} (token/quota/error). Partial work, if any, is on branch \`${BRANCH}\`. It will be retried on the next scheduled run, or re-run manually via Actions -> AI Fallback Dispatch."
             echo "::error::No provider completed issue #${N}"
             exit 1
           fi
