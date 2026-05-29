@@ -180,9 +180,7 @@ function Get-ReconstructedFiles([string]$tool) {
             $out.Add("AGY.md")
             $out.Add(".agyignore")
 
-            $out.Add(".agy/config.toml")
-            $out.Add(".agy/hooks.json")
-            $out.Add(".agy/hooks.windows.json")
+            $out.Add(".agy/settings.json")
             foreach ($sub in @("agents","commands","hooks","policies")) {
                 $d = Join-Path $KitRoot "tooling/agy/$sub"
                 if (Test-Path -LiteralPath $d) {

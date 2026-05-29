@@ -286,9 +286,7 @@ if contains "agy"; then
     compare_and_update "$KIT_ROOT/tooling/agy/AGY.md"      "$TARGET/AGY.md"
     compare_and_update "$KIT_ROOT/tooling/agy/.agyignore"  "$TARGET/.agyignore"
 
-    compare_and_update "$KIT_ROOT/tooling/agy/config.toml"  "$TARGET/.agy/config.toml"
-    compare_and_update "$KIT_ROOT/tooling/agy/hooks.json"  "$TARGET/.agy/hooks.json"
-    compare_and_update "$KIT_ROOT/tooling/agy/hooks.windows.json"  "$TARGET/.agy/hooks.windows.json"
+    compare_and_update "$KIT_ROOT/tooling/agy/settings.json"  "$TARGET/.agy/settings.json"
     update_dir         "$KIT_ROOT/tooling/agy/agents"         "$TARGET/.agy/agents"
     update_dir         "$KIT_ROOT/tooling/agy/commands"       "$TARGET/.agy/commands"
     update_dir         "$KIT_ROOT/tooling/agy/hooks"          "$TARGET/.agy/hooks"

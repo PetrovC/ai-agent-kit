@@ -1,50 +1,63 @@
 {
+  "model": {
+    "name": "gemini-3-flash",
+    "maxSessionTurns": 100,
+    "compressionThreshold": 0.6
+  },
+  "context": {
+    "fileName": ["AGENTS.md", "AGY.md", "CONTEXT.md"]
+  },
+  "general": {
+    "checkpointing": {
+      "enabled": true
+    }
+  },
+  "tools": {
+    "sandbox": false,
+    "useRipgrep": true,
+    "core": [],
+    "allowed": [],
+    "exclude": []
+  },
+  "hooksConfig": {
+    "enabled": true
+  },
   "hooks": {
-    "PreToolUse": [
+    "BeforeTool": [
       {
-        "matcher": "Bash",
+        "matcher": "run_shell_command",
         "hooks": [
           {
             "type": "command",
             "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".agy/hooks/run-hook.ps1\" pre-bash-guard.sh",
-            "statusMessage": "Checking command safety"
+            "name": "pre-bash-guard",
+            "timeout": 5000
           }
         ]
       }
     ],
-    "PostToolUse": [
+    "AfterTool": [
       {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
             "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".agy/hooks/run-hook.ps1\" agent-audit-event.sh",
+            "name": "agent-audit",
             "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "apply_patch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".agy/hooks/run-hook.ps1\" format-on-save.sh"
           }
         ]
       }
     ],
-    "Stop": [
+    "SessionEnd": [
       {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
             "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".agy/hooks/run-hook.ps1\" agent-audit-event.sh",
+            "name": "agent-audit",
             "async": true
-          },
-          {
-            "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".agy/hooks/run-hook.ps1\" notify-done.sh"
           }
         ]
       }

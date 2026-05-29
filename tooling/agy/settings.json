@@ -1,0 +1,66 @@
+{
+  "model": {
+    "name": "gemini-3-flash",
+    "maxSessionTurns": 100,
+    "compressionThreshold": 0.6
+  },
+  "context": {
+    "fileName": ["AGENTS.md", "AGY.md", "CONTEXT.md"]
+  },
+  "general": {
+    "checkpointing": {
+      "enabled": true
+    }
+  },
+  "tools": {
+    "sandbox": false,
+    "useRipgrep": true,
+    "core": [],
+    "allowed": [],
+    "exclude": []
+  },
+  "hooksConfig": {
+    "enabled": true
+  },
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.agy/hooks/pre-bash-guard.sh\"'",
+            "name": "pre-bash-guard",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.agy/hooks/agent-audit-event.sh\"'",
+            "name": "agent-audit",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.agy/hooks/agent-audit-event.sh\"'",
+            "name": "agent-audit",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

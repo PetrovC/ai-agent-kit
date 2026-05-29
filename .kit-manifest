@@ -50,13 +50,12 @@
 .agy/commands/run-tests.toml
 .agy/commands/security-audit.toml
 .agy/commands/tech-debt.toml
-.agy/config.toml
-.agy/hooks.json
 .agy/hooks/agent-audit-event.sh
 .agy/hooks/pre-bash-guard.sh
 .agy/hooks/run-hook.ps1
 .agy/policies/destructive-git.toml
 .agy/policies/rm-rf.toml
+.agy/settings.json
 .agy/skills/accessibility/SKILL.md
 .agy/skills/ai-dev/SKILL.md
 .agy/skills/angular/SKILL.md

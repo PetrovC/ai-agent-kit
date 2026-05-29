@@ -405,7 +405,7 @@ function Get-DogfoodSourceCandidates([string]$rel) {
 
         "^AGY\.md$" { return @("tooling/agy/AGY.md") }
         "^\.agyignore$" { return @("tooling/agy/.agyignore") }
-        "^\.agy/settings\.json$" { return @("tooling/agy/settings.json") }
+        "^\.agy/settings\.json$" { return @("tooling/agy/settings.json", "tooling/agy/settings.windows.json") }
         "^\.agy/agents/(.+)$" { return @("tooling/agy/agents/$($Matches[1])") }
         "^\.agy/commands/(.+)$" { return @("tooling/agy/commands/$($Matches[1])") }
         "^\.agy/hooks/(.+)$" { return @("tooling/agy/hooks/$($Matches[1])") }
