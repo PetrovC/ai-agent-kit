@@ -31,7 +31,7 @@
       "WebFetch(domain:code.claude.com)",
       "WebFetch(domain:platform.claude.com)",
       "WebFetch(domain:developers.openai.com)",
-      "WebFetch(domain:geminicli.com)",
+      "WebFetch(domain:antigravity.google)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:learn.microsoft.com)",
       "WebFetch(domain:nodejs.org)",
@@ -67,7 +67,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" pre-bash-guard.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-bash-guard.sh\""
           }
         ]
       }
@@ -78,7 +78,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" agent-audit-event.sh",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/agent-audit-event.sh\"",
             "async": true
           }
         ]
@@ -88,7 +88,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" format-on-save.sh",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/format-on-save.sh\"",
             "async": true
           }
         ]
@@ -100,12 +100,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" agent-audit-event.sh",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/agent-audit-event.sh\"",
             "async": true
           },
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" notify-done.sh",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/notify-done.sh\"",
             "async": true
           }
         ]
@@ -117,12 +117,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" agent-audit-event.sh",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/agent-audit-event.sh\"",
             "async": false
           },
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" session-summary.sh",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-summary.sh\"",
             "async": false
           }
         ]
