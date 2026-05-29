@@ -13,11 +13,14 @@
   user instruction. Dogfood copies installed to `.claude/commands/`. `.kit-manifest` and
   `CLAUDE.md` command tables updated (12 → 14 commands).
 
-- **`docs(ai)` - add full-repository audit deliverables (2026-05-29).**
-  Added six audit reports to `docs/ai/`: `AUDIT_REPORT.md`, `GAP_ANALYSIS.md`,
-  `TEST_STRATEGY_REVIEW.md`, `AGENT_GOVERNANCE_REVIEW.md`, `DOCS_ALIGNMENT_REVIEW.md`,
-  `IMPLEMENTATION_PLAN.md`. Covers core kit product, dogfood self-installation,
-  Gemini-to-Antigravity migration status, CI/test gaps, and prioritized issue backlog.
+- **`docs(ai)` - consolidate the full-repository audit into a single `docs/ai/AUDIT_REPORT.md` (tracking [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
+  Replaced the six earlier review documents and the `BACKLOG.md` mirror with one
+  tested, English, ≤200-line `AUDIT_REPORT.md`. The audit runtime was executed
+  end-to-end; findings were opened as issues [#309](https://github.com/PetrovC/ai-agent-kit/issues/309)–[#315](https://github.com/PetrovC/ai-agent-kit/issues/315)
+  (audit data-completeness, governance scoring and event emission, the agent
+  branch / issue-first / English workflow rule, an install/update audit record,
+  provider model recalibration, and the ≤200-line doc budget). GitHub issues are
+  the canonical backlog; `docs/ai/` no longer mirrors it.
 
 ### Removed
 
@@ -51,7 +54,7 @@
   `agy-*` declarations to `gemini-*` across `tooling/agy/agents/*.md`, `tooling/agy/AGY.md`,
   and the dogfood mirrors (`.agy/agents/*.md`, root `AGY.md`). Removed the `agy-*` entries
   from the `pr-docs.yml` `APPROVED_MODELS` whitelist so the corrupted form now fails CI,
-  and corrected the `DOCS_ALIGNMENT_REVIEW.md` row that marked `agy-3.1-pro` as valid.
+  and corrected the audit-review row that marked `agy-3.1-pro` as valid.
 
 ### Removed
 
@@ -453,7 +456,7 @@ post-1.20.1 hygiene PRs (cleanup + ADR-008 rewrite).
 ## [1.20.1] - 2026-05-25
 
 This patch release ships the deliverable of a full-repo dogfood audit
-(see [`docs/ai/DOGFOOD_AUDIT.md`](docs/ai/DOGFOOD_AUDIT.md)). Two P0
+(see `docs/ai/DOGFOOD_AUDIT.md`). Two P0
 findings fixed, four P1 findings fixed, seven anti-drift CI tests
 locked in. No new features and no behavioural changes for installed
 target projects beyond the hook-permission fix in `fix(hooks)` below.
@@ -575,8 +578,7 @@ target projects beyond the hook-permission fix in `fix(hooks)` below.
 
 ### Documentation
 
-- **`docs(audit)` — dogfood audit report added at
-  [`docs/ai/DOGFOOD_AUDIT.md`](docs/ai/DOGFOOD_AUDIT.md)
+- **`docs(audit)` — dogfood audit report added at `docs/ai/DOGFOOD_AUDIT.md`
   ([#215](https://github.com/PetrovC/ai-agent-kit/pull/215)).**
   Read-only audit of the full repo history covering eight sections:
   surface cartography, manifest pivot, issue-to-source traceability,
