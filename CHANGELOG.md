@@ -456,7 +456,7 @@ post-1.20.1 hygiene PRs (cleanup + ADR-008 rewrite).
 ## [1.20.1] - 2026-05-25
 
 This patch release ships the deliverable of a full-repo dogfood audit
-(see [`docs/ai/DOGFOOD_AUDIT.md`](docs/ai/DOGFOOD_AUDIT.md)). Two P0
+(see `docs/ai/DOGFOOD_AUDIT.md`). Two P0
 findings fixed, four P1 findings fixed, seven anti-drift CI tests
 locked in. No new features and no behavioural changes for installed
 target projects beyond the hook-permission fix in `fix(hooks)` below.
@@ -578,8 +578,7 @@ target projects beyond the hook-permission fix in `fix(hooks)` below.
 
 ### Documentation
 
-- **`docs(audit)` — dogfood audit report added at
-  [`docs/ai/DOGFOOD_AUDIT.md`](docs/ai/DOGFOOD_AUDIT.md)
+- **`docs(audit)` — dogfood audit report added at `docs/ai/DOGFOOD_AUDIT.md`
   ([#215](https://github.com/PetrovC/ai-agent-kit/pull/215)).**
   Read-only audit of the full repo history covering eight sections:
   surface cartography, manifest pivot, issue-to-source traceability,
