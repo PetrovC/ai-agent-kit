@@ -8,7 +8,7 @@ tools:
   - read_file
   - search_file_content
   - list_directory
-model: agy-3.1-pro
+model: gemini-3.1-pro
 temperature: 0.2
 max_turns: 20
 ---
