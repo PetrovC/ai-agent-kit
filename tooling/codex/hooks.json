@@ -14,12 +14,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\"'",
-            "async": true
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\"'"
           }
         ]
       },
@@ -35,12 +34,11 @@
     ],
     "Stop": [
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\"'",
-            "async": true
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\"'"
           },
           {
             "type": "command",

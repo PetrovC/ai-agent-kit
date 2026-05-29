@@ -307,8 +307,7 @@ if ($ToolList -contains "agy") {
     Write-Step "Installing Antigravity CLI tooling"
     Copy-KitFile (Join-Path $KitRoot "tooling\agy\AGY.md")     (Join-Path $Target "AGY.md")
     Copy-KitFile (Join-Path $KitRoot "tooling\agy\.agyignore") (Join-Path $Target ".agyignore")
-    Copy-KitFile (Join-Path $KitRoot "tooling\agy\config.toml") (Join-Path $Target ".agy\config.toml")
-    Copy-KitFile (Join-Path $KitRoot "tooling\agy\hooks.windows.json") (Join-Path $Target ".agy\hooks.json")
+    Copy-KitFile (Join-Path $KitRoot "tooling\agy\settings.windows.json") (Join-Path $Target ".agy\settings.json")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\agents")   (Join-Path $Target ".agy\agents")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\commands") (Join-Path $Target ".agy\commands")
     Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\hooks")    (Join-Path $Target ".agy\hooks")

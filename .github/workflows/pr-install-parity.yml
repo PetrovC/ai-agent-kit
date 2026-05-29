@@ -33,7 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           T="$(mktemp -d)"
-          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          bash scripts/install.sh --target "$T" --tools codex,claude,agy >/dev/null
           # Write into $RUNNER_TEMP rather than /tmp so the same shell path
           # works on Windows runners too (where /tmp is a Git-Bash mount
           # that actions/upload-artifact cannot see).
@@ -57,7 +57,7 @@ jobs:
         run: |
           $target = Join-Path $env:RUNNER_TEMP "parity-target"
           New-Item -ItemType Directory -Path $target -Force | Out-Null
-          .\scripts\install.ps1 -Target $target -Tools "codex,claude,gemini" | Out-Null
+          .\scripts\install.ps1 -Target $target -Tools "codex,claude,agy" | Out-Null
           # Hand the target path to the bash step that captures the list.
           "PARITY_TARGET=$target" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 

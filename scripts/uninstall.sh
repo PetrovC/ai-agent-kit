@@ -185,9 +185,7 @@ reconstruct_agy() {
     echo "AGY.md"
     echo ".agyignore"
 
-    echo ".agy/config.toml"
-    echo ".agy/hooks.json"
-    echo ".agy/hooks.windows.json"
+    echo ".agy/settings.json"
     for sub in agents commands hooks policies; do
         [[ -d "$KIT_ROOT/tooling/agy/$sub" ]] && \
             find "$KIT_ROOT/tooling/agy/$sub" -type f \

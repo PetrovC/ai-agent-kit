@@ -83,14 +83,14 @@ jobs:
       - name: Install kit into temp project
         run: |
           mkdir -p /tmp/smoke-target
-          bash scripts/install.sh --target /tmp/smoke-target --tools codex,claude,gemini
+          bash scripts/install.sh --target /tmp/smoke-target --tools codex,claude,agy
 
       - name: Verify expected files exist
         run: |
           files=(
             "/tmp/smoke-target/AGENTS.md"
             "/tmp/smoke-target/CLAUDE.md"
-            "/tmp/smoke-target/GEMINI.md"
+            "/tmp/smoke-target/AGY.md"
             "/tmp/smoke-target/.kit-version"
             "/tmp/smoke-target/.mcp.json"
             "/tmp/smoke-target/.mcp.example.jsonc"
@@ -112,9 +112,9 @@ jobs:
             "/tmp/smoke-target/.codex/hooks/notify-done.sh"
             "/tmp/smoke-target/.agents/skills/architect/SKILL.md"
             "/tmp/smoke-target/.agents/skills/security-reviewer/SKILL.md"
-            "/tmp/smoke-target/.gemini/commands/bug-fix.toml"
-            "/tmp/smoke-target/.gemini/commands/security-audit.toml"
-            "/tmp/smoke-target/.gemini/hooks/pre-bash-guard.sh"
+            "/tmp/smoke-target/.agy/commands/bug-fix.toml"
+            "/tmp/smoke-target/.agy/commands/security-audit.toml"
+            "/tmp/smoke-target/.agy/hooks/pre-bash-guard.sh"
             "/tmp/smoke-target/docs/ai/PROJECT.md"
           )
           for f in "${files[@]}"; do
@@ -127,7 +127,7 @@ jobs:
 
       - name: Verify hook scripts are executable
         run: |
-          for f in /tmp/smoke-target/.claude/hooks/*.sh /tmp/smoke-target/.codex/hooks/*.sh /tmp/smoke-target/.gemini/hooks/*.sh; do
+          for f in /tmp/smoke-target/.claude/hooks/*.sh /tmp/smoke-target/.codex/hooks/*.sh /tmp/smoke-target/.agy/hooks/*.sh; do
             if [[ ! -x "$f" ]]; then
               echo "NOT EXECUTABLE: $f"
               exit 1
@@ -268,17 +268,17 @@ jobs:
           # Closes #54: --tools must accept the same grammar on Bash as on
           # PowerShell — whitespace tolerated, case-insensitive.
           T2="$(mktemp -d)"
-          out="$(bash scripts/install.sh --target "$T2" --tools "Codex, Claude, GEMINI")"
-          echo "$out" | grep -qE "Tools[[:space:]]+:[[:space:]]+codex,claude,gemini" \
+          out="$(bash scripts/install.sh --target "$T2" --tools "Codex, Claude, AGY")"
+          echo "$out" | grep -qE "Tools[[:space:]]+:[[:space:]]+codex,claude,agy" \
             || { echo "FAIL: mixed-case --tools was not normalized"; echo "$out" | head -10; exit 1; }
-          grep -qF "tools: codex,claude,gemini" "$T2/.kit-version" \
+          grep -qF "tools: codex,claude,agy" "$T2/.kit-version" \
             || { echo "FAIL: .kit-version stamp not normalized"; cat "$T2/.kit-version"; exit 1; }
 
           # Run on a normalized list — update/uninstall must accept the same
           # mixed grammar without crashing on whitespace or case.
           bash scripts/update.sh    --target "$T2" --tools "  codex , CLAUDE "   --dry-run >/dev/null \
             || { echo "FAIL: update rejected normalized-grammar --tools"; exit 1; }
-          bash scripts/uninstall.sh --target "$T2" --tools "Gemini"              --dry-run >/dev/null \
+          bash scripts/uninstall.sh --target "$T2" --tools "Agy"                 --dry-run >/dev/null \
             || { echo "FAIL: uninstall rejected case-only --tools"; exit 1; }
 
           # Empty --description is still valid (new-skill.sh falls back to a
@@ -318,7 +318,7 @@ jobs:
         run: |
           set -euo pipefail
           T="$(mktemp -d)"
-          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          bash scripts/install.sh --target "$T" --tools codex,claude,agy >/dev/null
           # A real (non-dry-run) update immediately after install must report
           # nothing changed — proves update.sh's compare path is correct.
           out="$(bash scripts/update.sh --target "$T")"
@@ -342,15 +342,15 @@ jobs:
         run: |
           set -euo pipefail
           T="$(mktemp -d)"
-          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          bash scripts/install.sh --target "$T" --tools codex,claude,agy >/dev/null
           echo "user note" > "$T/docs/ai/PROJECT.md"
           bash scripts/uninstall.sh --target "$T" >/dev/null
           # .mcp.json is project-owned after install (the user configures MCP
           # servers in it), so uninstall must leave it alone — same policy as
           # docs/ai/. .mcp.example.jsonc is the kit's versioned reference and
           # is removed.
-          for p in .claude .codex .gemini .agents .kit-version .kit-manifest \
-                   AGENTS.md CLAUDE.md GEMINI.md .mcp.example.jsonc; do
+          for p in .claude .codex .agy .agents .kit-version .kit-manifest \
+                   AGENTS.md CLAUDE.md AGY.md .mcp.example.jsonc; do
             [[ -e "$T/$p" ]] && { echo "FAIL: uninstall left $p"; exit 1; }
           done
           [[ -f "$T/docs/ai/PROJECT.md" ]] || { echo "FAIL: uninstall destroyed docs/ai"; exit 1; }
@@ -361,13 +361,13 @@ jobs:
         run: |
           set -euo pipefail
           T="$(mktemp -d)"
-          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          bash scripts/install.sh --target "$T" --tools codex,claude,agy >/dev/null
           # Plant user-owned files in every kit-managed directory and a
           # settings.local.json the README tells users to keep.
           mkdir -p "$T/.claude/agents" "$T/.claude/commands" "$T/.claude/hooks" \
                    "$T/.claude/rules"  "$T/.claude/skills/team" \
                    "$T/.codex/hooks"   "$T/.agents/skills/team" \
-                   "$T/.gemini/commands" "$T/.gemini/skills/team"
+                   "$T/.agy/commands" "$T/.agy/skills/team"
           echo user > "$T/.claude/agents/team-agent.md"
           echo user > "$T/.claude/commands/team-cmd.md"
           echo user > "$T/.claude/hooks/team-hook.sh"
@@ -375,8 +375,8 @@ jobs:
           echo user > "$T/.claude/skills/team/SKILL.md"
           echo user > "$T/.codex/hooks/team-hook.sh"
           echo user > "$T/.agents/skills/team/SKILL.md"
-          echo user > "$T/.gemini/commands/team.toml"
-          echo user > "$T/.gemini/skills/team/SKILL.md"
+          echo user > "$T/.agy/commands/team.toml"
+          echo user > "$T/.agy/skills/team/SKILL.md"
           echo local > "$T/.claude/settings.local.json"
 
           bash scripts/uninstall.sh --target "$T" >/dev/null
@@ -391,20 +391,20 @@ jobs:
             .claude/settings.local.json \
             .codex/hooks/team-hook.sh \
             .agents/skills/team/SKILL.md \
-            .gemini/commands/team.toml \
-            .gemini/skills/team/SKILL.md ; do
+            .agy/commands/team.toml \
+            .agy/skills/team/SKILL.md ; do
             [[ -f "$T/$p" ]] || { echo "FAIL: uninstall destroyed user file $p"; exit 1; }
           done
 
           # Kit files must all be removed (the manifest is the source of truth).
           # .mcp.json is project-owned after install and is exercised separately.
           for p in \
-            AGENTS.md CLAUDE.md GEMINI.md .mcp.example.jsonc .kit-manifest .kit-version \
+            AGENTS.md CLAUDE.md AGY.md .mcp.example.jsonc .kit-manifest .kit-version \
             .claude/agents/architect.md .claude/commands/bug-fix.md \
             .claude/hooks/pre-bash-guard.sh .claude/skills/python/SKILL.md \
             .codex/config.toml .codex/hooks/pre-bash-guard.sh \
             .agents/skills/python/SKILL.md \
-            .gemini/commands/bug-fix.toml .gemini/skills/python/SKILL.md ; do
+            .agy/commands/bug-fix.toml .agy/skills/python/SKILL.md ; do
             [[ -e "$T/$p" ]] && { echo "FAIL: kit-owned $p survived uninstall"; exit 1; }
           done
           echo "OK: uninstall removes only kit-owned files"
@@ -467,7 +467,7 @@ jobs:
         run: |
           set -euo pipefail
           T="$(mktemp -d)"
-          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          bash scripts/install.sh --target "$T" --tools codex,claude,agy >/dev/null
           # Simulate a legacy install: drop the manifest, then add a user file.
           rm "$T/.kit-manifest"
           mkdir -p "$T/.claude/agents"
@@ -486,38 +486,38 @@ jobs:
       - name: install.sh partial run preserves other tools' manifest entries + kit-version
         run: |
           set -euo pipefail
-          # Closes #71: install --tools gemini on top of codex+claude must
+          # Closes #71: install --tools agy on top of codex+claude must
           # MERGE the new manifest entries with the codex+claude ones, not
           # overwrite them.
           # Closes #40 (install path): partial install must UNION the new
           # tools with the already-installed set in .kit-version, not shrink.
           T="$(mktemp -d)"
-          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
+          bash scripts/install.sh --target "$T" --tools codex,claude,agy >/dev/null
           before_lines="$(wc -l < "$T/.kit-manifest")"
           before_codex="$(grep -c '^\.codex/' "$T/.kit-manifest" || true)"
           before_claude="$(grep -c '^\.claude/' "$T/.kit-manifest" || true)"
-          before_gemini="$(grep -c '^\.gemini/' "$T/.kit-manifest" || true)"
+          before_agy="$(grep -c '^\.agy/' "$T/.kit-manifest" || true)"
 
-          # Partial reinstall: only gemini in --tools, but the kit-managed
+          # Partial reinstall: only agy in --tools, but the kit-managed
           # codex+claude files are still on disk; their manifest entries must
           # survive the rewrite.
-          bash scripts/install.sh --target "$T" --tools gemini >/dev/null
+          bash scripts/install.sh --target "$T" --tools agy >/dev/null
           after_lines="$(wc -l < "$T/.kit-manifest")"
           after_codex="$(grep -c '^\.codex/' "$T/.kit-manifest" || true)"
           after_claude="$(grep -c '^\.claude/' "$T/.kit-manifest" || true)"
-          after_gemini="$(grep -c '^\.gemini/' "$T/.kit-manifest" || true)"
+          after_agy="$(grep -c '^\.agy/' "$T/.kit-manifest" || true)"
 
           if [[ "$after_lines" -lt "$before_lines" ]]; then
             echo "FAIL: partial install shrank the manifest ($before_lines -> $after_lines)"; exit 1
           fi
-          for t in codex claude gemini; do
+          for t in codex claude agy; do
             b="before_${t}"; a="after_${t}"
             if [[ "${!a}" -lt "${!b}" ]]; then
               echo "FAIL: partial install dropped $t manifest entries (${!b} -> ${!a})"; exit 1
             fi
           done
 
-          if ! grep -qF "tools: codex,claude,gemini" "$T/.kit-version"; then
+          if ! grep -qF "tools: codex,claude,agy" "$T/.kit-version"; then
             echo "FAIL: partial install shrank .kit-version tool set"; cat "$T/.kit-version"; exit 1
           fi
 
@@ -529,9 +529,9 @@ jobs:
           bash scripts/install.sh --target "$T2" --tools claude >/dev/null
           grep -qF "tools: codex,claude" "$T2/.kit-version" \
             || { echo "FAIL: install --tools claude did not union with codex"; cat "$T2/.kit-version"; exit 1; }
-          bash scripts/install.sh --target "$T2" --tools gemini >/dev/null
-          grep -qF "tools: codex,claude,gemini" "$T2/.kit-version" \
-            || { echo "FAIL: install --tools gemini did not union with codex,claude"; cat "$T2/.kit-version"; exit 1; }
+          bash scripts/install.sh --target "$T2" --tools agy >/dev/null
+          grep -qF "tools: codex,claude,agy" "$T2/.kit-version" \
+            || { echo "FAIL: install --tools agy did not union with codex,claude"; cat "$T2/.kit-version"; exit 1; }
 
           rm -rf "$T" "$T2"
           echo "OK: install merges manifest + unions kit-version on partial runs"
@@ -540,19 +540,19 @@ jobs:
         run: |
           set -euo pipefail
           # Closes #40 (update path): partial update must NOT shrink the
-          # installed tool set; the stamp must keep codex,claude,gemini.
+          # installed tool set; the stamp must keep codex,claude,agy.
           T="$(mktemp -d)"
-          bash scripts/install.sh --target "$T" --tools codex,claude,gemini >/dev/null
-          bash scripts/update.sh --target "$T" --tools gemini >/dev/null
-          grep -qF "tools: codex,claude,gemini" "$T/.kit-version" \
-            || { echo "FAIL: update --tools gemini shrank the installed tool set"; cat "$T/.kit-version"; exit 1; }
+          bash scripts/install.sh --target "$T" --tools codex,claude,agy >/dev/null
+          bash scripts/update.sh --target "$T" --tools agy >/dev/null
+          grep -qF "tools: codex,claude,agy" "$T/.kit-version" \
+            || { echo "FAIL: update --tools agy shrank the installed tool set"; cat "$T/.kit-version"; exit 1; }
 
           # Closes #40 (uninstall path): partial uninstall must REWRITE
           # .kit-version with the remaining tools AND drop the removed tool's
           # manifest entries so a later default update doesn't think the
           # removed tool is still installed.
           bash scripts/uninstall.sh --target "$T" --tools codex >/dev/null
-          grep -qF "tools: claude,gemini" "$T/.kit-version" \
+          grep -qF "tools: claude,agy" "$T/.kit-version" \
             || { echo "FAIL: uninstall --tools codex did not rewrite the installed tool set"; cat "$T/.kit-version"; exit 1; }
           if grep -q '^\.codex/' "$T/.kit-manifest" || grep -q '^AGENTS.md$' "$T/.kit-manifest"; then
             echo "FAIL: codex entries still in manifest after uninstall --tools codex"
@@ -560,7 +560,7 @@ jobs:
             exit 1
           fi
           # A subsequent default update must respect the new installed set
-          # (claude,gemini only) and NOT reinstall codex.
+          # (claude,agy only) and NOT reinstall codex.
           bash scripts/update.sh --target "$T" >/dev/null
           [[ ! -e "$T/AGENTS.md" ]] \
             || { echo "FAIL: update silently reinstalled AGENTS.md after codex uninstall"; exit 1; }
@@ -651,13 +651,13 @@ jobs:
           [[ -e "$T/.claude/commands/ghost.md" ]] && { echo "FAIL: ghost still present"; exit 1; }
           [[ -f "$T/.claude/commands/my-own.md" ]] || { echo "FAIL: GC ate a user file"; exit 1; }
           [[ -f "$T/docs/ai/PROJECT.md" ]] || { echo "FAIL: GC touched docs/ai"; exit 1; }
-          # Partial-tools safety: codex/gemini entries must never be pruned by a
+          # Partial-tools safety: codex/agy entries must never be pruned by a
           # claude-only run even when present in the manifest.
           T2="$(mktemp -d)"
-          bash scripts/install.sh --target "$T2" --tools codex,claude,gemini >/dev/null
-          gem_skill="$(grep -m1 '^\.gemini/skills/' "$T2/.kit-manifest")"
+          bash scripts/install.sh --target "$T2" --tools codex,claude,agy >/dev/null
+          agy_skill="$(grep -m1 '^\.agy/skills/' "$T2/.kit-manifest")"
           bash scripts/update.sh --target "$T2" --tools claude >/dev/null
-          [[ -f "$T2/$gem_skill" ]] || { echo "FAIL: claude-only update pruned a gemini file"; exit 1; }
+          [[ -f "$T2/$agy_skill" ]] || { echo "FAIL: claude-only update pruned an agy file"; exit 1; }
           echo "OK: GC prunes de-shipped kit files only; user/docs/other-tool safe"
 
       - name: update.sh preserves unknown legacy Codex agent files
@@ -696,7 +696,7 @@ jobs:
           grep -q "Final response requirements" skills/ci-probe-skill/SKILL.md
           grep -qE '`ci-probe-skill`[[:space:]]+skill' tooling/claude/CLAUDE.md
           grep -qF '`$ci-probe-skill`' tooling/codex/AGENTS.md
-          grep -qE '\.gemini/skills/ci-probe-skill/SKILL\.md' tooling/gemini/GEMINI.md
+          grep -qE '\.agy/skills/ci-probe-skill/SKILL\.md' tooling/agy/AGY.md
           # Closes #69 parity: bash must never write `$$<name>` into AGENTS.md.
           # The PS interpolation bug produced exactly that string; this guard
           # catches a regression in either script.
@@ -739,7 +739,7 @@ jobs:
           # corrupt the rest of the job.
           mv /tmp/CLAUDE.md.bak tooling/claude/CLAUDE.md
           rm -rf skills/partial-routing-probe
-          git checkout -- tooling/codex/AGENTS.md tooling/gemini/GEMINI.md
+          git checkout -- tooling/codex/AGENTS.md tooling/agy/AGY.md
 
           if [[ "$rc" -eq 0 ]]; then
             echo "FAIL: partial routing should have exited non-zero (got 0)"; echo "$out"; exit 1
@@ -748,8 +748,8 @@ jobs:
             || { echo "FAIL: missing CLAUDE.md anchor not reported"; echo "$out"; exit 1; }
           echo "$out" | grep -qF "AGENTS.md: row added" \
             || { echo "FAIL: AGENTS.md success not reported"; echo "$out"; exit 1; }
-          echo "$out" | grep -qF "GEMINI.md: row added" \
-            || { echo "FAIL: GEMINI.md success not reported"; echo "$out"; exit 1; }
+          echo "$out" | grep -qF "AGY.md: row added" \
+            || { echo "FAIL: AGY.md success not reported"; echo "$out"; exit 1; }
           echo "$out" | grep -qF "WARNING: one or more routing anchors were missing" \
             || { echo "FAIL: warning summary missing"; echo "$out"; exit 1; }
           echo "OK: partial-routing detection accurate, exit non-zero"

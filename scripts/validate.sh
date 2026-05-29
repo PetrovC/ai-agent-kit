@@ -381,9 +381,10 @@ dogfood_source_candidates() {
         AGY.md) printf '%s\n' "$TARGET/tooling/agy/AGY.md" ;;
         .agyignore) printf '%s\n' "$TARGET/tooling/agy/.agyignore" ;;
 
-        .agy/config.toml) printf '%s\n' "$TARGET/tooling/agy/config.toml" ;;
-        .agy/hooks.json) printf '%s\n' "$TARGET/tooling/agy/hooks.json" ;;
-        .agy/hooks.windows.json) printf '%s\n' "$TARGET/tooling/agy/hooks.windows.json" ;;
+        .agy/settings.json)
+            printf '%s\n' "$TARGET/tooling/agy/settings.json"
+            printf '%s\n' "$TARGET/tooling/agy/settings.windows.json"
+            ;;
         .agy/agents/*)
             tail="${rel#.agy/agents/}"
             printf '%s\n' "$TARGET/tooling/agy/agents/$tail"

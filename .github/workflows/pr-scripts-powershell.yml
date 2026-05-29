@@ -27,14 +27,14 @@ jobs:
         run: |
           $target = "$env:RUNNER_TEMP\smoke-target"
           New-Item -ItemType Directory -Path $target -Force | Out-Null
-          .\scripts\install.ps1 -Target $target -Tools "codex,claude,gemini"
+          .\scripts\install.ps1 -Target $target -Tools "codex,claude,agy"
 
       - name: Verify expected files exist
         shell: pwsh
         run: |
           $target = "$env:RUNNER_TEMP\smoke-target"
           $files = @(
-            "AGENTS.md", "CLAUDE.md", "GEMINI.md", ".kit-version", ".mcp.json", ".mcp.example.jsonc",
+            "AGENTS.md", "CLAUDE.md", "AGY.md", ".kit-version", ".mcp.json", ".mcp.example.jsonc",
             ".claude\settings.json",
             ".claude\hooks\format-on-save.sh", ".claude\hooks\pre-bash-guard.sh",
             ".claude\hooks\notify-done.sh", ".claude\hooks\session-summary.sh",
@@ -47,7 +47,7 @@ jobs:
             ".codex\hooks\pre-bash-guard.sh", ".codex\hooks\format-on-save.sh",
             ".codex\hooks\notify-done.sh", ".codex\hooks\run-hook.ps1",
             ".agents\skills\architect\SKILL.md", ".agents\skills\security-reviewer\SKILL.md",
-            ".gemini\commands\bug-fix.toml", ".gemini\commands\security-audit.toml",
+            ".agy\commands\bug-fix.toml", ".agy\commands\security-audit.toml",
             "docs\ai\PROJECT.md"
           )
           $missing = $false
@@ -295,7 +295,7 @@ jobs:
           # Clean up probe + restore routing-table mutations so subsequent
           # steps see a pristine working tree.
           Remove-Item -LiteralPath "skills/$probe" -Recurse -Force -ErrorAction SilentlyContinue
-          git checkout -- tooling/claude/CLAUDE.md tooling/codex/AGENTS.md tooling/gemini/GEMINI.md 2>$null
+          git checkout -- tooling/claude/CLAUDE.md tooling/codex/AGENTS.md tooling/agy/AGY.md 2>$null
 
           if ($fail) { exit 1 } else { Write-Host "OK: PS scaffolds with correct single-`$ AGENTS.md row"; exit 0 }
 

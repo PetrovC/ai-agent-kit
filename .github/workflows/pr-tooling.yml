@@ -217,16 +217,16 @@ jobs:
             exit 1
           fi
 
-  lint-gemini:
-    name: Gemini tooling validity
+  lint-agy:
+    name: Antigravity tooling validity
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Each Gemini subagent must have name + description frontmatter
+      - name: Each Antigravity subagent must have name + description frontmatter
         run: |
           errors=0
-          for f in tooling/gemini/agents/*.md; do
+          for f in tooling/agy/agents/*.md; do
             if [[ ! -f "$f" ]]; then continue; fi
             if ! grep -qE '^name:[[:space:]]' "$f"; then
               echo "MISSING 'name:' frontmatter in: $f"
@@ -239,26 +239,26 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
-      - name: Every Gemini subagent must declare explicit Stop conditions
+      - name: Every Antigravity subagent must declare explicit Stop conditions
         run: |
-          # Guards issues #157 / #161 for Gemini parity with Claude.
+          # Guards issues #157 / #161 for Antigravity parity with Claude.
           errors=0
-          for f in tooling/gemini/agents/*.md; do
+          for f in tooling/agy/agents/*.md; do
             if ! grep -qE '^Stop conditions' "$f"; then
               echo "MISSING 'Stop conditions' section in: $f"
               errors=$((errors+1))
             fi
           done
-          if ! grep -qE 'files would be needed|file.*budget' tooling/gemini/agents/codebase-investigator.md; then
-            echo "MISSING file-read budget in: tooling/gemini/agents/codebase-investigator.md"
+          if ! grep -qE 'files would be needed|file.*budget' tooling/agy/agents/codebase-investigator.md; then
+            echo "MISSING file-read budget in: tooling/agy/agents/codebase-investigator.md"
             errors=$((errors+1))
           fi
           [[ "$errors" -eq 0 ]] || exit 1
 
-      - name: No Gemini agent or settings must reference a preview model
+      - name: No Antigravity agent or settings must reference a preview model
         run: |
           errors=0
-          for f in tooling/gemini/agents/*.md tooling/gemini/settings.json tooling/gemini/GEMINI.md; do
+          for f in tooling/agy/agents/*.md tooling/agy/settings.json tooling/agy/AGY.md; do
             [[ -f "$f" ]] || continue
             # Allow the word "preview" only inside shell comments (# ...)
             if grep -E '^[^#]*-preview' "$f"; then
@@ -268,10 +268,10 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
-      - name: Each Gemini command .toml must declare prompt + description
+      - name: Each Antigravity command .toml must declare prompt + description
         run: |
           errors=0
-          for f in tooling/gemini/commands/*.toml; do
+          for f in tooling/agy/commands/*.toml; do
             if [[ ! -f "$f" ]]; then continue; fi
             if ! grep -qE '^prompt[[:space:]]*=' "$f"; then
               echo "MISSING 'prompt =' in: $f"
@@ -284,10 +284,10 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
-      - name: Gemini command .toml files must parse
+      - name: Antigravity command .toml files must parse
         run: |
           errors=0
-          for f in tooling/gemini/commands/*.toml; do
+          for f in tooling/agy/commands/*.toml; do
             if ! python3 -c "import tomllib,sys; tomllib.load(open('$f','rb'))"; then
               echo "INVALID TOML: $f"
               errors=$((errors+1))
@@ -297,10 +297,10 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
 
-      - name: gemini-extension.json must be valid JSON with name + version
+      - name: agy-extension.json must be valid JSON with name + version
         run: |
-          python3 -c "import json; d=json.load(open('tooling/gemini/gemini-extension.json')); assert d.get('name') and d.get('version'), 'name/version required'"
-          echo "OK: gemini-extension.json"
+          python3 -c "import json; d=json.load(open('tooling/agy/agy-extension.json')); assert d.get('name') and d.get('version'), 'name/version required'"
+          echo "OK: agy-extension.json"
 
   lint-platform-variant-parity:
     name: POSIX/Windows JSON variants must share the same key set
