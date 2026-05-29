@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   dogfood-install-policy:
-    name: Claude/Codex/Gemini dogfood install policy
+    name: Claude/Codex/Antigravity dogfood install policy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,9 +21,9 @@ jobs:
       - name: Only intended root AI config may be tracked
         run: |
           # This repository intentionally dogfoods its own Claude + Codex +
-          # Gemini installation so agents can use the kit while maintaining
-          # the kit. That means AGENTS.md, CLAUDE.md, GEMINI.md,
-          # .agents/, .claude/, .codex/, .gemini/, .geminiignore,
+          # Antigravity installation so agents can use the kit while maintaining
+          # the kit. That means AGENTS.md, CLAUDE.md, AGY.md,
+          # .agents/, .claude/, .codex/, .agy/, .agyignore,
           # .mcp.json, .mcp.example.jsonc, .kit-version, .kit-manifest, and
           # docs/ai/ may be tracked here on purpose.
           #
@@ -45,9 +45,9 @@ jobs:
           done
 
           for p in .kit-version .kit-manifest .mcp.json AGENTS.md CLAUDE.md \
-                   GEMINI.md .geminiignore \
+                   AGY.md .agyignore \
                    .codex/config.toml .codex/hooks.json .claude/settings.json \
-                   .gemini/settings.json \
+                   .agy/settings.json \
                    docs/ai/PROJECT.md; do
             if ! git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
               echo "MISSING TRACKED DOGFOOD FILE: $p"
@@ -70,7 +70,7 @@ jobs:
 
           # Reverse manifest check (audit T1): every tracked file under the
           # dogfood roots must appear in .kit-manifest. Catches orphans
-          # added to .claude/, .codex/, .agents/, .gemini/ without updating
+          # added to .claude/, .codex/, .agents/, .agy/ without updating
           # the manifest — same class of bug as a dogfood-only PR that
           # bypasses the source/install pipeline.
           if [[ -f .kit-manifest ]]; then
@@ -80,11 +80,11 @@ jobs:
                 echo "ORPHAN dogfood file (not in .kit-manifest): $p"
                 bad=1
               fi
-            done < <(git ls-files .claude .codex .agents .gemini)
+            done < <(git ls-files .claude .codex .agents .agy)
           fi
 
-          [[ "$bad" -eq 0 ]] || { echo "Claude/Codex/Gemini dogfood install policy failed."; exit 1; }
-          echo "OK: Claude/Codex/Gemini dogfood install tracked; runtime outputs excluded; no manifest orphans"
+          [[ "$bad" -eq 0 ]] || { echo "Claude/Codex/Antigravity dogfood install policy failed."; exit 1; }
+          echo "OK: Claude/Codex/Antigravity dogfood install tracked; runtime outputs excluded; no manifest orphans"
 
   lint-plugin-manifest:
     name: Claude plugin + marketplace manifests valid
@@ -134,10 +134,10 @@ jobs:
           if kit_ver != p.get("version"):
               errs.append(f"plugin.json version ({p.get('version')}) != VERSION ({kit_ver})")
 
-          with open("tooling/gemini/gemini-extension.json") as f:
+          with open("tooling/agy/agy-extension.json") as f:
               ext = json.load(f)
           if kit_ver != ext.get("version"):
-              errs.append(f"gemini-extension.json version ({ext.get('version')}) != VERSION ({kit_ver})")
+              errs.append(f"agy-extension.json version ({ext.get('version')}) != VERSION ({kit_ver})")
 
           # .kit-version is the dogfood install state file written by
           # install.sh / update.sh. In this source repo it is tracked, and
@@ -155,7 +155,7 @@ jobs:
               elif m.group(1) != kit_ver:
                   errs.append(
                       f".kit-version @{m.group(1)} != VERSION {kit_ver} — "
-                      "run `scripts/update.sh --target . --tools codex,claude,gemini` "
+                      "run `scripts/update.sh --target . --tools codex,claude,agy` "
                       "to refresh the dogfood install state file")
 
           hardcoded = re.compile(

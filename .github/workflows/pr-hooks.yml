@@ -21,7 +21,7 @@ jobs:
       - name: Verify hook scripts exist and are executable
         run: |
           errors=0
-          for f in tooling/claude/hooks/*.sh tooling/codex/hooks/*.sh tooling/gemini/hooks/*.sh; do
+          for f in tooling/claude/hooks/*.sh tooling/codex/hooks/*.sh tooling/agy/hooks/*.sh; do
             if [[ ! -x "$f" ]]; then
               echo "NOT EXECUTABLE: $f"
               errors=$((errors+1))
@@ -140,7 +140,7 @@ jobs:
           }
           run_matrix tooling/claude/hooks/pre-bash-guard.sh
           run_matrix tooling/codex/hooks/pre-bash-guard.sh
-          run_matrix tooling/gemini/hooks/pre-bash-guard.sh
+          run_matrix tooling/agy/hooks/pre-bash-guard.sh
           [[ "$fail" -eq 0 ]] || exit 1
 
       - name: Non-guard hooks must exit 0 on the inputs they actually receive
@@ -292,7 +292,7 @@ jobs:
 
       - name: README hooks section must not contradict Codex hook support
         run: |
-          if grep -q "Codex and Gemini have no equivalent hook system" README.md; then
+          if grep -q "Codex and Antigravity have no equivalent hook system" README.md; then
             echo "README still claims Codex has no hooks (contradicts the Hooks section)"
             exit 1
           fi
