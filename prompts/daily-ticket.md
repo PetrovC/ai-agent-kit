@@ -8,7 +8,7 @@
 ```
 Work on GitHub issue #[NUMBER].
 
-Follow [AGENTS.md / CLAUDE.md / GEMINI.md] strictly.
+Follow [AGENTS.md / CLAUDE.md / AGY.md] strictly.
 
 Before editing:
 - Read docs/ai/PROJECT.md if domain context is needed.

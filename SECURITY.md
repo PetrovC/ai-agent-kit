@@ -41,13 +41,13 @@ In scope:
 - Hooks shipped under `tooling/claude/hooks/` and `tooling/codex/hooks/`.
 - Provider configuration files installed by the kit
   (`tooling/<tool>/settings*.json`, `tooling/codex/config.toml`,
-  `tooling/gemini/settings.json`, `.claude-plugin/*`).
+  `tooling/agy/settings.json`, `.claude-plugin/*`).
 - Optional GitHub Actions templates under `prompts/github-actions/`.
 - MCP examples shipped as reference (not enabled by default).
 
 Out of scope (report upstream instead):
 
-- Vulnerabilities in Claude Code, Codex CLI, or Gemini CLI themselves.
+- Vulnerabilities in Claude Code, Codex CLI, or Antigravity CLI themselves.
 - Vulnerabilities in third-party MCP servers referenced as examples — report
   to that server's maintainer.
 - Vulnerabilities in target projects' application code.

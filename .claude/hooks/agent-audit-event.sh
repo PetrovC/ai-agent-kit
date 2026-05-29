@@ -21,9 +21,9 @@ if [[ -z "$stdin_payload" ]]; then
     stdin_payload="{}"
 fi
 
-if command -v python3 >/dev/null 2>&1; then
+if command -v python3 >/dev/null 2>&1 && python3 -c "pass" >/dev/null 2>&1; then
     PYTHON_BIN="python3"
-elif command -v python >/dev/null 2>&1; then
+elif command -v python >/dev/null 2>&1 && python -c "pass" >/dev/null 2>&1; then
     PYTHON_BIN="python"
 else
     exit 0
