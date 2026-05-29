@@ -68,14 +68,14 @@ project files are not overwritten:
 ```powershell
 $target = Join-Path $env:TEMP "aak-smoke-target"
 New-Item -ItemType Directory -Path $target -Force | Out-Null
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target $target -Tools "codex,claude,gemini"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target $target -Tools "codex,claude,agy"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\update.ps1 -Target $target -DryRun
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1 -Target $target -DryRun
 ```
 
 ```bash
 tmp="$(mktemp -d)"
-./scripts/install.sh --target "$tmp" --tools codex,claude,gemini
+./scripts/install.sh --target "$tmp" --tools codex,claude,agy
 ./scripts/update.sh --target "$tmp" --dry-run
 ./scripts/uninstall.sh --target "$tmp" --dry-run
 ```

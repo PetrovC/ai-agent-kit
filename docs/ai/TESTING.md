@@ -30,7 +30,7 @@ The current checks are stronger than simple documentation linting. They cover:
 - non-guard hook smoke checks;
 - Claude tooling validity checks;
 - Codex tooling validity checks;
-- Gemini tooling validity checks;
+- Antigravity tooling validity checks;
 - routing consistency checks;
 - workflow semantic checks;
 - plugin and marketplace manifest version checks.
@@ -81,7 +81,7 @@ implementation:
 - BATS tests for Bash helpers.
 - Pester tests for PowerShell helpers.
 - Bash/PowerShell output parity checks.
-- Router parity checks across `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md`.
+- Router parity checks across `AGENTS.md`, `CLAUDE.md`, and `AGY.md`.
 - Stronger `validate` checks for unresolved placeholders and stale template
   content.
 - Optional fuzzing for `pre-bash-guard`.

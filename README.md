@@ -1,18 +1,18 @@
 # ai-agent-kit
 
-A reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and Gemini CLI.
+A reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and Antigravity CLI.
 
 ## Philosophy
 
 - One skill is written once and deployed to all tools.
-- Root instruction files (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`) are short routers, not encyclopedias.
+- Root instruction files (`AGENTS.md`, `CLAUDE.md`, `AGY.md`) are short routers, not encyclopedias.
 - Project context lives in `docs/ai/` inside each project — not in this kit.
 - Subagents handle noisy, exploratory, or parallel work to protect the main context window.
 
 This repository intentionally dogfoods the kit for Claude Code and Codex CLI:
 `AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, `.codex/`, `.mcp.json`,
 `.mcp.example.jsonc`, `.kit-version`, `.kit-manifest`, and `docs/ai/` are
-tracked here as project-local configuration. Gemini root install output and
+tracked here as project-local configuration. Antigravity root install output and
 Claude local/runtime files stay ignored.
 
 ---
@@ -29,9 +29,9 @@ commands.
 
 | Path | Use when | What it installs |
 |---|---|---|
-| **Install script** | You want the full kit for Claude Code, Codex CLI, Gemini CLI, or more than one tool. | Tool routers, shared skills, commands, agents, hooks where supported, MCP examples, and `docs/ai/` project context. |
+| **Install script** | You want the full kit for Claude Code, Codex CLI, Antigravity CLI, or more than one tool. | Tool routers, shared skills, commands, agents, hooks where supported, MCP examples, and `docs/ai/` project context. |
 | **Claude plugin marketplace** | You only use Claude Code and want the skills slice with no project scaffolding. | Namespaced Claude skills only. Run `/plugin marketplace add PetrovC/ai-agent-kit`, then `/plugin install ai-agent-kit@ai-agent-kit`. |
-| **Gemini extension scaffold** | You are building a custom Gemini CLI extension distribution. | A maintained starting point under `tooling/gemini/`; the script remains the canonical full install path. |
+| **Antigravity extension scaffold** | You are building a custom Antigravity CLI extension distribution. | A maintained starting point under `tooling/agy/`; the script remains the canonical full install path. |
 
 ### Tool x OS Support
 
@@ -39,7 +39,7 @@ commands.
 |---|---|---|---|
 | **Claude Code** | Script install supported; plugin marketplace is available for skills-only installs. | Script install supported; plugin marketplace is available for skills-only installs. | PowerShell script install supported. Hooks require Git Bash utilities; plugin marketplace remains skills-only. |
 | **Codex CLI** | Script install supported. | Script install supported. | PowerShell script install supported. Hooks are wired through the PowerShell wrapper and still need Git Bash available. |
-| **Gemini CLI** | Script install supported; `pre-bash-guard` `BeforeTool` hook deployed. | Script install supported; `pre-bash-guard` `BeforeTool` hook deployed. | PowerShell script install supported; `pre-bash-guard` `BeforeTool` hook deployed (uses Git Bash, same as Claude/Codex on Windows). |
+| **Antigravity CLI** | Script install supported; `pre-bash-guard` `BeforeTool` hook deployed. | Script install supported; `pre-bash-guard` `BeforeTool` hook deployed. | PowerShell script install supported; `pre-bash-guard` `BeforeTool` hook deployed (uses Git Bash, same as Claude/Codex on Windows). |
 
 Known Windows limitations are called out below: ExecutionPolicy can block `.ps1`
 files unless you use the bypass form, and hook wrappers need real Git Bash
@@ -57,7 +57,7 @@ The tools this kit targets, and their official documentation:
 |---|---|---|
 | **Claude Code** (Anthropic) | [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code) | All Anthropic repos: [github.com/orgs/anthropics/repositories](https://github.com/orgs/anthropics/repositories) |
 | **Codex CLI** (OpenAI) | [github.com/openai/codex](https://github.com/openai/codex) | GitHub Action: [github.com/openai/codex-action](https://github.com/openai/codex-action) |
-| **Gemini CLI** (Google) | [github.com/google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) | Docs: [google-gemini.github.io/gemini-cli/docs](https://google-gemini.github.io/gemini-cli/docs) |
+| **Antigravity CLI** (Google) | [github.com/google-antigravity/antigravity-cli](https://github.com/google-antigravity/antigravity-cli) | Docs: [antigravity.google/docs](https://antigravity.google/docs) |
 | **Gemini GitHub Action** | [github.com/google-github-actions/run-gemini-cli](https://github.com/google-github-actions/run-gemini-cli) | — |
 
 ---
@@ -68,29 +68,29 @@ The tools this kit targets, and their official documentation:
 ai-agent-kit/
 ├── .claude-plugin/       <- Claude plugin + marketplace manifests (opt-in, skills only)
 ├── skills/               <- Tool-agnostic rules per stack/language/concern
-├── tooling/              <- Tool-specific wrappers (Codex / Claude / Gemini)
+├── tooling/              <- Tool-specific wrappers (Codex / Claude / Antigravity)
 │   ├── codex/skills/     <- Codex subagent skills (SKILL.md, installed into .agents/skills/)
 │   ├── codex/hooks/      <- Codex lifecycle hooks (guard, format, notify) + hooks.json
 │   ├── claude/agents/    <- Claude subagent definitions (.md)
 │   ├── claude/commands/  <- Claude slash commands (.md, installed into .claude/commands/)
 │   ├── claude/hooks/     <- Lifecycle hook scripts (format, guard, notify, summarize)
 │   ├── claude/rules/     <- Path-scoped rules (commits, tests, migrations, env)
-│   ├── gemini/agents/    <- Gemini subagent definitions (.md)
-│   └── gemini/commands/  <- Gemini slash commands (.toml, installed into .gemini/commands/)
+│   ├── agy/agents/       <- Antigravity subagent definitions (.md)
+│   └── agy/commands/     <- Antigravity slash commands (.toml, installed into .agy/commands/)
 ├── project-template/     <- docs/ai/ templates to fill per project
 ├── prompts/              <- Reference prompt templates (canonical source for slash commands)
 │   └── github-actions/   <- Copy-paste GitHub Actions workflow files
 └── scripts/              <- Install / update / uninstall / validate scripts
 ```
 
-**Key design principle:** `skills/` is tool-agnostic in **content** — the same `skills/dotnet/SKILL.md` is installed into `.agents/skills/` (Codex), `.claude/skills/` (Claude Code), and `.gemini/skills/` (Gemini CLI) by the install script, and its prose contains no Claude-specific / Codex-specific / Gemini-specific instructions. Tool-specific *behaviour* (hooks, config syntax, agent format) lives exclusively in `tooling/`.
+**Key design principle:** `skills/` is tool-agnostic in **content** — the same `skills/dotnet/SKILL.md` is installed into `.agents/skills/` (Codex), `.claude/skills/` (Claude Code), and `.agy/skills/` (Antigravity CLI) by the install script, and its prose contains no Claude-specific / Codex-specific / Antigravity-specific instructions. Tool-specific *behaviour* (hooks, config syntax, agent format) lives exclusively in `tooling/`.
 
 The shared-skill **YAML frontmatter** may carry two Claude-recognized hints:
 
 - `paths:` — Claude Code uses this to auto-load the skill when a matching file is opened.
 - `allowed-tools:` — Claude Code uses this to pre-approve specific `Bash(...)` commands so the skill can run them without per-call confirmation.
 
-These are deliberately treated as **shared metadata that other tools ignore**. Codex and Gemini do not read either field; they route by the table in `AGENTS.md` / `GEMINI.md` and inherit the user's approval mode. Putting these fields here (instead of behind a Claude-only overlay) keeps every skill exactly one file across all three installs — the cost is that the kit's "tool-agnostic" property applies to skill *content*, not to skill frontmatter. See `skills/README.md` for the full contract.
+These are deliberately treated as **shared metadata that other tools ignore**. Codex and Antigravity do not read either field; they route by the table in `AGENTS.md` / `AGY.md` and inherit the user's approval mode. Putting these fields here (instead of behind a Claude-only overlay) keeps every skill exactly one file across all three installs — the cost is that the kit's "tool-agnostic" property applies to skill *content*, not to skill frontmatter. See `skills/README.md` for the full contract.
 
 ---
 
@@ -99,15 +99,15 @@ These are deliberately treated as **shared metadata that other tools ignore**. C
 ### Option A — install script (canonical, all 3 tools)
 
 The script is the only path that configures all three tools (Codex, Claude and
-Gemini), installs hooks/commands, and scaffolds `docs/ai/` — Codex in
+Antigravity), installs hooks/commands, and scaffolds `docs/ai/` — Codex in
 particular has no marketplace mechanism, so files must be placed in the repo.
 
 ```powershell
 # Windows — all 3 tools (omit -Tools to get the same default)
-.\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,gemini
+.\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,agy
 
 # Linux / macOS — all 3 tools (omit --tools to get the same default)
-./scripts/install.sh --target /path/to/your-project --tools codex,claude,gemini
+./scripts/install.sh --target /path/to/your-project --tools codex,claude,agy
 ```
 
 Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
@@ -128,9 +128,9 @@ For maintainer-side command references and hook diagnostics, see
   changing the machine policy:
 
   ```powershell
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,gemini
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,agy
   # or, on PowerShell 7+:
-  pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,gemini
+  pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,agy
   ```
 
   The same form applies to `update.ps1`, `validate.ps1`, `uninstall.ps1`,
@@ -170,7 +170,7 @@ For maintainer-side command references and hook diagnostics, see
 
 ### Option B — Claude plugin marketplace (opt-in, skills only)
 
-If you only use Claude Code and just want the **30 skills** (no Codex/Gemini
+If you only use Claude Code and just want the **30 skills** (no Codex/Antigravity
 config, no `docs/ai/` scaffolding), install via the plugin marketplace:
 
 ```text
@@ -181,7 +181,7 @@ config, no `docs/ai/` scaffolding), install via the plugin marketplace:
 Skills become available namespaced (`/ai-agent-kit:dotnet`, …) and `paths:`
 auto-loading still works. This does **not** replace the script — it's the
 skills slice only, for the single-tool case. For hooks, slash commands, Codex,
-Gemini, or `docs/ai/`, use Option A.
+Antigravity, or `docs/ai/`, use Option A.
 
 > **Private repo:** this works even when the repo is private — Claude Code
 > clones the marketplace with *your* git credentials. Anyone running
@@ -198,25 +198,25 @@ they target a *user home directory* or a *distribution channel*, not a project:
 | File | What it's for | How to use it |
 |---|---|---|
 | `tooling/codex/global-config-template.toml` | Personal Codex prefs (model, reasoning effort, `readonly`/`standard`/`deep`/`review` profiles, Windows sandbox) — the per-user `~/.codex/config.toml`, not a project file | `cp tooling/codex/global-config-template.toml ~/.codex/config.toml` then edit |
-| `tooling/gemini/gemini-extension.json` | Scaffold for teams who want to distribute the kit as an installable **Gemini CLI extension** (`gemini extensions install`) instead of via the script | Starting point — extend with your skills/commands, then publish per the [Gemini extensions docs](https://google-gemini.github.io/gemini-cli/docs/extensions) |
+| `tooling/agy/agy-extension.json` | Scaffold for teams who want to distribute the kit as an installable **Antigravity CLI extension** (`agy extensions install`) instead of via the script | Starting point — extend with your skills/commands, then publish per the [Antigravity extensions docs](https://antigravity.google/docs/extensions) |
 
-`gemini-extension.json`'s `version` is still pinned to root `VERSION` by CI so it
+`agy-extension.json`'s `version` is still pinned to root `VERSION` by CI so it
 never drifts, even though install/update/uninstall deliberately ignore both files.
 
-> **Extension-mode caveat (Gemini only).** When the kit is distributed via
-> `gemini extensions install`, only the files Gemini natively loads from the
+> **Extension-mode caveat (Antigravity only).** When the kit is distributed via
+> `agy extensions install`, only the files Antigravity natively loads from the
 > extension folder (`commands/`, `agents/`, the `contextFileName`) reach the
-> user's project. The routing table inside the installed `GEMINI.md` still
-> references project-relative paths like `.gemini/skills/python/SKILL.md`, but
-> the extension doesn't copy `.gemini/skills/` into the user's project — those
-> files live under `~/.gemini/extensions/ai-agent-kit/skills/` instead.
+> user's project. The routing table inside the installed `AGY.md` still
+> references project-relative paths like `.agy/skills/python/SKILL.md`, but
+> the extension doesn't copy `.agy/skills/` into the user's project — those
+> files live under `~/.agy/extensions/ai-agent-kit/skills/` instead.
 > Effect: in Extension mode the kit's commands and subagents work, but skill
 > activation via the routing table will fail with "File not found". For full
 > skill coverage, either run the install script in addition to the extension,
 > or fork the extension and inline the skills you actually use into the
-> shipped `GEMINI.md`. The install script remains the canonical multi-tool
+> shipped `AGY.md`. The install script remains the canonical multi-tool
 > setup; the extension scaffold is here for teams who explicitly want the
-> `gemini extensions install` distribution channel for their commands and
+> `agy extensions install` distribution channel for their commands and
 > agents.
 
 ### Codex long-run mode
@@ -252,7 +252,7 @@ Skills are the core of the kit. Each skill is a Markdown file with actionable pa
 |---|---|
 | **Claude Code** | Skills with `paths:` frontmatter are **auto-loaded** when you open a matching file (e.g., opening `*.cs` triggers the `dotnet` skill). Cross-cutting skills are invoked via the routing table in `CLAUDE.md`. |
 | **Codex CLI** | Skills are loaded by **`$skill-name` activation** — the agent reads the routing table in `AGENTS.md`, decides which skill applies, and activates it. |
-| **Gemini CLI** | Skills under `.gemini/skills/<name>/SKILL.md` are **Native Agent Skills** — Gemini auto-discovers them at session start and activates by `description:` frontmatter. The routing table in `GEMINI.md` is kit policy for deterministic activation (so the choice doesn't drift with description-matching heuristics). Verify discovery with `/skills` or `gemini skills list`. |
+| **Antigravity CLI** | Skills under `.agy/skills/<name>/SKILL.md` are **Native Agent Skills** — Antigravity auto-discovers them at session start and activates by `description:` frontmatter. The routing table in `AGY.md` is kit policy for deterministic activation (so the choice doesn't drift with description-matching heuristics). Verify discovery with `/skills` or `agy skills list`. |
 
 All three approaches achieve the same result: the agent loads expert context for the current task without reading 30 skill files upfront.
 
@@ -273,11 +273,11 @@ Codex   PreToolUse(Bash)        → pre-bash-guard.sh   → same hardened guard
         Stop                    → notify-done.sh      → desktop notification
 ```
 
-Codex has no `PreCompact` event, so `session-summary` is Claude-only. Gemini
+Codex has no `PreCompact` event, so `session-summary` is Claude-only. Antigravity
 gets the `pre-bash-guard` `BeforeTool` hook (same denylist as Claude/Codex);
-`format-on-save`, `notify-done`, and `session-summary` for Gemini are not in
+`format-on-save`, `notify-done`, and `session-summary` for Antigravity are not in
 this release (the relevant `tool_input` / event payload schemas need to be
-confirmed against live Gemini behaviour first). See the detailed Hooks
+confirmed against live Antigravity behaviour first). See the detailed Hooks
 section further down for the exact behaviour.
 
 ### Rules *(Claude Code only)*
@@ -291,17 +291,17 @@ env-safety.md       → .env*, config/, appsettings → No hardcoded secrets, .e
 ```
 
 Commit-message rules (Conventional Commits, one concern per commit, never-commit
-list) live directly in `CLAUDE.md`/`AGENTS.md`/`GEMINI.md` `## Git rules` so they
+list) live directly in `CLAUDE.md`/`AGENTS.md`/`AGY.md` `## Git rules` so they
 apply to **every** commit — not only when editing files under `.github/`.
 
-Codex and Gemini follow the same principles, but they're embedded directly in `AGENTS.md` / `GEMINI.md` rather than as auto-loaded files.
+Codex and Antigravity follow the same principles, but they're embedded directly in `AGENTS.md` / `AGY.md` rather than as auto-loaded files.
 
 ### MCP servers *(all three tools)*
 
 MCP (Model Context Protocol) is an open standard for giving agents access to external tools and data at runtime — databases, APIs, file systems, custom tools. All three CLIs support it, with different config locations:
 
 - **Claude Code** — `.mcp.json` at the project root (strict JSON, stdio + HTTP/SSE transports). On first install the kit bootstraps an empty `{"mcpServers":{}}`; afterwards `.mcp.json` is project-owned — install reruns skip it, update never overwrites it, and uninstall preserves it (same policy as `docs/ai/`). The kit ships `.mcp.example.jsonc` as the versioned reference with GitHub / filesystem / Postgres / Notion / Linear blocks to copy from. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
-- **Gemini CLI** — `mcpServers` block in `.gemini/settings.json`. See [the MCP server docs](https://google-gemini.github.io/gemini-cli/docs/tools/mcp-server.html).
+- **Antigravity CLI** — `mcpServers` block in `.agy/settings.json`. See [the MCP server docs](https://antigravity.google/docs/tools/mcp-server.html).
 - **Codex CLI** — `[mcp_servers.<name>]` tables in `.codex/config.toml`. See [the Codex MCP docs](https://developers.openai.com/codex/mcp).
 
 > Note: `.mcp.json` must be **strict JSON** — Claude Code rejects comments. Edit `.mcp.example.jsonc` for reference, then paste comment-free blocks into `.mcp.json`.
@@ -314,7 +314,7 @@ All three tools support spawning specialized agents for focused sub-tasks (explo
 |---|---|---|---|
 | **Claude Code** | `.md` (frontmatter `name`/`description`/`tools`) | `.claude/agents/` | Agent tool in the main session |
 | **Codex CLI** | `SKILL.md` (frontmatter `name`/`description`) | `.agents/skills/` | `/skills` or `$name` in the prompt |
-| **Gemini CLI** | `.md` (frontmatter `name`/`description`/optional `tools`/`model`) | `.gemini/agents/` | `@agent-name` (native since April 2026) |
+| **Antigravity CLI** | `.md` (frontmatter `name`/`description`/optional `tools`/`model`) | `.agy/agents/` | `@agent-name` (native since April 2026) |
 
 Subagents protect the main context window from noisy output (test logs, large diffs, exploration results).
 
@@ -324,7 +324,7 @@ All five agents run on the **most capable model** so every report —
 investigation, test summary, review, design — is high quality and directly
 actionable. Uniform tier, no exceptions:
 
-| Agent | Task | Claude | Gemini |
+| Agent | Task | Claude | Antigravity |
 |---|---|---|---|
 | `architect` | Deep design reasoning | `claude-opus-4-7` | `gemini-3.1-pro` |
 | `security-reviewer` | Vulnerability analysis | `claude-opus-4-7` | `gemini-3.1-pro` |
@@ -524,8 +524,8 @@ first update after upgrading to this version just establishes the baseline
 2. Fill the placeholders in `skills/<name>/SKILL.md`.
 3. If the skill is path-scoped, add `paths:` (and optionally `allowed-tools:`) to the frontmatter
    so Claude Code auto-loads it when matching files are opened.
-4. Add a routing row in `tooling/{claude/CLAUDE.md, codex/AGENTS.md, gemini/GEMINI.md}`
-   (needed for Codex, Gemini, and Claude Code's explicit routing table).
+4. Add a routing row in `tooling/{claude/CLAUDE.md, codex/AGENTS.md, agy/AGY.md}`
+   (needed for Codex, Antigravity, and Claude Code's explicit routing table).
 5. Add an entry to `CHANGELOG.md` under `[Unreleased] -> Added`.
 6. Run the install or update script in your target projects to deploy.
 

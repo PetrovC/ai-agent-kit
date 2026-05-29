@@ -79,13 +79,13 @@ Beyond approval/sandbox, the kit's `config.toml` sets:
   `*_SECRET`/`*_TOKEN`/`*_KEY`/`*_PASSWORD`/`OPENAI_*`/`ANTHROPIC_*`/`AWS_*`/`GCP_*`/`GOOGLE_*`
   **plus** connection strings (`*_URL`/`*_URI`/`*_DSN`) — `DATABASE_URL`-class
   values routinely embed `user:password@host` and matched none of the older
-  patterns. Codex equivalent of Gemini's
+  patterns. Codex equivalent of Antigravity's
   `security.environmentVariableRedaction.blocked`.
 - **`[history]`** — `persistence = "save-all"`, `max_bytes = 10 MiB`. Set
   `persistence = "none"` for repos that must not persist transcripts.
 - **`[mcp_servers.<name>]`** — commented stdio + HTTP examples (GitHub,
   filesystem, Linear). Codex's MCP config, mirroring Claude's `.mcp.json` and
-  Gemini's `settings.json` `mcpServers`. See [Codex MCP docs](https://developers.openai.com/codex/mcp).
+  Antigravity's `settings.json` `mcpServers`. See [Codex MCP docs](https://developers.openai.com/codex/mcp).
 - **`notify`** — commented; the kit prefers the `Stop` hook form. Uncomment to
   use the config.toml notification mechanism instead.
 
@@ -176,7 +176,7 @@ Codex CLI 2026 routes work through profiles defined in `~/.codex/config.toml`
 (`readonly` / `standard` / `deep` / `review`). All profiles run on `gpt-5.5`;
 they differ by `model_reasoning_effort`. Use the following mapping so Codex
 matches the per-agent risk tiering used by Claude (Opus/Sonnet/Haiku) and
-Gemini (Pro/Flash):
+Antigravity (Pro/Flash):
 
 | Subagent | Codex profile | `model_reasoning_effort` | Why |
 |---|---|---|---|

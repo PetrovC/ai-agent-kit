@@ -6,7 +6,7 @@ issue changes direction.
 
 ## ADR-001: One shared skill source
 
-- Context: Claude Code, Codex CLI, and Gemini CLI need overlapping engineering
+- Context: Claude Code, Codex CLI, and Antigravity CLI need overlapping engineering
   guidance.
 - Decision: Core skills live under `skills/` and are deployed to the supported
   tools instead of being maintained three times.
@@ -17,7 +17,7 @@ issue changes direction.
 
 - Context: Loading full project policy into every root instruction file wastes
   context.
-- Decision: `CLAUDE.md`, `AGENTS.md`, and `GEMINI.md` stay short and route
+- Decision: `CLAUDE.md`, `AGENTS.md`, and `AGY.md` stay short and route
   agents to `docs/ai/` and relevant skills.
 - Consequences: Detailed policy belongs in skills, templates, or `docs/ai`, not
   in root routers.
@@ -39,14 +39,14 @@ issue changes direction.
   `.claude/`, `.codex/`, `.mcp.json`, `.mcp.example.jsonc`, `.kit-version`, and
   `.kit-manifest`) is tracked intentionally.
 - Consequences: CI must require the Claude/Codex dogfood install to remain
-  tracked while rejecting Gemini root install output and local/runtime files.
+  tracked while rejecting Antigravity root install output and local/runtime files.
 
 ## ADR-005: Provider behavior stays under tooling/<tool>
 
-- Context: Claude, Codex, and Gemini have different config formats, hooks,
+- Context: Claude, Codex, and Antigravity have different config formats, hooks,
   command systems, and runtime capabilities.
 - Decision: Provider-specific behavior belongs under `tooling/claude/`,
-  `tooling/codex/`, or `tooling/gemini/`.
+  `tooling/codex/`, or `tooling/agy/`.
 - Consequences: Shared policy may be referenced by adapters, but shared skills
   and docs should not depend on one provider's private format.
 
@@ -67,24 +67,24 @@ issue changes direction.
 - Consequences: Security documentation and review remain necessary, and hooks
   must not be marketed as complete isolation.
 
-## ADR-008: Gemini hook adoption is the kit's responsibility, not a CLI gap
+## ADR-008: Antigravity hook adoption is the kit's responsibility, not a CLI gap
 
 > *Superseded statement (kept for history):* the previous version of this
-> ADR framed Gemini as lacking an equivalent hook system and concluded
-> the kit's Gemini install therefore had a structurally limited safety
+> ADR framed Antigravity as lacking an equivalent hook system and concluded
+> the kit's Antigravity install therefore had a structurally limited safety
 > surface. That assumption was correct at the time of writing but stopped
-> being true with Gemini CLI 2026, which ships a full hooks system
+> being true with Antigravity CLI 2026, which ships a full hooks system
 > (`BeforeTool`, `AfterTool`, `BeforeAgent`, `AfterAgent`, `Notification`,
 > `SessionStart`, `SessionEnd`, `PreCompress`, `BeforeModel`, `AfterModel`,
 > `BeforeToolSelection`) with a `hooksConfig` / `hooks` schema in
 > `settings.json`. See
-> [geminicli.com/docs/reference/configuration](https://geminicli.com/docs/reference/configuration/).
+> [antigravity.google/docs/reference/configuration](https://antigravity.google/docs/reference/configuration/).
 
-- Context: All three CLIs (Claude, Codex, Gemini) now expose a hooks
+- Context: All three CLIs (Claude, Codex, Antigravity) now expose a hooks
   surface. The kit ships a `pre-bash-guard` hook on all three —
   wired to Claude `PreToolUse(Bash)`, Codex `PreToolUse(Bash)`, and
   (since [#178](https://github.com/PetrovC/ai-agent-kit/issues/178))
-  Gemini `BeforeTool(run_shell_command)`. The denylist logic
+  Antigravity `BeforeTool(run_shell_command)`. The denylist logic
   (force-push, ref deletion, `git reset --hard`, `rm -rf` on unsafe
   targets, unapproved SQL `DROP`, …) is identical across the three
   installs.
@@ -92,32 +92,32 @@ issue changes direction.
   goal — when a hook is added on one provider, the equivalent must
   follow on the other two unless the provider's hook surface genuinely
   cannot express it. Adoption status:
-  1. **`pre-bash-guard`** — Claude ✅, Codex ✅, Gemini ✅ (#178).
+  1. **`pre-bash-guard`** — Claude ✅, Codex ✅, Antigravity ✅ (#178).
   2. **Approval mode** — kept as a complementary first layer on every
      provider. `default` / `auto_edit` prompt the human before shell
-     execution; `yolo` bypasses prompts but Gemini still runs the
+     execution; `yolo` bypasses prompts but Antigravity still runs the
      `BeforeTool` hook below it (`exit 2` blocks the command and
-     surfaces stderr to Gemini as a tool error).
-  3. **`.geminiignore`** — excludes secrets and runtime files from
+     surfaces stderr to Antigravity as a tool error).
+  3. **`.agyignore`** — excludes secrets and runtime files from
      model context.
   4. **CI** — workflows reject merges that violate kit policy
      regardless of the local CLI.
-  5. **Router guidance in `GEMINI.md`** — kept as defense-in-depth so
+  5. **Router guidance in `AGY.md`** — kept as defense-in-depth so
      the model also refuses destructive commands itself.
   Pending follow-ups: format-on-save, notify-done, session-summary
-  hooks for Gemini depend on the exact `tool_input` schema for
+  hooks for Antigravity depend on the exact `tool_input` schema for
   `write_file` / `replace`, the `SessionEnd` payload, and the
   `PreCompress` payload respectively — to be added once those are
-  confirmed against live Gemini behaviour.
+  confirmed against live Antigravity behaviour.
 - Consequences:
-  - Gemini installs now get the same `pre-bash-guard` second layer
+  - Antigravity installs now get the same `pre-bash-guard` second layer
     that Claude and Codex have had since v1.16.5 — `yolo` mode is
     materially less risky than before because the BeforeTool hook
     still fires.
-  - `PROJECT.md`, `tooling/gemini/GEMINI.md`, and `README.md` describe
-    the new baseline and no longer claim Gemini lacks an equivalent
+  - `PROJECT.md`, `tooling/agy/AGY.md`, and `README.md` describe
+    the new baseline and no longer claim Antigravity lacks an equivalent
     runtime safety surface.
-  - The Gemini CLI wrapper experiment ([#169](https://github.com/PetrovC/ai-agent-kit/issues/169))
+  - The Antigravity CLI wrapper experiment ([#169](https://github.com/PetrovC/ai-agent-kit/issues/169))
     is recommended for `wontfix` — the upstream CLI provides the
     surface the wrapper was meant to emulate, and the kit now uses
     it directly.

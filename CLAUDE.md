@@ -45,7 +45,7 @@ Actions, not philosophy. See `docs/ai/CONTEXT_GOVERNANCE.md` for the 40/60/80% t
 - **`/compact`** — summarises conversation + tool outputs; preserves the working summary. Use it proactively.
 - **`/clear`** — resets conversation history but keeps file cache. Rarely the right choice: it discards the summary without reducing file-context cost. Prefer `/compact` or quit + new session.
 - **`claude --continue`** — resumes the previous session (reuses Anthropic's prompt cache). Use when the next task is the same task and the session was recently idle.
-- **Auto-compact threshold** — Claude Code does not yet expose a configurable auto-compact trigger (unlike Gemini's `model.compressionThreshold = 0.6`). Use `/compact` manually at the 60% checkpoint.
+- **Auto-compact threshold** — Claude Code does not yet expose a configurable auto-compact trigger (unlike Antigravity's `model.compressionThreshold = 0.6`). Use `/compact` manually at the 60% checkpoint.
 
 ### When to proactively recommend /compact
 
@@ -103,7 +103,7 @@ add servers per project. See [code.claude.com/docs/en/mcp](https://code.claude.c
 The kit is also published as a Claude plugin marketplace shipping the 30 skills:
 `/plugin marketplace add PetrovC/ai-agent-kit` then `/plugin install ai-agent-kit@ai-agent-kit`.
 This is the skills slice only — the install script remains canonical for the full
-multi-tool setup (Codex + Gemini + hooks + commands + `docs/ai/`).
+multi-tool setup (Codex + Antigravity + hooks + commands + `docs/ai/`).
 
 ## Personal overrides
 

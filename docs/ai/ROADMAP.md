@@ -39,7 +39,7 @@ Improve confidence in lifecycle behavior and target project health:
 - add BATS tests for Bash helpers;
 - add Pester tests for PowerShell helpers;
 - add Bash/PowerShell parity CI;
-- add router parity CI across Claude, Codex, and Gemini route files;
+- add router parity CI across Claude, Codex, and Antigravity route files;
 - clarify shared skills versus tool-specific metadata;
 - continue improving Windows hook guidance, especially for Bash-installed or
   manually edited hook commands;
@@ -56,7 +56,7 @@ These ideas are valuable, but should wait until the core is more stable:
 - skill-level version metadata;
 - skill evals, likely not required CI at first;
 - init wizard or stack presets;
-- optional Gemini wrapper experiment;
+- optional Antigravity wrapper experiment;
 - minimal and full install profiles;
 - context sanitization scripts for logs and documents;
 - shared context, subagent, MCP, and model-routing governance as installable

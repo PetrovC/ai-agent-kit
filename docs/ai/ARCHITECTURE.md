@@ -8,7 +8,7 @@ architecture guide for changing the repo safely.
 
 `ai-agent-kit` ships shared AI development policy and workflow assets to target
 projects. Tool-agnostic concepts live in shared folders such as `skills/` and
-`project-template/`; Claude Code, Codex CLI, and Gemini CLI specifics live under
+`project-template/`; Claude Code, Codex CLI, and Antigravity CLI specifics live under
 their own `tooling/<tool>` adapters. Install/update/uninstall scripts distribute
 managed assets into target projects while preserving project-owned context such
 as `docs/ai` and `.mcp.json`.
@@ -25,16 +25,16 @@ extension scaffolds must not become hidden core dependencies.
 | Domain | `skills/`, engineering guidance, reusable prompts where applicable | Shared agent knowledge and reusable development behavior. |
 | Application | `scripts/install.*`, `scripts/update.*`, `scripts/uninstall.*`, `scripts/validate.*`, `scripts/new-skill.*` | Lifecycle operations that install, refresh, remove, validate, and scaffold kit assets. |
 | Infrastructure | `.github/workflows/`, `tooling/*/hooks/`, MCP examples, GitHub Actions templates | CI checks, provider hook runtime, and optional external integrations. |
-| Interfaces | `README.md`, `tooling/codex/AGENTS.md`, `tooling/claude/CLAUDE.md`, `tooling/gemini/GEMINI.md`, `.claude-plugin/`, `project-template/` | Human-facing docs, provider-facing route files, plugin metadata, and target project templates. |
+| Interfaces | `README.md`, `tooling/codex/AGENTS.md`, `tooling/claude/CLAUDE.md`, `tooling/agy/AGY.md`, `.claude-plugin/`, `project-template/` | Human-facing docs, provider-facing route files, plugin metadata, and target project templates. |
 
 ## Repository Structure
 
 | Path | Responsibility |
 |---|---|
-| `skills/` | Reusable tool-agnostic skills. The same skill source is installed for Claude, Codex, and Gemini. |
+| `skills/` | Reusable tool-agnostic skills. The same skill source is installed for Claude, Codex, and Antigravity. |
 | `tooling/claude/` | Claude-specific configuration, agents, commands, hooks, rules, and future output style or statusline assets. |
 | `tooling/codex/` | Codex-specific configuration, hooks, skills, profiles, and future context or telemetry assets. |
-| `tooling/gemini/` | Gemini-specific configuration, commands, agents, settings fragments, and extension scaffold. |
+| `tooling/agy/` | Antigravity-specific configuration, commands, agents, settings fragments, and extension scaffold. |
 | `tooling/shared/` | Shared installable assets used across providers, including the opt-in agent audit runtime. |
 | `project-template/` | `docs/ai` templates installed into target projects. |
 | `scripts/` | Install, update, uninstall, validate, and skill-scaffolding scripts for Windows and POSIX shells. |
@@ -58,7 +58,7 @@ the canonical source for provider behavior.
 | `CLAUDE.md`, `.claude/settings.json`, `.claude/agents/`, `.claude/commands/`, `.claude/hooks/`, `.claude/rules/` | `tooling/claude/CLAUDE.md`, platform-specific `tooling/claude/settings*.json`, and matching `tooling/claude/*/` directories |
 | `.claude/skills/` | Shared `skills/` |
 | `.ai-agent-kit/audit/` | Shared `tooling/shared/agent-audit/` runtime |
-| Future root Gemini dogfood files | Not tracked today. If that changes, update ADR-004, `.kit-manifest`, validation, and CI in the same scoped issue. Canonical Gemini source remains `tooling/gemini/`. |
+| Future root Antigravity dogfood files | Not tracked today. If that changes, update ADR-004, `.kit-manifest`, validation, and CI in the same scoped issue. Canonical Antigravity source remains `tooling/agy/`. |
 
 Edit the canonical source first, then refresh this repository's dogfood install
 with `scripts/update.* -Target "." -Tools codex,claude`. Commit the source
@@ -89,7 +89,7 @@ the POSIX or Windows source variant.
   `ai-agent-kit` itself.
 - Root Claude/Codex install artifacts are intentionally tracked here as the
   repository's dogfood configuration.
-- Root Gemini install artifacts are not tracked in this repository.
+- Root Antigravity install artifacts are not tracked in this repository.
 - Claude local/runtime files such as `.claude/settings.local.json`,
   `.claude/session-log/`, `.claude/worktrees/`, and `CLAUDE.local.md` are not
   tracked.
@@ -98,7 +98,7 @@ the POSIX or Windows source variant.
 
 Shared concepts must not depend on provider-specific details. Provider adapters
 may reference shared policies, but shared policy should avoid Claude-only,
-Codex-only, or Gemini-only assumptions unless explicitly marked.
+Codex-only, or Antigravity-only assumptions unless explicitly marked.
 
 Install scripts distribute managed assets into target projects. Project-owned
 files must not be overwritten by update/install unless they are explicitly
@@ -118,12 +118,14 @@ Codex CLI supports `AGENTS.md`, skills, hooks, `config.toml`, and MCP
 configuration. Codex behavior should stay in `tooling/codex/` unless it is
 generic shared policy.
 
-### Gemini CLI
+### Antigravity CLI
 
-Gemini CLI supports `GEMINI.md`, commands, agents, skills/settings, and MCP
-settings. It does not currently have an equivalent hook guard system in this
-kit, so its safety model is weaker and relies more on approval mode, review,
-and CI validation.
+Antigravity CLI supports `AGY.md`, commands, agents, skills/settings, and MCP
+settings. The kit wires its hooks through `.agy/settings.json` (a `hooks`
+block using the `BeforeTool`/`AfterTool`/`SessionEnd` events with the
+`run_shell_command` matcher), including the `pre-bash-guard` safety hook and
+the audit-event hook — giving it hook-level parity with Claude and Codex,
+backed as always by approval mode, review, and CI validation.
 
 ## Architecture Boundaries
 
@@ -137,9 +139,9 @@ This layer must not require a specific provider runtime.
 
 ### Provider Adapter Layer
 
-Includes `tooling/claude`, `tooling/codex`, and `tooling/gemini`. These folders
+Includes `tooling/claude`, `tooling/codex`, and `tooling/agy`. These folders
 translate shared policy into provider-native files such as `CLAUDE.md`,
-`AGENTS.md`, `GEMINI.md`, hooks, commands, agent files, settings, and extension
+`AGENTS.md`, `AGY.md`, hooks, commands, agent files, settings, and extension
 metadata.
 
 Provider adapters may differ when the tools differ. Do not hide those

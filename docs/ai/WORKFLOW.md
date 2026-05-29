@@ -69,7 +69,7 @@ install so agents can use the kit while maintaining the kit:
 - `.kit-version`
 - `.kit-manifest`
 
-Do not track Gemini root install output in this repository unless a future issue
+Do not track Antigravity root install output in this repository unless a future issue
 explicitly expands the dogfood scope. Do not track local/runtime files such as
 `.claude/settings.local.json`, `.claude/session-log/`, `.claude/worktrees/`, or
 `CLAUDE.local.md`.
