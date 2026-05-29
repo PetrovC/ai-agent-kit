@@ -9,6 +9,8 @@ Describe "PowerShell agent audit runtime" {
         New-Item -ItemType Directory -Path $script:CentralPath -Force | Out-Null
         & git -C $script:CentralPath init | Out-Null
         & git -C $script:CentralPath checkout -b agent-audit-data | Out-Null
+        & git -C $script:CentralPath config user.email "audit-test@example.com" | Out-Null
+        & git -C $script:CentralPath config user.name "Audit Test" | Out-Null
     }
 
     AfterEach {

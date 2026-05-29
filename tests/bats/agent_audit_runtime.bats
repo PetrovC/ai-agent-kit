@@ -13,6 +13,8 @@ setup() {
     mkdir -p "$RUNTIME_PATH" "$CENTRAL_PATH"
     git -C "$CENTRAL_PATH" init >/dev/null
     git -C "$CENTRAL_PATH" checkout -b agent-audit-data >/dev/null
+    git -C "$CENTRAL_PATH" config user.email "audit-test@example.com" >/dev/null
+    git -C "$CENTRAL_PATH" config user.name "Audit Test" >/dev/null
     export AUDIT_ROOT RUNTIME_PATH CENTRAL_PATH CONFIG_PATH
     write_config
 }
@@ -185,10 +187,11 @@ PY
     run bash "$KIT_ROOT/tooling/shared/agent-audit/finalize-run.sh" --config "$CONFIG_PATH" --source-root "$TARGET" --run-id "$run_id"
     assert_success
     base="$CENTRAL_PATH/agent-audit/runs/2026/05/hmac_sha256_example_project/$run_id"
-    run python - "$base" <<'PY'
+    python - "$base" <<'PY'
 import json
 import pathlib
 import sys
+
 base = pathlib.Path(sys.argv[1])
 invocations = json.loads((base / "agent-invocations.json").read_text())["invocations"]
 recommendations = json.loads((base / "governance-recommendations.json").read_text())
@@ -198,7 +201,6 @@ assert invocations[0]["status"] == "success", invocations[0]
 assert recommendations["recommendation_count"] == 1, recommendations
 assert recommendations["recommendations"][0]["recommendation_kind"] == "realign", recommendations
 PY
-    assert_success
 }
 
 @test "finalize-run commits unsigned when push.sign is false" {
