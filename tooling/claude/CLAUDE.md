@@ -75,7 +75,7 @@ Stay in session only when the next PR depends on the previous PR's **uncommitted
 
 ## Slash commands
 
-The kit ships twelve reusable workflow prompts as slash commands under `.claude/commands/`.
+The kit ships fourteen reusable workflow prompts as slash commands under `.claude/commands/`.
 Type `/` in Claude Code to autocomplete; pick one and pass the relevant argument.
 
 | Command | Use for | Argument |
@@ -83,12 +83,14 @@ Type `/` in Claude Code to autocomplete; pick one and pass the relevant argument
 | `/bug-fix` | Reproduce, root-cause, fix, regression test | issue number |
 | `/code-review` | Triage-style review of a branch or diff | branch (optional) |
 | `/context-report` | Per-surface token estimate for current session | (none) |
+| `/cut-release` | Bump VERSION, update CHANGELOG, run validation — prepare a release | version or patch/minor/major |
 | `/daily-ticket` | Standard issue workflow with skill + subagent routing | issue number |
 | `/dependency-update` | Single-package update with license + test + audit | pkg, old, new |
 | `/feature-planning` | Plan-only, no code, before a large feature | issue number |
 | `/on-call` | Live-incident playbook — triage, mitigate, post-mortem | symptoms |
 | `/performance-audit` | Baseline → bottleneck → fix → re-measure | what is slow |
 | `/refactor` | Behaviour-preserving refactor with tests green | what to refactor |
+| `/release-check` | Inspect VERSION, CHANGELOG, working tree — never modifies anything | (none) |
 | `/run-tests` | Run the suite and report — does not fix failures | (none) |
 | `/security-audit` | Find real exploitable issues, triage by severity | scope (optional) |
 | `/tech-debt` | Triage-only debt scan across categories | (none) |

@@ -103,12 +103,14 @@
 .claude/commands/bug-fix.md
 .claude/commands/code-review.md
 .claude/commands/context-report.md
+.claude/commands/cut-release.md
 .claude/commands/daily-ticket.md
 .claude/commands/dependency-update.md
 .claude/commands/feature-planning.md
 .claude/commands/on-call.md
 .claude/commands/performance-audit.md
 .claude/commands/refactor.md
+.claude/commands/release-check.md
 .claude/commands/run-tests.md
 .claude/commands/security-audit.md
 .claude/commands/tech-debt.md
