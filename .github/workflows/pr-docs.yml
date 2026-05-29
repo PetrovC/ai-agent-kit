@@ -362,7 +362,7 @@ jobs:
           # 5. Untrusted event fields (issue/PR/comment title or body) must NOT
           #    be interpolated raw into an agent `prompt:` — that is a prompt-
           #    injection sink. They must be captured via env: + fenced as DATA
-          #    (see ai-fallback-dispatch / gemini-* for the safe pattern). This
+          #    (see ai-fallback-dispatch for the safe pattern). This
           #    audits ALL workflows, not only comment-triggered ones.
           UNTRUSTED = re.compile(
               r'\$\{\{\s*github\.event\.'
@@ -405,34 +405,6 @@ jobs:
               errs.append(f"{aif}: no job gated on `github.event_name == "
                           "'schedule'` — schedule events would have no entry "
                           "point and would do nothing")
-
-          # 8. gemini-pr-review.yml must NOT fire on `@gemini-cli` — that
-          #    phrase belongs to gemini-dispatch / gemini-assistant. Without
-          #    the `!contains(..., '@gemini-cli')` clause, a single
-          #    `@gemini-cli /review` comment double-fires pr-review and
-          #    dispatch (issue #82 regression).
-          gpr = f"{GH}/gemini-pr-review.yml"
-          t = read(gpr)
-          if "contains(github.event.comment.body, '@gemini')" not in t:
-              errs.append(f"{gpr}: missing `@gemini` comment-body trigger")
-          if "!contains(github.event.comment.body, '@gemini-cli')" not in t:
-              errs.append(f"{gpr}: gate must also exclude `@gemini-cli` so "
-                          "`@gemini-cli /review` does not double-fire this "
-                          "workflow alongside gemini-dispatch (issue #82)")
-
-          # 9. gemini-dispatch.yml must validate route ↔ context BEFORE the
-          #    Gemini step, otherwise `/review` can run on an issue and
-          #    `/triage` can run on a PR with no PR diff to review or no
-          #    issue to classify (issue #83 regression).
-          gdp = f"{GH}/gemini-dispatch.yml"
-          t = read(gdp)
-          for needle in ("IS_PR_CONTEXT", "/review", "/triage"):
-              if needle not in t:
-                  errs.append(f"{gdp}: missing route-validation marker "
-                              f"`{needle}` — `/review`/`/triage` must be "
-                              "validated against PR/issue context before "
-                              "invoking Gemini (issue #83)")
-                  break
 
           # 11. Antigravity model names must all be GA-stable across all
           #     Antigravity surfaces (settings.json, every subagent's
@@ -567,13 +539,10 @@ jobs:
           #     agent reviews HEAD-of-main instead of the PR diff —
           #     producing reviews that look real but cover the wrong code.
           #     Required signal: a `gh pr diff` invocation somewhere in
-          #     the workflow file (`gemini-dispatch.yml` conditions it on
-          #     route == 'review'; the pr-review workflows run it
+          #     the workflow file (the pr-review workflows run it
           #     unconditionally).
           PR_REVIEW_WORKFLOWS = (
               "prompts/github-actions/codex-pr-review.yml",
-              "prompts/github-actions/gemini-pr-review.yml",
-              "prompts/github-actions/gemini-dispatch.yml",
           )
           for f in PR_REVIEW_WORKFLOWS:
               t = read(f)

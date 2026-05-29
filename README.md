@@ -58,7 +58,6 @@ The tools this kit targets, and their official documentation:
 | **Claude Code** (Anthropic) | [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code) | All Anthropic repos: [github.com/orgs/anthropics/repositories](https://github.com/orgs/anthropics/repositories) |
 | **Codex CLI** (OpenAI) | [github.com/openai/codex](https://github.com/openai/codex) | GitHub Action: [github.com/openai/codex-action](https://github.com/openai/codex-action) |
 | **Antigravity CLI** (Google) | [github.com/google-antigravity/antigravity-cli](https://github.com/google-antigravity/antigravity-cli) | Docs: [antigravity.google/docs](https://antigravity.google/docs) |
-| **Gemini GitHub Action** | [github.com/google-github-actions/run-gemini-cli](https://github.com/google-github-actions/run-gemini-cli) | — |
 
 ---
 
@@ -452,26 +451,17 @@ The `prompts/` folder holds copy-paste starting points for common tasks. They ar
 
 ### GitHub Actions templates
 
-The `prompts/github-actions/` folder has ready-to-copy workflow files for AI-assisted CI. Each workflow listens for `@claude` / `@codex` / `@gemini` mentions in issues or PRs and triggers the corresponding AI agent to respond or review.
+The `prompts/github-actions/` folder has ready-to-copy workflow files for AI-assisted CI. Each workflow listens for `@claude` / `@codex` mentions in issues or PRs and triggers the corresponding AI agent to respond or review.
 
 | File | Action | Use case |
 |---|---|---|
 | `claude-code.yml` | `anthropics/claude-code-action@v1` | `@claude` in issues / PRs / reviews |
 | `codex-pr-review.yml` | `openai/codex-action@v1` | `@codex` in PR comments |
-| `gemini-pr-review.yml` | `google-github-actions/run-gemini-cli@v0` | `@gemini` review in PR comments |
-| `gemini-issue-triage.yml` | `google-github-actions/run-gemini-cli@v0` | Auto-triage new issues |
-| `gemini-dispatch.yml` | `google-github-actions/run-gemini-cli@v0` | `@gemini-cli /review` \| `/triage` \| free text — central router |
-| `gemini-assistant.yml` | `google-github-actions/run-gemini-cli@v0` | `@gemini-cli` free-form Q&A on issues / PRs |
-| `ai-fallback-dispatch.yml` | all three actions, chained | Label an issue `ai-fallback` → Claude→Codex→Gemini implement it; the chain advances only until one lands a PR |
+| `ai-fallback-dispatch.yml` | both actions, chained | Label an issue `ai-fallback` → Claude→Codex implement it; the chain advances only until one lands a PR |
 
 Copy these to `.github/workflows/` in your project (they are **not** installed automatically).
 
-> **Supply chain:** the Gemini templates pin `gemini_cli_version` to a concrete
-> release (not `latest`) — the CLI runs with the job's write scope, so an
-> unpinned auto-upgrade is a real risk. Bump it deliberately after reviewing the
-> [gemini-cli release notes](https://github.com/google-gemini/gemini-cli/releases).
->
-> The templates reference each action by **major-version tag** (`@v1`, `@v0`,
+> **Supply chain:** the templates reference each action by **major-version tag** (`@v1`,
 > `actions/checkout@v4`, …). Tags are mutable refs that the action owner can
 > move, so this is "lightly pinned for maintainability" — *not* the immutable
 > SHA-pinning GitHub's
@@ -482,14 +472,14 @@ Copy these to `.github/workflows/` in your project (they are **not** installed a
 > want the maintainability over the supply-chain strictness; pick the trade-off
 > that fits your threat model.
 
-> **`ai-fallback-dispatch.yml`** is the resilient one: it runs the three
+> **`ai-fallback-dispatch.yml`** is the resilient one: it runs both
 > agents *sequentially on the same branch* and only hands off when a provider
 > did **not** finish. "Finished" is an observable git fact (a non-draft PR
 > whose head is `ai/issue-<N>` and whose body says `Closes #<N>`), never an
 > exit code — so a provider running out of tokens/quota yields to the next
 > instead of blocking the issue. Re-runs are idempotent (the gate short-
-> circuits once the PR exists). It needs all three API-key secrets; drop a
-> provider's step if you only have some.
+> circuits once the PR exists). It needs both API-key secrets; drop a
+> provider's step if you only have one.
 
 ---
 
