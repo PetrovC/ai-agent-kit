@@ -414,14 +414,15 @@ jobs:
           #     models based on task risk), but every model must be in the
           #     approved GA list — preview / unreleased models are rejected.
           #     (issue #43 regression + issue #143 tiering).
-          #     The list keeps the GA Gemini model names (settings.json + the
-          #     README capability table still legitimately use them) and adds
-          #     the agy-* GA models the migrated tooling now declares.
+          #     The list is the GA Gemini model names used across every
+          #     Antigravity surface: settings.json, every subagent's
+          #     frontmatter, the AGY.md `--model` hint, and the README table.
+          #     Antigravity invokes Google's Gemini models directly, so the IDs
+          #     are Gemini-branded; the non-existent `agy-*` form (a migration
+          #     find/replace artifact) is intentionally rejected (issue #302).
           APPROVED_MODELS = {
               "gemini-3.1-pro", "gemini-3-flash", "gemini-3.1-flash-lite",
               "gemini-3-pro", "gemini-2.5-pro", "gemini-2.5-flash",
-              "agy-3.1-pro", "agy-3-flash", "agy-3.1-flash-lite",
-              "agy-3-pro", "agy-2.5-pro", "agy-2.5-flash",
           }
           # Each pattern captures `[a-z0-9.-]+` so trailing punctuation in
           # prose (e.g. the backtick-fenced "`--model <name>`" hint in

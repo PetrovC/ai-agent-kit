@@ -75,7 +75,7 @@ evidenced beyond what validate.sh already surfaces.
 | Location | Reference | Classification | Action |
 |---|---|---|---|
 | `docs/ai/MODEL_ROUTING.md` | `gemini-3.1-pro`, `gemini-3-flash` as AGY models | Valid for Antigravity | No change needed |
-| `tooling/agy/AGY.md` | `agy-3.1-pro` as GA model name | Valid | No change needed |
+| `tooling/agy/AGY.md` + agent frontmatter | `gemini-3.1-pro` / `gemini-3-flash` (was `agy-*`) | Corrected — standardized on the GA Gemini IDs | Fixed (#302) |
 | Issue #250 body | `tooling/gemini/GEMINI.md` | Obsolete path | Updated to `tooling/agy/AGY.md` |
 | Issue #148 body | `tooling/gemini/GEMINI.md` | Obsolete path | Updated to `tooling/agy/AGY.md` |
 | Issue #178 title | `feat(gemini):` prefix | Misleading — should be `feat(agy):` | Cosmetic; acceptable as-is |

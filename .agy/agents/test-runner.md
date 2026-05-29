@@ -7,7 +7,7 @@ kind: local
 tools:
   - run_shell_command
   - read_file
-model: agy-3-flash
+model: gemini-3-flash
 temperature: 0.1
 max_turns: 10
 ---

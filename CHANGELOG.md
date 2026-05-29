@@ -43,6 +43,16 @@
   `hooks.json` variants, rewired install/update/uninstall (sh + ps1), aligned
   `validate.sh` with `validate.ps1`, and updated `.kit-manifest`.
 
+- **`fix(agy)` - standardize Antigravity model identifiers on the real Gemini GA IDs (closes [#302](https://github.com/PetrovC/ai-agent-kit/issues/302)).**
+  The `.gemini → .agy` migration corrupted real model IDs in a subset of Antigravity
+  files: the five subagent frontmatter declarations and the `AGY.md --model` hint used
+  the non-existent `agy-3.1-pro` / `agy-3-flash`, while `tooling/agy/settings.json` and
+  every doc already used the real GA IDs `gemini-3.1-pro` / `gemini-3-flash`. Renamed the
+  `agy-*` declarations to `gemini-*` across `tooling/agy/agents/*.md`, `tooling/agy/AGY.md`,
+  and the dogfood mirrors (`.agy/agents/*.md`, root `AGY.md`). Removed the `agy-*` entries
+  from the `pr-docs.yml` `APPROVED_MODELS` whitelist so the corrupted form now fails CI,
+  and corrected the `DOCS_ALIGNMENT_REVIEW.md` row that marked `agy-3.1-pro` as valid.
+
 ### Removed
 
 - **`chore(agy)` - remove orphaned `.gemini/` directory.**

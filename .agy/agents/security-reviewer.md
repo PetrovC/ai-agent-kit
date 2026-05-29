@@ -9,7 +9,7 @@ tools:
   - search_file_content
   - list_directory
   - run_shell_command
-model: agy-3.1-pro
+model: gemini-3.1-pro
 temperature: 0.1
 max_turns: 15
 ---
