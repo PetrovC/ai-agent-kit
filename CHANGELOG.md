@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`feat(claude)` - add `/release-check` and `/cut-release` slash commands (closes [#252](https://github.com/PetrovC/ai-agent-kit/issues/252)).**
+  Added `tooling/claude/commands/release-check.md` and `tooling/claude/commands/cut-release.md`
+  to operationalize the release workflow documented in `docs/ai/RELEASE.md`. `/release-check`
+  inspects `VERSION`, `CHANGELOG.md`, and the working tree without modifying anything and
+  reports release readiness. `/cut-release` bumps `VERSION`, moves `[Unreleased]` entries into
+  a dated section, and runs `validate.sh` — it never creates or pushes tags without explicit
+  user instruction. Dogfood copies installed to `.claude/commands/`. `.kit-manifest` and
+  `CLAUDE.md` command tables updated (12 → 14 commands).
+
+- **`docs(ai)` - add full-repository audit deliverables (2026-05-29).**
+  Added six audit reports to `docs/ai/`: `AUDIT_REPORT.md`, `GAP_ANALYSIS.md`,
+  `TEST_STRATEGY_REVIEW.md`, `AGENT_GOVERNANCE_REVIEW.md`, `DOCS_ALIGNMENT_REVIEW.md`,
+  `IMPLEMENTATION_PLAN.md`. Covers core kit product, dogfood self-installation,
+  Gemini-to-Antigravity migration status, CI/test gaps, and prioritized issue backlog.
+
 ### Removed
 
 - **`chore(prompts)` - remove the Gemini Code Assist GitHub-Action templates.**
