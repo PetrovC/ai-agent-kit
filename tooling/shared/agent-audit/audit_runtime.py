@@ -97,7 +97,12 @@ class AuditError(Exception):
 
 
 def utc_now() -> str:
-    return dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        dt.datetime.now(dt.UTC)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def read_json_text(text: str, label: str) -> dict[str, Any]:
@@ -150,7 +155,9 @@ def is_relative_to(child: pathlib.Path, parent: pathlib.Path) -> bool:
         return False
 
 
-def assert_outside_source(candidate: pathlib.Path, source_root: pathlib.Path, label: str) -> None:
+def assert_outside_source(
+    candidate: pathlib.Path, source_root: pathlib.Path, label: str
+) -> None:
     source = source_root.resolve()
     target = candidate.resolve()
     if target == source or is_relative_to(target, source):
@@ -208,7 +215,9 @@ def path_segment(value: str, field: str) -> str:
     return sanitized
 
 
-def runtime_events_path(audit: dict[str, Any], source_root: pathlib.Path, run_id: str) -> pathlib.Path:
+def runtime_events_path(
+    audit: dict[str, Any], source_root: pathlib.Path, run_id: str
+) -> pathlib.Path:
     runtime = resolve_path(str(audit["runtime_path"]))
     assert_outside_source(runtime, source_root, "runtime_path")
     return runtime / "runs" / path_segment(run_id, "audit_run_id") / "events.ndjson"
@@ -219,7 +228,9 @@ def read_event_input(event_file: str | None) -> dict[str, Any]:
         return read_json_file(resolve_path(event_file), "audit event")
     text = sys.stdin.read()
     if not text.strip():
-        raise AuditError("audit event JSON must be passed on stdin or with --event-file")
+        raise AuditError(
+            "audit event JSON must be passed on stdin or with --event-file"
+        )
     return read_json_text(text, "audit event")
 
 
@@ -237,7 +248,9 @@ def record_event(args: argparse.Namespace) -> int:
     return 0
 
 
-def run_git(repo: pathlib.Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run_git(
+    repo: pathlib.Path, *args: str, check: bool = True
+) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         ["git", *args],
         cwd=str(repo),
@@ -252,7 +265,9 @@ def run_git(repo: pathlib.Path, *args: str, check: bool = True) -> subprocess.Co
     return result
 
 
-def ensure_central_repo(audit: dict[str, Any], source_root: pathlib.Path) -> pathlib.Path:
+def ensure_central_repo(
+    audit: dict[str, Any], source_root: pathlib.Path
+) -> pathlib.Path:
     central = resolve_path(str(audit["central_repo_path"]))
     assert_outside_source(central, source_root, "central_repo_path")
     if not central.exists():
@@ -295,7 +310,9 @@ def load_events(path: pathlib.Path) -> list[dict[str, Any]]:
     if not path.exists():
         raise AuditError(f"runtime event stream not found: {path}")
     events: list[dict[str, Any]] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+    for line_number, line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
         if not line.strip():
             continue
         event = read_json_text(line, f"{path}:{line_number}")
@@ -329,7 +346,9 @@ def run_period(events: list[dict[str, Any]]) -> tuple[str, str]:
 
 def write_json(path: pathlib.Path, value: dict[str, Any]) -> None:
     privacy_scan(value)
-    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def write_text(path: pathlib.Path, value: str) -> None:
@@ -337,11 +356,105 @@ def write_text(path: pathlib.Path, value: str) -> None:
     path.write_text(value, encoding="utf-8")
 
 
+INVOCATION_EVENT_TYPES = ("agent.selected", "agent.invoked", "agent.completed")
+INVOCATION_PAYLOAD_FIELDS = (
+    "parent_invocation_id",
+    "agent_key",
+    "agent_category",
+    "provider",
+    "model_tier",
+    "assigned_task",
+    "selection_reason",
+    "status",
+    "result_summary",
+    "retry_of_invocation_id",
+    "escalated_to_invocation_id",
+)
+
+
+def parse_timestamp(value: Any) -> dt.datetime | None:
+    try:
+        return dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def duration_ms(start: Any, end: Any) -> int | None:
+    started = parse_timestamp(start)
+    ended = parse_timestamp(end)
+    if started is None or ended is None:
+        return None
+    delta = int((ended - started).total_seconds() * 1000)
+    return delta if delta >= 0 else None
+
+
+def build_invocations(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Aggregate agent.selected/invoked/completed events into invocation records."""
+    records: dict[str, dict[str, Any]] = {}
+    order: list[str] = []
+    for event in events:
+        if event.get("event_type") not in INVOCATION_EVENT_TYPES:
+            continue
+        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        key = (
+            event.get("invocation_id")
+            or payload.get("invocation_id")
+            or f"inv_{event.get('sequence')}"
+        )
+        record = records.get(key)
+        if record is None:
+            record = {"invocation_id": key}
+            records[key] = record
+            order.append(key)
+        for field in INVOCATION_PAYLOAD_FIELDS:
+            if field in payload:
+                record[field] = payload[field]
+        occurred_at = event.get("occurred_at")
+        if event.get("event_type") in ("agent.selected", "agent.invoked"):
+            record.setdefault("started_at", occurred_at)
+        elif event.get("event_type") == "agent.completed":
+            record["completed_at"] = occurred_at
+    invocations: list[dict[str, Any]] = []
+    for key in order:
+        record = records[key]
+        record.setdefault("parent_invocation_id", None)
+        record.setdefault("agent_key", "unknown")
+        record.setdefault("agent_category", "other")
+        record.setdefault(
+            "status", "success" if "completed_at" in record else "stopped"
+        )
+        if "duration_ms" not in record:
+            span = duration_ms(record.get("started_at"), record.get("completed_at"))
+            if span is not None:
+                record["duration_ms"] = span
+        invocations.append(record)
+    return invocations
+
+
+def build_recommendations(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Surface recommendation.created payloads (privacy-scanned at record time)."""
+    recommendations: list[dict[str, Any]] = []
+    for event in events:
+        if event.get("event_type") != "recommendation.created":
+            continue
+        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        record: dict[str, Any] = {"recommendation_id": event.get("event_id")}
+        record.update(payload)
+        recommendations.append(record)
+    return recommendations
+
+
 def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]:
     generated_at = utc_now()
-    project_hash = str(find_payload_value(events, "project_hash", "hmac_sha256_unavailable"))
+    invocations = build_invocations(events)
+    recommendations = build_recommendations(events)
+    project_hash = str(
+        find_payload_value(events, "project_hash", "hmac_sha256_unavailable")
+    )
     status = str(find_payload_value(events, "status", "completed_with_warnings"))
-    validation_state = str(find_payload_value(events, "validation_state", "unavailable"))
+    validation_state = str(
+        find_payload_value(events, "validation_state", "unavailable")
+    )
     task_type = str(find_payload_value(events, "task_type", "other"))
     technical_scopes = find_payload_value(events, "technical_scopes", ["unknown"])
     if not isinstance(technical_scopes, list):
@@ -361,7 +474,9 @@ def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]
             "technical_scopes": technical_scopes,
             "risk_level": str(find_payload_value(events, "risk_level", "low")),
             "complexity": str(find_payload_value(events, "complexity", "small")),
-            "expected_outputs": find_payload_value(events, "expected_outputs", ["unknown"]),
+            "expected_outputs": find_payload_value(
+                events, "expected_outputs", ["unknown"]
+            ),
         },
         "status": status,
         "outcome": {
@@ -371,7 +486,8 @@ def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]
         },
         "activity_summary": {
             "tool_call_count": event_count(events, "tool.observed"),
-            "hook_event_count": event_count(events, "hook.observed") + event_count(events, "compact.observed"),
+            "hook_event_count": event_count(events, "hook.observed")
+            + event_count(events, "compact.observed"),
         },
         "friction_summary": {
             "retry_count": event_count(events, "retry.requested"),
@@ -404,10 +520,14 @@ def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]
             "measurement_mode": "unavailable",
             "confidence": "unavailable",
             "provider_usage_available": False,
+            "compression": {
+                "recommended_count": 0,
+                "executed_count": event_count(events, "compact.observed"),
+            },
         },
         "agent-invocations.json": {
             "schema_version": SCHEMA_VERSION,
-            "invocations": [],
+            "invocations": invocations,
         },
         "friction.json": {
             "schema_version": SCHEMA_VERSION,
@@ -426,13 +546,15 @@ def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]
         "report-quality.json": {
             "schema_version": SCHEMA_VERSION,
             "quality_score": find_payload_value(events, "quality_score", None),
-            "quality_category": str(find_payload_value(events, "quality_category", "unavailable")),
+            "quality_category": str(
+                find_payload_value(events, "quality_category", "unavailable")
+            ),
             "validation_state": validation_state,
         },
         "governance-recommendations.json": {
             "schema_version": SCHEMA_VERSION,
-            "recommendation_count": event_count(events, "recommendation.created"),
-            "recommendations": [],
+            "recommendation_count": len(recommendations),
+            "recommendations": recommendations,
         },
         "pricing-estimate.json": {
             "schema_version": SCHEMA_VERSION,
@@ -444,7 +566,9 @@ def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]
     return artifacts
 
 
-def write_run_folder(run_folder: pathlib.Path, events: list[dict[str, Any]], run_id: str) -> None:
+def write_run_folder(
+    run_folder: pathlib.Path, events: list[dict[str, Any]], run_id: str
+) -> None:
     if run_folder.exists():
         raise AuditError(f"audit run folder already exists: {run_folder}")
     run_folder.mkdir(parents=True)
@@ -471,7 +595,12 @@ def write_run_folder(run_folder: pathlib.Path, events: list[dict[str, Any]], run
     )
 
 
-def create_outbox(audit: dict[str, Any], source_root: pathlib.Path, run_folder: pathlib.Path, run_id: str) -> pathlib.Path:
+def create_outbox(
+    audit: dict[str, Any],
+    source_root: pathlib.Path,
+    run_folder: pathlib.Path,
+    run_id: str,
+) -> pathlib.Path:
     runtime = resolve_path(str(audit["runtime_path"]))
     assert_outside_source(runtime, source_root, "runtime_path")
     outbox = runtime / "outbox" / path_segment(run_id, "audit_run_id")
@@ -479,6 +608,29 @@ def create_outbox(audit: dict[str, Any], source_root: pathlib.Path, run_folder: 
         shutil.rmtree(outbox)
     shutil.copytree(run_folder, outbox)
     return outbox
+
+
+def commit_run(repo: pathlib.Path, run_id: str, sign: Any) -> str | None:
+    """Commit the staged run folder. Return None on success or an error string.
+
+    `sign` mirrors the audit config `push.sign` flag: True requires a signed
+    commit, False forces `--no-gpg-sign`, and None (default) tries a normal
+    commit then retries unsigned so finalize-run still works where commit
+    signing is configured but unavailable (e.g. no signing key or server).
+    """
+    message = f"chore(agent-audit): add anonymized run {run_id}"
+    commit_args = ["commit", "-m", message]
+    if sign is False:
+        commit_args = ["commit", "--no-gpg-sign", "-m", message]
+    result = run_git(repo, *commit_args, check=False)
+    if result.returncode == 0:
+        return None
+    if sign is None:
+        retry = run_git(repo, "commit", "--no-gpg-sign", "-m", message, check=False)
+        if retry.returncode == 0:
+            return None
+        result = retry
+    return (result.stderr or result.stdout).strip()
 
 
 def maybe_commit_and_push(
@@ -493,18 +645,28 @@ def maybe_commit_and_push(
     push_config = audit.get("push") if isinstance(audit.get("push"), dict) else {}
     commit_enabled = bool(args.commit or push_config.get("commit"))
     push_enabled = bool(args.push or push_config.get("mode") == "authorized")
+    sign = push_config.get("sign")
     rel = run_folder.relative_to(central).as_posix()
     if commit_enabled:
         run_git(central, "add", "--", rel)
         status = run_git(central, "status", "--porcelain", "--", rel).stdout.strip()
         if status:
-            run_git(central, "commit", "-m", f"chore(agent-audit): add anonymized run {run_id}")
+            error = commit_run(central, run_id, sign)
+            if error is not None:
+                outbox = create_outbox(audit, source_root, run_folder, run_id)
+                raise AuditError(
+                    f"commit failed; sanitized audit data was kept in local outbox: {outbox}. Git said: {error}",
+                    4,
+                )
     if push_enabled:
         result = run_git(central, "push", "origin", branch, check=False)
         if result.returncode != 0:
             outbox = create_outbox(audit, source_root, run_folder, run_id)
             detail = (result.stderr or result.stdout).strip()
-            raise AuditError(f"push failed; sanitized audit data was kept in local outbox: {outbox}. Git said: {detail}", 4)
+            raise AuditError(
+                f"push failed; sanitized audit data was kept in local outbox: {outbox}. Git said: {detail}",
+                4,
+            )
 
 
 def finalize_run(args: argparse.Namespace) -> int:
@@ -516,8 +678,19 @@ def finalize_run(args: argparse.Namespace) -> int:
     central = ensure_central_repo(audit, source_root)
     branch = ensure_audit_branch(central, audit)
     year, month = run_period(events)
-    project_hash = path_segment(str(find_payload_value(events, "project_hash", "hmac_sha256_unavailable")), "project_hash")
-    run_folder = central / "agent-audit" / "runs" / year / month / project_hash / path_segment(run_id, "audit_run_id")
+    project_hash = path_segment(
+        str(find_payload_value(events, "project_hash", "hmac_sha256_unavailable")),
+        "project_hash",
+    )
+    run_folder = (
+        central
+        / "agent-audit"
+        / "runs"
+        / year
+        / month
+        / project_hash
+        / path_segment(run_id, "audit_run_id")
+    )
     write_run_folder(run_folder, events, run_id)
     maybe_commit_and_push(args, audit, source_root, central, run_folder, run_id, branch)
     print(f"finalized audit run: {run_folder}")
@@ -525,16 +698,22 @@ def finalize_run(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="ai-agent-kit anonymized audit runtime")
+    parser = argparse.ArgumentParser(
+        description="ai-agent-kit anonymized audit runtime"
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    record = sub.add_parser("record-event", help="append one sanitized event to the local runtime")
+    record = sub.add_parser(
+        "record-event", help="append one sanitized event to the local runtime"
+    )
     record.add_argument("--config")
     record.add_argument("--event-file")
     record.add_argument("--source-root", default=".")
     record.set_defaults(func=record_event)
 
-    finalize = sub.add_parser("finalize-run", help="generate a central audit run folder")
+    finalize = sub.add_parser(
+        "finalize-run", help="generate a central audit run folder"
+    )
     finalize.add_argument("--config")
     finalize.add_argument("--source-root", default=".")
     finalize.add_argument("--run-id", required=True)

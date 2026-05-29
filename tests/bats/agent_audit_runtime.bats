@@ -122,3 +122,94 @@ PY
     assert_success
     assert_file_exists "$CENTRAL_PATH/agent-audit/runs/2026/05/hmac_sha256_example_project/$run_id/run-summary.json"
 }
+
+write_named_event() {
+    python - "$1" "$2" "$3" "$4" "$5" "$6" <<'PY'
+import json
+import pathlib
+import sys
+path, run_id, seq, event_type, actor_kind, payload = sys.argv[1:7]
+event = {
+    "schema_version": "0.1.0",
+    "event_id": f"evt_{seq}",
+    "audit_run_id": run_id,
+    "sequence": int(seq),
+    "occurred_at": "2026-05-28T12:00:00Z",
+    "event_type": event_type,
+    "actor_kind": actor_kind,
+    "invocation_id": None,
+    "payload": json.loads(payload),
+}
+pathlib.Path(path).write_text(json.dumps(event), encoding="utf-8")
+PY
+}
+
+write_commit_config() {
+    python - "$CONFIG_PATH" "$RUNTIME_PATH" "$CENTRAL_PATH" "${1:-unset}" <<'PY'
+import json
+import pathlib
+import sys
+path, runtime, central, sign = sys.argv[1:5]
+push = {"mode": "disabled", "commit": True, "unauthorized_fallback": "local-outbox"}
+if sign == "false":
+    push["sign"] = False
+elif sign == "true":
+    push["sign"] = True
+config = {
+    "schema_version": "0.1.0",
+    "audit": {
+        "enabled": True,
+        "mode": "official-central-repo",
+        "official_remote_url": "https://github.com/PetrovC/ai-agent-kit.git",
+        "branch": "agent-audit-data",
+        "runtime_path": runtime,
+        "central_repo_path": central,
+        "source_project_write_policy": "never",
+        "push": push,
+    },
+}
+pathlib.Path(path).write_text(json.dumps(config), encoding="utf-8")
+PY
+}
+
+@test "finalize-run aggregates invocations and recommendations from events" {
+    run_id="run_20260528_120000_aggr"
+    write_named_event "$AUDIT_ROOT/inv.json" "$run_id" 1 agent.invoked main_agent '{"invocation_id":"inv_1","agent_key":"code-reviewer","agent_category":"review","provider":"claude","model_tier":"review"}'
+    write_named_event "$AUDIT_ROOT/comp.json" "$run_id" 2 agent.completed main_agent '{"invocation_id":"inv_1","status":"success","result_summary":{"findings_count":1,"confidence":"high"}}'
+    write_named_event "$AUDIT_ROOT/rec.json" "$run_id" 3 recommendation.created main_agent '{"recommendation_kind":"realign","severity":"medium"}'
+    write_named_event "$AUDIT_ROOT/done.json" "$run_id" 4 run.completed system '{"project_hash":"hmac_sha256_example_project","status":"completed","validation_state":"passed"}'
+    for name in inv comp rec done; do
+        run bash "$KIT_ROOT/tooling/shared/agent-audit/record-event.sh" --config "$CONFIG_PATH" --source-root "$TARGET" --event-file "$AUDIT_ROOT/$name.json"
+        assert_success
+    done
+    run bash "$KIT_ROOT/tooling/shared/agent-audit/finalize-run.sh" --config "$CONFIG_PATH" --source-root "$TARGET" --run-id "$run_id"
+    assert_success
+    base="$CENTRAL_PATH/agent-audit/runs/2026/05/hmac_sha256_example_project/$run_id"
+    run python - "$base" <<'PY'
+import json
+import pathlib
+import sys
+base = pathlib.Path(sys.argv[1])
+invocations = json.loads((base / "agent-invocations.json").read_text())["invocations"]
+recommendations = json.loads((base / "governance-recommendations.json").read_text())
+assert len(invocations) == 1, invocations
+assert invocations[0]["agent_key"] == "code-reviewer", invocations[0]
+assert invocations[0]["status"] == "success", invocations[0]
+assert recommendations["recommendation_count"] == 1, recommendations
+assert recommendations["recommendations"][0]["recommendation_kind"] == "realign", recommendations
+PY
+    assert_success
+}
+
+@test "finalize-run commits unsigned when push.sign is false" {
+    run_id="run_20260528_120000_sign"
+    write_commit_config false
+    write_named_event "$AUDIT_ROOT/done.json" "$run_id" 1 run.completed system '{"project_hash":"hmac_sha256_example_project","status":"completed"}'
+    run bash "$KIT_ROOT/tooling/shared/agent-audit/record-event.sh" --config "$CONFIG_PATH" --source-root "$TARGET" --event-file "$AUDIT_ROOT/done.json"
+    assert_success
+    run bash "$KIT_ROOT/tooling/shared/agent-audit/finalize-run.sh" --config "$CONFIG_PATH" --source-root "$TARGET" --run-id "$run_id"
+    assert_success
+    run git -C "$CENTRAL_PATH" rev-list --count HEAD
+    assert_success
+    [ "$output" -ge 1 ]
+}
