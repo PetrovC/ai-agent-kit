@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **`fix(agy)` - wire Antigravity hooks via `settings.json`, not Codex-style `hooks.json`.**
+  The `.gemini → .agy` migration left the kit shipping `.agy/hooks.json` in the
+  Claude/Codex schema (`PreToolUse`/`PostToolUse`/`Stop`, matcher `Bash`) plus a
+  Codex-style `config.toml`, neither of which Antigravity reads — so model config,
+  `context.fileName` and all hooks silently never loaded. Consolidated Antigravity
+  configuration into a single `settings.json` (POSIX + Windows variants, mirroring
+  the Claude tooling layout) using the `BeforeTool`/`AfterTool`/`SessionEnd` events
+  with the `run_shell_command` matcher. Dropped the unused `config.toml` and
+  `hooks.json` variants, rewired install/update/uninstall (sh + ps1), aligned
+  `validate.sh` with `validate.ps1`, and updated `.kit-manifest`.
+
+### Removed
+
+- **`chore(agy)` - remove orphaned `.gemini/` directory.**
+  The antigravity migration renamed `.gemini/` → `.agy/`, but a later commit
+  accidentally resurrected the entire `.gemini/` tree (61 files). No
+  install/update/validate script references it anymore; removed the dead, duplicated
+  config.
+
 ### Added
 
 - **`feat(gemini)` - add Gemini to dogfood install alongside Claude and Codex.**
