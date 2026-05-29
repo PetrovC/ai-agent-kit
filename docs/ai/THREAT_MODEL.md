@@ -30,7 +30,7 @@ known gaps.
 | Host shell and OS account | User account and local shell are trusted relative to untrusted external input. | If host is already compromised, kit guardrails cannot provide strong containment. |
 | Network and remote services | External servers (MCP endpoints, package mirrors, GitHub APIs) are untrusted by default. | Prefer least privilege and pinned versions for external integrations. |
 | Secrets handling | Secrets may exist in target projects but are not required for kit operation. | Scripts and docs must avoid reading or logging secrets unless explicitly requested. |
-| Agent runtime | Provider runtimes (Claude/Codex/Gemini) are out of scope for patching here. | Kit can only add guardrails and policy, not enforce runtime isolation. |
+| Agent runtime | Provider runtimes (Claude/Codex/Antigravity) are out of scope for patching here. | Kit can only add guardrails and policy, not enforce runtime isolation. |
 
 ## Surface 1: Hook scripts
 

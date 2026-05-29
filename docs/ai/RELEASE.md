@@ -68,7 +68,7 @@ Agents must refuse to proceed if any of the following are true:
 
 CI enforces the following invariants on every PR:
 
-- `VERSION` is a clean semver and matches `plugin.json` and `gemini-extension.json`.
+- `VERSION` is a clean semver and matches `plugin.json` and `agy-extension.json`.
 - `CHANGELOG.md` has exactly one `[Unreleased]` heading with no duplicate version sections.
 
 These checks run in `pr-versioning.yml`. A release PR that fails them cannot merge.

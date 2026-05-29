@@ -2,7 +2,7 @@
 
 `ai-agent-kit` is a reusable, versioned multi-agent configurator. Its job is to
 install, update, uninstall, validate, and document a consistent AI-agent setup
-for Claude Code, Codex CLI, and Gemini CLI.
+for Claude Code, Codex CLI, and Antigravity CLI.
 
 ## Goal
 
@@ -38,5 +38,5 @@ context, and providing optional adapters where they help.
 | Maturity | Components | Notes |
 |---|---|---|
 | Core/stable | Lifecycle scripts, shared skills, route files, project templates, Claude/Codex hooks | Continue strengthening validation and parity checks before adding large features. |
-| Optional adapters | MCP examples, GitHub Actions templates, Claude plugin marketplace metadata, Gemini extension scaffold | Keep opt-in and document risk clearly. |
-| Future/experimental | Doctor command, init wizard, skill evals, skill SemVer, Gemini wrapper | Require dedicated issues and PRs before implementation. |
+| Optional adapters | MCP examples, GitHub Actions templates, Claude plugin marketplace metadata, Antigravity extension scaffold | Keep opt-in and document risk clearly. |
+| Future/experimental | Doctor command, init wizard, skill evals, skill SemVer, Antigravity wrapper | Require dedicated issues and PRs before implementation. |

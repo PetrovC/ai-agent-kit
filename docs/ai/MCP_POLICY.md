@@ -37,7 +37,7 @@ casually. Start with the smallest useful permission set:
 
 - Claude Code uses project `.mcp.json` for MCP configuration.
 - Codex CLI uses `[mcp_servers.<name>]` tables in `.codex/config.toml`.
-- Gemini CLI uses `mcpServers` in `.gemini/settings.json`.
+- Antigravity CLI uses `mcpServers` in `.agy/settings.json`.
 
 `.mcp.json` is initialized empty and then project-owned. Do not overwrite it in
 updates.

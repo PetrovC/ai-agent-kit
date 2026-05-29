@@ -6,7 +6,7 @@ repository. Keep it concise, factual, and aligned with `README.md`.
 ## Project Purpose
 
 `ai-agent-kit` is a reusable, versioned AI agent configuration kit for
-AI-assisted software development across Claude Code, Codex CLI, and Gemini CLI.
+AI-assisted software development across Claude Code, Codex CLI, and Antigravity CLI.
 It standardizes work across these tools by shipping shared skills,
 provider-specific adapters, optional hooks, commands, MCP examples, workflow
 prompts, install/update/uninstall scripts, and `docs/ai` templates for target
@@ -21,7 +21,7 @@ In this repository, `docs/ai/` is official project-owned documentation for
 intentionally dogfoods its own Claude Code and Codex CLI install, so the root
 `AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, `.codex/`, `.mcp.json`,
 `.mcp.example.jsonc`, `.kit-version`, and `.kit-manifest` are tracked as
-project-local configuration for maintaining the kit. Gemini root install output
+project-local configuration for maintaining the kit. Antigravity root install output
 and local/runtime Claude files remain excluded.
 
 ## Problem Solved
@@ -45,7 +45,7 @@ workflow habits. This kit reduces that drift by:
   context.
 - Solo developers using multiple AI coding tools.
 - Teams that want shared AI agent rules across repositories.
-- Projects needing repeatable Claude Code, Codex CLI, and Gemini CLI setup.
+- Projects needing repeatable Claude Code, Codex CLI, and Antigravity CLI setup.
 - AI-assisted development workflows based on GitHub issues and pull requests.
 
 ## Core Principles
@@ -66,7 +66,7 @@ workflow habits. This kit reduces that drift by:
 - One concern per issue and one concern per PR.
 - Simple, maintainable workflows beat over-engineered automation.
 - Optional adapters must stay optional; GitHub Actions templates, MCP examples,
-  the Claude plugin metadata, and the Gemini extension scaffold must not become
+  the Claude plugin metadata, and the Antigravity extension scaffold must not become
   required core runtime.
 - Human review remains part of the workflow.
 
@@ -76,19 +76,19 @@ workflow habits. This kit reduces that drift by:
   `new-skill` for Bash and PowerShell.
 - Shared engineering skills under `skills/`.
 - Tool-specific routers, configs, commands, agents, and hooks under
-  `tooling/claude`, `tooling/codex`, and `tooling/gemini`.
+  `tooling/claude`, `tooling/codex`, and `tooling/agy`.
 - Hooks where the provider supports them.
 - Project templates under `project-template/`.
 - Optional GitHub Actions templates under `prompts/github-actions/`.
 - Optional MCP examples.
 - Claude plugin marketplace metadata.
-- Gemini extension scaffold.
+- Antigravity extension scaffold.
 - Documentation, release hygiene, and public onboarding.
 
 ## Non-goals
 
 - Replacing human review.
-- Hiding the real differences between Claude Code, Codex CLI, and Gemini CLI.
+- Hiding the real differences between Claude Code, Codex CLI, and Antigravity CLI.
 - Enabling every tool, skill, MCP, or workflow by default in every project.
 - Forcing one rigid workflow for every repository.
 - Using the most expensive model for every task.
@@ -125,7 +125,7 @@ workflow habits. This kit reduces that drift by:
   scripts in documentation-only work.
 - Add a future `doctor` command that diagnoses target project installation
   health after a dedicated issue exists.
-- Keep GitHub Actions, MCP, plugin, and Gemini extension paths as optional
+- Keep GitHub Actions, MCP, plugin, and Antigravity extension paths as optional
   adapters.
 
 ## Current Maturity
@@ -134,9 +134,9 @@ The kit already has mature building blocks:
 
 - shared tool-agnostic skills under `skills/`;
 - provider adapters under `tooling/claude`, `tooling/codex`, and
-  `tooling/gemini`;
+  `tooling/agy`;
 - lifecycle hooks for Claude Code and Codex CLI;
-- Claude and Gemini commands plus prompt templates;
+- Claude and Antigravity commands plus prompt templates;
 - subagent definitions for investigation, review, security, architecture, and
   test runs;
 - install, update, uninstall, validate, and new-skill scripts;
@@ -154,9 +154,9 @@ Current maturity assessment:
 - Script robustness is better than a first glance suggests, with meaningful
   Bash and PowerShell care already present, but it still needs isolated helper
   tests and parity checks.
-- Runtime security: all three CLIs (Claude, Codex, Gemini) ship the
+- Runtime security: all three CLIs (Claude, Codex, Antigravity) ship the
   kit-provided `pre-bash-guard` hook on `Bash` / `run_shell_command`.
-  Approval mode (`default` / `auto_edit`), `.geminiignore`, and CI
+  Approval mode (`default` / `auto_edit`), `.agyignore`, and CI
   remain complementary layers; see ADR-008.
 - Public release maturity needs work before broad public adoption.
 - Evolution potential is excellent, but advanced features should come after
@@ -165,10 +165,10 @@ Current maturity assessment:
 ## Known Risks
 
 - Bash and PowerShell behavior can drift without parity checks.
-- Gemini hook adoption beyond `pre-bash-guard` (format-on-save,
+- Antigravity hook adoption beyond `pre-bash-guard` (format-on-save,
   notify-done, session-summary) is pending — the `tool_input` / event
   payload schemas for `write_file` / `replace` / `SessionEnd` /
-  `PreCompress` need to be confirmed against live Gemini behaviour
+  `PreCompress` need to be confirmed against live Antigravity behaviour
   before porting the existing Claude/Codex scripts. Tracked
   separately.
 - Optional GitHub Actions templates can drift from actual provider behavior.
@@ -185,7 +185,7 @@ rigid. The most valuable planned directions are:
 - shared context, subagent, MCP, model-routing, and sanitization policies;
 - Claude statusline and minimal output style;
 - clearer model hints for commands as well as agents;
-- Gemini compression guidance and minimal command support;
+- Antigravity compression guidance and minimal command support;
 - Codex context policy and model-routing support;
 - validation that root instruction files stay short;
 - validation that project-owned files are not overwritten;

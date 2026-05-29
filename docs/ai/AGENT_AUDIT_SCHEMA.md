@@ -282,7 +282,7 @@ results must be represented as controlled metadata, not raw task text.
 | `parent_invocation_id` | string or null | Parent invocation when nested. |
 | `agent_key` | string | Generic agent identifier, for example `main`, `code-reviewer`, `test-runner`. |
 | `agent_category` | enum | `main`, `investigation`, `test`, `review`, `security`, `architecture`, `implementation`, `other`. |
-| `provider` | enum | Tool/provider family such as `codex`, `claude`, `gemini`, `other`. |
+| `provider` | enum | Tool/provider family such as `codex`, `claude`, `agy`, `other`. |
 | `model_tier` | enum | `fast`, `standard`, `deep`, `review`, `unknown`; avoid storing unstable exact model names unless policy allows it. |
 | `assigned_task` | object | Sanitized task classification subset. |
 | `selection_reason` | enum | `user_requested`, `routing_rule`, `risk_level`, `large_output`, `specialized_review`, `retry`, `escalation`, `other`. |

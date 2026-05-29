@@ -2,7 +2,7 @@
 
 | Term | Definition |
 |---|---|
-| `ai-agent-kit` | Reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and Gemini CLI. |
+| `ai-agent-kit` | Reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and Antigravity CLI. |
 | Agent | AI coding assistant operating in this repository or in a target project. |
 | Adapter | Tool-specific configuration that maps shared kit concepts into one provider's files and runtime behavior. |
 | Command | Provider-facing shortcut or prompt asset that triggers a repeatable workflow. |
@@ -18,12 +18,12 @@
 | MCP | Model Context Protocol. MCPs attach external tools or data sources and should be opt-in and least-privilege. |
 | Minimal install profile | Planned install mode that would copy only the broadly useful core assets. |
 | Optional template | Reference asset, such as a GitHub Actions template, that users may copy intentionally but is not installed by default. |
-| Parity check | Test that compares equivalent behavior across Bash/PowerShell or Claude/Codex/Gemini routes. |
+| Parity check | Test that compares equivalent behavior across Bash/PowerShell or Claude/Codex/Antigravity routes. |
 | Project-owned file | File owned by the target project and preserved by update/uninstall, such as `docs/ai/` or `.mcp.json`. |
-| Provider adapter | Tool-specific configuration under `tooling/claude`, `tooling/codex`, or `tooling/gemini`. |
+| Provider adapter | Tool-specific configuration under `tooling/claude`, `tooling/codex`, or `tooling/agy`. |
 | Public release hygiene | Metadata and process needed for broad public use, including `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, root `VERSION`, release tags, and checklist. |
 | Release tag | Git tag and GitHub Release marker that lets users pin a known kit version. |
-| Router | Short root instruction file such as `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` that points agents to relevant docs and skills. |
+| Router | Short root instruction file such as `CLAUDE.md`, `AGENTS.md`, or `AGY.md` that points agents to relevant docs and skills. |
 | Rule | Provider-specific or shared instruction that constrains agent behavior. |
 | Sanitized context | Precise reduced context that preserves exact errors and evidence while removing duplication and noise. |
 | Skill | Focused Markdown instruction file under `skills/` or a provider-specific installed skill location. |

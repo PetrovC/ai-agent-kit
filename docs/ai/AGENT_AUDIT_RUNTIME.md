@@ -140,7 +140,7 @@ temporarily unavailable.
 
 ## Provider Capability Matrix
 
-| Capability | Claude | Codex | Gemini | M0D behavior |
+| Capability | Claude | Codex | Antigravity | M0D behavior |
 |---|---|---|---|---|
 | Lifecycle stop event | Available through hooks | Not wired in this milestone | Not wired in this milestone | Claude emits `hook.observed`; others can call `record-event` manually. |
 | Tool-use hook | Available through `PostToolUse` | Not wired in this milestone | Not wired in this milestone | Claude emits high-level `tool.observed` categories only. |

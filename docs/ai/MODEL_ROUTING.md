@@ -70,14 +70,14 @@ Verified GA model as of May 2026 (OpenAI): `gpt-5.5` with reasoning effort
 levels `none` / `low` / `medium` (default) / `high` / `xhigh`. See
 <https://developers.openai.com/codex/models>.
 
-### Gemini CLI
+### Antigravity CLI
 
 - Use a Pro model for architecture, security, review, and investigation.
 - Use a balanced model for daily development.
 - Use a fast model only for narrow mechanical work.
 
 Per-subagent model assignment used in this repository (see
-`tooling/gemini/agents/*.md`):
+`tooling/agy/agents/*.md`):
 
 | Subagent | Model | max_turns | Justification |
 |---|---|---|---|
@@ -89,7 +89,7 @@ Per-subagent model assignment used in this repository (see
 
 Verified GA models as of May 2026 (Google): `gemini-3.1-pro` (GA April 2026),
 `gemini-3-flash` (GA stable), `gemini-3.1-flash-lite` (GA). Default session
-model in `tooling/gemini/settings.json`: `gemini-3-flash`.
+model in `tooling/agy/settings.json`: `gemini-3-flash`.
 
 > **Future upgrade candidate**: `gemini-3.5-flash` (announced May 2026) offers
 > frontier agentic capability. Adopt as default once stable for ≥ 30 days.
@@ -125,7 +125,7 @@ Provider notes and full code examples live in the
 The kit's Claude allowlist (`tooling/claude/settings*.json`) is trimmed to 12
 high-signal domains: the three provider doc sites
 (`code.claude.com` / `platform.claude.com` / `developers.openai.com` /
-`geminicli.com`), GitHub, and one canonical reference per major language
+`antigravity.google`), GitHub, and one canonical reference per major language
 runtime (Microsoft Learn, Node.js, npm, Python, Go, Rust, Kubernetes). This
 keeps WebFetch usage scoped and predictable.
 

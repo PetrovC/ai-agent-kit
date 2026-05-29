@@ -16,7 +16,7 @@
 | **P2** — gap structurel | **4** | Documenter ou normaliser |
 | **P3** — nettoyage | **3** | Optionnel |
 
-**Conclusion read-only (snapshot du 2026-05-25, avant corrections)** : le kit est globalement sain. La PR #213 a fermé la classe principale de bug "dérive Claude/Codex". Restent deux trous concrets — **les permissions de hooks dogfood ne sont pas exécutables** (P0) et **le CHANGELOG n'a pas été mis à jour pour les 6 dernières PRs** (P0) — plus un trou structurel : **Gemini n'a aucun check de dérive** (P1).
+**Conclusion read-only (snapshot du 2026-05-25, avant corrections)** : le kit est globalement sain. La PR #213 a fermé la classe principale de bug "dérive Claude/Codex". Restent deux trous concrets — **les permissions de hooks dogfood ne sont pas exécutables** (P0) et **le CHANGELOG n'a pas été mis à jour pour les 6 dernières PRs** (P0) — plus un trou structurel : **Antigravity n'a aucun check de dérive** (P1).
 
 > **Note post-corrections** : tous les findings ci-dessus ont été résolus par les PRs [#214](https://github.com/PetrovC/ai-agent-kit/pull/214)–[#223](https://github.com/PetrovC/ai-agent-kit/pull/223) (release v1.20.1). Voir le tableau "Statut de correction" ci-dessous pour l'état actuel.
 
@@ -30,8 +30,8 @@ Tableau vivant : mis à jour à chaque PR qui résout un finding. Le rapport ci-
 |---|---|---|---|
 | **P0-A** | Permissions hooks dogfood non exécutables | **[#216](https://github.com/PetrovC/ai-agent-kit/pull/216)** | **✅ résolu — `chmod +x` + validate mode check** |
 | **P0-B** | CHANGELOG en retard de 17 PRs + pas de `[Unreleased]` | **[#214](https://github.com/PetrovC/ai-agent-kit/pull/214)** | **✅ résolu — v1.20.0** |
-| **P1-A** | Gemini sans check de dérive validate | **[#217](https://github.com/PetrovC/ai-agent-kit/pull/217)** | **✅ résolu — cases ajoutés + gate étendue** |
-| ~~P1-B~~ | ~~`tooling/gemini/gemini-extension.json` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:201`](../../README.md), validé par CI (`pr-versioning.yml` / `lint-plugin-manifest`)** |
+| **P1-A** | Antigravity sans check de dérive validate | **[#217](https://github.com/PetrovC/ai-agent-kit/pull/217)** | **✅ résolu — cases ajoutés + gate étendue** |
+| ~~P1-B~~ | ~~`tooling/agy/agy-extension.json` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:201`](../../README.md), validé par CI (`pr-versioning.yml` / `lint-plugin-manifest`)** |
 | ~~P1-C~~ | ~~`tooling/codex/global-config-template.toml` orphelin~~ | **PR-D (en cours)** | **❌ faux positif — documenté à [`README.md:200`](../../README.md) (template `~/.codex/config.toml`, par-user, pas par-projet)** |
 | **P1-D** | **Asymétrie `*.windows.json` ↔ `*.json` non vérifiée** | **PR-I (en cours)** | **✅ résolu — `lint-platform-variant-parity` dans `pr-tooling.yml` (Claude settings: 30 clés alignées, Codex hooks: 17 clés alignées)** |
 | **P1-E** | `validate.sh` ne compare pas les modes | **[#216](https://github.com/PetrovC/ai-agent-kit/pull/216)** | **✅ résolu — git ls-files mode parity** |
@@ -49,7 +49,7 @@ Plan original = 8 tests CI permanents pour fermer structurellement les classes d
 | Test | Couvre | PR | Statut |
 |---|---|---|---|
 | T1 | Manifest exhaustivity (orphelins + manifest périmé) | [#220](https://github.com/PetrovC/ai-agent-kit/pull/220) | ✅ résolu — reverse check dans `dogfood-install-policy` |
-| T2 | Source ↔ dogfood byte-equal Gemini | [#217](https://github.com/PetrovC/ai-agent-kit/pull/217) | ✅ résolu |
+| T2 | Source ↔ dogfood byte-equal Antigravity | [#217](https://github.com/PetrovC/ai-agent-kit/pull/217) | ✅ résolu |
 | T3 | Install → update dry-run = up-to-date | [#221](https://github.com/PetrovC/ai-agent-kit/pull/221) | ✅ résolu — bash via `e2e-lifecycle` (déjà en place), Windows via assertion ajoutée à `smoke-install-windows` |
 | T4 | Cross-OS parity (bash vs ps1 produisent même set) | [#221](https://github.com/PetrovC/ai-agent-kit/pull/221) | ✅ résolu — nouveau workflow `pr-install-parity.yml` |
 | T5 | PR-classifier — refuse dogfood-only modifications | déprio. — fermé via #213/#216/#217/#219 | 🔁 redondant |
@@ -65,21 +65,21 @@ Plan original = 8 tests CI permanents pour fermer structurellement les classes d
 |---|---|---|---|---|
 | `tooling/claude/` | source-canonical | Y (→ `.claude/`, `CLAUDE.md`, `.mcp.example.jsonc`) | N (source) | Y |
 | `tooling/codex/` | source-canonical | Y (→ `.codex/`, `AGENTS.md`) | N (source) | Y |
-| `tooling/gemini/` | source-canonical | Y (→ `GEMINI.md`, `.geminiignore`, `.gemini/`) | N (source) | **N** ❌ |
-| `skills/` | source-canonical | Y (→ `.claude/skills/`, `.agents/skills/`, `.gemini/skills/`) | N (source) | Y |
+| `tooling/agy/` | source-canonical | Y (→ `AGY.md`, `.agyignore`, `.agy/`) | N (source) | **N** ❌ |
+| `skills/` | source-canonical | Y (→ `.claude/skills/`, `.agents/skills/`, `.agy/skills/`) | N (source) | Y |
 | `project-template/` | template | Y (→ `docs/ai/`) | N (project-owned) | Y (placeholders) |
 | `prompts/` | distribution-alt | **N — pas auto-installé** | N | N |
 | `.claude-plugin/` | distribution-alt | **N — voie marketplace séparée** | N | N |
-| `.claude/`, `.codex/`, `.agents/` | dogfood-output | Y | Y (tous) | Y (sauf Gemini) |
+| `.claude/`, `.codex/`, `.agents/` | dogfood-output | Y | Y (tous) | Y (sauf Antigravity) |
 | `CLAUDE.md`, `AGENTS.md` | dogfood-output | Y | Y | Y |
 | `.mcp.example.jsonc` | dogfood-output | Y | Y | Y |
 | `.mcp.json` | config | Bootstrappé une fois | N (intentionnel) | N (intentionnel) |
-| `GEMINI.md`, `.geminiignore`, `.gemini/` | dogfood-output | Y | Y | **N** ❌ |
+| `AGY.md`, `.agyignore`, `.agy/` | dogfood-output | Y | Y | **N** ❌ |
 | `.kit-manifest`, `.kit-version` | config | Y (écrit par install) | N (auto-référence) | N (exclus) |
 | `scripts/`, `.github/`, `examples/` | ci/docs | N | N | N |
 | `VERSION`, `CHANGELOG.md`, `LICENSE`, `README.md` | meta | N (kit-source) | N | N |
 | `tooling/codex/global-config-template.toml` | distribution-alt | **N — orphelin** | N | N |
-| `tooling/gemini/gemini-extension.json` | distribution-alt | **N — orphelin** | N | N |
+| `tooling/agy/agy-extension.json` | distribution-alt | **N — orphelin** | N | N |
 
 ---
 
@@ -93,7 +93,7 @@ Plan original = 8 tests CI permanents pour fermer structurellement les classes d
 |---|---|---|
 | Codex (`AGENTS.md`, `.codex/*`, `.agents/skills/*`) | 44 | ✅ |
 | Claude (`CLAUDE.md`, `.mcp.example.jsonc`, `.claude/*`) | 57 | ✅ |
-| **Gemini (`GEMINI.md`, `.geminiignore`, `.gemini/*`)** | **22** | **❌ aucun check** |
+| **Antigravity (`AGY.md`, `.agyignore`, `.agy/*`)** | **22** | **❌ aucun check** |
 
 ### B.2 — Orphelins dogfood
 
@@ -104,7 +104,7 @@ Aucun. Tous les fichiers trackés sous `.claude/`, `.codex/`, `.agents/` sont da
 | Fichier source | Devrait être installé ? | Action |
 |---|---|---|
 | `tooling/codex/global-config-template.toml` | Ambigu — pas de doc d'usage | P3 — clarifier intention ou supprimer |
-| `tooling/gemini/gemini-extension.json` | Probable (manifest d'extension Gemini) | P1 — vérifier intention puis ajouter au pipeline |
+| `tooling/agy/agy-extension.json` | Probable (manifest d'extension Antigravity) | P1 — vérifier intention puis ajouter au pipeline |
 
 ---
 
@@ -127,10 +127,10 @@ Aucun. Tous les fichiers trackés sous `.claude/`, `.codex/`, `.agents/` sont da
 | PR / Version | Raison de suspicion | Verdict |
 |---|---|---|
 | v1.19.10 — Consolidation sweep | CHANGELOG ambigu sur quel `AGENTS.md` modifié | ✅ `tooling/codex/AGENTS.md` explicite |
-| v1.19.5 — commit-style rule | CHANGELOG dit "moved into CLAUDE.md, AGENTS.md, GEMINI.md" sans préfixe `tooling/` | ✅ `tooling/claude/CLAUDE.md` contient bien `## Git rules` aujourd'hui |
+| v1.19.5 — commit-style rule | CHANGELOG dit "moved into CLAUDE.md, AGENTS.md, AGY.md" sans préfixe `tooling/` | ✅ `tooling/claude/CLAUDE.md` contient bien `## Git rules` aujourd'hui |
 | v1.11.0 — doc pass | "Added section to CLAUDE.md" — laquelle ? | ✅ section présente dans `tooling/claude/CLAUDE.md` |
 
-**Verdict section C** : aucun bug DOGFOOD_ONLY confirmé sur l'historique complet. La PR #213 a structurellement fermé cette classe de bug pour Claude+Codex. Reste le risque historique pré-v1.16.5 et le trou Gemini (section H).
+**Verdict section C** : aucun bug DOGFOOD_ONLY confirmé sur l'historique complet. La PR #213 a structurellement fermé cette classe de bug pour Claude+Codex. Reste le risque historique pré-v1.16.5 et le trou Antigravity (section H).
 
 **Note** : ton intuition de départ — "mes issues ont été appliquées uniquement à l'installation locale" — n'est **pas confirmée** par l'audit. Les PRs récentes touchent bien `tooling/`/`skills/`. Le vrai problème est ailleurs (sections D et F.5).
 
@@ -162,7 +162,7 @@ Aucun. Tous les fichiers trackés sous `.claude/`, `.codex/`, `.agents/` sont da
 | `VERSION` | 1.19.38 | — |
 | `CHANGELOG.md` (top) | 1.19.38 (2026-05-24) | ✅ |
 | `.claude-plugin/plugin.json` | 1.19.38 | ✅ |
-| `tooling/gemini/gemini-extension.json` | 1.19.38 | ✅ |
+| `tooling/agy/agy-extension.json` | 1.19.38 | ✅ |
 | `.claude-plugin/marketplace.json` | **(absent)** | N/A — format catalogue, pas plugin |
 
 Les versions sont alignées **entre elles**, mais collectivement **6 PRs en retard** sur l'état du code.
@@ -193,8 +193,8 @@ Les versions sont alignées **entre elles**, mais collectivement **6 PRs en reta
 | Surface | Compte canonique | Compte dogfood | Compte tooling |
 |---|---|---|---|
 | Skills | `skills/` = 30 dirs | `.claude/skills/` = 30 + README | `.agents/skills/` = 30 + 5 agents + README |
-| Slash commands | `prompts/` = 11 .md | `.claude/commands/` = 11 | `tooling/gemini/commands/` = 11 .toml |
-| Subagents | `tooling/claude/agents/` = 5 | `.claude/agents/` = 5 | `tooling/gemini/agents/` = 5 |
+| Slash commands | `prompts/` = 11 .md | `.claude/commands/` = 11 | `tooling/agy/commands/` = 11 .toml |
+| Subagents | `tooling/claude/agents/` = 5 | `.claude/agents/` = 5 | `tooling/agy/agents/` = 5 |
 
 Les **comptes sont cohérents** entre source et dogfood pour les 3 axes. Recommandation : ajouter en Phase 2 un test CI qui vérifie cette cohérence par **nom** et pas seulement par compte.
 
@@ -237,7 +237,7 @@ Non vérifié exhaustivement. L'agent 2 confirme la parité de `validate.sh`/`va
 
 ### F.4 — .gitignore / .gitattributes
 
-`.gitignore` propre et explicite. Section "Gemini install outputs are not dogfooded" intentionnelle. Pas de `.gitattributes` détecté.
+`.gitignore` propre et explicite. Section "Antigravity install outputs are not dogfooded" intentionnelle. Pas de `.gitattributes` détecté.
 
 ### F.5 — **🔴 Permissions hooks (P0)**
 
@@ -300,7 +300,7 @@ Voir Section C. Résultat : 0 PR DOGFOOD_ONLY user-facing confirmée sur l'histo
 |---|---|
 | Tous (5/5) | ✅ |
 
-### H.3 — **🟠 Gemini (22 entrées manifest, P1)**
+### H.3 — **🟠 Antigravity (22 entrées manifest, P1)**
 
 | Système | Couverture |
 |---|---|
@@ -310,22 +310,22 @@ Voir Section C. Résultat : 0 PR DOGFOOD_ONLY user-facing confirmée sur l'histo
 | `update.sh` | ✅ |
 | **`validate.sh` / `validate.ps1`** | **❌ AUCUN check de dérive** |
 
-`scripts/validate.sh` lignes 153–201 (et `.ps1` lignes 149–176) n'a aucun cas pour `GEMINI.md`, `.geminiignore`, `.gemini/settings.json`, `.gemini/agents/*`, `.gemini/commands/*`. Toute édition de `tooling/gemini/*` peut diverger silencieusement.
+`scripts/validate.sh` lignes 153–201 (et `.ps1` lignes 149–176) n'a aucun cas pour `AGY.md`, `.agyignore`, `.agy/settings.json`, `.agy/agents/*`, `.agy/commands/*`. Toute édition de `tooling/agy/*` peut diverger silencieusement.
 
-**Second effet** : `.gitignore` exclut `/GEMINI.md`, `/.geminiignore`, `/.gemini/`. Si quelqu'un lance `validate.sh -Target .`, les 22 entrées Gemini du manifest seront signalées "missing from dogfood install" → **22 faux positifs**. Le check ne marche ni dans un sens ni dans l'autre.
+**Second effet** : `.gitignore` exclut `/AGY.md`, `/.agyignore`, `/.agy/`. Si quelqu'un lance `validate.sh -Target .`, les 22 entrées Antigravity du manifest seront signalées "missing from dogfood install" → **22 faux positifs**. Le check ne marche ni dans un sens ni dans l'autre.
 
 ### H.4 — Sources non distribuées (orphelines)
 
 | Fichier | install.* | update.* | validate.* |
 |---|---|---|---|
 | `tooling/codex/global-config-template.toml` | ❌ | ❌ | ❌ |
-| `tooling/gemini/gemini-extension.json` | ❌ | ❌ | ❌ |
+| `tooling/agy/agy-extension.json` | ❌ | ❌ | ❌ |
 
 ~~Intention de distribution non documentée. **P1**.~~
 
 **Errata (PR-D)** : les deux fichiers se sont avérés être des références/scaffolds intentionnels, déjà documentés dans `README.md:195-204` :
 - `global-config-template.toml` = template pour `~/.codex/config.toml` (per-user, pas per-projet)
-- `gemini-extension.json` = scaffold pour distribution via `gemini extensions install`, validé par CI (`lint-plugin-manifest`) qui assure `version == VERSION`
+- `agy-extension.json` = scaffold pour distribution via `agy extensions install`, validé par CI (`lint-plugin-manifest`) qui assure `version == VERSION`
 
 L'agent codebase-investigator qui a produit cette section H a lu `tooling/` mais pas la section "Two maintained files are intentionally not placed by the install script" du README. Voir le tableau "Statut de correction" en haut.
 
@@ -362,8 +362,8 @@ Action Phase 2 :
 
 ### 🟠 P1 — dérive future garantie
 
-**P1-A — Gemini sans check de dérive validate** (22 fichiers).
-**P1-B — `tooling/gemini/gemini-extension.json` orphelin** (intention de distribution ?).
+**P1-A — Antigravity sans check de dérive validate** (22 fichiers).
+**P1-B — `tooling/agy/agy-extension.json` orphelin** (intention de distribution ?).
 **P1-C — `tooling/codex/global-config-template.toml` orphelin** (idem).
 **P1-D — Asymétrie `*.windows.json` ↔ `*.json` non vérifiée sémantiquement**.
 **P1-E — `validate.sh` ne compare pas les permissions** (cause de P0-A).
@@ -371,13 +371,13 @@ Action Phase 2 :
 ### 🟡 P2 — gap structurel
 
 **P2-A — Pas de section `## [Unreleased]` dans CHANGELOG** (favorise l'oubli).
-**P2-B — Gate validate `tooling/codex && tooling/claude` ne mentionne pas Gemini**.
+**P2-B — Gate validate `tooling/codex && tooling/claude` ne mentionne pas Antigravity**.
 **P2-C — Parité ps1/sh des scripts `install`, `update`, `new-skill`, `uninstall` non auditée exhaustivement**.
 **P2-D — Frontmatter skills + liens markdown non vérifiés** (limite agent 3).
 
 ### 🟢 P3 — nettoyage
 
-**P3-A — 22 faux positifs Gemini si on lance validate sur ce repo source**.
+**P3-A — 22 faux positifs Antigravity si on lance validate sur ce repo source**.
 **P3-B — `.claude-plugin/` n'a pas son propre LICENSE** (probablement OK via marketplace.json `source: ./`).
 **P3-C — `marketplace.json` sans champ `version`** (probablement intentionnel par spec).
 
@@ -390,8 +390,8 @@ Ordre suggéré, **une PR par concern** :
 1. **PR Phase-1** — ce rapport (`docs/ai/DOGFOOD_AUDIT.md`), 0 modif source.
 2. **PR-A** (P0-A) — chmod +x sur les 7 hooks dogfood + extension `validate.sh` pour comparer le mode.
 3. **PR-B** (P0-B) — backfill CHANGELOG des 6 PRs + section `[Unreleased]` + bump VERSION.
-4. **PR-C** (P1-A) — extension `validate.sh`/`validate.ps1` pour couvrir les 22 entrées Gemini + revoir la gate.
-5. **PR-D** (P1-B/C) — clarifier intention de `gemini-extension.json` et `global-config-template.toml` (installer ou documenter comme refs).
+4. **PR-C** (P1-A) — extension `validate.sh`/`validate.ps1` pour couvrir les 22 entrées Antigravity + revoir la gate.
+5. **PR-D** (P1-B/C) — clarifier intention de `agy-extension.json` et `global-config-template.toml` (installer ou documenter comme refs).
 6. **PR-E** — test CI T5 "PR-classifier" : refuse une PR qui touche dogfood sans toucher la source (ferme structurellement la classe de bug).
 7. **PR-F** — test CI T6 "CHANGELOG check" : refuse `feat`/`fix`/`perf` sans entrée CHANGELOG.
 8. **PR-G** — tests T2 (cross-OS install), T7 (frontmatter), T8 (liens markdown).
@@ -405,7 +405,7 @@ Chaque PR doit : `validate.sh` ✅ + `install --dry-run` ✅ + CI verte ✅ + aj
 
 - `.kit-manifest`
 - `scripts/{install,update,validate}.{sh,ps1}`
-- `tooling/claude/`, `tooling/codex/`, `tooling/gemini/` (tree)
+- `tooling/claude/`, `tooling/codex/`, `tooling/agy/` (tree)
 - `CHANGELOG.md`, `VERSION`, `README.md`, `CLAUDE.md`, `AGENTS.md`
 - `.claude-plugin/{marketplace,plugin}.json`
 - `.gitignore`, `.github/workflows/*.yml`
