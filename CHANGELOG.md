@@ -35,6 +35,17 @@
 
 ### Fixed
 
+- **`fix(audit)` - finalize-run captures invocation/recommendation content and survives signed-commit environments (closes [#309](https://github.com/PetrovC/ai-agent-kit/issues/309)).**
+  `build_artifacts` previously hardcoded `agent-invocations.json` and
+  `governance-recommendations.json` to empty arrays, discarding the
+  `agent.invoked` / `agent.completed` / `recommendation.created` events the runtime
+  had already recorded. It now aggregates those events into schema-shaped records
+  (with derived `duration_ms`) and surfaces `compact.observed` counts under
+  `token-context.compression`. `finalize-run` gained a `push.sign` control and
+  retries `--no-gpg-sign` when commit signing is unavailable, and writes the local
+  outbox on commit failure (not only push failure). Added bats + Pester regression
+  coverage and synced the dogfood runtime under `.ai-agent-kit/audit/`.
+
 - **`fix(agy)` - wire Antigravity hooks via `settings.json`, not Codex-style `hooks.json`.**
   The `.gemini → .agy` migration left the kit shipping `.agy/hooks.json` in the
   Claude/Codex schema (`PreToolUse`/`PostToolUse`/`Stop`, matcher `Bash`) plus a

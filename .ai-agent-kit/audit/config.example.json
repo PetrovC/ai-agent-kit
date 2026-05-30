@@ -18,6 +18,7 @@
     "push": {
       "mode": "disabled",
       "commit": false,
+      "sign": null,
       "unauthorized_fallback": "local-outbox"
     }
   }

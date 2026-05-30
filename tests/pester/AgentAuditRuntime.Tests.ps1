@@ -9,6 +9,8 @@ Describe "PowerShell agent audit runtime" {
         New-Item -ItemType Directory -Path $script:CentralPath -Force | Out-Null
         & git -C $script:CentralPath init | Out-Null
         & git -C $script:CentralPath checkout -b agent-audit-data | Out-Null
+        & git -C $script:CentralPath config user.email "audit-test@example.com" | Out-Null
+        & git -C $script:CentralPath config user.name "Audit Test" | Out-Null
     }
 
     AfterEach {
@@ -22,8 +24,16 @@ Describe "PowerShell agent audit runtime" {
 
     BeforeAll {
         function Write-AuditConfig {
-            param([string]$Path)
+            param([string]$Path, [bool]$Commit = $false, [object]$Sign = $null)
 
+            $push = [ordered]@{
+                mode = "disabled"
+                commit = $Commit
+                unauthorized_fallback = "local-outbox"
+            }
+            if ($null -ne $Sign) {
+                $push.sign = [bool]$Sign
+            }
             $config = [ordered]@{
                 schema_version = "0.1.0"
                 audit = [ordered]@{
@@ -41,11 +51,7 @@ Describe "PowerShell agent audit runtime" {
                         forbid_repository_urls = $true
                         forbid_branch_names = $true
                     }
-                    push = [ordered]@{
-                        mode = "disabled"
-                        commit = $false
-                        unauthorized_fallback = "local-outbox"
-                    }
+                    push = $push
                 }
             }
             $json = $config | ConvertTo-Json -Depth 10
@@ -64,7 +70,8 @@ Describe "PowerShell agent audit runtime" {
                     status = "completed"
                     validation_state = "passed"
                 },
-                [string]$EventType = "run.completed"
+                [string]$EventType = "run.completed",
+                [string]$ActorKind = "system"
             )
 
             $event = [ordered]@{
@@ -74,7 +81,7 @@ Describe "PowerShell agent audit runtime" {
                 sequence = $Sequence
                 occurred_at = "2026-05-28T12:00:00Z"
                 event_type = $EventType
-                actor_kind = "system"
+                actor_kind = $ActorKind
                 invocation_id = $null
                 payload = $Payload
             }
@@ -160,5 +167,50 @@ Describe "PowerShell agent audit runtime" {
 
         Assert-AakFailure $result
         Assert-AakFileMissing (Join-Path $script:CentralPath "agent-audit\runs\2026\05\hmac_sha256_example_project\$runId\run-summary.json")
+    }
+
+    It "aggregates invocations and recommendations from the event stream" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        $runId = "run_20260528_120000_aggr"
+        Write-AuditConfig $configPath
+        $recordScript = Join-Path $script:KitRoot "tooling\shared\agent-audit\record-event.ps1"
+        $finalizeScript = Join-Path $script:KitRoot "tooling\shared\agent-audit\finalize-run.ps1"
+
+        $invPath = Join-Path $script:AuditRoot "inv.json"
+        $compPath = Join-Path $script:AuditRoot "comp.json"
+        $recPath = Join-Path $script:AuditRoot "rec.json"
+        $donePath = Join-Path $script:AuditRoot "done.json"
+        Write-AuditEvent -Path $invPath -RunId $runId -Sequence 1 -EventType "agent.invoked" -ActorKind "main_agent" -Payload @{ invocation_id = "inv_1"; agent_key = "code-reviewer"; agent_category = "review"; provider = "claude"; model_tier = "review" }
+        Write-AuditEvent -Path $compPath -RunId $runId -Sequence 2 -EventType "agent.completed" -ActorKind "main_agent" -Payload @{ invocation_id = "inv_1"; status = "success"; result_summary = @{ findings_count = 1; confidence = "high" } }
+        Write-AuditEvent -Path $recPath -RunId $runId -Sequence 3 -EventType "recommendation.created" -ActorKind "main_agent" -Payload @{ recommendation_kind = "realign"; severity = "medium" }
+        Write-AuditEvent -Path $donePath -RunId $runId -Sequence 4 -EventType "run.completed" -ActorKind "system" -Payload @{ project_hash = "hmac_sha256_example_project"; status = "completed"; validation_state = "passed" }
+
+        foreach ($eventFile in @($invPath, $compPath, $recPath, $donePath)) {
+            Assert-AakSuccess (Invoke-AakPowerShellScript -Script $recordScript -Arguments @("-Config", $configPath, "-SourceRoot", $script:Target, "-EventFile", $eventFile))
+        }
+        Assert-AakSuccess (Invoke-AakPowerShellScript -Script $finalizeScript -Arguments @("-Config", $configPath, "-SourceRoot", $script:Target, "-RunId", $runId))
+
+        $base = Join-Path $script:CentralPath "agent-audit\runs\2026\05\hmac_sha256_example_project\$runId"
+        $invocations = @((Get-Content -Raw (Join-Path $base "agent-invocations.json") | ConvertFrom-Json).invocations)
+        if ($invocations.Count -ne 1) { throw "expected 1 invocation, got $($invocations.Count)" }
+        if ($invocations[0].agent_key -ne "code-reviewer") { throw "unexpected agent_key $($invocations[0].agent_key)" }
+        if ($invocations[0].status -ne "success") { throw "unexpected status $($invocations[0].status)" }
+        $recommendations = Get-Content -Raw (Join-Path $base "governance-recommendations.json") | ConvertFrom-Json
+        if ($recommendations.recommendation_count -ne 1) { throw "expected recommendation_count 1, got $($recommendations.recommendation_count)" }
+        if (@($recommendations.recommendations)[0].recommendation_kind -ne "realign") { throw "unexpected recommendation_kind" }
+    }
+
+    It "commits unsigned when push.sign is false" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        $runId = "run_20260528_120000_sign"
+        Write-AuditConfig -Path $configPath -Commit $true -Sign $false
+        $eventPath = Join-Path $script:AuditRoot "done.json"
+        Write-AuditEvent -Path $eventPath -RunId $runId -Payload @{ project_hash = "hmac_sha256_example_project"; status = "completed" }
+        $recordScript = Join-Path $script:KitRoot "tooling\shared\agent-audit\record-event.ps1"
+        $finalizeScript = Join-Path $script:KitRoot "tooling\shared\agent-audit\finalize-run.ps1"
+        Assert-AakSuccess (Invoke-AakPowerShellScript -Script $recordScript -Arguments @("-Config", $configPath, "-SourceRoot", $script:Target, "-EventFile", $eventPath))
+        Assert-AakSuccess (Invoke-AakPowerShellScript -Script $finalizeScript -Arguments @("-Config", $configPath, "-SourceRoot", $script:Target, "-RunId", $runId))
+        $count = [int](((& git -C $script:CentralPath rev-list --count HEAD) | Select-Object -First 1).ToString().Trim())
+        if ($count -lt 1) { throw "expected at least one commit, got $count" }
     }
 }
