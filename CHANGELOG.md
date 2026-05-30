@@ -35,6 +35,24 @@
 
 ### Fixed
 
+- **`fix(hooks)` - resolve the project dir and session seed from real provider inputs in the Codex and Antigravity audit hooks (closes [#304](https://github.com/PetrovC/ai-agent-kit/issues/304)).**
+  The Codex and Antigravity `agent-audit-event` hooks read lowercase-prefixed env
+  vars (`codex_PROJECT_DIR`/`codex_SESSION_ID`, `agy_PROJECT_DIR`/`agy_SESSION_ID`)
+  that the CLIs never set, so both silently fell back to `pwd` and a weak
+  `USER:project` session seed — degrading audit project/session grouping for two
+  of three providers. Per the official Codex hooks docs
+  ([developers.openai.com/codex/hooks](https://developers.openai.com/codex/hooks)),
+  Codex delivers `cwd` and `session_id` as stdin JSON fields (it exports no
+  project-dir env var and runs hooks with the session `cwd` as the working dir).
+  The hooks now read `cwd`/`session_id` from the stdin payload they already
+  parse, then a defensive provider env var (`CODEX_PROJECT_DIR`/`CODEX_SESSION_ID`,
+  `ANTIGRAVITY_PROJECT_DIR`/`ANTIGRAVITY_SESSION_ID`), then `pwd`. Antigravity's
+  hook env/field names are not publicly documented (the docs are JS-rendered), so
+  the fallback chain is strictly better than the prior single broken var. Fixed
+  across the canonical `tooling/{codex,agy}/hooks/` sources and the `.codex`/`.agy`
+  dogfood mirrors; added `tests/bats/agent_audit_hooks.bats` asserting each hook
+  uses its project-dir input and the stdin session id.
+
 - **`fix(agy)` - restore the encoded ampersand separator in the Antigravity pre-bash-guard (closes [#303](https://github.com/PetrovC/ai-agent-kit/issues/303)).**
   The `.gemini` to `.agy` migration collapsed the guard's `rm`-operand separator
   case to a duplicated `&&`, dropping the JSON-unicode-encoded form of `&&` that the

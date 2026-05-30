@@ -5,7 +5,10 @@
 
 set +e
 
-PROJECT_DIR="${codex_PROJECT_DIR:-$(pwd)}"
+# Codex runs hooks with the session cwd as the working directory and exports no
+# project-dir env var, so $(pwd) is the verified source; CODEX_PROJECT_DIR is a
+# defensive override. Source: https://developers.openai.com/codex/hooks
+PROJECT_DIR="${CODEX_PROJECT_DIR:-$(pwd)}"
 AUDIT_SCRIPT="$PROJECT_DIR/.ai-agent-kit/audit/record-event.sh"
 CONFIG_PATH="${AAK_AUDIT_CONFIG:-$HOME/.ai-agent-kit/config.json}"
 
@@ -65,8 +68,11 @@ elif tool_name != "unknown":
 else:
     event_type = "hook.observed"
 
-project_dir = os.environ.get("codex_PROJECT_DIR") or os.getcwd()
-seed = os.environ.get("codex_SESSION_ID") or f"{os.environ.get('USER', 'user')}:{project_dir}"
+# Codex delivers the working dir and session id as stdin JSON fields (cwd,
+# session_id); fall back to a defensive env var, then the process cwd.
+# Source: https://developers.openai.com/codex/hooks
+project_dir = hook.get("cwd") or os.environ.get("CODEX_PROJECT_DIR") or os.getcwd()
+seed = hook.get("session_id") or os.environ.get("CODEX_SESSION_ID") or f"{os.environ.get('USER', 'user')}:{project_dir}"
 run_hash = hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
 run_id = os.environ.get("AAK_AUDIT_RUN_ID") or f"run_codex_{time.strftime('%Y%m%d')}_{run_hash}"
 project_hash = "hmac_sha256_" + hashlib.sha256(project_dir.encode("utf-8")).hexdigest()[:16]
