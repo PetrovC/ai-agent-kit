@@ -35,6 +35,16 @@
 
 ### Fixed
 
+- **`fix(agy)` - restore the encoded ampersand separator in the Antigravity pre-bash-guard (closes [#303](https://github.com/PetrovC/ai-agent-kit/issues/303)).**
+  The `.gemini` to `.agy` migration collapsed the guard's `rm`-operand separator
+  case to a duplicated `&&`, dropping the JSON-unicode-encoded form of `&&` that the
+  dependency-free `sed` extraction fallback relies on. Under Antigravity a compound
+  `rm` using that encoded separator was therefore not split for per-segment
+  analysis — a defense-in-depth regression versus the Claude/Codex guards. Restored
+  the separator case byte-for-byte across the core and dogfood copies and added a
+  `pr-hooks.yml` step asserting all three guard copies share an identical separator
+  case.
+
 - **`fix(audit)` - finalize-run captures invocation/recommendation content and survives signed-commit environments (closes [#309](https://github.com/PetrovC/ai-agent-kit/issues/309)).**
   `build_artifacts` previously hardcoded `agent-invocations.json` and
   `governance-recommendations.json` to empty arrays, discarding the
