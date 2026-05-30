@@ -143,7 +143,7 @@ fi
 # /tmp operand must not allow a second dangerous operand on the same command.
 is_rm_separator() {
     case "$1" in
-        '&&'|'&&'|'||'|';'|'|') return 0 ;;
+        '&&'|'\u0026\u0026'|'||'|';'|'|') return 0 ;;
         *) return 1 ;;
     esac
 }

@@ -143,6 +143,26 @@ jobs:
           run_matrix tooling/agy/hooks/pre-bash-guard.sh
           [[ "$fail" -eq 0 ]] || exit 1
 
+      - name: pre-bash-guard separator handling is identical across providers
+        shell: bash
+        run: |
+          # Regression guard for the rm-operand tokenizer: all three provider
+          # copies of is_rm_separator() must recognize the same separator set,
+          # including the JSON-unicode-encoded && form used under the sed-only
+          # extraction fallback. A divergence (issue #303) silently weakens one
+          # provider's defense-in-depth relative to the others.
+          sep() { grep -E "\) return 0 ;;" "$1" | grep -F "'&&'" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'; }
+          c=$(sep tooling/claude/hooks/pre-bash-guard.sh)
+          x=$(sep tooling/codex/hooks/pre-bash-guard.sh)
+          a=$(sep tooling/agy/hooks/pre-bash-guard.sh)
+          printf 'claude: %s\ncodex:  %s\nagy:    %s\n' "$c" "$x" "$a"
+          if [[ "$c" != "$x" || "$c" != "$a" ]]; then
+            echo "::error::pre-bash-guard separator case diverges across providers"; exit 1
+          fi
+          printf '%s' "$c" | grep -q 'u0026' \
+            || { echo "::error::separator case is missing the encoded ampersand form"; exit 1; }
+          echo "ok: all three guards share the separator case"
+
       - name: Non-guard hooks must exit 0 on the inputs they actually receive
         shell: bash
         run: |
