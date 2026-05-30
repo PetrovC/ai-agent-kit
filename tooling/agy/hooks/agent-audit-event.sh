@@ -5,7 +5,10 @@
 
 set +e
 
-PROJECT_DIR="${agy_PROJECT_DIR:-$(pwd)}"
+# Antigravity's hook env/field names are not publicly documented, so use a
+# robust fallback: the stdin JSON cwd (read below) -> candidate env var -> pwd.
+# Source: https://antigravity.google/docs/hooks (JS-rendered; names unconfirmed).
+PROJECT_DIR="${ANTIGRAVITY_PROJECT_DIR:-$(pwd)}"
 AUDIT_SCRIPT="$PROJECT_DIR/.ai-agent-kit/audit/record-event.sh"
 CONFIG_PATH="${AAK_AUDIT_CONFIG:-$HOME/.ai-agent-kit/config.json}"
 
@@ -65,8 +68,11 @@ elif tool_name != "unknown":
 else:
     event_type = "hook.observed"
 
-project_dir = os.environ.get("agy_PROJECT_DIR") or os.getcwd()
-seed = os.environ.get("agy_SESSION_ID") or f"{os.environ.get('USER', 'user')}:{project_dir}"
+# Prefer the stdin JSON cwd/session_id (cross-agent hook convention), then a
+# candidate Antigravity env var, then the process cwd. Exact Antigravity names
+# are unconfirmed: https://antigravity.google/docs/hooks
+project_dir = hook.get("cwd") or os.environ.get("ANTIGRAVITY_PROJECT_DIR") or os.getcwd()
+seed = hook.get("session_id") or os.environ.get("ANTIGRAVITY_SESSION_ID") or f"{os.environ.get('USER', 'user')}:{project_dir}"
 run_hash = hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
 run_id = os.environ.get("AAK_AUDIT_RUN_ID") or f"run_agy_{time.strftime('%Y%m%d')}_{run_hash}"
 project_hash = "hmac_sha256_" + hashlib.sha256(project_dir.encode("utf-8")).hexdigest()[:16]
