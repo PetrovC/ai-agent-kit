@@ -24,7 +24,12 @@ Describe "PowerShell agent audit runtime" {
 
     BeforeAll {
         function Write-AuditConfig {
-            param([string]$Path, [bool]$Commit = $false, [object]$Sign = $null)
+            param(
+                [string]$Path,
+                [bool]$Commit = $false,
+                [object]$Sign = $null,
+                [object]$TargetReportTokens = $null
+            )
 
             $push = [ordered]@{
                 mode = "disabled"
@@ -34,28 +39,46 @@ Describe "PowerShell agent audit runtime" {
             if ($null -ne $Sign) {
                 $push.sign = [bool]$Sign
             }
-            $config = [ordered]@{
-                schema_version = "0.1.0"
-                audit = [ordered]@{
-                    enabled = $true
-                    mode = "official-central-repo"
-                    official_remote_url = "https://github.com/PetrovC/ai-agent-kit.git"
-                    branch = "agent-audit-data"
-                    runtime_path = $script:RuntimePath
-                    central_repo_path = $script:CentralPath
-                    source_project_write_policy = "never"
-                    anonymization = [ordered]@{
-                        salt_scope = "local-only"
-                        drop_raw_content = $true
-                        forbid_exact_paths = $true
-                        forbid_repository_urls = $true
-                        forbid_branch_names = $true
-                    }
-                    push = $push
+            $audit = [ordered]@{
+                enabled = $true
+                mode = "official-central-repo"
+                official_remote_url = "https://github.com/PetrovC/ai-agent-kit.git"
+                branch = "agent-audit-data"
+                runtime_path = $script:RuntimePath
+                central_repo_path = $script:CentralPath
+                source_project_write_policy = "never"
+                anonymization = [ordered]@{
+                    salt_scope = "local-only"
+                    drop_raw_content = $true
+                    forbid_exact_paths = $true
+                    forbid_repository_urls = $true
+                    forbid_branch_names = $true
                 }
+                push = $push
             }
+            if ($null -ne $TargetReportTokens) {
+                $audit.governance = [ordered]@{ target_report_tokens = [int]$TargetReportTokens }
+            }
+            $config = [ordered]@{ schema_version = "0.1.0"; audit = $audit }
             $json = $config | ConvertTo-Json -Depth 10
             [System.IO.File]::WriteAllText($Path, $json, (New-Object System.Text.UTF8Encoding($false)))
+        }
+
+        # Record a list of event hashtables (Sequence/EventType/ActorKind/Payload)
+        # then finalize, returning the central run folder path.
+        function Invoke-GovernanceRun {
+            param([string]$ConfigPath, [string]$RunId, [object[]]$Events)
+
+            $recordScript = Join-Path $script:KitRoot "tooling\shared\agent-audit\record-event.ps1"
+            $finalizeScript = Join-Path $script:KitRoot "tooling\shared\agent-audit\finalize-run.ps1"
+            foreach ($spec in $Events) {
+                $eventPath = Join-Path $script:AuditRoot ("ev_{0}.json" -f $spec.Sequence)
+                Write-AuditEvent -Path $eventPath -RunId $RunId -Sequence $spec.Sequence `
+                    -EventType $spec.EventType -ActorKind $spec.ActorKind -Payload $spec.Payload
+                Assert-AakSuccess (Invoke-AakPowerShellScript -Script $recordScript -Arguments @("-Config", $ConfigPath, "-SourceRoot", $script:Target, "-EventFile", $eventPath))
+            }
+            Assert-AakSuccess (Invoke-AakPowerShellScript -Script $finalizeScript -Arguments @("-Config", $ConfigPath, "-SourceRoot", $script:Target, "-RunId", $RunId))
+            return Join-Path $script:CentralPath "agent-audit\runs\2026\05\hmac_sha256_example_project\$RunId"
         }
 
         function Write-AuditEvent {
@@ -212,5 +235,89 @@ Describe "PowerShell agent audit runtime" {
         Assert-AakSuccess (Invoke-AakPowerShellScript -Script $finalizeScript -Arguments @("-Config", $configPath, "-SourceRoot", $script:Target, "-RunId", $runId))
         $count = [int](((& git -C $script:CentralPath rev-list --count HEAD) | Select-Object -First 1).ToString().Trim())
         if ($count -lt 1) { throw "expected at least one commit, got $count" }
+    }
+
+    It "scores a clean run as accepted with low noise and appropriate model fit" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        Write-AuditConfig -Path $configPath -TargetReportTokens 1200
+        $base = Invoke-GovernanceRun -ConfigPath $configPath -RunId "run_good" -Events @(
+            @{ Sequence = 1; EventType = "run.completed"; ActorKind = "system"; Payload = @{
+                project_hash = "hmac_sha256_example_project"; task_type = "feature_implementation";
+                risk_level = "low"; complexity = "small"; answered_assigned_task = $true;
+                has_sanitized_evidence = $true; validation_state = "passed";
+                observed_model_tier = "standard"; report_tokens = 800; status = "completed" } }
+        )
+        $rq = Get-Content -Raw (Join-Path $base "report-quality.json") | ConvertFrom-Json
+        $recs = Get-Content -Raw (Join-Path $base "governance-recommendations.json") | ConvertFrom-Json
+        if ($rq.quality_score -ne 10.0) { throw "quality_score $($rq.quality_score)" }
+        if ($rq.quality_category -ne "accepted") { throw "category $($rq.quality_category)" }
+        if ($rq.noise_level -ne "low") { throw "noise_level $($rq.noise_level)" }
+        if ($rq.model_fit -ne "appropriate") { throw "model_fit $($rq.model_fit)" }
+        if ($recs.recommendation_count -ne 0) { throw "recommendation_count $($recs.recommendation_count)" }
+    }
+
+    It "reproduces the documented 9.1 high-noise score" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        Write-AuditConfig -Path $configPath -TargetReportTokens 1200
+        $events = @(
+            @{ Sequence = 1; EventType = "run.completed"; ActorKind = "system"; Payload = @{
+                project_hash = "hmac_sha256_example_project"; task_type = "feature_implementation";
+                risk_level = "low"; complexity = "small"; answered_assigned_task = $true;
+                has_sanitized_evidence = $true; observed_model_tier = "standard";
+                repeated_read_count = 4; large_output_event_count = 2; truncated_output_count = 1;
+                expected_subagent_count = 2; report_tokens = 3600; scope_narrowing_count = 1;
+                rework_detected = $true; status = "completed" } }
+        )
+        foreach ($i in 1..5) {
+            $events += @{ Sequence = ($i + 1); EventType = "agent.invoked"; ActorKind = "subagent"; Payload = @{ invocation_id = "inv_$i" } }
+        }
+        $events += @{ Sequence = 7; EventType = "retry.requested"; ActorKind = "main_agent"; Payload = @{} }
+        $events += @{ Sequence = 8; EventType = "retry.requested"; ActorKind = "main_agent"; Payload = @{} }
+        $base = Invoke-GovernanceRun -ConfigPath $configPath -RunId "run_noisy" -Events $events
+        $rq = Get-Content -Raw (Join-Path $base "report-quality.json") | ConvertFrom-Json
+        $recs = Get-Content -Raw (Join-Path $base "governance-recommendations.json") | ConvertFrom-Json
+        if ($rq.noise_score -ne 9.1) { throw "noise_score $($rq.noise_score)" }
+        if ($rq.noise_level -ne "high") { throw "noise_level $($rq.noise_level)" }
+        if (-not (@($recs.recommendations).recommendation_id -contains "rec_noise_high")) { throw "missing rec_noise_high" }
+    }
+
+    It "flags an underpowered model on high-risk review work" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        Write-AuditConfig -Path $configPath -TargetReportTokens 1200
+        $base = Invoke-GovernanceRun -ConfigPath $configPath -RunId "run_under" -Events @(
+            @{ Sequence = 1; EventType = "run.completed"; ActorKind = "system"; Payload = @{
+                project_hash = "hmac_sha256_example_project"; task_type = "security_review";
+                risk_level = "high"; complexity = "large"; answered_assigned_task = $false;
+                has_sanitized_evidence = $false; observed_model_tier = "fast";
+                validation_state = "failed"; status = "completed_with_warnings" } },
+            @{ Sequence = 2; EventType = "retry.requested"; ActorKind = "main_agent"; Payload = @{} }
+        )
+        $rq = Get-Content -Raw (Join-Path $base "report-quality.json") | ConvertFrom-Json
+        $recs = Get-Content -Raw (Join-Path $base "governance-recommendations.json") | ConvertFrom-Json
+        if ($rq.quality_score -ne 5.0) { throw "quality_score $($rq.quality_score)" }
+        if ($rq.quality_category -ne "unusable") { throw "category $($rq.quality_category)" }
+        if ($rq.model_fit -ne "underpowered") { throw "model_fit $($rq.model_fit)" }
+        $rec = @($recs.recommendations) | Where-Object { $_.recommendation_id -eq "rec_model_fit_underpowered" }
+        if (-not $rec) { throw "missing underpowered recommendation" }
+        if ($rec.issue_candidate.should_open_issue -ne $true) { throw "should_open_issue not true" }
+    }
+
+    It "treats an overkill model on trivial docs work as advisory only" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        Write-AuditConfig -Path $configPath -TargetReportTokens 1200
+        $base = Invoke-GovernanceRun -ConfigPath $configPath -RunId "run_over" -Events @(
+            @{ Sequence = 1; EventType = "run.completed"; ActorKind = "system"; Payload = @{
+                project_hash = "hmac_sha256_example_project"; task_type = "docs_update";
+                risk_level = "low"; complexity = "trivial"; answered_assigned_task = $true;
+                has_sanitized_evidence = $true; observed_model_tier = "deep";
+                report_tokens = 700; status = "completed" } }
+        )
+        $rq = Get-Content -Raw (Join-Path $base "report-quality.json") | ConvertFrom-Json
+        $recs = Get-Content -Raw (Join-Path $base "governance-recommendations.json") | ConvertFrom-Json
+        if ($rq.model_fit -ne "overkill") { throw "model_fit $($rq.model_fit)" }
+        $rec = @($recs.recommendations) | Where-Object { $_.recommendation_id -eq "rec_model_fit_overkill" }
+        if (-not $rec) { throw "missing overkill recommendation" }
+        if ($rec.recommended_action -ne "monitor") { throw "recommended_action $($rec.recommended_action)" }
+        if ($rec.issue_candidate.should_open_issue -ne $false) { throw "should_open_issue not false" }
     }
 }

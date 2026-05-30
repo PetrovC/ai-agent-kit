@@ -444,10 +444,439 @@ def build_recommendations(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return recommendations
 
 
-def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]:
+# --- Governance scoring (#310) -------------------------------------------
+# Deterministic implementation of docs/ai/AGENT_AUDIT_GOVERNANCE.md. The
+# formulas and tables in that document are canonical; all inputs come from
+# sanitized stored metadata only (no raw prompts, responses, or paths).
+
+QUALITY_PENALTIES: dict[str, float] = {
+    "missing_direct_answer": 3.0,
+    "missing_evidence": 2.0,
+    "missing_next_action": 1.5,
+    "unsafe_detail": 4.0,
+    "excessive_noise": 2.0,
+    "unverified_conclusion": 1.5,
+    "duplicated_report": 2.0,
+    "contradictory_status": 2.0,
+}
+
+# Quality categories by score band: (inclusive_low, category, default_action).
+QUALITY_BANDS: tuple[tuple[float, str, str], ...] = (
+    (8.0, "accepted", "accept"),
+    (6.0, "weak", "repair"),
+    (3.0, "unusable", "retry_narrower"),
+    (0.0, "failed", "reject"),
+)
+
+TIER_RANK: dict[str, int] = {"fast": 0, "standard": 1, "review": 2, "deep": 3}
+HIGH_TIER_TASKS = {
+    "security_review",
+    "architecture_review",
+    "pr_review",
+    "code_review",
+    "decision_bearing_investigation",
+}
+LOW_TIER_TASKS = {
+    "formatting",
+    "fixture_update",
+    "mechanical_edit",
+    "parse_validation",
+}
+HIGH_TIER_CATEGORIES = {"security", "architecture", "review", "code_review"}
+
+
+def _as_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _as_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def target_report_tokens(
+    audit: dict[str, Any] | None, events: list[dict[str, Any]]
+) -> int | None:
+    """Resolve the configured report-token target, or None when unavailable."""
+    governance = {}
+    if isinstance(audit, dict) and isinstance(audit.get("governance"), dict):
+        governance = audit["governance"]
+    candidate = governance.get("target_report_tokens")
+    if candidate is None:
+        candidate = find_payload_value(events, "target_report_tokens", None)
+    if candidate is None:
+        return None
+    value = _as_int(candidate, 0)
+    return value if value > 0 else None
+
+
+def compute_noise_score(
+    events: list[dict[str, Any]],
+    invocations: list[dict[str, Any]],
+    target_tokens: int | None,
+) -> dict[str, Any]:
+    """Deterministic 0-10 noise score; higher means more avoidable waste."""
+    inputs: dict[str, Any] = {
+        "repeated_read_count": _as_int(
+            find_payload_value(events, "repeated_read_count", 0)
+        ),
+        "large_output_event_count": _as_int(
+            find_payload_value(events, "large_output_event_count", 0)
+        ),
+        "truncated_output_count": _as_int(
+            find_payload_value(events, "truncated_output_count", 0)
+        ),
+        "retry_count": event_count(events, "retry.requested"),
+        "subagent_invocation_count": event_count(events, "agent.invoked"),
+        "expected_subagent_count": _as_int(
+            find_payload_value(events, "expected_subagent_count", 0)
+        ),
+        "report_tokens": find_payload_value(events, "report_tokens", None),
+        "target_report_tokens": target_tokens,
+        "scope_narrowing_count": _as_int(
+            find_payload_value(events, "scope_narrowing_count", 0)
+        ),
+        "rework_detected": bool(find_payload_value(events, "rework_detected", False)),
+    }
+
+    components: dict[str, Any] = {
+        "repeated_read_component": min(2.0, inputs["repeated_read_count"] * 0.4),
+        "large_output_component": min(
+            2.0,
+            inputs["large_output_event_count"] * 0.7
+            + inputs["truncated_output_count"] * 0.5,
+        ),
+        "retry_component": min(2.0, inputs["retry_count"] * 0.8),
+        "subagent_component": min(
+            1.5,
+            max(0, inputs["subagent_invocation_count"] - inputs["expected_subagent_count"])
+            * 0.5,
+        ),
+        "scope_churn_component": min(
+            1.0,
+            inputs["scope_narrowing_count"] * 0.5
+            + (1 if inputs["rework_detected"] else 0) * 0.5,
+        ),
+    }
+
+    report_tokens = inputs["report_tokens"]
+    if target_tokens and report_tokens is not None:
+        verbosity = min(
+            1.5,
+            max(0.0, (_as_float(report_tokens) - target_tokens) / target_tokens),
+        )
+        components["verbosity_component"] = round(verbosity, 4)
+        verbosity_value = verbosity
+    else:
+        # Spec: record verbosity as unavailable rather than guessing.
+        components["verbosity_component"] = None
+        verbosity_value = 0.0
+
+    total = verbosity_value + sum(
+        value
+        for key, value in components.items()
+        if key != "verbosity_component" and isinstance(value, (int, float))
+    )
+    score = round(min(10.0, total), 1)
+    level = "low" if score < 3.0 else "medium" if score < 6.0 else "high"
+    return {
+        "noise_score": score,
+        "noise_level": level,
+        "components": components,
+        "inputs": inputs,
+    }
+
+
+def compute_quality_score(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Deterministic 0-10 quality score from sanitized evidence flags."""
+    next_action_expected = bool(
+        find_payload_value(events, "next_action_expected", False)
+    )
+    checks: list[tuple[str, bool]] = [
+        (
+            "missing_direct_answer",
+            not bool(find_payload_value(events, "answered_assigned_task", True)),
+        ),
+        (
+            "missing_evidence",
+            not bool(find_payload_value(events, "has_sanitized_evidence", True)),
+        ),
+        (
+            "missing_next_action",
+            next_action_expected
+            and not bool(find_payload_value(events, "has_next_action", False)),
+        ),
+        (
+            "unsafe_detail",
+            bool(find_payload_value(events, "unsafe_detail_detected", False)),
+        ),
+        ("excessive_noise", bool(find_payload_value(events, "off_scope", False))),
+        (
+            "unverified_conclusion",
+            bool(find_payload_value(events, "unverified_conclusion", False)),
+        ),
+        (
+            "duplicated_report",
+            bool(find_payload_value(events, "duplicated_report", False)),
+        ),
+        (
+            "contradictory_status",
+            bool(find_payload_value(events, "contradictory_status", False)),
+        ),
+    ]
+    weaknesses = [code for code, hit in checks if hit]
+    penalty = sum(QUALITY_PENALTIES[code] for code in weaknesses)
+    score = round(max(0.0, 10.0 - penalty), 1)
+    category, action = "failed", "reject"
+    for low, cat, act in QUALITY_BANDS:
+        if score >= low:
+            category, action = cat, act
+            break
+    return {
+        "quality_score": score,
+        "quality_category": category,
+        "default_action": action,
+        "weaknesses": weaknesses,
+    }
+
+
+def expected_model_tier(
+    task_type: str, risk_level: str, agent_category: str = "other"
+) -> str:
+    if (
+        task_type in HIGH_TIER_TASKS
+        or agent_category in HIGH_TIER_CATEGORIES
+        or risk_level in {"high", "critical"}
+    ):
+        return "review"
+    if task_type in LOW_TIER_TASKS:
+        return "fast"
+    return "standard"
+
+
+def detect_model_fit(
+    events: list[dict[str, Any]],
+    task_type: str,
+    risk_level: str,
+    complexity: str,
+    quality_category: str,
+    retry_count: int,
+    escalation_count: int,
+) -> dict[str, Any]:
+    """Advisory model-fit detection. Never hard-blocks a model choice."""
+    observed = str(
+        find_payload_value(
+            events,
+            "observed_model_tier",
+            find_payload_value(events, "model_tier", "unknown"),
+        )
+    )
+    agent_category = str(find_payload_value(events, "agent_category", "other"))
+    expected = expected_model_tier(task_type, risk_level, agent_category)
+    # Without any task or agent classification there is not enough evidence to
+    # judge model fit; report appropriate rather than emit a false signal.
+    if task_type == "other" and agent_category == "other":
+        return {
+            "model_fit": "appropriate",
+            "confidence": "low",
+            "evidence_strength": "weak",
+            "observed_model_tier": observed,
+            "expected_model_tier": expected,
+        }
+    if observed not in TIER_RANK:
+        return {
+            "model_fit": "unknown",
+            "confidence": "low",
+            "evidence_strength": "weak",
+            "observed_model_tier": observed,
+            "expected_model_tier": expected,
+        }
+    observed_rank, expected_rank = TIER_RANK[observed], TIER_RANK[expected]
+    reasoning_failed = quality_category in {"unusable", "failed"}
+    needed_recovery = retry_count > 0 or escalation_count > 0
+    fit = "appropriate"
+    confidence, strength = "medium", "moderate"
+    if observed_rank < expected_rank and (reasoning_failed or needed_recovery):
+        fit = "underpowered"
+        if reasoning_failed and needed_recovery:
+            confidence, strength = "high", "strong"
+    elif (
+        observed_rank > expected_rank
+        and quality_category == "accepted"
+        and not needed_recovery
+        and (complexity in {"trivial", "small"} or risk_level == "low")
+    ):
+        fit = "overkill"
+        confidence, strength = "medium", "moderate"
+    return {
+        "model_fit": fit,
+        "confidence": confidence,
+        "evidence_strength": strength,
+        "observed_model_tier": observed,
+        "expected_model_tier": expected,
+    }
+
+
+def build_governance(
+    events: list[dict[str, Any]],
+    invocations: list[dict[str, Any]],
+    audit: dict[str, Any] | None,
+    task_type: str,
+    risk_level: str,
+    complexity: str,
+    validation_state: str,
+) -> dict[str, Any]:
+    """Compute report-quality, noise, model-fit, and recommendations."""
+    retry_count = event_count(events, "retry.requested")
+    escalation_count = event_count(events, "escalation.started")
+    noise = compute_noise_score(
+        events, invocations, target_report_tokens(audit, events)
+    )
+    quality = compute_quality_score(events)
+    model_fit = detect_model_fit(
+        events,
+        task_type,
+        risk_level,
+        complexity,
+        quality["quality_category"],
+        retry_count,
+        escalation_count,
+    )
+
+    report_quality = {
+        "schema_version": SCHEMA_VERSION,
+        "quality_score": quality["quality_score"],
+        "quality_category": quality["quality_category"],
+        "default_action": quality["default_action"],
+        "weaknesses": quality["weaknesses"],
+        "noise_score": noise["noise_score"],
+        "noise_level": noise["noise_level"],
+        "noise_components": noise["components"],
+        "noise_inputs": noise["inputs"],
+        "model_fit": model_fit["model_fit"],
+        "evidence_strength": model_fit["evidence_strength"],
+        "confidence": model_fit["confidence"],
+        "validation_state": validation_state,
+        "decision_log": [
+            {
+                "decision": quality["default_action"],
+                "reason": (
+                    "required_evidence_present"
+                    if quality["quality_category"] == "accepted"
+                    else "; ".join(quality["weaknesses"]) or "quality_below_threshold"
+                ),
+            }
+        ],
+        "warnings": (
+            ["high_noise"] if noise["noise_level"] == "high" else []
+        ),
+    }
+
+    recommendations = build_recommendations(events)
+    recommendations.extend(
+        derive_recommendations(noise, quality, model_fit, task_type)
+    )
+    return {
+        "report_quality": report_quality,
+        "recommendations": recommendations,
+    }
+
+
+def derive_recommendations(
+    noise: dict[str, Any],
+    quality: dict[str, Any],
+    model_fit: dict[str, Any],
+    task_type: str,
+) -> list[dict[str, Any]]:
+    """Generate machine-readable recommendations for documented triggers."""
+    derived: list[dict[str, Any]] = []
+    fit = model_fit["model_fit"]
+    if fit in {"underpowered", "overkill"}:
+        action = "raise_model_tier" if fit == "underpowered" else "lower_model_tier"
+        strength = model_fit["evidence_strength"]
+        confidence = model_fit["confidence"]
+        should_open = (
+            strength == "strong"
+            or confidence == "high"
+            or fit == "underpowered"  # model routing is policy-affecting
+        )
+        derived.append(
+            {
+                "recommendation_id": f"rec_model_fit_{fit}",
+                "category": "model_routing",
+                "summary_code": f"{fit}_model_for_{task_type}",
+                "recommended_action": "review_policy" if should_open else "monitor",
+                "evidence_strength": strength,
+                "confidence": confidence,
+                "human_review_required": True,
+                "task_type": task_type,
+                "observed_model_tier": model_fit["observed_model_tier"],
+                "expected_model_tier": model_fit["expected_model_tier"],
+                "observed_failures": quality["weaknesses"],
+                "issue_candidate": {
+                    "should_open_issue": should_open,
+                    "reason": (
+                        "high_risk_underpowered_model"
+                        if fit == "underpowered"
+                        else "possible_overkill_model"
+                    ),
+                    "suggested_action": action,
+                },
+            }
+        )
+    if noise["noise_level"] == "high":
+        derived.append(
+            {
+                "recommendation_id": "rec_noise_high",
+                "category": "prompt_scope",
+                "summary_code": "high_noise_avoidable_context_waste",
+                "recommended_action": "tighten_prompt",
+                "evidence_strength": "moderate",
+                "confidence": "medium",
+                "human_review_required": False,
+                "task_type": task_type,
+                "issue_candidate": {
+                    "should_open_issue": False,
+                    "reason": "single_run_noise_signal",
+                },
+            }
+        )
+    return derived
+
+
+def recommendations_markdown(recommendations: list[dict[str, Any]]) -> str:
+    if not recommendations:
+        return (
+            "# Governance Recommendations\n\n"
+            "No automated recommendation was generated for this run.\n"
+        )
+    lines = ["# Governance Recommendations", ""]
+    for rec in recommendations:
+        rec_id = rec.get("recommendation_id", "rec")
+        category = rec.get("category", "unknown")
+        action = rec.get("recommended_action", "monitor")
+        confidence = rec.get("confidence", "low")
+        strength = rec.get("evidence_strength", "weak")
+        lines.append(
+            f"- **{rec_id}** ({category}): `{action}` "
+            f"— confidence {confidence}, evidence {strength}."
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_artifacts(
+    events: list[dict[str, Any]],
+    run_id: str,
+    audit: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     generated_at = utc_now()
     invocations = build_invocations(events)
-    recommendations = build_recommendations(events)
     project_hash = str(
         find_payload_value(events, "project_hash", "hmac_sha256_unavailable")
     )
@@ -456,9 +885,16 @@ def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]
         find_payload_value(events, "validation_state", "unavailable")
     )
     task_type = str(find_payload_value(events, "task_type", "other"))
+    risk_level = str(find_payload_value(events, "risk_level", "low"))
+    complexity = str(find_payload_value(events, "complexity", "small"))
     technical_scopes = find_payload_value(events, "technical_scopes", ["unknown"])
     if not isinstance(technical_scopes, list):
         technical_scopes = ["unknown"]
+
+    governance = build_governance(
+        events, invocations, audit, task_type, risk_level, complexity, validation_state
+    )
+    recommendations = governance["recommendations"]
 
     summary = {
         "schema_version": SCHEMA_VERSION,
@@ -472,8 +908,8 @@ def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]
         "task_profile": {
             "task_type": task_type,
             "technical_scopes": technical_scopes,
-            "risk_level": str(find_payload_value(events, "risk_level", "low")),
-            "complexity": str(find_payload_value(events, "complexity", "small")),
+            "risk_level": risk_level,
+            "complexity": complexity,
             "expected_outputs": find_payload_value(
                 events, "expected_outputs", ["unknown"]
             ),
@@ -481,7 +917,7 @@ def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]
         "status": status,
         "outcome": {
             "validation_state": validation_state,
-            "recommendation_count": event_count(events, "recommendation.created"),
+            "recommendation_count": len(recommendations),
             "merged": bool(find_payload_value(events, "merged", False)),
         },
         "activity_summary": {
@@ -543,14 +979,7 @@ def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]
             "compact_events": event_count(events, "compact.observed"),
             "event_count": len(events),
         },
-        "report-quality.json": {
-            "schema_version": SCHEMA_VERSION,
-            "quality_score": find_payload_value(events, "quality_score", None),
-            "quality_category": str(
-                find_payload_value(events, "quality_category", "unavailable")
-            ),
-            "validation_state": validation_state,
-        },
+        "report-quality.json": governance["report_quality"],
         "governance-recommendations.json": {
             "schema_version": SCHEMA_VERSION,
             "recommendation_count": len(recommendations),
@@ -567,12 +996,15 @@ def build_artifacts(events: list[dict[str, Any]], run_id: str) -> dict[str, Any]
 
 
 def write_run_folder(
-    run_folder: pathlib.Path, events: list[dict[str, Any]], run_id: str
+    run_folder: pathlib.Path,
+    events: list[dict[str, Any]],
+    run_id: str,
+    audit: dict[str, Any] | None = None,
 ) -> None:
     if run_folder.exists():
         raise AuditError(f"audit run folder already exists: {run_folder}")
     run_folder.mkdir(parents=True)
-    artifacts = build_artifacts(events, run_id)
+    artifacts = build_artifacts(events, run_id, audit)
     for name, value in artifacts.items():
         write_json(run_folder / name, value)
     events_path = run_folder / "governance-events.ndjson"
@@ -591,7 +1023,9 @@ def write_run_folder(
     write_text(run_folder / "README.md", readme)
     write_text(
         run_folder / "recommendations.md",
-        "# Governance Recommendations\n\nNo automated recommendation was generated for this run.\n",
+        recommendations_markdown(
+            artifacts["governance-recommendations.json"]["recommendations"]
+        ),
     )
 
 
@@ -691,7 +1125,7 @@ def finalize_run(args: argparse.Namespace) -> int:
         / project_hash
         / path_segment(run_id, "audit_run_id")
     )
-    write_run_folder(run_folder, events, run_id)
+    write_run_folder(run_folder, events, run_id, audit)
     maybe_commit_and_push(args, audit, source_root, central, run_folder, run_id, branch)
     print(f"finalized audit run: {run_folder}")
     return 0

@@ -9,9 +9,12 @@ anonymized agent audit reports. It builds on:
 - [MODEL_ROUTING.md](./MODEL_ROUTING.md) for model-tier expectations;
 - [SUBAGENT_GOVERNANCE.md](./SUBAGENT_GOVERNANCE.md) for delegation rules.
 
-The rules are documentation only. They do not implement automated scoring,
-runtime enforcement, provider integration, exact token gates, hard model
-blocking, automatic policy edits, or automatic issue creation.
+The scoring rules below are implemented deterministically by the audit runtime
+(`finalize-run` computes `report-quality.json` and `governance-recommendations.json`
+from the sanitized event stream). The runtime does not implement runtime
+enforcement, provider integration, exact token gates, hard model blocking,
+automatic policy edits, or automatic issue creation; those remain advisory and
+require human review.
 
 ## Governance Inputs
 
@@ -69,13 +72,18 @@ Required evidence for acceptance:
 
 ### Examples
 
-Accepted report:
+The example scores below are computed from the penalty table above (start at
+`10.0`, subtract the listed penalties, round to one decimal), so they match the
+deterministic runtime output.
+
+Accepted report (no penalties apply):
 
 ```json
 {
-  "quality_score": 9.0,
+  "quality_score": 10.0,
   "quality_category": "accepted",
   "default_action": "accept",
+  "weaknesses": [],
   "evidence": {
     "answered_assigned_task": true,
     "has_sanitized_evidence": true,
@@ -86,29 +94,35 @@ Accepted report:
 }
 ```
 
-Weak report:
+Weak report (`-2.0` missing evidence, `-1.5` missing next action → `6.5`):
 
 ```json
 {
-  "quality_score": 6.8,
+  "quality_score": 6.5,
   "quality_category": "weak",
   "default_action": "repair",
-  "weaknesses": ["missing_next_action"],
+  "weaknesses": ["missing_evidence", "missing_next_action"],
   "repair_request": {
-    "repair_scope": "add_next_action",
+    "repair_scope": "add_evidence_and_next_action",
     "max_attempts": 1
   }
 }
 ```
 
-Failed report:
+Failed report (`-3.0` no direct answer, `-2.0` missing evidence, `-2.0`
+excessive noise, `-2.0` contradictory status → `1.0`):
 
 ```json
 {
-  "quality_score": 2.0,
+  "quality_score": 1.0,
   "quality_category": "failed",
   "default_action": "reject",
-  "weaknesses": ["missing_direct_answer", "missing_evidence", "off_scope"],
+  "weaknesses": [
+    "missing_direct_answer",
+    "missing_evidence",
+    "excessive_noise",
+    "contradictory_status"
+  ],
   "stop_recommended": true
 }
 ```
@@ -154,11 +168,11 @@ Thresholds:
 | `3.0` to `5.9` | `medium` | Some avoidable context waste; consider narrower prompts or better tool filtering. |
 | `6.0` to `10.0` | `high` | Significant avoidable waste; create a governance recommendation when evidence repeats. |
 
-Low-noise example:
+Low-noise example (computed from the formula above):
 
 ```json
 {
-  "noise_score": 1.4,
+  "noise_score": 0.4,
   "noise_level": "low",
   "inputs": {
     "repeated_read_count": 1,
@@ -174,11 +188,11 @@ Low-noise example:
 }
 ```
 
-High-noise example:
+High-noise example (computed from the formula above):
 
 ```json
 {
-  "noise_score": 7.2,
+  "noise_score": 9.1,
   "noise_level": "high",
   "inputs": {
     "repeated_read_count": 4,
@@ -430,8 +444,11 @@ Recommended fields:
 | `quality_score` | number | 0 to 10. |
 | `quality_category` | enum | `accepted`, `weak`, `unusable`, `failed`. |
 | `default_action` | enum | `accept`, `repair`, `retry_narrower`, `escalate_model`, `reject`, `stop`. |
+| `weaknesses` | string array | Controlled penalty codes that lowered the score. |
 | `noise_score` | number | 0 to 10. |
 | `noise_level` | enum | `low`, `medium`, `high`. |
+| `noise_components` | object | Per-component noise contributions; `verbosity_component` is `null` when the token target is unavailable. |
+| `noise_inputs` | object | The metadata-only inputs used by the noise formula. |
 | `model_fit` | enum | `appropriate`, `overkill`, `underpowered`, `unknown`. |
 | `evidence_strength` | enum | `weak`, `moderate`, `strong`. |
 | `confidence` | enum | `low`, `medium`, `high`. |
@@ -443,19 +460,19 @@ Example:
 ```json
 {
   "schema_version": "0.1.0",
-  "quality_score": 8.6,
+  "quality_score": 10.0,
   "quality_category": "accepted",
   "default_action": "accept",
+  "weaknesses": [],
   "noise_score": 2.1,
   "noise_level": "low",
   "model_fit": "appropriate",
   "evidence_strength": "moderate",
-  "confidence": "high",
+  "confidence": "medium",
   "decision_log": [
     {
       "decision": "accept",
-      "reason": "required_evidence_present",
-      "supporting_event_ids": ["evt_008"]
+      "reason": "required_evidence_present"
     }
   ],
   "warnings": []
