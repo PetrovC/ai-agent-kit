@@ -4,6 +4,23 @@
 
 ### Added
 
+- **`feat(audit)` - implement the deterministic governance scoring specified in `AGENT_AUDIT_GOVERNANCE.md` (closes [#310](https://github.com/PetrovC/ai-agent-kit/issues/310)).**
+  `finalize-run` now computes the report quality score (0-10 with the documented
+  penalty table), the noise score (deterministic six-component formula), and
+  advisory model-fit detection (`appropriate`/`overkill`/`underpowered`/`unknown`)
+  from the sanitized event stream, and emits a populated `report-quality.json`,
+  machine-readable `governance-recommendations.json`, and a `recommendations.md`
+  companion. Recommendations are generated for the documented triggers
+  (underpowered/overkill model, high noise); automatic issue creation stays out
+  of scope per the spec. All inputs use stored metadata only — no raw prompts,
+  responses, or paths. The worked examples in `AGENT_AUDIT_GOVERNANCE.md` were
+  corrected to the formula-computed values (the previous example numbers were
+  hand-written and did not match the formula); the formula and penalty tables
+  are canonical. Implemented in the shared `audit_runtime.py` (canonical +
+  `.ai-agent-kit` dogfood mirror); added BATS (`agent_audit_scoring.bats`) and
+  Pester golden fixtures covering the good / noisy / underpowered / overkill
+  branches.
+
 - **`feat(claude)` - add `/release-check` and `/cut-release` slash commands (closes [#252](https://github.com/PetrovC/ai-agent-kit/issues/252)).**
   Added `tooling/claude/commands/release-check.md` and `tooling/claude/commands/cut-release.md`
   to operationalize the release workflow documented in `docs/ai/RELEASE.md`. `/release-check`
