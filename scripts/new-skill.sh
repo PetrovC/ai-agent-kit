@@ -192,13 +192,14 @@ CLAUDE_ROW="| TODO: describe when to use $NAME | \`$NAME\` skill |"
 AGENTS_ROW="| TODO: describe when to use $NAME | \`\$$NAME\` |"
 AGY_ROW="| TODO: describe when to use $NAME | \`.agy/skills/$NAME/SKILL.md\` |"
 
-# Anchor: the blank line + --- that ends the skill routing table
-ANCHOR_CLAUDE_AGY=$'\n\n---\n\n## Subagent routing'
-ANCHOR_AGENTS=$'\n\nActivate only the skills relevant to the current task.'
+# Anchor: the blank line before the "## Subagent routing" heading that ends the
+# skill routing section (stable across all three routers; does not depend on a
+# `---` separator or specific trailing prose).
+ANCHOR_SUBAGENT=$'\n\n## Subagent routing'
 
-insert_routing_row "$KIT_ROOT/tooling/claude/CLAUDE.md"   "$CLAUDE_ROW" "$ANCHOR_CLAUDE_AGY"
-insert_routing_row "$KIT_ROOT/tooling/codex/AGENTS.md"    "$AGENTS_ROW" "$ANCHOR_AGENTS"
-insert_routing_row "$KIT_ROOT/tooling/agy/AGY.md"   "$AGY_ROW" "$ANCHOR_CLAUDE_AGY"
+insert_routing_row "$KIT_ROOT/tooling/claude/CLAUDE.md"   "$CLAUDE_ROW" "$ANCHOR_SUBAGENT"
+insert_routing_row "$KIT_ROOT/tooling/codex/AGENTS.md"    "$AGENTS_ROW" "$ANCHOR_SUBAGENT"
+insert_routing_row "$KIT_ROOT/tooling/agy/AGY.md"   "$AGY_ROW" "$ANCHOR_SUBAGENT"
 
 # ── Done ───────────────────────────────────────────────────────────────────
 echo "+--------------------------------------+"

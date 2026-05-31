@@ -96,11 +96,11 @@ GitHub issues, PRs, and `CHANGELOG.md`; in-conversation tasks are redundant.
 Match the task domain to the skill name — full descriptions live in each skill's
 `description:` frontmatter.
 
-Backends: `dotnet` · `java-kotlin` · `python` · `node` · `go` · `rust`  
-Frontends: `angular` · `vue` · `svelte` · `react` · `mobile-rn` · `mobile-flutter`  
-Data/Infra: `database` · `infrastructure` · `api-design` · `graphql`  
-Quality: `architecture` · `testing` · `code-review` · `security` · `dependencies` · `github-workflow`  
-Ops/X-cut: `observability` · `messaging` · `error-handling` · `monorepo` · `accessibility` · `i18n` · `ai-dev` · `performance`
+Backends: `dotnet` skill · `java-kotlin` skill · `python` skill · `node` skill · `go` skill · `rust` skill  
+Frontends: `angular` skill · `vue` skill · `svelte` skill · `react` skill · `mobile-rn` skill · `mobile-flutter` skill  
+Data/Infra: `database` skill · `infrastructure` skill · `api-design` skill · `graphql` skill  
+Quality: `architecture` skill · `testing` skill · `code-review` skill · `security` skill · `dependencies` skill · `github-workflow` skill  
+Ops/X-cut: `observability` skill · `messaging` skill · `error-handling` skill · `monorepo` skill · `accessibility` skill · `i18n` skill · `ai-dev` skill · `performance` skill
 
 ## Subagent routing
 
