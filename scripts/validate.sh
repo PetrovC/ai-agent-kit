@@ -220,6 +220,49 @@ else
     fi
 fi
 
+# Closes #315: always-on routers and kit-authored docs/ai guidance must stay at
+# or under 200 lines so the directives that matter load fast and deep detail is
+# pushed to on-demand files. Exceptions are large on-demand reference specs
+# (not always-on context); splitting them under budget is tracked in #325.
+# Skills carry their own budget under #158 and are not checked here.
+echo ""
+echo "> Model-read doc budget (<= 200 lines)"
+DOC_BUDGET_MAX=200
+DOC_BUDGET_EXCEPTIONS=(
+    "docs/ai/AGENT_AUDIT_SCHEMA.md"       # on-demand audit schema reference
+    "docs/ai/AGENT_AUDIT_GOVERNANCE.md"   # on-demand governance scoring spec
+    "docs/ai/AGENT_AUDIT_STORAGE.md"      # on-demand storage-layout reference
+)
+doc_budget_files=()
+for r in AGENTS.md CLAUDE.md AGY.md; do
+    [[ -f "$TARGET/$r" ]] && doc_budget_files+=("$r")
+done
+# Kit-authored docs/ai guidance exists only in the source repo; project installs
+# receive only project-template docs/ai/* (project-owned, intentionally
+# unbounded), so sweep docs/ai only in the dogfood source tree.
+if [[ -f "$TARGET/.kit-manifest" ]] && [[ -d "$TARGET/tooling" ]] && [[ -d "$TARGET/docs/ai" ]]; then
+    while IFS= read -r -d '' f; do
+        case "$(basename "$f")" in
+            PROJECT.md|ARCHITECTURE.md|COMMANDS.md|DECISIONS.md|GLOSSARY.md|ROADMAP.md|TESTING.md) continue ;;
+        esac
+        doc_budget_files+=("${f#"$TARGET/"}")
+    done < <(find "$TARGET/docs/ai" -maxdepth 1 -type f -name '*.md' -print0)
+fi
+doc_budget_failed=false
+for rel in ${doc_budget_files[@]+"${doc_budget_files[@]}"}; do
+    is_exempt=false
+    for ex in "${DOC_BUDGET_EXCEPTIONS[@]}"; do
+        [[ "$rel" == "$ex" ]] && is_exempt=true && break
+    done
+    [[ "$is_exempt" == true ]] && continue
+    n=$(wc -l < "$TARGET/$rel" | tr -d '[:space:]')
+    if (( n > DOC_BUDGET_MAX )); then
+        warn "$rel has $n lines; model-read budget is $DOC_BUDGET_MAX (trim, or add to the documented exception list)"
+        doc_budget_failed=true
+    fi
+done
+$doc_budget_failed || ok "model-read docs within $DOC_BUDGET_MAX lines (${#DOC_BUDGET_EXCEPTIONS[@]} documented exceptions)"
+
 echo ""
 echo "> Strict mode: project-owned update guard"
 if [[ "$STRICT_MODE" -eq 0 ]]; then
