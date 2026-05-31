@@ -330,7 +330,12 @@ Describe "PowerShell agent audit runtime" {
         function Emit {
             param([string]$Type, [string]$Actor, [string]$Payload = "", [string]$InvocationId = "")
             $emitArgs = @("-Config", $configPath, "-SourceRoot", $script:Target, "-Type", $Type, "-Actor", $Actor, "-RunId", $runId)
-            if ($Payload) { $emitArgs += @("-Payload", $Payload) }
+            # Base64 the payload before the powershell.exe -File boundary: a raw
+            # JSON arg would lose its embedded double quotes in transit.
+            if ($Payload) {
+                $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Payload))
+                $emitArgs += @("-PayloadB64", $b64)
+            }
             if ($InvocationId) { $emitArgs += @("-InvocationId", $InvocationId) }
             Assert-AakSuccess (Invoke-AakPowerShellScript -Script $emitScript -Arguments $emitArgs)
         }

@@ -4,6 +4,7 @@ param(
     [string]$Type = "",
     [string]$Actor = "main_agent",
     [string]$Payload = "",
+    [string]$PayloadB64 = "",
     [string]$InvocationId = "",
     [string]$RunId = "",
     [string]$EventId = ""
@@ -35,11 +36,14 @@ if ($pythonInvocation.Count -gt 1) {
 
 $argsList = @($runtime, "emit-event", "--source-root", $SourceRoot, "--type", $Type, "--actor", $Actor)
 if ($Config) { $argsList += @("--config", $Config) }
-if ($Payload) {
-    # Pass the JSON payload base64-encoded so Windows PowerShell does not strip
-    # the embedded double quotes when invoking the native python process.
-    $payloadB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Payload))
-    $argsList += @("--payload-b64", $payloadB64)
+# JSON payloads are passed base64-encoded so neither this process boundary nor
+# the native python call strips the embedded double quotes. -PayloadB64 is the
+# quote-free form for programmatic / cross-process callers; -Payload is the
+# convenience form for an interactive same-session caller.
+if ($PayloadB64) {
+    $argsList += @("--payload-b64", $PayloadB64)
+} elseif ($Payload) {
+    $argsList += @("--payload-b64", [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Payload)))
 }
 if ($InvocationId) { $argsList += @("--invocation-id", $InvocationId) }
 if ($RunId) { $argsList += @("--run-id", $RunId) }
