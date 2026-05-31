@@ -135,7 +135,10 @@ function Assert-AakFileMissing {
 function Get-AakTargetSnapshot {
     $root = (Resolve-Path -LiteralPath $script:Target).Path.TrimEnd('\')
     Get-ChildItem -LiteralPath $script:Target -Recurse -File |
-        Where-Object { $_.Name -ne ".kit-version" } |
+        # Exclude .kit-version (embeds the install date) and the
+        # install-audit.ndjson record (append-only run log, #313) — both
+        # intentionally change on every run.
+        Where-Object { $_.Name -ne ".kit-version" -and $_.Name -ne "install-audit.ndjson" } |
         Sort-Object FullName |
         ForEach-Object {
             $rel = $_.FullName.Substring($root.Length).TrimStart('\') -replace '\\', '/'
