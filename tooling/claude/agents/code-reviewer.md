@@ -5,7 +5,7 @@ description: >
   security-sensitive code, or authentication/authorization. Reviews for correctness,
   regressions, security, maintainability, and missing tests.
 tools: Read, Glob, Grep
-model: claude-opus-4-7
+model: claude-opus-4-8
 maxTurns: 12
 permissionMode: default
 ---

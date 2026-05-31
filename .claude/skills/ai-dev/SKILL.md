@@ -288,7 +288,7 @@ Extended thinking lets the model reason internally before answering. Use it for:
 
 ```python
 response = client.messages.create(
-    model="claude-opus-4-7",
+    model="claude-opus-4-8",
     max_tokens=16000,
     thinking={"type": "enabled", "budget_tokens": 10000},
     messages=[{"role": "user", "content": "Plan the database schema for..."}]

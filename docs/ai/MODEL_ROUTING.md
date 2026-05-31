@@ -36,14 +36,15 @@ Per-subagent model assignment used in this repository (see
 
 | Subagent | Model | maxTurns | Justification |
 |---|---|---|---|
-| `architect` | `claude-opus-4-7` | 15 | Decision-bearing design assessment. |
-| `code-reviewer` | `claude-opus-4-7` | 12 | High-stakes review; tightened from 20 turns to curb drift. |
-| `security-reviewer` | `claude-opus-4-7` | 15 | Real exploitable vulnerabilities, not theoretical risk. |
+| `architect` | `claude-opus-4-8` | 15 | Decision-bearing design assessment. |
+| `code-reviewer` | `claude-opus-4-8` | 12 | High-stakes review; tightened from 20 turns to curb drift. |
+| `security-reviewer` | `claude-opus-4-8` | 15 | Real exploitable vulnerabilities, not theoretical risk. |
 | `codebase-investigator` | `claude-sonnet-4-6` | 15 | Narrow, deterministic-search-first lookups; Sonnet is enough (ADR-017). |
 | `test-runner` | `claude-haiku-4-5` | 10 | Mechanical: run filtered tests, summarize output. |
 
-Verified GA models as of May 2026 (Anthropic): `claude-opus-4-7`,
-`claude-sonnet-4-6`, `claude-haiku-4-5`. See
+Verified against the Anthropic model overview (accessed 2026-05-31):
+`claude-opus-4-8` is the most capable model (`claude-opus-4-7` is now listed as
+a legacy model); `claude-sonnet-4-6` and `claude-haiku-4-5` remain current. See
 <https://platform.claude.com/docs/en/about-claude/models/overview>.
 
 ### Codex CLI
@@ -66,8 +67,10 @@ Per-subagent profile mapping used in this repository. All profiles run on
 | `codebase-investigator` | `standard` | `medium` |
 | `test-runner` | `readonly` | `low` |
 
-Verified GA model as of May 2026 (OpenAI): `gpt-5.5` with reasoning effort
-levels `none` / `low` / `medium` (default) / `high` / `xhigh`. See
+Verified against the Codex models doc (accessed 2026-05-31): `gpt-5.5` remains
+the current default and most capable model (alongside `gpt-5.4`, `gpt-5.4-mini`,
+and `gpt-5.3-codex`); the per-profile differentiator here is the Codex
+`model_reasoning_effort` config setting. See
 <https://developers.openai.com/codex/models>.
 
 ### Antigravity CLI
@@ -87,12 +90,15 @@ Per-subagent model assignment used in this repository (see
 | `codebase-investigator` | `gemini-3-flash` | 15 | Narrow lookups; Flash is sufficient. |
 | `test-runner` | `gemini-3-flash` | 10 | Mechanical: run tests, summarize output. |
 
-Verified GA models as of May 2026 (Google): `gemini-3.1-pro` (GA April 2026),
-`gemini-3-flash` (GA stable), `gemini-3.1-flash-lite` (GA). Default session
-model in `tooling/agy/settings.json`: `gemini-3-flash`.
-
-> **Future upgrade candidate**: `gemini-3.5-flash` (announced May 2026) offers
-> frontier agentic capability. Adopt as default once stable for ≥ 30 days.
+Antigravity is a VS Code-based IDE with a fixed, user-selected model picker
+(not a free-form per-call model id). As of 2026-05-31 the picker offered
+`gemini-3.1-pro` (default) and `gemini-3-flash`, plus Claude Sonnet 4.6, Claude
+Opus 4.6, and GPT-OSS-120B; `gemini-3.1-flash-lite` is also available. The kit's
+`agy` subagents pin the two Gemini picker entries as model hints, and the
+default session model in `tooling/agy/settings.json` is `gemini-3-flash`.
+Antigravity's docs are JS-rendered and not machine-readable, so the picker set
+was confirmed from the live product and current secondary reporting; see
+<https://antigravity.google/docs/models>.
 
 ## Command and Agent Guidance
 
