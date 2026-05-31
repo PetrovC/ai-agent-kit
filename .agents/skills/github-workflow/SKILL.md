@@ -31,6 +31,22 @@ docs/short-description        ← documentation only
 test/short-description        ← tests only
 ```
 
+### Agent branches
+
+AI-agent contributors use a five-segment pattern so the author, model, and
+scope are traceable from the branch name:
+
+```
+agent/<agent>/<model>/<type>/<area>     ← e.g. agent/claude/opus-4.8/feat-docs/antigravity-impl
+```
+
+- Dots are valid in git refs (`opus-4.8`); refs only forbid `..`, a trailing
+  `.`, and a trailing `.lock`.
+- Avoid shell-hostile characters such as `()` and spaces — use `feat-docs`, not
+  `feat(docs)`.
+- Start from an up-to-date `master`, work issue-first (create and link an issue
+  if none exists), and keep all branch/issue/PR/commit text in English.
+
 ---
 
 ## Commit messages

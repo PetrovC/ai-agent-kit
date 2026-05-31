@@ -30,6 +30,49 @@ One concern belongs in one issue. Do not group unrelated implementation work.
 - Document risks and assumptions.
 - Do not open a PR unless explicitly asked.
 
+## Agent Branch, Preflight, and Language Rules
+
+These rules are canonical for agent-driven work. The `CLAUDE.md`, `AGENTS.md`,
+and `AGY.md` routers and the `github-workflow` skill reference this section.
+
+### Branch pattern
+
+Agent branches use five slash-separated segments:
+
+```
+agent/<agent>/<model>/<type>/<area>
+```
+
+Example: `agent/claude/opus-4.8/feat-docs/antigravity-impl`.
+
+- Git refs allow dots, so `opus-4.8` is valid; refs only forbid `..`, a trailing
+  `.`, and a trailing `.lock`.
+- Avoid shell-hostile characters such as `()` and spaces. Use `feat-docs`, not
+  `feat(docs)` — the latter breaks unquoted shell commands.
+- `<type>` mirrors the Conventional Commit type (`feat`, `fix`, `docs`,
+  `refactor`, `test`, `chore`, `perf`, `ci`), optionally suffixed with the area
+  (`feat-docs`).
+
+### Issue-first mandate
+
+Every agent PR links a GitHub issue. If none exists, create one (problem,
+scope, acceptance criteria, out-of-scope, verification) and link it to a
+milestone when one applies unambiguously. One concern per issue and per PR.
+
+### Master preflight
+
+Before starting:
+
+1. Start from `master` and pull so it is up to date.
+2. Verify no open PR already covers the intended work.
+3. If an open PR exists for that work, ask for authorization before continuing.
+
+### English-only output
+
+All branch names, issue text, PR text, commit messages, and code comments are
+in English. Keep outputs clear, explicit, and unambiguous; reference docs where
+useful; avoid padding.
+
 ## Agent Workflow
 
 1. Audit before editing.

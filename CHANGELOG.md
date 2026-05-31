@@ -4,6 +4,18 @@
 
 ### Added
 
+- **`feat(workflow)` - encode the agent branch pattern, issue-first mandate, master preflight, and English-only rule (closes [#312](https://github.com/PetrovC/ai-agent-kit/issues/312)).**
+  `docs/ai/WORKFLOW.md` gains a canonical "Agent Branch, Preflight, and Language
+  Rules" section: the `agent/<agent>/<model>/<type>/<area>` branch pattern (dots
+  allowed, e.g. `opus-4.8`; no shell-hostile `()` or spaces — `feat-docs`, not
+  `feat(docs)`), the create-an-issue-if-none mandate with milestone linking, the
+  start-from-`master`/no-open-PR preflight, and English-only branch/issue/PR/
+  commit/comment text. The three routers (`CLAUDE.md`, `AGENTS.md`, `AGY.md` and
+  their `tooling/` sources) reference it in one line under Git rules, and the
+  `github-workflow` skill gains an "Agent branches" subsection. Added a
+  lightweight CI check (`.github/workflows/pr-branch-name.yml`) that validates
+  any `agent/*` PR branch against the pattern and skips human branches.
+
 - **`feat(audit)` - emit governance events so the audit captures the agent governance loop (closes [#311](https://github.com/PetrovC/ai-agent-kit/issues/311)).**
   The audit hooks only ever produced `tool.observed` / `hook.observed` /
   `compact.observed`; the richer event types the schema defines and the runtime

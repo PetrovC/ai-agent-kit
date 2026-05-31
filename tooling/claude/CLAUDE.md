@@ -216,6 +216,7 @@ Always apply the "one concern per PR" rule — propose each maintenance item sep
 
 **Push and history:**
 - Never push directly to `main`, `master`, or `dev` — always via PR.
+- Agent branches: `agent/<agent>/<model>/<type>/<area>` (dots OK, no `()` or spaces); work issue-first from an up-to-date `master`; English-only branch/issue/PR/commit text. See `docs/ai/WORKFLOW.md`.
 - Do not rewrite history on shared branches.
 - Do not run destructive Git commands without explicit approval.
 - Do not delete user work or untracked files.

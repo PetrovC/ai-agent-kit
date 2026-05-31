@@ -1,0 +1,36 @@
+name: PR - agent branch naming
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  branch-name:
+    name: Agent branches match the documented pattern
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate agent/<agent>/<model>/<type>/<area>
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          if [[ "$HEAD_REF" != agent/* ]]; then
+            echo "Not an agent/* branch ('$HEAD_REF'); skipping the agent-branch-name check."
+            exit 0
+          fi
+          # Five segments: agent/<agent>/<model>/<type>/<area>. Dots are allowed
+          # (e.g. opus-4.8); shell-hostile characters such as '(', ')', and
+          # spaces are not. See docs/ai/WORKFLOW.md.
+          if [[ "$HEAD_REF" =~ ^agent/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
+            echo "OK: '$HEAD_REF' matches agent/<agent>/<model>/<type>/<area>"
+          else
+            echo "::error::agent branch '$HEAD_REF' must match agent/<agent>/<model>/<type>/<area> (dots OK; no '()' or spaces). See docs/ai/WORKFLOW.md."
+            exit 1
+          fi
