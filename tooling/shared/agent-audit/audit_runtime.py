@@ -46,6 +46,7 @@ ALLOWED_EVENTS = {
     "tool.observed",
     "hook.observed",
     "compact.observed",
+    "session.metrics",
 }
 
 FORBIDDEN_KEYS = {
@@ -926,6 +927,214 @@ def recommendations_markdown(recommendations: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+# --- Session-metrics import (#327) ---------------------------------------
+# Derive anonymized performance metrics (tokens, cache, speed, duration,
+# context exhaustion) from a provider session transcript. ONLY numeric/enum
+# metrics and the model id leave the parser — raw prompts, responses, file
+# contents, cwd, branch names, and repo URLs are never read into the event.
+# validate_event() runs privacy_scan on the result as a backstop.
+
+# List price (USD per million tokens): (input, output). Cache reads are billed
+# below input list price; this estimate bills cache reads at input price as a
+# conservative upper bound. Source: platform.claude.com/docs/.../pricing.
+MODEL_PRICING_USD: dict[str, tuple[float, float]] = {
+    "claude-opus-4-8": (5.0, 25.0),
+    "claude-opus-4-7": (5.0, 25.0),
+    "claude-opus-4-6": (5.0, 25.0),
+    "claude-sonnet-4-6": (3.0, 15.0),
+    "claude-sonnet-4-5": (3.0, 15.0),
+    "claude-haiku-4-5": (1.0, 5.0),
+}
+
+
+def _metric_int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def parse_claude_transcript(path: pathlib.Path) -> dict[str, Any]:
+    """Anonymized metric extraction from a Claude Code `.jsonl` transcript."""
+    tok = {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}
+    speeds: list[float] = []
+    timestamps: list[str] = []
+    turns = {"user": 0, "assistant": 0, "tool_results": 0}
+    tool_calls = 0
+    compaction_count = 0
+    tokens_before_first_compaction: int | None = None
+    peak_request_input = 0
+    sidechain_turns = 0
+    sidechain_output = 0
+    retries = 0
+    api_errors = 0
+    stop_reasons: dict[str, int] = {}
+    models: dict[str, int] = {}
+
+    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(entry, dict):
+            continue
+        etype = entry.get("type")
+        ts = entry.get("timestamp")
+        if isinstance(ts, str):
+            timestamps.append(ts)
+        if _metric_int(entry.get("retryAttempt")) > 0:
+            retries += 1
+        if entry.get("apiErrorStatus") or entry.get("isApiErrorMessage"):
+            api_errors += 1
+        if etype == "compact" or entry.get("subtype") == "compact_boundary" or entry.get("isCompactSummary"):
+            compaction_count += 1
+            if tokens_before_first_compaction is None:
+                tokens_before_first_compaction = tok["input"] + tok["output"]
+        is_sidechain = bool(entry.get("isSidechain"))
+        if etype == "user":
+            turns["user"] += 1
+        elif etype == "assistant":
+            turns["assistant"] += 1
+            if is_sidechain:
+                sidechain_turns += 1
+        if entry.get("toolUseResult") is not None:
+            turns["tool_results"] += 1
+        if entry.get("toolUseID"):
+            tool_calls += 1
+        message = entry.get("message") if isinstance(entry.get("message"), dict) else {}
+        usage = message.get("usage") if isinstance(message.get("usage"), dict) else None
+        if usage:
+            it = _metric_int(usage.get("input_tokens"))
+            ot = _metric_int(usage.get("output_tokens"))
+            cc = _metric_int(usage.get("cache_creation_input_tokens"))
+            cr = _metric_int(usage.get("cache_read_input_tokens"))
+            tok["input"] += it
+            tok["output"] += ot
+            tok["cache_creation"] += cc
+            tok["cache_read"] += cr
+            peak_request_input = max(peak_request_input, it + cc + cr)
+            if is_sidechain:
+                sidechain_output += ot
+            spd = usage.get("speed")
+            if isinstance(spd, (int, float)) and spd > 0:
+                speeds.append(float(spd))
+        model = message.get("model")
+        if isinstance(model, str) and model and model != "<synthetic>":
+            models[model] = models.get(model, 0) + 1
+        stop = entry.get("stopReason") or message.get("stop_reason")
+        if isinstance(stop, str) and stop:
+            stop_reasons[stop] = stop_reasons.get(stop, 0) + 1
+
+    parsed_times = sorted(t for t in (parse_timestamp(x) for x in timestamps) if t)
+    duration = (
+        int((parsed_times[-1] - parsed_times[0]).total_seconds())
+        if len(parsed_times) >= 2
+        else None
+    )
+    total = sum(tok.values())
+    cache_base = tok["input"] + tok["cache_read"]
+    cache_hit_ratio = round(tok["cache_read"] / cache_base, 4) if cache_base else 0.0
+    model = max(models, key=lambda k: models[k]) if models else "unknown"
+    avg_speed = round(sum(speeds) / len(speeds), 2) if speeds else None
+    price = MODEL_PRICING_USD.get(model)
+    cost = (
+        round(
+            (tok["input"] + tok["cache_creation"] + tok["cache_read"]) / 1_000_000 * price[0]
+            + tok["output"] / 1_000_000 * price[1],
+            4,
+        )
+        if price
+        else None
+    )
+    return {
+        "provider": "claude",
+        "model": model,
+        "tokens": {**tok, "total": total, "cache_hit_ratio": cache_hit_ratio},
+        "speed": {"avg_tokens_per_sec": avg_speed, "samples": len(speeds)},
+        "duration_seconds": duration,
+        "turns": turns,
+        "tool_calls": {"total": tool_calls},
+        "compaction": {
+            "count": compaction_count,
+            "tokens_before_first": tokens_before_first_compaction,
+        },
+        "context": {"peak_request_input_tokens": peak_request_input},
+        "subagent": {
+            "sidechain_assistant_turns": sidechain_turns,
+            "sidechain_output_tokens": sidechain_output,
+        },
+        "reliability": {
+            "retries": retries,
+            "api_errors": api_errors,
+            "stop_reasons": stop_reasons,
+        },
+        "cost_estimate": {
+            "currency": "USD",
+            "amount": cost,
+            "basis": "list-price-approximation",
+        },
+    }
+
+
+TRANSCRIPT_PARSERS = {"claude": parse_claude_transcript}
+
+
+def import_session_metrics(args: argparse.Namespace) -> int:
+    """Parse a provider session transcript into one anonymized `session.metrics`
+    event. Local CLI transcripts only; nothing is read into the event except
+    numeric/enum metrics and the model id."""
+    _, audit = load_config(args.config)
+    source_root = resolve_path(args.source_root)
+    run_id = args.run_id or os.environ.get("AAK_AUDIT_RUN_ID")
+    if not run_id:
+        raise AuditError("import-session-metrics requires --run-id or AAK_AUDIT_RUN_ID")
+    parser = TRANSCRIPT_PARSERS.get(args.provider)
+    if parser is None:
+        raise AuditError(
+            f"unsupported provider '{args.provider}'; supported: "
+            + ", ".join(sorted(TRANSCRIPT_PARSERS))
+        )
+    transcript = resolve_path(args.transcript)
+    if not transcript.is_file():
+        raise AuditError(f"transcript not found: {transcript}")
+    metrics = parser(transcript)
+    sequence = int(dt.datetime.now(dt.UTC).timestamp() * 1_000_000)
+    event = {
+        "schema_version": SCHEMA_VERSION,
+        "event_id": f"evt_metrics_{sequence}",
+        "audit_run_id": run_id,
+        "sequence": sequence,
+        "occurred_at": utc_now(),
+        "event_type": "session.metrics",
+        "actor_kind": "system",
+        "invocation_id": None,
+        "payload": metrics,
+    }
+    validate_event(event)  # privacy_scan backstop against any leaked field
+    output_path = runtime_events_path(audit, source_root, run_id)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(event, sort_keys=True, separators=(",", ":")))
+        handle.write("\n")
+    tokens = metrics["tokens"]
+    print(
+        f"imported session.metrics ({args.provider}, {metrics['model']}): "
+        f"{tokens['total']} tokens, cache_hit={tokens['cache_hit_ratio']} -> {output_path}"
+    )
+    return 0
+
+
+def session_metrics_payload(events: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Latest session.metrics payload, or None."""
+    for event in reversed(events):
+        if event.get("event_type") == "session.metrics":
+            payload = event.get("payload")
+            return payload if isinstance(payload, dict) else None
+    return None
+
+
 def build_artifacts(
     events: list[dict[str, Any]],
     run_id: str,
@@ -933,6 +1142,7 @@ def build_artifacts(
 ) -> dict[str, Any]:
     generated_at = utc_now()
     invocations = build_invocations(events)
+    session_metrics = session_metrics_payload(events)
     project_hash = str(
         find_payload_value(events, "project_hash", "hmac_sha256_unavailable")
     )
@@ -1007,16 +1217,41 @@ def build_artifacts(
 
     artifacts = {
         "run-summary.json": summary,
-        "token-context.json": {
-            "schema_version": SCHEMA_VERSION,
-            "measurement_mode": "unavailable",
-            "confidence": "unavailable",
-            "provider_usage_available": False,
-            "compression": {
-                "recommended_count": 0,
-                "executed_count": event_count(events, "compact.observed"),
-            },
-        },
+        "token-context.json": (
+            {
+                "schema_version": SCHEMA_VERSION,
+                "measurement_mode": "imported-transcript",
+                "confidence": "measured",
+                "provider_usage_available": True,
+                "provider": session_metrics.get("provider"),
+                "model": session_metrics.get("model"),
+                "tokens": session_metrics.get("tokens"),
+                "speed": session_metrics.get("speed"),
+                "duration_seconds": session_metrics.get("duration_seconds"),
+                "turns": session_metrics.get("turns"),
+                "tool_calls": session_metrics.get("tool_calls"),
+                "context": session_metrics.get("context"),
+                "subagent": session_metrics.get("subagent"),
+                "reliability": session_metrics.get("reliability"),
+                "compression": {
+                    "recommended_count": 0,
+                    "executed_count": (session_metrics.get("compaction") or {}).get(
+                        "count", event_count(events, "compact.observed")
+                    ),
+                },
+            }
+            if session_metrics
+            else {
+                "schema_version": SCHEMA_VERSION,
+                "measurement_mode": "unavailable",
+                "confidence": "unavailable",
+                "provider_usage_available": False,
+                "compression": {
+                    "recommended_count": 0,
+                    "executed_count": event_count(events, "compact.observed"),
+                },
+            }
+        ),
         "agent-invocations.json": {
             "schema_version": SCHEMA_VERSION,
             "invocations": invocations,
@@ -1041,12 +1276,24 @@ def build_artifacts(
             "recommendation_count": len(recommendations),
             "recommendations": recommendations,
         },
-        "pricing-estimate.json": {
-            "schema_version": SCHEMA_VERSION,
-            "measurement_mode": "unavailable",
-            "currency": "unavailable",
-            "generated_at": generated_at,
-        },
+        "pricing-estimate.json": (
+            {
+                "schema_version": SCHEMA_VERSION,
+                "measurement_mode": "list-price-approximation",
+                "currency": (session_metrics.get("cost_estimate") or {}).get("currency", "USD"),
+                "amount": (session_metrics.get("cost_estimate") or {}).get("amount"),
+                "model": session_metrics.get("model"),
+                "basis": (session_metrics.get("cost_estimate") or {}).get("basis"),
+                "generated_at": generated_at,
+            }
+            if session_metrics and (session_metrics.get("cost_estimate") or {}).get("amount") is not None
+            else {
+                "schema_version": SCHEMA_VERSION,
+                "measurement_mode": "unavailable",
+                "currency": "unavailable",
+                "generated_at": generated_at,
+            }
+        ),
     }
     return artifacts
 
@@ -1215,6 +1462,17 @@ def build_parser() -> argparse.ArgumentParser:
     emit.add_argument("--run-id")
     emit.add_argument("--event-id")
     emit.set_defaults(func=emit_event)
+
+    metrics = sub.add_parser(
+        "import-session-metrics",
+        help="parse a provider transcript into one anonymized session.metrics event",
+    )
+    metrics.add_argument("--config")
+    metrics.add_argument("--source-root", default=".")
+    metrics.add_argument("--provider", required=True)
+    metrics.add_argument("--transcript", required=True)
+    metrics.add_argument("--run-id")
+    metrics.set_defaults(func=import_session_metrics)
 
     finalize = sub.add_parser(
         "finalize-run", help="generate a central audit run folder"

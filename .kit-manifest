@@ -94,6 +94,8 @@
 .ai-agent-kit/audit/emit-event.sh
 .ai-agent-kit/audit/finalize-run.ps1
 .ai-agent-kit/audit/finalize-run.sh
+.ai-agent-kit/audit/import-session-metrics.ps1
+.ai-agent-kit/audit/import-session-metrics.sh
 .ai-agent-kit/audit/README.md
 .ai-agent-kit/audit/record-event.ps1
 .ai-agent-kit/audit/record-event.sh
