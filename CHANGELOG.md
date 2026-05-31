@@ -4,6 +4,25 @@
 
 ### Added
 
+- **`feat(audit)` - import anonymized per-session token/context/speed metrics from provider transcripts (closes [#327](https://github.com/PetrovC/ai-agent-kit/issues/327); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
+  The audit previously only captured *activity* (`tool.observed`/`hook.observed`),
+  so it could not measure performance. Added an `import-session-metrics` runtime
+  subcommand (+ `import-session-metrics.sh` / `.ps1` wrappers) that parses a
+  provider session transcript and emits a single anonymized `session.metrics`
+  event populating `token-context.json` and `pricing-estimate.json`: input/
+  output/cache tokens, cache-hit ratio, speed (tokens/s), wall-clock duration,
+  context high-water-mark, compaction count + tokens-to-first-compaction, turns,
+  tool-call count, subagent (sidechain) token split, retries/API errors/stop
+  reasons, and a list-price cost estimate. **Strict anonymization:** only numeric
+  metrics and the model id are read — never prompts, responses, file contents,
+  `cwd`, branch names, or repo URLs; `validate_event`/`privacy_scan` reject any
+  leak (covered by a test that injects forbidden data and asserts it never
+  appears). Claude transcripts (`~/.claude/projects/**/*.jsonl`) are supported
+  today; Codex/Antigravity parsers follow. Local CLI sessions only (cloud
+  sessions are not on disk). BATS (`agent_audit_metrics.bats`) + Pester
+  (`AgentAuditMetrics.Tests.ps1`) coverage; canonical + `.ai-agent-kit` dogfood
+  mirror, `.kit-manifest` updated.
+
 - **`feat(scripts)` - record an install/update audit of what changed (closes [#313](https://github.com/PetrovC/ai-agent-kit/issues/313)).**
   `install.*` and `update.*` previously mutated a target with no durable record
   of what they did. They now append one NDJSON line per run to

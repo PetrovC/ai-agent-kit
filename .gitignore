@@ -37,3 +37,6 @@ CLAUDE.local.md
 
 # Local install/update audit record written by install.* / update.* (#313).
 .ai-agent-kit/install-audit.ndjson
+
+# Local runtime lock written by the scheduled-task / loop feature.
+/.claude/scheduled_tasks.lock

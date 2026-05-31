@@ -26,6 +26,23 @@ AAK_AUDIT_RUN_ID=run_20260528_120000_example \
   --payload '{"agent_category":"security","model_tier":"review"}'
 ```
 
+Import anonymized performance metrics (tokens, cache, speed, context
+exhaustion, cost) from a provider session transcript into the run:
+
+```bash
+AAK_AUDIT_RUN_ID=run_20260528_120000_example \
+  .ai-agent-kit/audit/import-session-metrics.sh --source-root . \
+  --provider claude \
+  --transcript ~/.claude/projects/<encoded>/<session>.jsonl
+```
+
+This emits a single anonymized `session.metrics` event that populates
+`token-context.json` and `pricing-estimate.json`. It reads **only** numeric
+metrics and the model id — never prompts, responses, file contents, paths,
+branch names, or repo URLs (and `validate`/`privacy_scan` reject any leak).
+Local CLI transcripts only (cloud sessions are not on disk). Claude is
+supported today; Codex and Antigravity parsers follow.
+
 Finalize one run:
 
 ```bash
@@ -37,6 +54,7 @@ PowerShell wrappers are also installed:
 ```powershell
 .\.ai-agent-kit\audit\record-event.ps1 -SourceRoot . -EventFile event.json
 .\.ai-agent-kit\audit\emit-event.ps1 -SourceRoot . -Type run.started -Actor system -RunId run_20260528_120000_example
+.\.ai-agent-kit\audit\import-session-metrics.ps1 -SourceRoot . -Provider claude -Transcript $transcript -RunId run_20260528_120000_example
 .\.ai-agent-kit\audit\finalize-run.ps1 -SourceRoot . -RunId run_20260528_120000_example
 ```
 
