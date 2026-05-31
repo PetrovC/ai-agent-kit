@@ -320,4 +320,47 @@ Describe "PowerShell agent audit runtime" {
         if ($rec.recommended_action -ne "monitor") { throw "recommended_action $($rec.recommended_action)" }
         if ($rec.issue_candidate.should_open_issue -ne $false) { throw "should_open_issue not false" }
     }
+
+    It "emits a scripted governance loop that survives finalization" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        Write-AuditConfig $configPath
+        $emitScript = Join-Path $script:KitRoot "tooling\shared\agent-audit\emit-event.ps1"
+        $finalizeScript = Join-Path $script:KitRoot "tooling\shared\agent-audit\finalize-run.ps1"
+        $runId = "run_emit_loop"
+        function Emit {
+            param([string]$Type, [string]$Actor, [string]$Payload = "", [string]$InvocationId = "")
+            $emitArgs = @("-Config", $configPath, "-SourceRoot", $script:Target, "-Type", $Type, "-Actor", $Actor, "-RunId", $runId)
+            if ($Payload) { $emitArgs += @("-Payload", $Payload) }
+            if ($InvocationId) { $emitArgs += @("-InvocationId", $InvocationId) }
+            Assert-AakSuccess (Invoke-AakPowerShellScript -Script $emitScript -Arguments $emitArgs)
+        }
+        Emit -Type "run.started" -Actor "system"
+        Emit -Type "task.classified" -Actor "main_agent" -Payload '{"task_type":"security_review","risk_level":"high"}'
+        Emit -Type "agent.invoked" -Actor "subagent" -InvocationId "inv_1" -Payload '{"agent_category":"security","model_tier":"review"}'
+        Emit -Type "agent.completed" -Actor "subagent" -InvocationId "inv_1" -Payload '{"status":"success"}'
+        Emit -Type "report.evaluated" -Actor "main_agent" -Payload '{"quality_category":"accepted"}'
+        Emit -Type "recommendation.created" -Actor "main_agent" -Payload '{"recommendation_kind":"realign","severity":"medium"}'
+        Emit -Type "run.completed" -Actor "system" -Payload '{"project_hash":"hmac_sha256_example_project","status":"completed","validation_state":"passed"}'
+
+        Assert-AakSuccess (Invoke-AakPowerShellScript -Script $finalizeScript -Arguments @("-Config", $configPath, "-SourceRoot", $script:Target, "-RunId", $runId))
+
+        $base = Join-Path $script:CentralPath "agent-audit\runs\2026\05\hmac_sha256_example_project\$runId"
+        $types = @(Get-Content (Join-Path $base "governance-events.ndjson") | Where-Object { $_.Trim() } | ForEach-Object { ($_ | ConvertFrom-Json).event_type })
+        foreach ($need in @("run.started", "run.completed", "task.classified", "agent.invoked", "agent.completed", "report.evaluated", "recommendation.created")) {
+            if ($types -notcontains $need) { throw "missing event $need; got $($types -join ',')" }
+        }
+        $invocations = @((Get-Content -Raw (Join-Path $base "agent-invocations.json") | ConvertFrom-Json).invocations)
+        if ($invocations.Count -ne 1) { throw "expected 1 invocation, got $($invocations.Count)" }
+        if ($invocations[0].status -ne "success") { throw "unexpected status $($invocations[0].status)" }
+        $recs = Get-Content -Raw (Join-Path $base "governance-recommendations.json") | ConvertFrom-Json
+        if (-not (@($recs.recommendations).recommendation_kind -contains "realign")) { throw "missing realign recommendation" }
+    }
+
+    It "fails to emit a governance event without a run id" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        Write-AuditConfig $configPath
+        $emitScript = Join-Path $script:KitRoot "tooling\shared\agent-audit\emit-event.ps1"
+        $result = Invoke-AakPowerShellScript -Script $emitScript -Arguments @("-Config", $configPath, "-SourceRoot", $script:Target, "-Type", "run.started", "-Actor", "system")
+        Assert-AakFailure $result
+    }
 }

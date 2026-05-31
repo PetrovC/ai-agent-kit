@@ -248,6 +248,52 @@ def record_event(args: argparse.Namespace) -> int:
     return 0
 
 
+def emit_event(args: argparse.Namespace) -> int:
+    """Build a well-formed governance event from CLI args and record it.
+
+    The active governance loop uses this to emit the richer event types
+    (`run.started`/`run.completed`, `agent.selected`/`agent.invoked`/
+    `agent.completed`, `task.classified`, `report.evaluated`,
+    `recommendation.created`). Run linking is by `audit_run_id`: pass
+    `--run-id` or set `AAK_AUDIT_RUN_ID` so emitted events join the same run
+    folder as the hook-emitted activity events. The wrappers are fail-open, so
+    a failure here never changes default agent behavior.
+    """
+    _, audit = load_config(args.config)
+    source_root = resolve_path(args.source_root)
+    run_id = args.run_id or os.environ.get("AAK_AUDIT_RUN_ID")
+    if not run_id:
+        raise AuditError("emit-event requires --run-id or AAK_AUDIT_RUN_ID")
+    try:
+        payload = json.loads(args.payload) if args.payload else {}
+    except json.JSONDecodeError as exc:
+        raise AuditError(f"--payload is not valid JSON: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise AuditError("--payload must be a JSON object")
+    if args.invocation_id:
+        payload.setdefault("invocation_id", args.invocation_id)
+    sequence = int(dt.datetime.now(dt.UTC).timestamp() * 1_000_000)
+    event = {
+        "schema_version": SCHEMA_VERSION,
+        "event_id": args.event_id or f"evt_{sequence}",
+        "audit_run_id": run_id,
+        "sequence": sequence,
+        "occurred_at": utc_now(),
+        "event_type": args.event_type,
+        "actor_kind": args.actor_kind,
+        "invocation_id": args.invocation_id,
+        "payload": payload,
+    }
+    validate_event(event)
+    output_path = runtime_events_path(audit, source_root, run_id)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(event, sort_keys=True, separators=(",", ":")))
+        handle.write("\n")
+    print(f"emitted audit event {args.event_type}: {output_path}")
+    return 0
+
+
 def run_git(
     repo: pathlib.Path, *args: str, check: bool = True
 ) -> subprocess.CompletedProcess[str]:
@@ -1144,6 +1190,20 @@ def build_parser() -> argparse.ArgumentParser:
     record.add_argument("--event-file")
     record.add_argument("--source-root", default=".")
     record.set_defaults(func=record_event)
+
+    emit = sub.add_parser(
+        "emit-event",
+        help="build and record one governance event (run.*, agent.*, etc.)",
+    )
+    emit.add_argument("--config")
+    emit.add_argument("--source-root", default=".")
+    emit.add_argument("--type", dest="event_type", required=True)
+    emit.add_argument("--actor", dest="actor_kind", default="main_agent")
+    emit.add_argument("--payload", default="")
+    emit.add_argument("--invocation-id", dest="invocation_id")
+    emit.add_argument("--run-id")
+    emit.add_argument("--event-id")
+    emit.set_defaults(func=emit_event)
 
     finalize = sub.add_parser(
         "finalize-run", help="generate a central audit run folder"
