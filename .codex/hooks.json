@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" pre-bash-guard.sh",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/pre-bash-guard.sh\"'",
             "statusMessage": "Checking command safety"
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh"
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\"'"
           }
         ]
       },
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" format-on-save.sh"
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/format-on-save.sh\"'"
           }
         ]
       }
@@ -38,11 +38,44 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh"
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\" Stop'"
           },
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" notify-done.sh"
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/notify-done.sh\"'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\" SessionStart'"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\" SubagentStart'"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\" SubagentStop'"
           }
         ]
       }

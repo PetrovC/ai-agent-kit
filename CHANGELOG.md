@@ -4,6 +4,26 @@
 
 ### Added
 
+- **`feat(audit)` - auto-emit run/agent lifecycle events from provider hooks + auto-finalize (closes [#328](https://github.com/PetrovC/ai-agent-kit/issues/328); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
+  Real sessions previously produced only `tool.observed`/`hook.observed` and were
+  never finalized, so governance artifacts stayed empty. Provider lifecycle hooks
+  now auto-emit governance events sharing the session's deterministic
+  `AAK_AUDIT_RUN_ID`: `SessionStart`→`run.started`; run-end→`run.completed`
+  (Claude/Antigravity `SessionEnd`, Codex `Stop` — verified per provider, since
+  Claude's `Stop` fires every turn); Claude `Task` / Codex `SubagentStart` /
+  Antigravity `BeforeAgent`→`agent.invoked`; `SubagentStop` / `AfterAgent`→
+  `agent.completed`. On run end the hook also auto-runs `finalize-run`
+  (best-effort; a no-op without a configured central audit clone), so finished
+  sessions land as anonymized run folders without any manual `emit-event` /
+  `finalize-run`. The event name is passed as an explicit hook argument so the
+  mapping does not depend on each provider's stdin field names, and a trailing-CR
+  strip keeps the run-end comparison correct under Windows `python` (`\r\n`).
+  Fail-open with no default behavior change. Implemented across the
+  Claude/Codex/Antigravity `agent-audit-event.sh` hooks and their wiring
+  (`settings.json` / `hooks.json`) with canonical + dogfood mirrors; BATS
+  (`agent_audit_lifecycle.bats`) and Pester (`AgentAuditLifecycle.Tests.ps1`)
+  cover the lifecycle, Codex session-close mapping, fail-open, and anonymization.
+
 - **`feat(audit)` - add Codex and Antigravity transcript parsers to `import-session-metrics` (closes [#333](https://github.com/PetrovC/ai-agent-kit/issues/333); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
   Extends Phase T beyond Claude so token/context/speed metrics import from all
   three local CLIs. **Codex** (`~/.codex/sessions/**/rollout-*.jsonl`) parses

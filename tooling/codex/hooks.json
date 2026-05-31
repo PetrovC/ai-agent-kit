@@ -38,11 +38,44 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\"'"
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\" Stop'"
           },
           {
             "type": "command",
             "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/notify-done.sh\"'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\" SessionStart'"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\" SubagentStart'"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.codex/hooks/agent-audit-event.sh\" SubagentStop'"
           }
         ]
       }
