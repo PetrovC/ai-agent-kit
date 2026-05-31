@@ -84,6 +84,56 @@ is the cross-cutting governance reference.
 - Risk identification.
 - Second opinion on scoped areas.
 
+## Active Governance Loop
+
+The audit answers "did the agents do what they reported?" only if the
+governing (high-capability) model emits governance events as it works. This is
+the canonical description of that loop and its mandatory checkpoint.
+
+The loop uses the shared `emit-event` helper (`.ai-agent-kit/audit/emit-event.sh`,
+or `emit-event.ps1` on Windows). All events in one session share an
+`audit_run_id`: export `AAK_AUDIT_RUN_ID` once and the activity hooks, the
+emitted governance events, and `finalize-run` all write to the same run folder.
+
+1. **Start and classify.** Emit `run.started`, then `task.classified` with the
+   sanitized task type, risk, and complexity.
+2. **Select and invoke.** For each subagent, emit `agent.selected` then
+   `agent.invoked` with a stable `--invocation-id`, the agent category, and the
+   model tier.
+3. **Complete.** When the subagent returns, emit `agent.completed` for the same
+   invocation id with `status` and a sanitized `result_summary`.
+4. **Mandatory checkpoint — verify before trust.** Before accepting any
+   subagent report, the architect verifies it against recorded activity (the
+   report structure below) and emits `report.evaluated` with the quality
+   category. This checkpoint is mandatory: an unevaluated report must not be
+   accepted. On a realign decision, also emit `recommendation.created`.
+5. **Finish.** Emit `run.completed` with the final status and validation state,
+   then run `finalize-run` to aggregate, score, and store the run.
+
+Emission is best-effort and fail-open: the loop calls `emit-event` without
+letting a failure change agent behavior, and the audit is never written into
+the source project. Events carry sanitized metadata only — never raw prompts,
+responses, command output, file contents, exact paths, repository URLs, or
+branch names.
+
+```bash
+export AAK_AUDIT_RUN_ID="run_claude_20260531_ab12cd34ef567890"
+emit-event.sh --type run.started --actor system
+emit-event.sh --type task.classified --actor main_agent \
+  --payload '{"task_type":"security_review","risk_level":"high"}'
+emit-event.sh --type agent.invoked --actor subagent --invocation-id inv_1 \
+  --payload '{"agent_category":"security","model_tier":"review"}'
+emit-event.sh --type agent.completed --actor subagent --invocation-id inv_1 \
+  --payload '{"status":"success"}'
+emit-event.sh --type report.evaluated --actor main_agent \
+  --payload '{"quality_category":"accepted"}'
+emit-event.sh --type run.completed --actor system \
+  --payload '{"status":"completed","validation_state":"passed"}'
+```
+
+`AGENT_AUDIT_GOVERNANCE.md` defines how the emitted events are scored;
+`AGENT_AUDIT_SCHEMA.md` defines each event's payload schema and privacy rules.
+
 ## Mandatory Subagent Report Structure
 
 Every useful report should include:

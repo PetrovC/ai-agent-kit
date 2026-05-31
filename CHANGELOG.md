@@ -4,6 +4,28 @@
 
 ### Added
 
+- **`feat(audit)` - emit governance events so the audit captures the agent governance loop (closes [#311](https://github.com/PetrovC/ai-agent-kit/issues/311)).**
+  The audit hooks only ever produced `tool.observed` / `hook.observed` /
+  `compact.observed`; the richer event types the schema defines and the runtime
+  accepts (`run.*`, `task.classified`, `agent.selected`/`invoked`/`completed`,
+  `model.decision`, `report.evaluated`, `recommendation.created`) had no
+  emitter, so the governance dimension was structurally unfed. Added an
+  `emit-event` subcommand to `audit_runtime.py` plus `emit-event.sh` /
+  `emit-event.ps1` wrappers that build a well-formed, privacy-scanned event from
+  CLI arguments and record it. Run linking is by `audit_run_id`: a session
+  exports `AAK_AUDIT_RUN_ID` once and the hooks, emitted governance events, and
+  `finalize-run` all write to the same run folder. The **active governance loop
+  and its mandatory report-evaluation checkpoint** are documented canonically in
+  `docs/ai/SUBAGENT_GOVERNANCE.md` (cross-linked from `AGENT_AUDIT_GOVERNANCE.md`
+  and the runtime README). Emission is best-effort and fail-open and never
+  writes into the source project. Shipped via the existing
+  `tooling/shared/agent-audit` install path (canonical + `.ai-agent-kit`
+  dogfood mirror, `.kit-manifest` updated); added BATS
+  (`agent_audit_emit.bats`) and Pester scripted-session fixtures asserting a
+  full loop (`run.*`, an `agent.invoked`/`agent.completed` pair, and
+  `report.evaluated`/`recommendation.created`) reaches the runtime and survives
+  finalization.
+
 - **`feat(audit)` - implement the deterministic governance scoring specified in `AGENT_AUDIT_GOVERNANCE.md` (closes [#310](https://github.com/PetrovC/ai-agent-kit/issues/310)).**
   `finalize-run` now computes the report quality score (0-10 with the documented
   penalty table), the noise score (deterministic six-component formula), and

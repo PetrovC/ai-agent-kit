@@ -7,7 +7,8 @@ anonymized agent audit reports. It builds on:
   privacy rules;
 - [AGENT_AUDIT_STORAGE.md](./AGENT_AUDIT_STORAGE.md) for storage layout;
 - [MODEL_ROUTING.md](./MODEL_ROUTING.md) for model-tier expectations;
-- [SUBAGENT_GOVERNANCE.md](./SUBAGENT_GOVERNANCE.md) for delegation rules.
+- [SUBAGENT_GOVERNANCE.md](./SUBAGENT_GOVERNANCE.md) for delegation rules and
+  the active governance loop that emits the events scored here.
 
 The scoring rules below are implemented deterministically by the audit runtime
 (`finalize-run` computes `report-quality.json` and `governance-recommendations.json`
