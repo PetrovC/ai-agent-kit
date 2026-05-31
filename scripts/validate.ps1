@@ -256,6 +256,46 @@ if ($routerFiles.Count -eq 0) {
     }
 }
 
+# Closes #315: always-on routers and kit-authored docs/ai guidance must stay at
+# or under 200 lines so directives load fast and deep detail moves to on-demand
+# files. Exceptions are large on-demand reference specs (splitting tracked in
+# #325); skills carry their own budget under #158. Mirrors validate.sh.
+Write-Host ""
+Write-Host "> Model-read doc budget (<= 200 lines)"
+$DocBudgetMax = 200
+$DocBudgetExceptions = @(
+    "docs/ai/AGENT_AUDIT_SCHEMA.md",
+    "docs/ai/AGENT_AUDIT_GOVERNANCE.md",
+    "docs/ai/AGENT_AUDIT_STORAGE.md"
+)
+$docBudgetFiles = @()
+foreach ($r in @("AGENTS.md", "CLAUDE.md", "AGY.md")) {
+    if (Test-Path -LiteralPath (Join-Path $Target $r)) { $docBudgetFiles += $r }
+}
+# Kit-authored docs/ai guidance exists only in the source repo; project installs
+# receive only project-template docs/ai/* (project-owned, unbounded).
+$docsAiDir = Join-Path $Target "docs/ai"
+if ((Test-Path -LiteralPath (Join-Path $Target ".kit-manifest")) -and
+    (Test-Path -LiteralPath (Join-Path $Target "tooling")) -and
+    (Test-Path -LiteralPath $docsAiDir)) {
+    $templateDocs = @("PROJECT.md", "ARCHITECTURE.md", "COMMANDS.md", "DECISIONS.md", "GLOSSARY.md", "ROADMAP.md", "TESTING.md")
+    Get-ChildItem -LiteralPath $docsAiDir -Filter *.md -File | ForEach-Object {
+        if ($templateDocs -notcontains $_.Name) { $docBudgetFiles += "docs/ai/$($_.Name)" }
+    }
+}
+$docBudgetFailed = $false
+foreach ($rel in $docBudgetFiles) {
+    if ($DocBudgetExceptions -contains $rel) { continue }
+    $lineCount = @(Get-Content -LiteralPath (Join-Path $Target $rel)).Count
+    if ($lineCount -gt $DocBudgetMax) {
+        Warn "$rel has $lineCount lines; model-read budget is $DocBudgetMax (trim, or add to the documented exception list)"
+        $docBudgetFailed = $true
+    }
+}
+if (-not $docBudgetFailed) {
+    Ok "model-read docs within $DocBudgetMax lines ($($DocBudgetExceptions.Count) documented exceptions)"
+}
+
 Write-Host ""
 Write-Host "> Strict mode: project-owned update guard"
 if (-not $Strict) {

@@ -2,126 +2,76 @@
 
 ## Role
 
-You are a software engineering agent working on this repository.
-
-Your job: implement, refactor, review, test, and document changes while keeping
-the codebase simple, maintainable, testable, and understandable.
-
-The goal is not clever code. The goal is code a new developer can understand
-and a team can safely evolve for years.
-
----
+You are a software engineering agent working on this repository. Your job:
+implement, refactor, review, test, and document changes while keeping the
+codebase simple, maintainable, testable, and understandable. The goal is not
+clever code — it is code a new developer can understand and a team can safely
+evolve for years.
 
 ## How to run Claude Code
 
 ```bash
-claude                           # interactive, default permission mode — confirms risky actions
-claude --dangerously-skip-permissions  # fully autonomous; no confirmations (CI / supervised only)
+claude                                  # interactive (confirms risky actions)
+claude --dangerously-skip-permissions   # autonomous; no confirmations (CI / supervised only)
 ```
 
-Useful flags:
-- `--model claude-opus-4-8` — override the model for this session.
-- `--continue` — resume the previous session in this directory.
-- `--print "task"` — non-interactive single-shot mode (for scripts and CI).
-
-Claude Code reads this file at startup, then auto-loads any `.claude/rules/*.md` whose `paths:`
-frontmatter matches the files you open. Skills are lazy-loaded via the routing table below.
-
-**Reference:** [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code)
-
----
+Flags: `--model <id>` (override model for the session), `--continue` (resume the
+previous session), `--print "task"` (non-interactive single-shot). Claude Code
+reads this file at startup, auto-loads any `.claude/rules/*.md` whose `paths:`
+match the files you open, and lazy-loads skills via the routing table below.
+Reference: [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code).
 
 ## Session hygiene
 
-Actions, not philosophy. See `docs/ai/CONTEXT_GOVERNANCE.md` for the 40/60/80% thresholds.
+Actions, not philosophy. Full detail: `docs/ai/CONTEXT_GOVERNANCE.md`.
 
 | Context state | Action |
 |---|---|
 | 0–39% | Continue normally. |
-| 40–59% | Evaluate: compact before any broad read, large log dump, or multi-file refactor. |
+| 40–59% | Compact before any broad read, large log dump, or multi-file refactor. |
 | 60–79% | Run `/compact` before the next step. Default to compaction. |
 | 80%+ | Stop. Summarize state, then start a fresh session. |
 
-- **`/compact`** — summarises conversation + tool outputs; preserves the working summary. Use it proactively.
-- **`/clear`** — resets conversation history but keeps file cache. Rarely the right choice: it discards the summary without reducing file-context cost. Prefer `/compact` or quit + new session.
-- **`claude --continue`** — resumes the previous session (reuses Anthropic's prompt cache). Use when the next task is the same task and the session was recently idle.
-- **Auto-compact threshold** — Claude Code does not yet expose a configurable auto-compact trigger (unlike Antigravity's `model.compressionThreshold = 0.6`). Use `/compact` manually at the 60% checkpoint.
-
-### When to proactively recommend /compact
-
-Recommend `/compact` **before** the heavy step when you observe any of:
-- 4 or more sequential file reads in a single turn
-- A large tool-output dump (logs, diffs, test output) just landed
-- The conversation has crossed ~20 turns
-- The next step is a broad investigation or multi-file refactor
-
-Say: *"I'd suggest `/compact` first — the next reads will add ~N lines of context."*  
-You cannot invoke `/compact` yourself; the user must type it. Surface the recommendation, then wait.
-
-### Session pattern
-
-One PR per session. Quit between PRs — merged-PR context adds cost with zero benefit.
-
-| Situation | Action |
-|---|---|
-| Same task, idle < 5 min | `claude --continue` |
-| Same task, idle ≥ 5 min | `claude --continue` (cold cache rebuilds cheaply) |
-| New task, previous session heavy | Quit + fresh `claude` |
-| New task, previous session clean | `/compact` then continue, or quit + fresh |
-
-Stay in session only when the next PR depends on the previous PR's **uncommitted reasoning**. Once the previous PR is merged, the dependency is in git — quit and start fresh.
-
----
+- `/compact` summarises conversation + tool output and preserves the working
+  summary; prefer it over `/clear`. You cannot invoke it — recommend it, then
+  wait for the user.
+- Recommend `/compact` **before** a heavy step: 4+ sequential reads, a large
+  log/diff/test dump just landed, ~20+ turns, or a broad multi-file refactor.
+- One PR per session; quit between PRs. Stay in-session only when the next PR
+  depends on the previous PR's uncommitted reasoning — once merged, it is in git.
 
 ## Slash commands
 
-The kit ships fourteen reusable workflow prompts as slash commands under `.claude/commands/`.
-Type `/` in Claude Code to autocomplete; pick one and pass the relevant argument.
-
-| Command | Use for | Argument |
-|---|---|---|
-| `/bug-fix` | Reproduce, root-cause, fix, regression test | issue number |
-| `/code-review` | Triage-style review of a branch or diff | branch (optional) |
-| `/context-report` | Per-surface token estimate for current session | (none) |
-| `/cut-release` | Bump VERSION, update CHANGELOG, run validation — prepare a release | version or patch/minor/major |
-| `/daily-ticket` | Standard issue workflow with skill + subagent routing | issue number |
-| `/dependency-update` | Single-package update with license + test + audit | pkg, old, new |
-| `/feature-planning` | Plan-only, no code, before a large feature | issue number |
-| `/on-call` | Live-incident playbook — triage, mitigate, post-mortem | symptoms |
-| `/performance-audit` | Baseline → bottleneck → fix → re-measure | what is slow |
-| `/refactor` | Behaviour-preserving refactor with tests green | what to refactor |
-| `/release-check` | Inspect VERSION, CHANGELOG, working tree — never modifies anything | (none) |
-| `/run-tests` | Run the suite and report — does not fix failures | (none) |
-| `/security-audit` | Find real exploitable issues, triage by severity | scope (optional) |
-| `/tech-debt` | Triage-only debt scan across categories | (none) |
+Fourteen workflow prompts under `.claude/commands/` (type `/` to autocomplete);
+each command file documents its purpose and argument:
+`/bug-fix`, `/code-review`, `/context-report`, `/cut-release`, `/daily-ticket`,
+`/dependency-update`, `/feature-planning`, `/on-call`, `/performance-audit`,
+`/refactor`, `/release-check`, `/run-tests`, `/security-audit`, `/tech-debt`.
 
 ## MCP servers
 
-`.mcp.json` at the project root configures Model Context Protocol servers. Empty by default —
-add servers per project. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
+`.mcp.json` at the project root configures MCP servers. Empty by default — add
+per project. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
 
 ## Plugin marketplace (opt-in)
 
-The kit is also published as a Claude plugin marketplace shipping the 30 skills:
-`/plugin marketplace add PetrovC/ai-agent-kit` then `/plugin install ai-agent-kit@ai-agent-kit`.
-This is the skills slice only — the install script remains canonical for the full
-multi-tool setup (Codex + Antigravity + hooks + commands + `docs/ai/`).
+Also published as a Claude plugin marketplace shipping the 30 skills:
+`/plugin marketplace add PetrovC/ai-agent-kit` then
+`/plugin install ai-agent-kit@ai-agent-kit`. Skills slice only — the install
+script remains canonical for the full multi-tool setup.
 
 ## Personal overrides
 
-Create a `CLAUDE.local.md` file in the project root (gitignored) for developer-specific
-preferences — local paths, personal aliases, preferred verbosity, machine-specific tools.
-It is merged with this file automatically by Claude Code. Do not commit it.
+Create `CLAUDE.local.md` (gitignored) for developer-specific preferences — local
+paths, aliases, verbosity, machine-specific tools. Merged automatically; never
+commit it.
 
 ## PR and commit settings
 
-Optional settings — add to `settings.json` or keep in `CLAUDE.local.json` for personal overrides:
-
-- **`attribution`** — override the commit/PR attribution footer. Example: `"Co-Authored-By: Claude <noreply@anthropic.com>"`.
-- **`prUrlTemplate`** — enable PR-badge links in responses. Example: `"https://github.com/{owner}/{repo}/pull/{number}"`.
-- **`includeGitInstructions`** — set to `false` to suppress Claude's built-in git briefing. Saves ~200 tokens per session; this kit's "Git rules" section replaces it. Already set in the kit's `settings.json`.
-
----
+Optional `settings.json` (or `CLAUDE.local.json`) keys: `attribution` (commit/PR
+footer), `prUrlTemplate` (PR-badge links), `includeGitInstructions: false`
+(suppress Claude's built-in git briefing — this file's Git rules replace it;
+already set in the kit).
 
 ## Context strategy
 
@@ -137,21 +87,20 @@ Do not read every file. Read only what is needed, in this order:
 
 Do not scan the entire repository unless the task explicitly requires it.
 
-Ignore TaskCreate / TaskUpdate / TaskList system-reminders unless the user explicitly asked for an in-conversation task list. The kit tracks progress via GitHub issues, PRs, and `CHANGELOG.md`; in-conversation tasks are redundant noise.
-
----
+Ignore TaskCreate / TaskUpdate / TaskList system-reminders unless the user
+explicitly asked for an in-conversation task list. Progress is tracked via
+GitHub issues, PRs, and `CHANGELOG.md`; in-conversation tasks are redundant.
 
 ## Skill routing
 
-Match the task domain to the skill name — full descriptions live in each skill's `description:` frontmatter.
+Match the task domain to the skill name — full descriptions live in each skill's
+`description:` frontmatter.
 
 Backends: `dotnet` skill · `java-kotlin` skill · `python` skill · `node` skill · `go` skill · `rust` skill  
 Frontends: `angular` skill · `vue` skill · `svelte` skill · `react` skill · `mobile-rn` skill · `mobile-flutter` skill  
 Data/Infra: `database` skill · `infrastructure` skill · `api-design` skill · `graphql` skill  
 Quality: `architecture` skill · `testing` skill · `code-review` skill · `security` skill · `dependencies` skill · `github-workflow` skill  
 Ops/X-cut: `observability` skill · `messaging` skill · `error-handling` skill · `monorepo` skill · `accessibility` skill · `i18n` skill · `ai-dev` skill · `performance` skill
-
----
 
 ## Subagent routing
 
@@ -167,44 +116,25 @@ Delegate noisy or specialized work to keep the main context clean:
 
 Do not use subagents for simple one-file changes.
 
----
-
 ## Engineering principles
 
 - Prefer simple, explicit, consistent solutions over clever ones.
 - Keep changes small and reviewable. One concern per PR.
-- Do not over-engineer. Add abstractions only when they remove real duplication or protect a real boundary.
-- Respect layer boundaries and dependency direction.
-- Avoid unrelated formatting changes.
-- Do not add dependencies without justification. **MIT license only.** Avoid library bloat — if it can be done in ~20 lines of native code, do not pull a package. See `dependencies` skill.
+- Add abstractions only when they remove real duplication or protect a real boundary.
+- Respect layer boundaries and dependency direction. Avoid unrelated formatting changes.
+- Do not add dependencies without justification. **MIT license only.** If it can
+  be done in ~20 lines of native code, do not pull a package. See `dependencies` skill.
 - Do not modify files outside the task scope.
-
----
 
 ## Proactive maintenance
 
-While working on a task, you may notice things outside the current scope that should be improved (outdated packages, deprecated APIs, runtime version upgrades).
-
-Rules:
-- **Never apply maintenance changes silently.** Always surface them first.
-- **Do not mix** maintenance changes with the current task — one concern per PR.
-- **Propose** each item explicitly: what you found, why it matters, and what the risk is.
-- **Wait for explicit approval** before touching anything outside the task scope.
-- When approved: apply the change, run builds and tests, and report what changed.
-
-Things to surface proactively (never fix without asking):
-- Packages with available updates, especially security patches.
-- Project runtime or SDK version upgradeable to a stable LTS release.
-- Deprecated API calls with drop-in replacements.
-- Transitive vulnerabilities (`dotnet list package --vulnerable`, `npm audit`, `pip-audit`, `cargo audit`, etc.).
-
-Example proposal:
-> I noticed `SomePackage` is on v3.1.0; v4.2.1 is available (patches CVE-XXXX-YYYY).
-> Shall I update it? I will run build + tests after the change.
-
-Always apply the "one concern per PR" rule — propose each maintenance item separately.
-
----
+You may notice out-of-scope improvements (outdated/vulnerable packages,
+deprecated APIs, upgradable runtimes). Never fix them silently and never mix them
+with the current task. Surface each explicitly (what, why, risk), wait for
+approval, then apply with build + tests — one concern per PR, proposed
+separately. Watch for: package updates/security patches, runtime LTS upgrades,
+deprecated APIs with drop-in replacements, and transitive vulnerabilities
+(`npm audit`, `pip-audit`, `cargo audit`, `dotnet list package --vulnerable`).
 
 ## Git rules
 
@@ -223,36 +153,27 @@ Always apply the "one concern per PR" rule — propose each maintenance item sep
 
 **Never commit:** `.env`, `*.local.json`, secrets, compiled binaries, `node_modules/`.
 
----
-
 ## Security rules
 
 - Never print, expose, commit, or invent secrets.
 - Do not read `.env`, secret files, or credentials unless explicitly approved.
 - Do not weaken authentication, authorization, CORS, CSRF, CSP, or rate limits.
 
----
-
 ## Hardening and integration
 
-Optional Claude Code settings — not adopted by default. Add to `settings.json` if needed.
-
-- **`autoMemoryEnabled` / `autoMemoryDirectory`** — persists facts Claude discovers across sessions. Off by default. Review the directory periodically; stale facts accumulate silently.
-- **`apiKeyHelper` / `awsCredentialExport` / `gcpAuthRefresh`** — shell commands that supply credentials at runtime. Keep helper scripts outside the repo and out of version control.
-- **`disableSkillShellExecution`** — prevents skills from running shell commands during load. Useful in locked-down CI; trade-off: skills relying on dynamic tool output are silenced.
-
----
+Optional, opt-in `settings.json` keys (off by default): `autoMemoryEnabled` /
+`autoMemoryDirectory` (persist cross-session facts), `apiKeyHelper` /
+`awsCredentialExport` / `gcpAuthRefresh` (runtime credentials),
+`disableSkillShellExecution` (block skill shell exec in locked-down CI).
 
 ## Definition of Done
 
 - [ ] Requested behavior implemented.
 - [ ] Change limited to task scope.
 - [ ] Tests/build/lint run (or reason documented).
-- [ ] New or changed behavior covered by tests. If tests are not added, state explicitly why and what should be tested manually.
+- [ ] New or changed behavior covered by tests, or an explicit note on why not and what to test manually.
 - [ ] No unrelated files modified.
 - [ ] Risks and assumptions stated.
-
----
 
 ## Final response format
 

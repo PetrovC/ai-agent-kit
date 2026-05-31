@@ -231,6 +231,21 @@
 
 ### Changed
 
+- **`refactor(docs)` — bring the routers under the 200-line model-read budget and enforce it (closes [#315](https://github.com/PetrovC/ai-agent-kit/issues/315)).**
+  The always-on routers were trimmed below 200 lines so the directives that
+  matter load fast and deep/optional detail moves to on-demand files:
+  `CLAUDE.md` 263 → 184, `AGENTS.md` 285 → 195, `AGY.md` 280 → 175 (every
+  directive, the required Codex context/model/subagent links, and the AGENTS
+  byte budget preserved; dogfood mirrors regenerated). Added a `validate.*`
+  "Model-read doc budget (≤ 200 lines)" check that flags any always-on router or
+  kit-authored `docs/ai` guidance doc over the limit, with a documented
+  exception list. Project-template `docs/ai` files (project-owned, variable
+  length) and skills (budgeted under [#158](https://github.com/PetrovC/ai-agent-kit/issues/158))
+  are out of scope; the three large on-demand audit reference specs
+  (`AGENT_AUDIT_SCHEMA.md`, `AGENT_AUDIT_GOVERNANCE.md`, `AGENT_AUDIT_STORAGE.md`)
+  are documented exceptions, with splitting tracked in
+  [#325](https://github.com/PetrovC/ai-agent-kit/issues/325).
+
 - **`chore(models)` — recalibrate provider model routing to current models (closes [#314](https://github.com/PetrovC/ai-agent-kit/issues/314)).**
   Verified each provider's model list against official docs (accessed 2026-05-31)
   and updated the kit's pins. **Claude**: `claude-opus-4-7` → `claude-opus-4-8`

@@ -153,8 +153,10 @@ function Insert-RoutingRow([string]$file, [string]$row, [string]$anchor) {
     $script:routingResults += "$base : row added"
 }
 
-$anchorClaudeAntigravity = "`n`n---`n`n## Subagent routing"
-$anchorAgents       = "`n`nActivate only the skills relevant to the current task."
+# Anchor on the blank line before the "## Subagent routing" heading that ends
+# the skill routing section (stable across all three routers; no dependency on a
+# `---` separator or specific trailing prose).
+$anchorSubagent = "`n`n## Subagent routing"
 
 # The AGENTS.md row contains a literal `$<Name>` Codex activation token. The
 # previous "``$`$Name``" form double-escaped the `$` and wrote `$$Name`
@@ -164,9 +166,9 @@ $claudeRow = '| TODO: describe when to use ' + $Name + ' | `' + $Name + '` skill
 $agentsRow = '| TODO: describe when to use ' + $Name + ' | `$' + $Name + '` |'
 $agyRow = '| TODO: describe when to use ' + $Name + ' | `.agy/skills/' + $Name + '/SKILL.md` |'
 
-Insert-RoutingRow (Join-Path $KitRoot "tooling\claude\CLAUDE.md") $claudeRow $anchorClaudeAntigravity
-Insert-RoutingRow (Join-Path $KitRoot "tooling\codex\AGENTS.md")  $agentsRow $anchorAgents
-Insert-RoutingRow (Join-Path $KitRoot "tooling\agy\AGY.md") $agyRow $anchorClaudeAntigravity
+Insert-RoutingRow (Join-Path $KitRoot "tooling\claude\CLAUDE.md") $claudeRow $anchorSubagent
+Insert-RoutingRow (Join-Path $KitRoot "tooling\codex\AGENTS.md")  $agentsRow $anchorSubagent
+Insert-RoutingRow (Join-Path $KitRoot "tooling\agy\AGY.md") $agyRow $anchorSubagent
 
 # -- Done ------------------------------------------------------------------
 Write-Host "+--------------------------------------+" -ForegroundColor Green
