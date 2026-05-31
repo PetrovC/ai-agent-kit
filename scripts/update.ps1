@@ -158,6 +158,40 @@ $Changes      = [System.Collections.Generic.List[string]]::new()
 $Notes        = [System.Collections.Generic.List[string]]::new()
 $Managed      = [System.Collections.Generic.List[string]]::new()   # touched this run (any tool in scope)
 $KeepFromOld  = [System.Collections.Generic.List[string]]::new()   # old-manifest entries for tools NOT in this run
+# "<added|updated|pruned|skipped> <rel>" per touched path, for the install audit (#313).
+$RecordActions = [System.Collections.Generic.List[string]]::new()
+
+# Append one NDJSON line describing what this lifecycle run changed (#313).
+# Local, parseable record under .ai-agent-kit/; mirrors install.ps1 and the
+# bash writers byte-for-byte in line format.
+function Write-LifecycleAudit([string]$lifecycle) {
+    $recordDir = Join-Path $Target ".ai-agent-kit"
+    [System.IO.Directory]::CreateDirectory($recordDir) | Out-Null
+    $recordFile = Join-Path $recordDir "install-audit.ndjson"
+    $added = 0; $updated = 0; $pruned = 0; $skipped = 0
+    $changeParts = @()
+    foreach ($entry in $RecordActions) {
+        $sp = $entry.IndexOf(" ")
+        $action = $entry.Substring(0, $sp)
+        $rel = $entry.Substring($sp + 1)
+        switch ($action) {
+            "added"   { $added++ }
+            "updated" { $updated++ }
+            "pruned"  { $pruned++ }
+            "skipped" { $skipped++ }
+        }
+        $changeParts += '{"path":"' + $rel + '","action":"' + $action + '"}'
+    }
+    $changes = $changeParts -join ","
+    $ts = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss") + "Z"
+    $line = '{"schema_version":"0.1.0","kit_version":"' + $KitVersion + '","action":"' + $lifecycle +
+            '","occurred_at":"' + $ts + '","changes":[' + $changes + '],"summary":{"added":' + $added +
+            ',"updated":' + $updated + ',"pruned":' + $pruned + ',"skipped":' + $skipped + '}}'
+    [System.IO.File]::AppendAllText($recordFile, $line + "`n", (New-Object System.Text.UTF8Encoding($false)))
+    if ($env:AAK_DEBUG -and $env:AAK_DEBUG -ne "0" -and $env:AAK_DEBUG -ne "false") {
+        Write-Host "  [debug] lifecycle audit appended to $recordFile" -ForegroundColor DarkGray
+    }
+}
 
 function Test-ManifestEntry([string]$rel) {
     if (-not (Test-Path -LiteralPath $manifestFile)) { return $false }
@@ -195,6 +229,7 @@ function Compare-And-Update([string]$src, [string]$dst) {
 
     if (-not (Test-Path -LiteralPath $dst)) {
         $Changes.Add("NEW      $rel")
+        $RecordActions.Add("added $rel")
         if (-not $DryRun) {
             $dir = Split-Path -Parent $dst
             if (-not (Test-Path -LiteralPath $dir)) { [System.IO.Directory]::CreateDirectory($dir) | Out-Null }
@@ -208,6 +243,7 @@ function Compare-And-Update([string]$src, [string]$dst) {
 
     if (-not (Compare-Files $src $dst)) {
         $Changes.Add("UPDATED  $rel")
+        $RecordActions.Add("updated $rel")
         if (-not $DryRun) {
             # See install.ps1 Copy-KitFile comment: Copy-Item -Destination
             # interprets wildcards in the dst path. Use [System.IO.File]::Copy
@@ -250,6 +286,7 @@ if ($ToolList -contains "codex") {
             $legacyRel = ".codex/agents/$legacy.toml"
             if ((Test-Path -LiteralPath $legacyFile) -and (-not (Test-ManifestEntry $legacyRel))) {
                 $Notes.Add("SKIPPED  $legacyRel (legacy; ownership unknown)")
+                $RecordActions.Add("skipped $legacyRel")
             }
         }
     }
@@ -305,6 +342,7 @@ if ((Test-Path -LiteralPath $manifestFile) -and ($Managed.Count -gt 0)) {
         $target_p = Join-Path $Target $p
         if (($Managed -notcontains $p) -and (Test-Path -LiteralPath $target_p)) {
             $Changes.Add("PRUNED   $p (no longer shipped)")
+            $RecordActions.Add("pruned $p")
             if (-not $DryRun) { Remove-Item -LiteralPath $target_p -Force }
         }
     }
@@ -321,6 +359,10 @@ if (-not $DryRun) {
 
     $manifestEntries = (@() + $Managed + $KeepFromOld) | Sort-Object -Unique | Where-Object { $_ }
     Write-Utf8NoBom $manifestFile (($manifestEntries -join "`n") + "`n")
+
+    # Install audit record (#313) — only on a real run; a dry-run must not
+    # mutate the target.
+    Write-LifecycleAudit "update"
 }
 
 # -- Report ----------------------------------------------------------------

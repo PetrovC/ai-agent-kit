@@ -34,3 +34,6 @@ CLAUDE.local.md
 
 # Local release-readiness signal written by the /cut-release command.
 .verify-state
+
+# Local install/update audit record written by install.* / update.* (#313).
+.ai-agent-kit/install-audit.ndjson

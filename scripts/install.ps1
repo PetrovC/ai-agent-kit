@@ -64,6 +64,8 @@ $ToolList   = @($Tools -split "," | ForEach-Object { $_.Trim().ToLower() } | Whe
 # bash install.sh — a Windows install followed by a Git-Bash update on the same
 # project must read the same paths).
 $Managed = [System.Collections.Generic.List[string]]::new()
+# "<added|updated|skipped> <rel>" per touched path, for the install audit (#313).
+$RecordActions = [System.Collections.Generic.List[string]]::new()
 
 function Get-OwningTool([string]$rel) {
     # Returns codex|claude|agy or "" for non-kit paths (docs/ai/,
@@ -115,6 +117,40 @@ function Write-Ok([string]$msg) {
 
 function Write-Preserve([string]$msg) {
     Write-Host "  [skip] $msg (project content - preserved)" -ForegroundColor Yellow
+    $RecordActions.Add("skipped $msg")
+}
+
+# Append one NDJSON line describing what this lifecycle run changed (#313).
+# Local, parseable record under .ai-agent-kit/; never pushed and not tracked
+# in .kit-manifest. Built manually so the line matches the bash writer exactly.
+function Write-LifecycleAudit([string]$lifecycle) {
+    $recordDir = Join-Path $Target ".ai-agent-kit"
+    [System.IO.Directory]::CreateDirectory($recordDir) | Out-Null
+    $recordFile = Join-Path $recordDir "install-audit.ndjson"
+    $added = 0; $updated = 0; $pruned = 0; $skipped = 0
+    $changeParts = @()
+    foreach ($entry in $RecordActions) {
+        $sp = $entry.IndexOf(" ")
+        $action = $entry.Substring(0, $sp)
+        $rel = $entry.Substring($sp + 1)
+        switch ($action) {
+            "added"   { $added++ }
+            "updated" { $updated++ }
+            "pruned"  { $pruned++ }
+            "skipped" { $skipped++ }
+        }
+        $changeParts += '{"path":"' + $rel + '","action":"' + $action + '"}'
+    }
+    $changes = $changeParts -join ","
+    $ts = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss") + "Z"
+    $line = '{"schema_version":"0.1.0","kit_version":"' + $KitVersion + '","action":"' + $lifecycle +
+            '","occurred_at":"' + $ts + '","changes":[' + $changes + '],"summary":{"added":' + $added +
+            ',"updated":' + $updated + ',"pruned":' + $pruned + ',"skipped":' + $skipped + '}}'
+    [System.IO.File]::AppendAllText($recordFile, $line + "`n", (New-Object System.Text.UTF8Encoding($false)))
+    Write-Ok ".ai-agent-kit/install-audit.ndjson ($lifecycle: +$added ~$updated -$pruned =$skipped)"
+    if ($env:AAK_DEBUG -and $env:AAK_DEBUG -ne "0" -and $env:AAK_DEBUG -ne "false") {
+        Write-Host "  [debug] lifecycle audit appended to $recordFile" -ForegroundColor DarkGray
+    }
 }
 
 function Copy-KitFile([string]$src, [string]$dst) {
@@ -132,6 +168,7 @@ function Copy-KitFile([string]$src, [string]$dst) {
     # still interprets wildcards, so a bracketed dst like
     # `C:\…\[acme]\.codex\config.toml` would fail or copy to the wrong
     # path. [System.IO.File]::Copy is literal on both sides.
+    $action = if (Test-Path -LiteralPath $dst) { "updated" } else { "added" }
     [System.IO.File]::Copy($src, $dst, $true)
     # Closes #74: `.Replace($Target, "")` strips EVERY literal occurrence
     # of $Target from $dst, so `-Target .` collapses every dot — including
@@ -145,6 +182,7 @@ function Copy-KitFile([string]$src, [string]$dst) {
     }
     $rel = $rel.TrimStart("\", "/").Replace("\", "/")
     $Managed.Add($rel)
+    $RecordActions.Add("$action $rel")
     Write-Ok $rel
 }
 
@@ -390,6 +428,10 @@ $manifestEntries = (@() + $newEntries + $manifestKeepFromOld) | Sort-Object -Uni
 Write-Utf8NoBom (Join-Path $Target ".kit-manifest") (($manifestEntries -join "`n") + "`n")
 Write-Ok ".kit-manifest"
 
+# -- Install audit record (#313) -------------------------------------------
+Write-Step "Recording install audit -> .ai-agent-kit/install-audit.ndjson"
+Write-LifecycleAudit "install"
+
 # -- .gitignore hint -------------------------------------------------------
 # Order matters: `.env.*` is a deny pattern that catches `.env.example` too,
 # so the `!.env.example` / `!.env.*.example` whitelist entries MUST follow it.
@@ -397,6 +439,7 @@ Write-Ok ".kit-manifest"
 $recommendedGitignore = @(
     ".claude/settings.local.json",
     ".claude/session-log/",
+    ".ai-agent-kit/install-audit.ndjson",
     "CLAUDE.local.md",
     ".env",
     ".env.*",
