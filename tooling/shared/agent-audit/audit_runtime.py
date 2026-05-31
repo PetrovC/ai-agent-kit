@@ -9,8 +9,10 @@ import os
 import pathlib
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
+import tempfile
 from typing import Any
 
 SCHEMA_VERSION = "0.1.0"
@@ -1078,7 +1080,311 @@ def parse_claude_transcript(path: pathlib.Path) -> dict[str, Any]:
     }
 
 
-TRANSCRIPT_PARSERS = {"claude": parse_claude_transcript}
+def parse_codex_transcript(path: pathlib.Path) -> dict[str, Any]:
+    """Anonymized metric extraction from a Codex ``rollout-*.jsonl`` transcript.
+
+    Codex emits cumulative ``token_count`` events. ``total_token_usage`` can
+    reset after a compaction, so segment totals are summed by detecting a drop
+    in the cumulative counter. Cost is left unavailable until Codex list prices
+    are confirmed (no invented prices)."""
+    fields = (
+        "input_tokens",
+        "cached_input_tokens",
+        "output_tokens",
+        "reasoning_output_tokens",
+        "total_tokens",
+    )
+    banked = {f: 0 for f in fields}
+    current = {f: 0 for f in fields}
+    timestamps: list[str] = []
+    turns = {"user": 0, "assistant": 0, "tool_results": 0}
+    tool_calls = 0
+    reasoning_items = 0
+    compaction_count = 0
+    tokens_before_first_compaction: int | None = None
+    context_window = 0
+    peak_request_input = 0
+    rate_primary = 0.0
+    rate_secondary = 0.0
+    rate_primary_window = 0
+    rate_secondary_window = 0
+    models: dict[str, int] = {}
+
+    tool_call_types = {
+        "function_call",
+        "custom_tool_call",
+        "web_search_call",
+        "tool_search_call",
+        "local_shell_call",
+        "mcp_tool_call",
+    }
+    tool_output_types = {
+        "function_call_output",
+        "custom_tool_call_output",
+        "tool_search_output",
+    }
+
+    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(entry, dict):
+            continue
+        etype = entry.get("type")
+        ts = entry.get("timestamp")
+        if isinstance(ts, str):
+            timestamps.append(ts)
+        payload = entry.get("payload") if isinstance(entry.get("payload"), dict) else {}
+        if etype == "turn_context":
+            model = payload.get("model")
+            if isinstance(model, str) and model:
+                models[model] = models.get(model, 0) + 1
+        elif etype == "response_item":
+            ptype = payload.get("type")
+            role = payload.get("role")
+            if role == "user":
+                turns["user"] += 1
+            elif role == "assistant":
+                turns["assistant"] += 1
+            if ptype in tool_call_types:
+                tool_calls += 1
+            elif ptype in tool_output_types:
+                turns["tool_results"] += 1
+            elif ptype == "reasoning":
+                reasoning_items += 1
+        elif etype == "event_msg":
+            ptype = payload.get("type")
+            if ptype == "context_compacted":
+                compaction_count += 1
+                if tokens_before_first_compaction is None:
+                    tokens_before_first_compaction = (
+                        banked["total_tokens"] + current["total_tokens"]
+                    )
+            elif ptype == "token_count":
+                info = payload.get("info")
+                if isinstance(info, dict):
+                    usage = info.get("total_token_usage")
+                    if isinstance(usage, dict):
+                        cur_total = _metric_int(usage.get("total_tokens"))
+                        if cur_total < current["total_tokens"]:
+                            for f in fields:
+                                banked[f] += current[f]
+                            current = {f: 0 for f in fields}
+                        for f in fields:
+                            current[f] = _metric_int(usage.get(f))
+                    last = info.get("last_token_usage")
+                    if isinstance(last, dict):
+                        peak_request_input = max(
+                            peak_request_input, _metric_int(last.get("input_tokens"))
+                        )
+                    context_window = max(
+                        context_window, _metric_int(info.get("model_context_window"))
+                    )
+                limits = payload.get("rate_limits")
+                if isinstance(limits, dict):
+                    prim = limits.get("primary")
+                    if isinstance(prim, dict):
+                        rate_primary = max(rate_primary, float(prim.get("used_percent") or 0))
+                        rate_primary_window = max(
+                            rate_primary_window, _metric_int(prim.get("window_minutes"))
+                        )
+                    sec = limits.get("secondary")
+                    if isinstance(sec, dict):
+                        rate_secondary = max(rate_secondary, float(sec.get("used_percent") or 0))
+                        rate_secondary_window = max(
+                            rate_secondary_window, _metric_int(sec.get("window_minutes"))
+                        )
+
+    totals = {f: banked[f] + current[f] for f in fields}
+    input_total = totals["input_tokens"]
+    cached = totals["cached_input_tokens"]
+    output = totals["output_tokens"]
+    cache_hit_ratio = round(cached / input_total, 4) if input_total else 0.0
+    tok = {
+        "input": max(input_total - cached, 0),
+        "output": output,
+        "cache_creation": 0,
+        "cache_read": cached,
+        "total": totals["total_tokens"] or (input_total + output),
+        "cache_hit_ratio": cache_hit_ratio,
+    }
+    parsed_times = sorted(t for t in (parse_timestamp(x) for x in timestamps) if t)
+    duration = (
+        int((parsed_times[-1] - parsed_times[0]).total_seconds())
+        if len(parsed_times) >= 2
+        else None
+    )
+    model = max(models, key=lambda k: models[k]) if models else "unknown"
+    price = MODEL_PRICING_USD.get(model)
+    cost = (
+        round(input_total / 1_000_000 * price[0] + output / 1_000_000 * price[1], 4)
+        if price
+        else None
+    )
+    context_used_ratio = (
+        round(peak_request_input / context_window, 4) if context_window else None
+    )
+    return {
+        "provider": "codex",
+        "model": model,
+        "measurement_mode": "imported-transcript",
+        "confidence": "measured",
+        "provider_usage_available": True,
+        "tokens": tok,
+        "reasoning": {
+            "output_tokens": totals["reasoning_output_tokens"],
+            "response_items": reasoning_items,
+        },
+        "speed": {"avg_tokens_per_sec": None, "samples": 0},
+        "duration_seconds": duration,
+        "turns": turns,
+        "tool_calls": {"total": tool_calls},
+        "compaction": {
+            "count": compaction_count,
+            "tokens_before_first": tokens_before_first_compaction,
+        },
+        "context": {
+            "peak_request_input_tokens": peak_request_input,
+            "context_window": context_window,
+            "context_used_ratio": context_used_ratio,
+        },
+        "rate_limit": {
+            "primary_used_percent": round(rate_primary, 2),
+            "primary_window_minutes": rate_primary_window,
+            "secondary_used_percent": round(rate_secondary, 2),
+            "secondary_window_minutes": rate_secondary_window,
+        },
+        "subagent": {"sidechain_assistant_turns": 0, "sidechain_output_tokens": 0},
+        "reliability": {"retries": 0, "api_errors": 0, "stop_reasons": {}},
+        "cost_estimate": {
+            "currency": "USD",
+            "amount": cost,
+            "basis": "list-price-approximation",
+        },
+    }
+
+
+# Strict allow-list for Gemini/Antigravity model ids embedded in protobuf blobs.
+# Matches only `gemini-<digits>[-...]-<word>[-<word>]`, so user content cannot
+# be captured; validate_event() runs privacy_scan as a backstop regardless.
+ANTIGRAVITY_MODEL_RE = re.compile(rb"gemini-[0-9][0-9.]*-[a-z]+(?:-[a-z]+)?")
+
+
+def _antigravity_model_from_bytes(blob: bytes) -> str:
+    match = ANTIGRAVITY_MODEL_RE.search(blob)
+    if not match:
+        return "unknown"
+    model = match.group(0).decode("ascii", "ignore")
+    return model if 0 < len(model) <= 40 else "unknown"
+
+
+def _antigravity_count(cur: sqlite3.Cursor, table: str, tables: set[str]) -> int:
+    if table not in tables:
+        return 0
+    try:
+        return int(cur.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+    except sqlite3.Error:
+        return 0
+
+
+def _antigravity_read_sqlite(path: pathlib.Path) -> tuple[str, int, int]:
+    """Return (model, step_count, generation_count) from a copied SQLite
+    conversation. The live db is never opened directly (Antigravity may hold a
+    write lock and the schema lives in the -wal); we copy db + -wal to a temp
+    dir, checkpoint, then read only counts and the model enum string."""
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="aak-agy-"))
+    try:
+        copy = tmp / "c.db"
+        shutil.copy(path, copy)
+        wal = pathlib.Path(f"{path}-wal")
+        if wal.exists():
+            shutil.copy(wal, tmp / "c.db-wal")
+        con = sqlite3.connect(str(copy))
+        try:
+            cur = con.cursor()
+            cur.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            tables = {
+                n
+                for (n,) in cur.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            }
+            steps = _antigravity_count(cur, "steps", tables)
+            generations = _antigravity_count(cur, "gen_metadata", tables)
+            model = "unknown"
+            for table in ("executor_metadata", "gen_metadata"):
+                if table not in tables:
+                    continue
+                for (blob,) in cur.execute(f"SELECT data FROM {table}"):
+                    if isinstance(blob, (bytes, bytearray)):
+                        found = _antigravity_model_from_bytes(bytes(blob))
+                        if found != "unknown":
+                            model = found
+                            break
+                if model != "unknown":
+                    break
+            return model, steps, generations
+        finally:
+            con.close()
+    except (sqlite3.Error, OSError):
+        return "unknown", 0, 0
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def parse_antigravity_transcript(path: pathlib.Path) -> dict[str, Any]:
+    """Best-effort STRUCTURAL metric extraction from an Antigravity conversation.
+
+    Conversation content is stored as protobuf (SQLite ``.db`` with protobuf
+    BLOB columns, or a raw ``.pb``) with no published schema, so token usage is
+    not recoverable; ``provider_usage_available`` is false. Only the model id
+    (enum string) and structural counts are extracted — never raw content."""
+    suffix = path.suffix.lower()
+    model = "unknown"
+    steps = 0
+    generations = 0
+    if suffix == ".db":
+        model, steps, generations = _antigravity_read_sqlite(path)
+        measurement_mode = "imported-transcript-structural"
+    elif suffix == ".pb":
+        model = _antigravity_model_from_bytes(path.read_bytes())
+        measurement_mode = "unsupported-format"
+    else:
+        measurement_mode = "unsupported-format"
+    return {
+        "provider": "antigravity",
+        "model": model,
+        "measurement_mode": measurement_mode,
+        "confidence": "structural",
+        "provider_usage_available": False,
+        "tokens": {
+            "input": 0,
+            "output": 0,
+            "cache_creation": 0,
+            "cache_read": 0,
+            "total": 0,
+            "cache_hit_ratio": 0.0,
+        },
+        "speed": {"avg_tokens_per_sec": None, "samples": 0},
+        "duration_seconds": None,
+        "turns": {"user": 0, "assistant": generations, "tool_results": 0},
+        "tool_calls": {"total": 0},
+        "compaction": {"count": 0, "tokens_before_first": None},
+        "context": {"step_count": steps, "generation_count": generations},
+        "subagent": {"sidechain_assistant_turns": 0, "sidechain_output_tokens": 0},
+        "reliability": {"retries": 0, "api_errors": 0, "stop_reasons": {}},
+        "cost_estimate": {"currency": "USD", "amount": None, "basis": "unavailable"},
+    }
+
+
+TRANSCRIPT_PARSERS = {
+    "claude": parse_claude_transcript,
+    "codex": parse_codex_transcript,
+    "antigravity": parse_antigravity_transcript,
+}
 
 
 def import_session_metrics(args: argparse.Namespace) -> int:
@@ -1220,17 +1526,23 @@ def build_artifacts(
         "token-context.json": (
             {
                 "schema_version": SCHEMA_VERSION,
-                "measurement_mode": "imported-transcript",
-                "confidence": "measured",
-                "provider_usage_available": True,
+                "measurement_mode": session_metrics.get(
+                    "measurement_mode", "imported-transcript"
+                ),
+                "confidence": session_metrics.get("confidence", "measured"),
+                "provider_usage_available": session_metrics.get(
+                    "provider_usage_available", True
+                ),
                 "provider": session_metrics.get("provider"),
                 "model": session_metrics.get("model"),
                 "tokens": session_metrics.get("tokens"),
+                "reasoning": session_metrics.get("reasoning"),
                 "speed": session_metrics.get("speed"),
                 "duration_seconds": session_metrics.get("duration_seconds"),
                 "turns": session_metrics.get("turns"),
                 "tool_calls": session_metrics.get("tool_calls"),
                 "context": session_metrics.get("context"),
+                "rate_limit": session_metrics.get("rate_limit"),
                 "subagent": session_metrics.get("subagent"),
                 "reliability": session_metrics.get("reliability"),
                 "compression": {
