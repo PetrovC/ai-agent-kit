@@ -20,7 +20,7 @@ claude --dangerously-skip-permissions  # fully autonomous; no confirmations (CI 
 ```
 
 Useful flags:
-- `--model claude-opus-4-7` — override the model for this session.
+- `--model claude-opus-4-8` — override the model for this session.
 - `--continue` — resume the previous session in this directory.
 - `--print "task"` — non-interactive single-shot mode (for scripts and CI).
 

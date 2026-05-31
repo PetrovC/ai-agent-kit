@@ -231,6 +231,24 @@
 
 ### Changed
 
+- **`chore(models)` — recalibrate provider model routing to current models (closes [#314](https://github.com/PetrovC/ai-agent-kit/issues/314)).**
+  Verified each provider's model list against official docs (accessed 2026-05-31)
+  and updated the kit's pins. **Claude**: `claude-opus-4-7` → `claude-opus-4-8`
+  (now the most capable model; Opus 4.7 is listed as legacy) across the
+  `architect` / `code-reviewer` / `security-reviewer` subagents, `MODEL_ROUTING.md`,
+  the `CLAUDE.md` `--model` example, the README routing table, and the `ai-dev`
+  skill example; `claude-sonnet-4-6` / `claude-haiku-4-5` remain current. Source:
+  platform.claude.com/docs/en/about-claude/models/overview. **Codex**: confirmed
+  `gpt-5.5` is still the current default/most-capable model (no id change); the
+  per-profile differentiator remains `model_reasoning_effort`. Source:
+  developers.openai.com/codex/models. **Antigravity**: confirmed the kit's
+  `gemini-3.1-pro` / `gemini-3-flash` ids are real picker models (the picker is a
+  fixed, user-selected IDE control offering Gemini 3.1 Pro / Gemini 3 Flash +
+  Claude Sonnet 4.6 / Claude Opus 4.6 / GPT-OSS-120B), so no id change; clarified
+  the picker semantics in `MODEL_ROUTING.md` and removed the speculative
+  `gemini-3.5-flash` future-upgrade note. No `validate.*` whitelist change was
+  needed (Gemini ids unchanged).
+
 - **`perf(gemini)` — replace preview models with GA models in all agents (closes [#143](https://github.com/PetrovC/ai-agent-kit/issues/143)).**
   All five Gemini subagents referenced `gemini-3-pro-preview`. Replaced with GA-stable
   models tiered by task risk: `gemini-3.1-pro` for architect / code-reviewer /

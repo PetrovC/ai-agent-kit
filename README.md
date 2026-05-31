@@ -325,9 +325,9 @@ actionable. Uniform tier, no exceptions:
 
 | Agent | Task | Claude | Antigravity |
 |---|---|---|---|
-| `architect` | Deep design reasoning | `claude-opus-4-7` | `gemini-3.1-pro` |
-| `security-reviewer` | Vulnerability analysis | `claude-opus-4-7` | `gemini-3.1-pro` |
-| `code-reviewer` | PR review | `claude-opus-4-7` | `gemini-3.1-pro` |
+| `architect` | Deep design reasoning | `claude-opus-4-8` | `gemini-3.1-pro` |
+| `security-reviewer` | Vulnerability analysis | `claude-opus-4-8` | `gemini-3.1-pro` |
+| `code-reviewer` | PR review | `claude-opus-4-8` | `gemini-3.1-pro` |
 | `codebase-investigator` | Map usages / affected area | `claude-sonnet-4-6` | `gemini-3-flash` |
 | `test-runner` | Run tests + summarize | `claude-haiku-4-5` | `gemini-3-flash` |
 
