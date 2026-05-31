@@ -185,6 +185,7 @@ jobs:
           cat > "$T3/.gitignore" <<'EOF'
           .claude/settings.local.json
           .claude/session-log/
+          .ai-agent-kit/install-audit.ndjson
           CLAUDE.local.md
           .env
           .env.*

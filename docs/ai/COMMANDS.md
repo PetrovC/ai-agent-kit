@@ -41,6 +41,24 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\new-skill.ps1 
 | `validate.ps1` / `validate.sh` | `Target` or `--target`; optional `Strict` or `--strict`; optional `RouterMaxLines` or `--router-max-lines` | Checks required `docs/ai` files, template warning notices, HTML placeholders, common template placeholders, router line budgets (default 320 lines; override via flag or `AAK_ROUTER_MAX_LINES`), Codex context/model/subagent link hygiene, largest Codex-facing context files, and repo-local Claude/Codex/Antigravity dogfood drift (content + git mode) when run against this source tree. In strict mode, fails if update dry-run would modify project-owned `docs/ai/` or `.mcp.json`. |
 | `new-skill.ps1` / `new-skill.sh` | `Name` or `--name`; optional `Description` or `--description` | Scaffolds `skills/<name>/SKILL.md` and routing placeholders. |
 
+## Install / Update Audit Record
+
+`install.*` and `update.*` append one NDJSON line per run to
+`.ai-agent-kit/install-audit.ndjson` in the target so a partial or surprising
+install/update can be inspected after the fact. Each line records:
+
+- `kit_version` and an ISO-8601 UTC `occurred_at`;
+- `action`: `install` or `update`;
+- `changes`: a `{path, action}` entry per managed path, where action is
+  `added`, `updated`, `pruned`, or `skipped`;
+- `summary`: per-action counts.
+
+The record is local-only and never pushed (central anonymized telemetry is the
+separate opt-in agent-audit system). It is recommended for `.gitignore` and is
+not tracked in `.kit-manifest`. A `--dry-run` update writes no record. Set
+`AAK_DEBUG` to a non-empty, non-`0`/`false` value to also print the record path
+on stderr.
+
 ## Repository Smoke Commands
 
 This repository is mainly Markdown, shell, PowerShell, TOML, JSON, YAML, and

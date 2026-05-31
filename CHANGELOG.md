@@ -4,6 +4,21 @@
 
 ### Added
 
+- **`feat(scripts)` - record an install/update audit of what changed (closes [#313](https://github.com/PetrovC/ai-agent-kit/issues/313)).**
+  `install.*` and `update.*` previously mutated a target with no durable record
+  of what they did. They now append one NDJSON line per run to
+  `.ai-agent-kit/install-audit.ndjson` capturing the kit version, a UTC
+  timestamp, a per-managed-path action (`added`/`updated`/`pruned`/`skipped`),
+  and a summary count. A fresh install records every file as `added`; an update
+  records `updated`/`pruned`/`skipped` accurately and a `--dry-run` writes
+  nothing. The record is local-only (never pushed — that is the agent-audit
+  system's job), recommended for `.gitignore`, and not tracked in
+  `.kit-manifest`. Honours `AAK_DEBUG` (prints the record path to stderr).
+  Implemented across `install.sh`/`install.ps1`/`update.sh`/`update.ps1` with
+  a byte-identical NDJSON line format; documented in `docs/ai/COMMANDS.md`;
+  added BATS (`install_audit.bats`) and Pester (`InstallAudit.Tests.ps1`)
+  coverage of a controlled install/update/dry-run scenario.
+
 - **`feat(workflow)` - encode the agent branch pattern, issue-first mandate, master preflight, and English-only rule (closes [#312](https://github.com/PetrovC/ai-agent-kit/issues/312)).**
   `docs/ai/WORKFLOW.md` gains a canonical "Agent Branch, Preflight, and Language
   Rules" section: the `agent/<agent>/<model>/<type>/<area>` branch pattern (dots

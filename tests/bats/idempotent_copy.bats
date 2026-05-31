@@ -16,11 +16,13 @@ setup() {
 
 snapshot_dir() {
     # Stable, content-aware fingerprint of TARGET — sorted relative paths
-    # joined with SHA-256 sums. Excludes the .kit-version file because it
-    # embeds the install date and intentionally changes on every run.
+    # joined with SHA-256 sums. Excludes the .kit-version file (embeds the
+    # install date) and the install-audit.ndjson record (append-only run log,
+    # #313) — both intentionally change on every run.
     (
         cd "$TARGET"
-        find . -type f ! -name '.kit-version' -print0 \
+        find . -type f ! -name '.kit-version' \
+            ! -path './.ai-agent-kit/install-audit.ndjson' -print0 \
             | LC_ALL=C sort -z \
             | xargs -0 sha256sum
     )

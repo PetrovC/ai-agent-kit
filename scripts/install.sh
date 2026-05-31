@@ -117,9 +117,10 @@ done
 # ── Helpers ────────────────────────────────────────────────────────────────
 step() { echo -e "\n\033[36m> $1\033[0m"; }
 ok()   { echo -e "  \033[32m[ok] $1\033[0m"; }
-skip() { echo -e "  \033[33m[skip] $1 (project content - preserved)\033[0m"; }
+skip() { echo -e "  \033[33m[skip] $1 (project content - preserved)\033[0m"; RECORD_ACTIONS+=("skipped $1"); }
 
-MANAGED=()   # kit-managed rel paths, written to .kit-manifest for update GC
+MANAGED=()         # kit-managed rel paths, written to .kit-manifest for update GC
+RECORD_ACTIONS=()  # "<added|updated|skipped> <rel>" per touched path, for the install audit (#313)
 
 # Map a kit-managed rel path to its owning tool, or "" if it is NOT a kit
 # artifact (docs/ai, .kit-version, .mcp.json) — keeps non-kit paths out of
@@ -141,11 +142,45 @@ copy_file() {
     local dst_dir
     dst_dir="$(dirname "$dst")"
 
+    local action="added"
+    [[ -e "$dst" ]] && action="updated"
     mkdir -p "$dst_dir"
     cp "$src" "$dst"
     local rel="${dst#$TARGET/}"
     MANAGED+=("$rel")
+    RECORD_ACTIONS+=("$action $rel")
     ok "$rel"
+}
+
+# Append one NDJSON line describing what this lifecycle run changed (#313).
+# Local, parseable record under .ai-agent-kit/; never pushed (that is the
+# agent-audit system's job) and not tracked in .kit-manifest.
+write_lifecycle_audit() {
+    local lifecycle="$1"  # install | update
+    local record_dir="$TARGET/.ai-agent-kit"
+    local record_file="$record_dir/install-audit.ndjson"
+    mkdir -p "$record_dir"
+    local added=0 updated=0 pruned=0 skipped=0
+    local changes="" sep="" entry action rel
+    for entry in "${RECORD_ACTIONS[@]+"${RECORD_ACTIONS[@]}"}"; do
+        action="${entry%% *}"
+        rel="${entry#* }"
+        case "$action" in
+            added)   added=$((added + 1)) ;;
+            updated) updated=$((updated + 1)) ;;
+            pruned)  pruned=$((pruned + 1)) ;;
+            skipped) skipped=$((skipped + 1)) ;;
+        esac
+        changes="${changes}${sep}{\"path\":\"${rel}\",\"action\":\"${action}\"}"
+        sep=","
+    done
+    printf '{"schema_version":"0.1.0","kit_version":"%s","action":"%s","occurred_at":"%s","changes":[%s],"summary":{"added":%d,"updated":%d,"pruned":%d,"skipped":%d}}\n' \
+        "$KIT_VERSION" "$lifecycle" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        "$changes" "$added" "$updated" "$pruned" "$skipped" >> "$record_file"
+    ok ".ai-agent-kit/install-audit.ndjson ($lifecycle: +$added ~$updated -$pruned =$skipped)"
+    if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then
+        echo "  [debug] lifecycle audit appended to $record_file" >&2
+    fi
 }
 
 copy_dir() {
@@ -400,6 +435,10 @@ fi
 } | LC_ALL=C sort -u | sed '/^$/d' > "$TARGET/.kit-manifest"
 ok ".kit-manifest"
 
+# ── Install audit record (#313) ────────────────────────────────────────────
+step "Recording install audit -> .ai-agent-kit/install-audit.ndjson"
+write_lifecycle_audit install
+
 # ── .gitignore hint ────────────────────────────────────────────────────────
 # Order matters: `.env.*` is a deny pattern that catches `.env.example` too,
 # so the `!.env.example` / `!.env.*.example` whitelist entries MUST follow it.
@@ -407,6 +446,7 @@ ok ".kit-manifest"
 RECOMMENDED_GITIGNORE=(
     ".claude/settings.local.json"
     ".claude/session-log/"
+    ".ai-agent-kit/install-audit.ndjson"
     "CLAUDE.local.md"
     ".env"
     ".env.*"
