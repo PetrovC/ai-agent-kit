@@ -4,6 +4,25 @@
 
 ### Added
 
+- **`feat(audit)` - add Codex and Antigravity transcript parsers to `import-session-metrics` (closes [#333](https://github.com/PetrovC/ai-agent-kit/issues/333); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
+  Extends Phase T beyond Claude so token/context/speed metrics import from all
+  three local CLIs. **Codex** (`~/.codex/sessions/**/rollout-*.jsonl`) parses
+  cumulative `token_count` events — input/cached/output/reasoning tokens, context
+  window + peak request occupancy, and `rate_limits.used_percent` (real
+  session-budget exhaustion) — summing across the counter reset that follows a
+  compaction; model from `turn_context.model`; cost stays `unavailable` until
+  Codex list prices are confirmed (no invented prices). **Antigravity**
+  (`~/.gemini/antigravity/conversations/<uuid>.db`) stores conversations as
+  protobuf with no published schema, and no token usage is persisted anywhere
+  under `~/.gemini`, so this is a best-effort **structural** import (model id via
+  a strict allow-list regex + step/generation counts) with
+  `provider_usage_available: false`; raw `.pb` files report `unsupported-format`.
+  `build_artifacts` now reads `measurement_mode`/`confidence`/
+  `provider_usage_available` from the payload so the structural case stays
+  honest. **Strict anonymization** throughout (numeric/enum + model id only);
+  BATS + Pester cases inject forbidden data (cwd, prompts, paths) and assert it
+  never appears. Canonical + `.ai-agent-kit` dogfood mirror.
+
 - **`feat(audit)` - import anonymized per-session token/context/speed metrics from provider transcripts (closes [#327](https://github.com/PetrovC/ai-agent-kit/issues/327); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
   The audit previously only captured *activity* (`tool.observed`/`hook.observed`),
   so it could not measure performance. Added an `import-session-metrics` runtime

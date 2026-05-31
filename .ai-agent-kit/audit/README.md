@@ -40,8 +40,15 @@ This emits a single anonymized `session.metrics` event that populates
 `token-context.json` and `pricing-estimate.json`. It reads **only** numeric
 metrics and the model id — never prompts, responses, file contents, paths,
 branch names, or repo URLs (and `validate`/`privacy_scan` reject any leak).
-Local CLI transcripts only (cloud sessions are not on disk). Claude is
-supported today; Codex and Antigravity parsers follow.
+Local CLI transcripts only (cloud sessions are not on disk).
+
+Supported `--provider` values, transcript locations, and what is recoverable:
+
+| Provider | Transcript | Tokens | Notes |
+|---|---|---|---|
+| `claude` | `~/.claude/projects/<enc>/<session>.jsonl` | full | speed, cache, compaction, subagent split |
+| `codex` | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` | full | adds rate-limit (session-budget) %, reasoning tokens, context window; cumulative counters are summed across compaction resets; cost stays `unavailable` until Codex list prices are confirmed |
+| `antigravity` | `~/.gemini/antigravity/conversations/<uuid>.db` | none | content is protobuf with no published schema, so token usage is not recoverable — structural import only (model id + step/generation counts), `provider_usage_available: false` |
 
 Finalize one run:
 

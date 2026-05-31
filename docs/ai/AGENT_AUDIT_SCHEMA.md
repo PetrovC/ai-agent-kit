@@ -202,14 +202,20 @@ Token and context records must separate exact measurements from estimates.
 
 | Field | Type | Notes |
 |---|---|---|
-| `measurement_mode` | enum | `exact`, `estimated`, `mixed`, `unavailable`. |
-| `confidence` | enum | `high`, `medium`, `low`, `unavailable`. |
+| `measurement_mode` | enum | `exact`, `estimated`, `mixed`, `unavailable`; transcript imports add `imported-transcript` (full provider usage), `imported-transcript-structural` (counts only), `unsupported-format`. |
+| `confidence` | enum | `high`, `medium`, `low`, `unavailable` (transcript imports use `measured` or `structural`). |
 | `provider_usage_available` | boolean | Whether exact provider usage was available. |
 | `main_session` | object | Main-session token buckets. |
 | `subagents` | array | One record per invocation or aggregated agent category. |
 | `context_window` | object | Context size, start, peak, end, pressure thresholds. |
 | `compression` | object | Recommended and executed compaction/compression counts. |
 | `waste_estimate` | object | Estimated rework or discarded-context tokens. |
+
+> `import-session-metrics` emits a flatter, provider-dependent variant rooted at
+> `tokens` (`input`/`output`/`cache_creation`/`cache_read`/`total`/`cache_hit_ratio`),
+> adding `reasoning` and `rate_limit` (session-budget %) when the provider reports
+> them (Codex), and `context.step_count`/`generation_count` for structural-only
+> imports (Antigravity).
 
 Token bucket fields:
 
