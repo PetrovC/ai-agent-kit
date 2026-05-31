@@ -147,7 +147,7 @@ function Write-LifecycleAudit([string]$lifecycle) {
             '","occurred_at":"' + $ts + '","changes":[' + $changes + '],"summary":{"added":' + $added +
             ',"updated":' + $updated + ',"pruned":' + $pruned + ',"skipped":' + $skipped + '}}'
     [System.IO.File]::AppendAllText($recordFile, $line + "`n", (New-Object System.Text.UTF8Encoding($false)))
-    Write-Ok ".ai-agent-kit/install-audit.ndjson ($($lifecycle): +$added ~$updated -$pruned =$skipped)"
+    Write-Ok ".ai-agent-kit/install-audit.ndjson (${lifecycle}: +$added ~$updated -$pruned =$skipped)"
     if ($env:AAK_DEBUG -and $env:AAK_DEBUG -ne "0" -and $env:AAK_DEBUG -ne "false") {
         Write-Host "  [debug] lifecycle audit appended to $recordFile" -ForegroundColor DarkGray
     }
