@@ -35,7 +35,12 @@ if ($pythonInvocation.Count -gt 1) {
 
 $argsList = @($runtime, "emit-event", "--source-root", $SourceRoot, "--type", $Type, "--actor", $Actor)
 if ($Config) { $argsList += @("--config", $Config) }
-if ($Payload) { $argsList += @("--payload", $Payload) }
+if ($Payload) {
+    # Pass the JSON payload base64-encoded so Windows PowerShell does not strip
+    # the embedded double quotes when invoking the native python process.
+    $payloadB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Payload))
+    $argsList += @("--payload-b64", $payloadB64)
+}
 if ($InvocationId) { $argsList += @("--invocation-id", $InvocationId) }
 if ($RunId) { $argsList += @("--run-id", $RunId) }
 if ($EventId) { $argsList += @("--event-id", $EventId) }

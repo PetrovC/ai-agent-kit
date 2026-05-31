@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import json
 import os
@@ -264,10 +265,19 @@ def emit_event(args: argparse.Namespace) -> int:
     run_id = args.run_id or os.environ.get("AAK_AUDIT_RUN_ID")
     if not run_id:
         raise AuditError("emit-event requires --run-id or AAK_AUDIT_RUN_ID")
+    # --payload-b64 carries the JSON base64-encoded so callers (notably the
+    # PowerShell wrapper) avoid native double-quote mangling; --payload is the
+    # plain form for shells that quote reliably.
+    payload_text = args.payload
+    if args.payload_b64:
+        try:
+            payload_text = base64.b64decode(args.payload_b64).decode("utf-8")
+        except (ValueError, UnicodeDecodeError) as exc:
+            raise AuditError(f"--payload-b64 is not valid base64 UTF-8: {exc}") from exc
     try:
-        payload = json.loads(args.payload) if args.payload else {}
+        payload = json.loads(payload_text) if payload_text else {}
     except json.JSONDecodeError as exc:
-        raise AuditError(f"--payload is not valid JSON: {exc}") from exc
+        raise AuditError(f"payload is not valid JSON: {exc}") from exc
     if not isinstance(payload, dict):
         raise AuditError("--payload must be a JSON object")
     if args.invocation_id:
@@ -1200,6 +1210,7 @@ def build_parser() -> argparse.ArgumentParser:
     emit.add_argument("--type", dest="event_type", required=True)
     emit.add_argument("--actor", dest="actor_kind", default="main_agent")
     emit.add_argument("--payload", default="")
+    emit.add_argument("--payload-b64", dest="payload_b64")
     emit.add_argument("--invocation-id", dest="invocation_id")
     emit.add_argument("--run-id")
     emit.add_argument("--event-id")
