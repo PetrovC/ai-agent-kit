@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **`fix(audit)` - audit `finalize-run`/`rollup` wrappers now run on Windows when the Microsoft Store Python alias is present.**
+  `finalize-run.sh` and `rollup.sh` resolved Python with a presence-only check
+  (`command -v python3`), which on Windows picks the Microsoft Store
+  app-execution alias — on `PATH` but exits non-zero without running. The
+  wrappers now test execution (`python3 -c "pass"`) before selecting an
+  interpreter, matching the lifecycle hook and the other wrappers. This silently
+  broke the SessionEnd auto-finalize (events buffered locally but never finalized
+  or pushed); finalize/push now works. Canonical + dogfood mirrors updated.
+
 ### Added
 
 - **`feat(audit)` - capture skill activation + aggregate recommendations into findings (closes [#331](https://github.com/PetrovC/ai-agent-kit/issues/331); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
