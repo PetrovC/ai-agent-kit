@@ -1,0 +1,84 @@
+name: Agent on mention (@claude)
+
+# Lets a maintainer summon Claude on an issue or PR by commenting `@claude ...`.
+# The run is anonymized-audited and pushed to the private audit repo when the
+# AAK_AUDIT_DEPLOY_KEY secret is present (best-effort; never blocks the agent).
+#
+# Required secrets:
+#   ANTHROPIC_API_KEY     - Claude API key (or use CLAUDE_CODE_OAUTH_TOKEN).
+#   AAK_AUDIT_DEPLOY_KEY  - private SSH deploy key with write on the audit repo
+#                           (optional; omit to disable cloud audit capture).
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+# Least privilege for what the agent may need to do on the thing it was summoned on.
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: agent-mention-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  claude:
+    # Gate: only an explicit @claude mention, and only from a maintainer. On a
+    # public repo, comment-triggered jobs run with secrets, so this gate is the
+    # security boundary — do not loosen it.
+    if: >-
+      contains(github.event.comment.body, '@claude') &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'COLLABORATOR')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Best-effort: provision the audit deploy key + global config so the kit's
+      # hooks can finalize and push an anonymized run to the private audit repo.
+      # Skipped (fail-open) when the deploy-key secret is absent.
+      - name: Provision audit (optional)
+        if: ${{ secrets.AAK_AUDIT_DEPLOY_KEY != '' }}
+        env:
+          AAK_AUDIT_DEPLOY_KEY: ${{ secrets.AAK_AUDIT_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh ~/.ai-agent-kit
+          printf '%s\n' "$AAK_AUDIT_DEPLOY_KEY" > ~/.ssh/aak_audit_deploy
+          chmod 600 ~/.ssh/aak_audit_deploy
+          cat >> ~/.ssh/config <<'SSH'
+          Host github-aak-audit
+              HostName github.com
+              User git
+              IdentityFile ~/.ssh/aak_audit_deploy
+              IdentitiesOnly yes
+          SSH
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+          cat > ~/.ai-agent-kit/config.json <<'CFG'
+          {
+            "schema_version": "0.1.0",
+            "audit": {
+              "enabled": true,
+              "mode": "official-central-repo",
+              "official_remote_url": "git@github-aak-audit:PetrovC/ai-agent-kit-audit.git",
+              "branch": "agent-audit-data",
+              "runtime_path": "~/.ai-agent-kit/audit-runtime",
+              "central_repo_path": "~/.ai-agent-kit/central-audit",
+              "source_project_write_policy": "never",
+              "push": { "mode": "authorized", "commit": true, "unauthorized_fallback": "local-outbox" }
+            }
+          }
+          CFG
+
+      - name: Run Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
