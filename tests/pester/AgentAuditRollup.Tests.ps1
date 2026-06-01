@@ -61,6 +61,8 @@ Describe "Cross-run rollups (#330)" {
         Invoke-Emit -RunId "run_a1" -Type "session.metrics" -Actor "system" -Payload '{"provider":"codex","model":"gpt-5.5","tokens":{"input":900,"output":100,"cache_creation":0,"cache_read":100,"total":1100,"cache_hit_ratio":0.1},"speed":{"avg_tokens_per_sec":50.0,"samples":1},"context":{"context_used_ratio":0.9}}'
         Invoke-Emit -RunId "run_a1" -Type "agent.invoked" -Actor "subagent" -InvocationId "inv_1" -Payload '{"agent_category":"security"}'
         Invoke-Emit -RunId "run_a1" -Type "agent.completed" -Actor "subagent" -InvocationId "inv_1" -Payload '{"status":"success"}'
+        Invoke-Emit -RunId "run_a1" -Type "skill.activated" -Actor "main_agent" -Payload '{"skill_key":"security"}'
+        Invoke-Emit -RunId "run_a1" -Type "skill.activated" -Actor "main_agent" -Payload '{"skill_key":"testing"}'
         Complete-SeedRun -RunId "run_a1"
 
         # proj_a run 2: fast tier on high-risk review + failed validation + retry -> underpowered.
@@ -68,6 +70,7 @@ Describe "Cross-run rollups (#330)" {
         Invoke-Emit -RunId "run_a2" -Type "retry.requested" -Actor "main_agent"
         Invoke-Emit -RunId "run_a2" -Type "agent.invoked" -Actor "subagent" -InvocationId "inv_1" -Payload '{"agent_category":"security"}'
         Invoke-Emit -RunId "run_a2" -Type "agent.completed" -Actor "subagent" -InvocationId "inv_1" -Payload '{"status":"success"}'
+        Invoke-Emit -RunId "run_a2" -Type "skill.activated" -Actor "main_agent" -Payload '{"skill_key":"security"}'
         Complete-SeedRun -RunId "run_a2"
 
         # proj_b run: docs update with claude metrics (priced).
@@ -87,6 +90,15 @@ Describe "Cross-run rollups (#330)" {
         if ($d.by_agent.security.run_count -ne 2) { throw "security agent $($d.by_agent.security.run_count)" }
         if ($d.overall.cost.runs_with_cost -ne 1) { throw "runs_with_cost $($d.overall.cost.runs_with_cost)" }
         if (-not ($d.overall.cost.sum_amount -gt 0)) { throw "cost sum $($d.overall.cost.sum_amount)" }
+        # skill usage aggregated from skill.activated events (#331)
+        if ($d.skill_usage.activation_count -ne 3) { throw "skill activations $($d.skill_usage.activation_count)" }
+        if ($d.skill_usage.by_skill.security -ne 2) { throw "security skill $($d.skill_usage.by_skill.security)" }
+        if ($d.skill_usage.runs_with_skills -ne 2) { throw "runs_with_skills $($d.skill_usage.runs_with_skills)" }
+        # findings: underpowered model on high-risk review is an issue candidate (#331)
+        $under = @($d.findings) | Where-Object { $_.summary_code -eq "underpowered_model_for_security_review" }
+        if (-not $under) { throw "missing underpowered finding" }
+        if ($under.issue_candidate.should_open_issue -ne $true) { throw "should_open_issue $($under.issue_candidate.should_open_issue)" }
+        if ($under.issue_candidate.creation -ne "manual") { throw "creation $($under.issue_candidate.creation)" }
 
         Assert-AakFileExists (Join-Path $script:CentralPath "agent-audit\rollups\cross-run-rollup.md")
     }

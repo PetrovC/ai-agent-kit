@@ -49,6 +49,7 @@ ALLOWED_EVENTS = {
     "hook.observed",
     "compact.observed",
     "session.metrics",
+    "skill.activated",
 }
 
 FORBIDDEN_KEYS = {
@@ -501,6 +502,25 @@ def build_recommendations(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         record.update(payload)
         recommendations.append(record)
     return recommendations
+
+
+def skill_usage(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate skill.activated events so skill usage is measurable per run.
+
+    Reads only the controlled ``skill_key`` enum from each event; activations
+    without a key are still counted under ``unknown``."""
+    by_skill: dict[str, int] = {}
+    for event in events:
+        if event.get("event_type") != "skill.activated":
+            continue
+        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        key = payload.get("skill_key")
+        key = str(key) if isinstance(key, str) and key.strip() else "unknown"
+        by_skill[key] = by_skill.get(key, 0) + 1
+    return {
+        "activation_count": sum(by_skill.values()),
+        "by_skill": by_skill,
+    }
 
 
 # --- Governance scoring (#310) -------------------------------------------
@@ -1585,7 +1605,9 @@ def build_artifacts(
             "tool_call_count": event_count(events, "tool.observed"),
             "hook_event_count": event_count(events, "hook.observed")
             + event_count(events, "compact.observed"),
+            "skill_activation_count": event_count(events, "skill.activated"),
         },
+        "skill_usage": skill_usage(events),
         "friction_summary": {
             "retry_count": event_count(events, "retry.requested"),
             "blocker_count": event_count(events, "blocker.recorded"),
@@ -1886,6 +1908,7 @@ def load_run_record(run_dir: pathlib.Path) -> dict[str, Any] | None:
     token_context = _read_optional_json(run_dir, "token-context.json")
     pricing = _read_optional_json(run_dir, "pricing-estimate.json")
     invocations_doc = _read_optional_json(run_dir, "agent-invocations.json")
+    recommendations_doc = _read_optional_json(run_dir, "governance-recommendations.json")
 
     task = summary.get("task_profile") if isinstance(summary.get("task_profile"), dict) else {}
     outcome = summary.get("outcome") if isinstance(summary.get("outcome"), dict) else {}
@@ -1926,11 +1949,19 @@ def load_run_record(run_dir: pathlib.Path) -> dict[str, Any] | None:
 
     cost_amount = pricing.get("amount")
     currency = pricing.get("currency")
+    summary_skill = summary.get("skill_usage") if isinstance(summary.get("skill_usage"), dict) else {}
+    by_skill = summary_skill.get("by_skill") if isinstance(summary_skill.get("by_skill"), dict) else {}
+    recs = [
+        rec for rec in (recommendations_doc.get("recommendations") or [])
+        if isinstance(rec, dict)
+    ]
     return {
         "run_id": str(summary.get("audit_run_id") or run_dir.name),
         "project_hash": str(project_ref.get("project_hash") or "unknown"),
         "task_type": str(task.get("task_type") or "other"),
         "agents": agents,
+        "skill_by_skill": {str(k): _as_int(v, 0) for k, v in by_skill.items()},
+        "recommendations": recs,
         "model": token_context.get("model") if isinstance(token_context.get("model"), str) else None,
         "quality_score": quality.get("quality_score"),
         "quality_category": quality.get("quality_category"),
@@ -2009,6 +2040,125 @@ def _group_by(
     return {key: aggregate_group(groups[key]) for key in sorted(groups)}
 
 
+_STRENGTH_RANK = {"weak": 0, "moderate": 1, "strong": 2}
+_CONFIDENCE_RANK = {"low": 0, "medium": 1, "high": 2}
+
+
+def _max_by_rank(values: list[Any], ranks: dict[str, int], default: str) -> str:
+    best = default
+    best_rank = -1
+    for value in values:
+        rank = ranks.get(str(value), -1)
+        if rank > best_rank:
+            best_rank, best = rank, str(value)
+    return best
+
+
+def aggregate_skill_usage(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate per-run skill activations into a cross-run usage distribution."""
+    by_skill: dict[str, int] = {}
+    runs_with_skills = 0
+    for record in records:
+        skills = record.get("skill_by_skill") or {}
+        if skills:
+            runs_with_skills += 1
+        for key, count in skills.items():
+            by_skill[key] = by_skill.get(key, 0) + count
+    return {
+        "activation_count": sum(by_skill.values()),
+        "runs_with_skills": runs_with_skills,
+        "by_skill": dict(sorted(by_skill.items())),
+    }
+
+
+def aggregate_findings(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Aggregate per-run governance recommendations ACROSS runs into findings.
+
+    Findings group recommendations by (category, summary_code). Issue creation
+    stays manual (per spec): a finding only flags an issue candidate — it never
+    opens one. A finding is issue-worthy when any contributing recommendation
+    already flagged it, when the strongest evidence/confidence is high, or when
+    the pattern repeats across multiple runs."""
+    groups: dict[tuple[str, str], dict[str, Any]] = {}
+    for record in records:
+        for rec in record.get("recommendations") or []:
+            category = str(rec.get("category") or "unknown")
+            summary_code = str(rec.get("summary_code") or rec.get("recommendation_id") or "unknown")
+            group = groups.setdefault(
+                (category, summary_code),
+                {
+                    "occurrences": 0,
+                    "run_ids": set(),
+                    "task_types": set(),
+                    "strengths": [],
+                    "confidences": [],
+                    "actions": [],
+                    "flagged": False,
+                },
+            )
+            group["occurrences"] += 1
+            group["run_ids"].add(record["run_id"])
+            group["task_types"].add(str(rec.get("task_type") or record["task_type"]))
+            group["strengths"].append(rec.get("evidence_strength"))
+            group["confidences"].append(rec.get("confidence"))
+            if rec.get("recommended_action"):
+                group["actions"].append(str(rec["recommended_action"]))
+            candidate = rec.get("issue_candidate") if isinstance(rec.get("issue_candidate"), dict) else {}
+            if candidate.get("should_open_issue"):
+                group["flagged"] = True
+
+    findings: list[dict[str, Any]] = []
+    for (category, summary_code), group in groups.items():
+        affected = len(group["run_ids"])
+        strength = _max_by_rank(group["strengths"], _STRENGTH_RANK, "weak")
+        confidence = _max_by_rank(group["confidences"], _CONFIDENCE_RANK, "low")
+        should_open = (
+            group["flagged"]
+            or strength == "strong"
+            or confidence == "high"
+            or affected >= 2
+        )
+        if group["flagged"]:
+            reason = "recommendation_flagged_issue"
+        elif affected >= 2:
+            reason = "recurring_across_runs"
+        elif strength == "strong" or confidence == "high":
+            reason = "single_strong_signal"
+        else:
+            reason = "monitor_only"
+        findings.append(
+            {
+                "finding_id": f"finding_{category}_{summary_code}",
+                "category": category,
+                "summary_code": summary_code,
+                "occurrence_count": group["occurrences"],
+                "affected_run_count": affected,
+                "task_types": sorted(group["task_types"]),
+                "evidence_strength": strength,
+                "confidence": confidence,
+                "recommended_action": (
+                    _distribution(group["actions"]) or {"monitor": affected}
+                ),
+                "issue_candidate": {
+                    "should_open_issue": should_open,
+                    "reason": reason,
+                    "creation": "manual",
+                },
+            }
+        )
+    # Most actionable first: issue candidates, then by reach and recurrence.
+    findings.sort(
+        key=lambda f: (
+            f["issue_candidate"]["should_open_issue"],
+            _STRENGTH_RANK.get(f["evidence_strength"], 0),
+            f["affected_run_count"],
+            f["occurrence_count"],
+        ),
+        reverse=True,
+    )
+    return findings
+
+
 def build_rollup(records: list[dict[str, Any]], generated_at: str) -> dict[str, Any]:
     by_task = _group_by(records, lambda r: [r["task_type"]])
     hotspots = sorted(
@@ -2036,6 +2186,8 @@ def build_rollup(records: list[dict[str, Any]], generated_at: str) -> dict[str, 
         "by_agent": _group_by(records, lambda r: r["agents"]),
         "by_task_type": by_task,
         "noise_hotspots": hotspots,
+        "skill_usage": aggregate_skill_usage(records),
+        "findings": aggregate_findings(records),
     }
 
 
@@ -2110,6 +2262,31 @@ def rollup_markdown(rollup: dict[str, Any]) -> str:
                 f"- `{hotspot['key']}` ({hotspot['group']}): avg noise "
                 f"{hotspot['avg_noise_score']}, {hotspot['high_noise_run_count']} "
                 f"high-noise run(s) of {hotspot['run_count']}."
+            )
+        lines.append("")
+    skills = rollup.get("skill_usage", {})
+    if skills.get("activation_count"):
+        lines.append("## Skill usage")
+        lines.append("")
+        lines.append(
+            f"- {skills['activation_count']} activation(s) across "
+            f"{skills['runs_with_skills']} run(s)."
+        )
+        for skill_key, count in skills.get("by_skill", {}).items():
+            lines.append(f"  - `{skill_key}`: {count}")
+        lines.append("")
+    findings = rollup.get("findings", [])
+    if findings:
+        lines.append("## Findings (manual issue creation)")
+        lines.append("")
+        for finding in findings:
+            flag = "issue candidate" if finding["issue_candidate"]["should_open_issue"] else "monitor"
+            lines.append(
+                f"- `{finding['summary_code']}` ({finding['category']}): "
+                f"{finding['occurrence_count']} occurrence(s) over "
+                f"{finding['affected_run_count']} run(s), evidence "
+                f"{finding['evidence_strength']}/{finding['confidence']} "
+                f"— **{flag}** ({finding['issue_candidate']['reason']})."
             )
         lines.append("")
     return "\n".join(lines)

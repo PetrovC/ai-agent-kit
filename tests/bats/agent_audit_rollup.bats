@@ -85,13 +85,16 @@ PY
 [[1,"run.completed","system",{"project_hash":"hmac_sha256_proj_a","task_type":"security_review","risk_level":"high","complexity":"large","answered_assigned_task":true,"has_sanitized_evidence":true,"validation_state":"passed","observed_model_tier":"review","report_tokens":800,"status":"completed"}],
  [2,"session.metrics","system",{"provider":"codex","model":"gpt-5.5","tokens":{"input":900,"output":100,"cache_creation":0,"cache_read":100,"total":1100,"cache_hit_ratio":0.1},"speed":{"avg_tokens_per_sec":50.0,"samples":1},"context":{"context_used_ratio":0.9}}],
  [3,"agent.invoked","subagent",{"invocation_id":"inv_1","agent_category":"security"}],
- [4,"agent.completed","subagent",{"invocation_id":"inv_1","status":"success"}]]
+ [4,"agent.completed","subagent",{"invocation_id":"inv_1","status":"success"}],
+ [5,"skill.activated","main_agent",{"skill_key":"security"}],
+ [6,"skill.activated","main_agent",{"skill_key":"testing"}]]
 JSON
     seed_run "run_a2" <<'JSON'
 [[1,"run.completed","system",{"project_hash":"hmac_sha256_proj_a","task_type":"security_review","risk_level":"high","complexity":"large","answered_assigned_task":false,"has_sanitized_evidence":false,"validation_state":"failed","observed_model_tier":"fast","status":"completed_with_warnings"}],
  [2,"retry.requested","main_agent",{}],
  [3,"agent.invoked","subagent",{"invocation_id":"inv_1","agent_category":"security"}],
- [4,"agent.completed","subagent",{"invocation_id":"inv_1","status":"success"}]]
+ [4,"agent.completed","subagent",{"invocation_id":"inv_1","status":"success"}],
+ [5,"skill.activated","main_agent",{"skill_key":"security"}]]
 JSON
     seed_run "run_b1" <<'JSON'
 [[1,"run.completed","system",{"project_hash":"hmac_sha256_proj_b","task_type":"docs_update","risk_level":"low","complexity":"trivial","answered_assigned_task":true,"has_sanitized_evidence":true,"validation_state":"passed","observed_model_tier":"deep","report_tokens":700,"status":"completed"}],
@@ -122,6 +125,16 @@ assert set(d["by_task_type"]) == {"security_review", "docs_update"}, d
 # cost aggregated from the claude run (gpt-5.5 has no list price -> unpriced)
 assert d["overall"]["cost"]["runs_with_cost"] == 1, d["overall"]["cost"]
 assert d["overall"]["cost"]["sum_amount"] > 0, d["overall"]["cost"]
+# skill usage aggregated from skill.activated events (#331)
+assert d["skill_usage"]["activation_count"] == 3, d["skill_usage"]
+assert d["skill_usage"]["by_skill"] == {"security": 2, "testing": 1}, d["skill_usage"]
+assert d["skill_usage"]["runs_with_skills"] == 2, d["skill_usage"]
+# findings: run_a2 is underpowered on a high-risk review -> issue candidate (#331)
+fids = {f["summary_code"]: f for f in d["findings"]}
+under = fids["underpowered_model_for_security_review"]
+assert under["issue_candidate"]["should_open_issue"] is True, under
+assert under["issue_candidate"]["creation"] == "manual", under
+assert under["category"] == "model_routing", under
 PY
 
     # Human-readable companion exists and the run data does not leak.

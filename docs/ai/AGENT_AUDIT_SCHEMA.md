@@ -371,6 +371,13 @@ Event types:
 - `tool.observed`
 - `hook.observed`
 - `compact.observed`
+- `session.metrics`
+- `skill.activated`
+
+`skill.activated` makes skill usage measurable: its payload carries the
+controlled `skill_key` (the skill name), and nothing else is required. Per-run
+counts surface in `run-summary.json` under `skill_usage`; the cross-run rollup
+aggregates them by skill.
 
 Example:
 

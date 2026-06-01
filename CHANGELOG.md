@@ -4,6 +4,22 @@
 
 ### Added
 
+- **`feat(audit)` - capture skill activation + aggregate recommendations into findings (closes [#331](https://github.com/PetrovC/ai-agent-kit/issues/331); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
+  Adds a `skill.activated` event (controlled `skill_key` payload) so skill usage
+  is measurable: per-run counts surface in `run-summary.json` under `skill_usage`
+  (+ `activity_summary.skill_activation_count`), and the cross-run rollup
+  aggregates them by skill (`skill_usage.by_skill`, `runs_with_skills`). The
+  rollup also aggregates per-run `governance-recommendations.json` ACROSS runs
+  into `findings`, grouped by `(category, summary_code)` with occurrence /
+  affected-run counts, strongest evidence + confidence, and an `issue_candidate`.
+  **Issue creation stays manual** (per spec): a finding flags a candidate — when a
+  recommendation already flagged it, evidence/confidence is high, or the pattern
+  repeats across runs — but never opens an issue. `AGENT_AUDIT_STORAGE.md` gains a
+  "Reading Reports to Improve the Architecture" guide and documents the new
+  sections; `AGENT_AUDIT_SCHEMA.md` lists `skill.activated`. BATS
+  (`agent_audit_rollup.bats`) and Pester (`AgentAuditRollup.Tests.ps1`) cover skill
+  usage and findings aggregation; canonical + dogfood/home mirrors refreshed.
+
 - **`feat(audit)` - cross-run governance + efficiency rollups for calibration (closes [#330](https://github.com/PetrovC/ai-agent-kit/issues/330); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
   Adds a `rollup` command that aggregates ACROSS finalized run folders — quality
   (avg + category distribution), model-fit distribution, tokens, cache-hit, speed,
