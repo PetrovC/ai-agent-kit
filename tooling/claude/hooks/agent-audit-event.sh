@@ -158,9 +158,11 @@ fi
 # (tokens/cache/speed/context), then auto-finalize. Both best-effort and
 # synchronous so they complete before the session exits; the import only reads
 # numeric/enum metrics (privacy_scan backstops), and finalize no-ops without a
-# configured central audit clone.
+# configured central audit clone. The transcript path is validated by
+# import-session-metrics (Python handles Windows paths; a bash `-f` test would
+# reject the backslash form Claude passes on Windows), so it is not gated here.
 if [[ "$event_type" == "run.completed" && -n "$run_id" ]]; then
-    if [[ -n "$transcript_path" && -f "$transcript_path" && -f "$IMPORT_SCRIPT" ]]; then
+    if [[ -n "$transcript_path" && -f "$IMPORT_SCRIPT" ]]; then
         "$IMPORT_SCRIPT" --config "$CONFIG_PATH" --source-root "$PROJECT_DIR" \
             --provider claude --transcript "$transcript_path" --run-id "$run_id" >/dev/null 2>&1
     fi
