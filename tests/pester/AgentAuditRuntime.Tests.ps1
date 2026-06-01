@@ -321,6 +321,75 @@ Describe "PowerShell agent audit runtime" {
         if ($rec.issue_candidate.should_open_issue -ne $false) { throw "should_open_issue not false" }
     }
 
+    It "derives the observed model tier from the session.metrics model id" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        Write-AuditConfig -Path $configPath -TargetReportTokens 1200
+        # No observed_model_tier emitted; the real model id (opus -> review)
+        # drives model-fit. Trivial docs work on review tier is overkill.
+        $base = Invoke-GovernanceRun -ConfigPath $configPath -RunId "run_metrics" -Events @(
+            @{ Sequence = 1; EventType = "run.completed"; ActorKind = "system"; Payload = @{
+                project_hash = "hmac_sha256_example_project"; task_type = "docs_update";
+                risk_level = "low"; complexity = "trivial"; answered_assigned_task = $true;
+                has_sanitized_evidence = $true; validation_state = "passed";
+                report_tokens = 700; status = "completed" } },
+            @{ Sequence = 2; EventType = "session.metrics"; ActorKind = "system"; Payload = @{
+                provider = "claude"; model = "claude-opus-4-8";
+                tokens = @{ input = 1; output = 1; cache_creation = 0; cache_read = 0; total = 2; cache_hit_ratio = 0.0 } } }
+        )
+        $rq = Get-Content -Raw (Join-Path $base "report-quality.json") | ConvertFrom-Json
+        if ($rq.observed_model_tier -ne "review") { throw "observed_model_tier $($rq.observed_model_tier)" }
+        if ($rq.expected_model_tier -ne "standard") { throw "expected_model_tier $($rq.expected_model_tier)" }
+        if ($rq.model_fit -ne "overkill") { throw "model_fit $($rq.model_fit)" }
+    }
+
+    It "treats a failed validation as missing the direct answer despite self-report" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        Write-AuditConfig -Path $configPath -TargetReportTokens 1200
+        $base = Invoke-GovernanceRun -ConfigPath $configPath -RunId "run_valfail" -Events @(
+            @{ Sequence = 1; EventType = "run.completed"; ActorKind = "system"; Payload = @{
+                project_hash = "hmac_sha256_example_project"; task_type = "feature_implementation";
+                risk_level = "low"; complexity = "small"; answered_assigned_task = $true;
+                has_sanitized_evidence = $true; validation_state = "failed";
+                observed_model_tier = "standard"; report_tokens = 800; status = "completed" } }
+        )
+        $rq = Get-Content -Raw (Join-Path $base "report-quality.json") | ConvertFrom-Json
+        if (-not (@($rq.weaknesses) -contains "missing_direct_answer")) { throw "missing_direct_answer absent" }
+        if ($rq.quality_score -ne 7.0) { throw "quality_score $($rq.quality_score)" }
+    }
+
+    It "expects a next action when a blocker was recorded" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        Write-AuditConfig -Path $configPath -TargetReportTokens 1200
+        $base = Invoke-GovernanceRun -ConfigPath $configPath -RunId "run_blocker" -Events @(
+            @{ Sequence = 1; EventType = "run.completed"; ActorKind = "system"; Payload = @{
+                project_hash = "hmac_sha256_example_project"; task_type = "feature_implementation";
+                risk_level = "low"; complexity = "small"; answered_assigned_task = $true;
+                has_sanitized_evidence = $true; validation_state = "passed";
+                observed_model_tier = "standard"; report_tokens = 800; status = "completed" } },
+            @{ Sequence = 2; EventType = "blocker.recorded"; ActorKind = "system"; Payload = @{} }
+        )
+        $rq = Get-Content -Raw (Join-Path $base "report-quality.json") | ConvertFrom-Json
+        if (-not (@($rq.weaknesses) -contains "missing_next_action")) { throw "missing_next_action absent" }
+        if ($rq.quality_score -ne 8.5) { throw "quality_score $($rq.quality_score)" }
+    }
+
+    It "surfaces an optional agent self-evaluation without overriding the score" {
+        $configPath = Join-Path $script:AuditRoot "config.json"
+        Write-AuditConfig -Path $configPath -TargetReportTokens 1200
+        $base = Invoke-GovernanceRun -ConfigPath $configPath -RunId "run_selfeval" -Events @(
+            @{ Sequence = 1; EventType = "run.completed"; ActorKind = "system"; Payload = @{
+                project_hash = "hmac_sha256_example_project"; task_type = "feature_implementation";
+                risk_level = "low"; complexity = "small"; answered_assigned_task = $true;
+                has_sanitized_evidence = $true; validation_state = "passed";
+                observed_model_tier = "standard"; report_tokens = 800; status = "completed" } },
+            @{ Sequence = 2; EventType = "report.evaluated"; ActorKind = "main_agent"; Payload = @{ quality_category = "weak" } }
+        )
+        $rq = Get-Content -Raw (Join-Path $base "report-quality.json") | ConvertFrom-Json
+        if ($rq.quality_category -ne "accepted") { throw "category $($rq.quality_category)" }
+        if ($rq.agent_self_evaluation.quality_category -ne "weak") { throw "self-eval category $($rq.agent_self_evaluation.quality_category)" }
+        if ($rq.agent_self_evaluation.agrees_with_score -ne $false) { throw "agrees_with_score $($rq.agent_self_evaluation.agrees_with_score)" }
+    }
+
     It "emits a scripted governance loop that survives finalization" {
         $configPath = Join-Path $script:AuditRoot "config.json"
         Write-AuditConfig $configPath
@@ -349,7 +418,11 @@ Describe "PowerShell agent audit runtime" {
 
         Assert-AakSuccess (Invoke-AakPowerShellScript -Script $finalizeScript -Arguments @("-Config", $configPath, "-SourceRoot", $script:Target, "-RunId", $runId))
 
-        $base = Join-Path $script:CentralPath "agent-audit\runs\2026\05\hmac_sha256_example_project\$runId"
+        # Locate the run folder by name: emit-event uses the real current time,
+        # so the year/month path segments are not hardcodable (mirrors the BATS
+        # lifecycle test's find-by-name).
+        $base = (Get-ChildItem -Path (Join-Path $script:CentralPath "agent-audit\runs") -Recurse -Directory -Filter $runId | Select-Object -First 1).FullName
+        if (-not $base) { throw "run folder $runId not found under central runs" }
         $types = @(Get-Content (Join-Path $base "governance-events.ndjson") | Where-Object { $_.Trim() } | ForEach-Object { ($_ | ConvertFrom-Json).event_type })
         foreach ($need in @("run.started", "run.completed", "task.classified", "agent.invoked", "agent.completed", "report.evaluated", "recommendation.created")) {
             if ($types -notcontains $need) { throw "missing event $need; got $($types -join ',')" }

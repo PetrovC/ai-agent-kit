@@ -148,6 +148,64 @@ assert rec["issue_candidate"]["should_open_issue"] is True, rec
 PY
 }
 
+@test "observed model tier derives from session.metrics model id" {
+    # No observed_model_tier is emitted; the real model id in session.metrics
+    # (opus -> review tier) drives model-fit. Trivial docs work on a review-tier
+    # model is overkill.
+    seed_run "run_metrics" <<'JSON'
+[[1,"run.completed","system",{"project_hash":"hmac_sha256_example_project","task_type":"docs_update","risk_level":"low","complexity":"trivial","answered_assigned_task":true,"has_sanitized_evidence":true,"validation_state":"passed","report_tokens":700,"status":"completed"}],
+ [2,"session.metrics","system",{"provider":"claude","model":"claude-opus-4-8","tokens":{"input":1,"output":1,"cache_creation":0,"cache_read":0,"total":2,"cache_hit_ratio":0.0}}]]
+JSON
+    python - "$(run_dir run_metrics)" <<'PY'
+import json, pathlib, sys
+rq = json.loads((pathlib.Path(sys.argv[1]) / "report-quality.json").read_text())
+assert rq["observed_model_tier"] == "review", rq
+assert rq["expected_model_tier"] == "standard", rq
+assert rq["model_fit"] == "overkill", rq
+PY
+}
+
+@test "failed validation forces missing direct answer despite self-report" {
+    # Agent self-reports the task answered, but a failed validation is the
+    # authoritative reviewer verdict.
+    seed_run "run_valfail" <<'JSON'
+[[1,"run.completed","system",{"project_hash":"hmac_sha256_example_project","task_type":"feature_implementation","risk_level":"low","complexity":"small","answered_assigned_task":true,"has_sanitized_evidence":true,"validation_state":"failed","observed_model_tier":"standard","report_tokens":800,"status":"completed"}]]
+JSON
+    python - "$(run_dir run_valfail)" <<'PY'
+import json, pathlib, sys
+rq = json.loads((pathlib.Path(sys.argv[1]) / "report-quality.json").read_text())
+assert "missing_direct_answer" in rq["weaknesses"], rq
+assert rq["quality_score"] == 7.0, rq
+PY
+}
+
+@test "recorded blocker makes a next action expected" {
+    seed_run "run_blocker" <<'JSON'
+[[1,"run.completed","system",{"project_hash":"hmac_sha256_example_project","task_type":"feature_implementation","risk_level":"low","complexity":"small","answered_assigned_task":true,"has_sanitized_evidence":true,"validation_state":"passed","observed_model_tier":"standard","report_tokens":800,"status":"completed"}],
+ [2,"blocker.recorded","system",{}]]
+JSON
+    python - "$(run_dir run_blocker)" <<'PY'
+import json, pathlib, sys
+rq = json.loads((pathlib.Path(sys.argv[1]) / "report-quality.json").read_text())
+assert "missing_next_action" in rq["weaknesses"], rq
+assert rq["quality_score"] == 8.5, rq
+PY
+}
+
+@test "agent self-evaluation at checkpoint is surfaced as advisory" {
+    seed_run "run_selfeval" <<'JSON'
+[[1,"run.completed","system",{"project_hash":"hmac_sha256_example_project","task_type":"feature_implementation","risk_level":"low","complexity":"small","answered_assigned_task":true,"has_sanitized_evidence":true,"validation_state":"passed","observed_model_tier":"standard","report_tokens":800,"status":"completed"}],
+ [2,"report.evaluated","main_agent",{"quality_category":"weak"}]]
+JSON
+    python - "$(run_dir run_selfeval)" <<'PY'
+import json, pathlib, sys
+rq = json.loads((pathlib.Path(sys.argv[1]) / "report-quality.json").read_text())
+# Deterministic score still wins; self-eval is recorded for comparison only.
+assert rq["quality_category"] == "accepted", rq
+assert rq["agent_self_evaluation"] == {"quality_category": "weak", "agrees_with_score": False}, rq
+PY
+}
+
 @test "overkill model on trivial docs work is advisory only" {
     seed_run "run_over" <<'JSON'
 [[1,"run.completed","system",{"project_hash":"hmac_sha256_example_project","task_type":"docs_update","risk_level":"low","complexity":"trivial","answered_assigned_task":true,"has_sanitized_evidence":true,"observed_model_tier":"deep","report_tokens":700,"status":"completed"}]]

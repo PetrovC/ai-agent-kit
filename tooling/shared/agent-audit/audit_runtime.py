@@ -543,6 +543,31 @@ LOW_TIER_TASKS = {
 }
 HIGH_TIER_CATEGORIES = {"security", "architecture", "review", "code_review"}
 
+# Map an observed provider model id to a routing tier. Lets model-fit run on the
+# real model captured in session.metrics rather than a self-reported tier. Codex
+# runs every profile on one model id (the differentiator is reasoning effort,
+# not the id), so Codex ids are intentionally unmapped; detection then falls
+# back to an explicitly emitted observed_model_tier. Keep claude keywords ahead
+# of the generic gemini ones so the most specific match wins.
+MODEL_TIER_BY_KEYWORD: tuple[tuple[str, str], ...] = (
+    ("opus", "review"),
+    ("sonnet", "standard"),
+    ("haiku", "fast"),
+    ("pro", "review"),
+    ("flash", "fast"),
+)
+
+
+def model_tier_from_id(model_id: str) -> str | None:
+    """Best-effort map of a model id to a routing tier, or None when unknown."""
+    lowered = model_id.strip().lower()
+    if not lowered or lowered == "unknown":
+        return None
+    for keyword, tier in MODEL_TIER_BY_KEYWORD:
+        if keyword in lowered:
+            return tier
+    return None
+
 
 def _as_int(value: Any, default: int = 0) -> int:
     try:
@@ -651,15 +676,34 @@ def compute_noise_score(
     }
 
 
-def compute_quality_score(events: list[dict[str, Any]]) -> dict[str, Any]:
-    """Deterministic 0-10 quality score from sanitized evidence flags."""
-    next_action_expected = bool(
-        find_payload_value(events, "next_action_expected", False)
+def compute_quality_score(
+    events: list[dict[str, Any]],
+    validation_state: str = "unavailable",
+    blocker_count: int = 0,
+) -> dict[str, Any]:
+    """Deterministic 0-10 quality score from real run signals plus optional
+    agent self-assessment flags.
+
+    The objective signals are authoritative: a failed validation is a reviewer
+    verdict that the assigned task was not answered (regardless of the agent's
+    self-reported ``answered_assigned_task``); a skipped validation is an
+    unverified conclusion; and a recorded blocker means a next action is
+    expected. The self-assessment flags (``answered_assigned_task``,
+    ``has_sanitized_evidence``, ``has_next_action``, ...) remain optional inputs
+    the governing model may emit at the checkpoint.
+    """
+    validation = str(validation_state).strip().lower()
+    # A recorded blocker means the run hit something it could not resolve, so a
+    # human/agent next action is expected even if none was self-reported.
+    next_action_expected = (
+        bool(find_payload_value(events, "next_action_expected", False))
+        or blocker_count > 0
     )
     checks: list[tuple[str, bool]] = [
         (
             "missing_direct_answer",
-            not bool(find_payload_value(events, "answered_assigned_task", True)),
+            not bool(find_payload_value(events, "answered_assigned_task", True))
+            or validation == "failed",
         ),
         (
             "missing_evidence",
@@ -677,7 +721,8 @@ def compute_quality_score(events: list[dict[str, Any]]) -> dict[str, Any]:
         ("excessive_noise", bool(find_payload_value(events, "off_scope", False))),
         (
             "unverified_conclusion",
-            bool(find_payload_value(events, "unverified_conclusion", False)),
+            bool(find_payload_value(events, "unverified_conclusion", False))
+            or validation == "skipped",
         ),
         (
             "duplicated_report",
@@ -718,6 +763,26 @@ def expected_model_tier(
     return "standard"
 
 
+def observed_model_tier(events: list[dict[str, Any]]) -> str:
+    """Resolve the observed routing tier for model-fit detection.
+
+    Prefer the real model id captured in session.metrics (mapped to a tier);
+    fall back to an explicitly emitted observed_model_tier/model_tier when the
+    id is unmappable (e.g. Codex, where every profile shares one model id)."""
+    metrics = session_metrics_payload(events)
+    if metrics:
+        tier = model_tier_from_id(str(metrics.get("model", "")))
+        if tier:
+            return tier
+    return str(
+        find_payload_value(
+            events,
+            "observed_model_tier",
+            find_payload_value(events, "model_tier", "unknown"),
+        )
+    )
+
+
 def detect_model_fit(
     events: list[dict[str, Any]],
     task_type: str,
@@ -726,15 +791,10 @@ def detect_model_fit(
     quality_category: str,
     retry_count: int,
     escalation_count: int,
+    blocker_count: int = 0,
 ) -> dict[str, Any]:
     """Advisory model-fit detection. Never hard-blocks a model choice."""
-    observed = str(
-        find_payload_value(
-            events,
-            "observed_model_tier",
-            find_payload_value(events, "model_tier", "unknown"),
-        )
-    )
+    observed = observed_model_tier(events)
     agent_category = str(find_payload_value(events, "agent_category", "other"))
     expected = expected_model_tier(task_type, risk_level, agent_category)
     # Without any task or agent classification there is not enough evidence to
@@ -757,7 +817,7 @@ def detect_model_fit(
         }
     observed_rank, expected_rank = TIER_RANK[observed], TIER_RANK[expected]
     reasoning_failed = quality_category in {"unusable", "failed"}
-    needed_recovery = retry_count > 0 or escalation_count > 0
+    needed_recovery = retry_count > 0 or escalation_count > 0 or blocker_count > 0
     fit = "appropriate"
     confidence, strength = "medium", "moderate"
     if observed_rank < expected_rank and (reasoning_failed or needed_recovery):
@@ -781,6 +841,22 @@ def detect_model_fit(
     }
 
 
+def agent_self_evaluation(events: list[dict[str, Any]]) -> str | None:
+    """Optional self-eval emitted by the governing model at the mandatory
+    checkpoint via report.evaluated. Advisory only: surfaced for comparison
+    against the deterministic score, never overrides it. Returns the latest
+    self-assessed quality_category, or None when no checkpoint eval was emitted.
+    """
+    for event in reversed(events):
+        if event.get("event_type") != "report.evaluated":
+            continue
+        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        category = payload.get("quality_category")
+        if isinstance(category, str) and category.strip():
+            return category
+    return None
+
+
 def build_governance(
     events: list[dict[str, Any]],
     invocations: list[dict[str, Any]],
@@ -793,10 +869,11 @@ def build_governance(
     """Compute report-quality, noise, model-fit, and recommendations."""
     retry_count = event_count(events, "retry.requested")
     escalation_count = event_count(events, "escalation.started")
+    blocker_count = event_count(events, "blocker.recorded")
     noise = compute_noise_score(
         events, invocations, target_report_tokens(audit, events)
     )
-    quality = compute_quality_score(events)
+    quality = compute_quality_score(events, validation_state, blocker_count)
     model_fit = detect_model_fit(
         events,
         task_type,
@@ -805,7 +882,9 @@ def build_governance(
         quality["quality_category"],
         retry_count,
         escalation_count,
+        blocker_count,
     )
+    self_eval = agent_self_evaluation(events)
 
     report_quality = {
         "schema_version": SCHEMA_VERSION,
@@ -818,9 +897,19 @@ def build_governance(
         "noise_components": noise["components"],
         "noise_inputs": noise["inputs"],
         "model_fit": model_fit["model_fit"],
+        "observed_model_tier": model_fit["observed_model_tier"],
+        "expected_model_tier": model_fit["expected_model_tier"],
         "evidence_strength": model_fit["evidence_strength"],
         "confidence": model_fit["confidence"],
         "validation_state": validation_state,
+        "agent_self_evaluation": (
+            {
+                "quality_category": self_eval,
+                "agrees_with_score": self_eval == quality["quality_category"],
+            }
+            if self_eval is not None
+            else None
+        ),
         "decision_log": [
             {
                 "decision": quality["default_action"],

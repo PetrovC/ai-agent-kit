@@ -62,6 +62,15 @@ decimal place.
 | Duplicated prior report without new evidence | `-2.0` | Retry report repeats the same result summary and evidence counters. |
 | Contradictory status or incomplete artifact links | `-2.0` | Status says success but required artifacts or references are missing. |
 
+Real run signals are authoritative over the agent's self-assessment. A failed
+validation is a reviewer verdict that the assigned task was not answered (it
+triggers `missing_direct_answer` even when the agent self-reported success); a
+skipped validation triggers `unverified_conclusion`; and a recorded blocker
+means a next action is expected (so a missing next action is penalized). The
+self-assessment flags (`answered_assigned_task`, `has_sanitized_evidence`,
+`has_next_action`) remain optional inputs the governing model may emit at the
+checkpoint.
+
 Required evidence for acceptance:
 
 - assigned task category is represented;
@@ -127,6 +136,16 @@ excessive noise, `-2.0` contradictory status → `1.0`):
   "stop_recommended": true
 }
 ```
+
+### Agent Self-Evaluation (optional)
+
+At the mandatory checkpoint the governing model may emit `report.evaluated` with
+its own `quality_category`. This self-evaluation is optional and advisory: it is
+surfaced in `report-quality.json` under `agent_self_evaluation` (with an
+`agrees_with_score` flag comparing it to the deterministic category) but never
+overrides the computed score. A persistent disagreement across runs is itself a
+signal worth aggregating. When no checkpoint evaluation was emitted, the field is
+`null`.
 
 ## Noise Score Formula
 
@@ -268,6 +287,15 @@ Example:
 
 Model fit recommendations are advisory. They do not hard-block model choices or
 edit model policy automatically.
+
+The observed tier is derived from the real model id captured in `session.metrics`
+(see [AGENT_AUDIT_SCHEMA.md](./AGENT_AUDIT_SCHEMA.md)), mapped to a routing tier
+(`opus`/`pro` → `review`, `sonnet` → `standard`, `haiku`/`flash` → `fast`). When
+the model id is unmappable — notably Codex, where every profile shares one model
+id and only `model_reasoning_effort` differs — detection falls back to an
+explicitly emitted `observed_model_tier`. The expected tier comes from task type,
+risk, and agent category. A blocker counts as a recovery signal alongside retries
+and escalations.
 
 ### Expected Tier By Task
 
