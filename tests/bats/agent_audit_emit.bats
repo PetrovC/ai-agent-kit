@@ -76,7 +76,9 @@ emit() {
         --config "$CONFIG_PATH" --source-root "$TARGET" --run-id "run_emit_loop"
     assert_success
 
-    base="$CENTRAL_PATH/agent-audit/runs/2026/05/hmac_sha256_example_project/run_emit_loop"
+    # emit-event stamps events with the real current time, so the year/month
+    # path segments are not hardcodable; locate the run folder by name.
+    base="$(find "$CENTRAL_PATH/agent-audit/runs" -type d -name run_emit_loop | head -1)"
     python - "$base" <<'PY'
 import json
 import pathlib

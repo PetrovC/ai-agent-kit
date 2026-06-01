@@ -54,7 +54,10 @@ Describe "Session-metrics import (#327)" {
         Assert-AakSuccess (Invoke-AakPowerShellScript -Script $import -Arguments @("-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-Provider", "claude", "-Transcript", $script:Transcript, "-RunId", "run_metrics"))
         Assert-AakSuccess (Invoke-AakPowerShellScript -Script $finalize -Arguments @("-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_metrics"))
 
-        $base = Join-Path $script:CentralPath "agent-audit\runs\2026\05\hmac_sha256_example_project\run_metrics"
+        # emit/import stamp events with the real current time, so the year/month
+        # path segments are not hardcodable; locate the run folder by name.
+        $base = (Get-ChildItem -Path (Join-Path $script:CentralPath "agent-audit\runs") -Recurse -Directory -Filter "run_metrics" | Select-Object -First 1).FullName
+        if (-not $base) { throw "run folder run_metrics not found under central runs" }
         $tc = Get-Content -Raw (Join-Path $base "token-context.json") | ConvertFrom-Json
         if ($tc.measurement_mode -ne "imported-transcript") { throw "measurement_mode $($tc.measurement_mode)" }
         if ($tc.tokens.input -ne 1300) { throw "input $($tc.tokens.input)" }
@@ -104,7 +107,8 @@ Describe "Session-metrics import (#327)" {
         Assert-AakSuccess (Invoke-AakPowerShellScript -Script $import -Arguments @("-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-Provider", "codex", "-Transcript", $codex, "-RunId", "run_codex"))
         Assert-AakSuccess (Invoke-AakPowerShellScript -Script $finalize -Arguments @("-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_codex"))
 
-        $base = Join-Path $script:CentralPath "agent-audit\runs\2026\05\hmac_sha256_example_project\run_codex"
+        $base = (Get-ChildItem -Path (Join-Path $script:CentralPath "agent-audit\runs") -Recurse -Directory -Filter "run_codex" | Select-Object -First 1).FullName
+        if (-not $base) { throw "run folder run_codex not found under central runs" }
         $tc = Get-Content -Raw (Join-Path $base "token-context.json") | ConvertFrom-Json
         if ($tc.provider -ne "codex" -or $tc.model -ne "gpt-5.5") { throw "provider/model $($tc.provider)/$($tc.model)" }
         if ($tc.measurement_mode -ne "imported-transcript") { throw "mode $($tc.measurement_mode)" }
@@ -161,7 +165,8 @@ con.commit(); con.close()
         Assert-AakSuccess (Invoke-AakPowerShellScript -Script $import -Arguments @("-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-Provider", "antigravity", "-Transcript", $db, "-RunId", "run_agy"))
         Assert-AakSuccess (Invoke-AakPowerShellScript -Script $finalize -Arguments @("-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy"))
 
-        $base = Join-Path $script:CentralPath "agent-audit\runs\2026\05\hmac_sha256_example_project\run_agy"
+        $base = (Get-ChildItem -Path (Join-Path $script:CentralPath "agent-audit\runs") -Recurse -Directory -Filter "run_agy" | Select-Object -First 1).FullName
+        if (-not $base) { throw "run folder run_agy not found under central runs" }
         $tc = Get-Content -Raw (Join-Path $base "token-context.json") | ConvertFrom-Json
         if ($tc.provider -ne "antigravity") { throw "provider $($tc.provider)" }
         if ($tc.model -ne "gemini-3-flash-low") { throw "model $($tc.model)" }

@@ -80,7 +80,9 @@ PY
         --source-root "$TARGET" --run-id run_metrics
     assert_success
 
-    base="$CENTRAL_PATH/agent-audit/runs/2026/05/hmac_sha256_example_project/run_metrics"
+    # emit/import stamp events with the real current time, so the year/month
+    # path segments are not hardcodable; locate the run folder by name.
+    base="$(find "$CENTRAL_PATH/agent-audit/runs" -type d -name run_metrics | head -1)"
     python - "$base" <<'PY'
 import json, pathlib, sys
 base = pathlib.Path(sys.argv[1])
@@ -176,7 +178,7 @@ PY
         --source-root "$TARGET" --run-id run_codex
     assert_success
 
-    base="$CENTRAL_PATH/agent-audit/runs/2026/05/hmac_sha256_example_project/run_codex"
+    base="$(find "$CENTRAL_PATH/agent-audit/runs" -type d -name run_codex | head -1)"
     python - "$base" <<'PY'
 import json, pathlib, sys
 base = pathlib.Path(sys.argv[1])
@@ -220,7 +222,7 @@ PY
         --source-root "$TARGET" --run-id run_agy
     assert_success
 
-    base="$CENTRAL_PATH/agent-audit/runs/2026/05/hmac_sha256_example_project/run_agy"
+    base="$(find "$CENTRAL_PATH/agent-audit/runs" -type d -name run_agy | head -1)"
     python - "$base" <<'PY'
 import json, pathlib, sys
 base = pathlib.Path(sys.argv[1])

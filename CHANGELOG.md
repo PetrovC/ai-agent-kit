@@ -4,6 +4,26 @@
 
 ### Added
 
+- **`feat(audit)` - derive model-fit and report-quality from real session signals (closes [#329](https://github.com/PetrovC/ai-agent-kit/issues/329); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
+  The #310 scoring engine now reads real run data instead of self-reported tiers
+  and flags only. **Model-fit:** the observed tier is derived from the real model
+  id captured in `session.metrics` (`opus`/`pro`→`review`, `sonnet`→`standard`,
+  `haiku`/`flash`→`fast`); Codex ids stay unmapped (one id per profile) and fall
+  back to an explicit `observed_model_tier`. A recorded blocker now counts as a
+  recovery signal alongside retries/escalations, and `report-quality.json` surfaces
+  `observed_model_tier`/`expected_model_tier`. **Report-quality:** objective signals
+  are authoritative over agent self-assessment — a failed validation forces
+  `missing_direct_answer`, a skipped validation forces `unverified_conclusion`, and
+  a recorded blocker makes a next action expected. **Optional self-eval:** a
+  `report.evaluated` `quality_category` emitted at the mandatory checkpoint is
+  surfaced under `agent_self_evaluation` (with an `agrees_with_score` flag) but
+  never overrides the deterministic score. Canonical + dogfood/home audit mirrors
+  refreshed; BATS (`agent_audit_scoring.bats`) and Pester (`AgentAuditRuntime.Tests.ps1`)
+  cover each new signal. Also makes the date-dependent audit tests date-robust
+  (locate the run folder by name instead of a hardcoded `runs/2026/05` path) so the
+  BATS/Pester audit suites pass regardless of the current month — a pre-existing
+  flake unrelated to the feature that surfaced when run after May.
+
 - **`feat(audit)` - auto-emit run/agent lifecycle events from provider hooks + auto-finalize (closes [#328](https://github.com/PetrovC/ai-agent-kit/issues/328); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
   Real sessions previously produced only `tool.observed`/`hook.observed` and were
   never finalized, so governance artifacts stayed empty. Provider lifecycle hooks
