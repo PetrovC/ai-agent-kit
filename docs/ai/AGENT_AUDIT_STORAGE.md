@@ -175,10 +175,48 @@ subagent assignments, and agent usage.
 | `rollups/cross-run-rollup.json` | Machine-readable cross-run aggregate (canonical). |
 | `rollups/cross-run-rollup.md` | Human-readable companion for maintainers. |
 
+The rollup JSON also carries two cross-run sections:
+
+- `skill_usage` — total skill activations and a per-skill distribution, sourced
+  from `skill.activated` events (`run-summary.json` → `skill_usage`). This makes
+  skill usage measurable across runs.
+- `findings` — per-run `governance-recommendations.json` aggregated across runs
+  by `(category, summary_code)`, with occurrence and affected-run counts, the
+  strongest evidence/confidence seen, and an `issue_candidate`. **Issue creation
+  stays manual:** a finding only flags a candidate (when a recommendation already
+  flagged it, evidence/confidence is high, or the pattern repeats across runs) —
+  the generator never opens an issue.
+
 Like indexes, rollups contain only data already safe to store in run artifacts
 (numeric aggregates and enum distributions); they must not copy raw report text,
 prompts, responses, command output, file paths, or branch names. The rollup
 generator is read-only over run folders and never rewrites them.
+
+## Reading Reports to Improve the Architecture
+
+The audit pays off only when its reports drive concrete changes. Read them in
+this order:
+
+1. **Per-run `report-quality.json`** — was the report accepted, and was the model
+   fit appropriate? An `underpowered`/`overkill` `model_fit` with strong evidence
+   is a routing signal; `observed_model_tier` vs `expected_model_tier` shows the
+   gap.
+2. **Cross-run `rollups/cross-run-rollup.json`** — the calibration lever:
+   - `by_task_type` / `by_agent` model-fit distributions reveal which task classes
+     or agents are routinely under- or over-powered → adjust `MODEL_ROUTING.md`
+     and the per-subagent model assignments.
+   - `context_exhaustion.rate` and `noise_hotspots` show where prompts/scope waste
+     context → tighten skill instructions or split work.
+   - `tokens` / `cost` / `cache_hit` per group show where efficiency work pays off.
+   - `skill_usage` shows which skills actually fire → prune unused skills, fix
+     under-triggering descriptions.
+3. **`findings`** — the actionable shortlist. Each issue candidate is safe for a
+   human to review and, if warranted, turn into a GitHub issue manually. Cite the
+   finding's `summary_code`, `affected_run_count`, and evidence in the issue.
+
+Calibration is a loop: change a policy, let new runs accumulate, re-run `rollup`,
+and confirm the distribution moved in the intended direction before the next
+change.
 
 ## Policy Folder
 
