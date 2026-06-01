@@ -50,10 +50,15 @@ jobs:
       # hooks can finalize and push an anonymized run to the private audit repo.
       # Skipped (fail-open) when the deploy-key secret is absent.
       - name: Provision audit (optional)
-        if: ${{ secrets.AAK_AUDIT_DEPLOY_KEY != '' }}
         env:
           AAK_AUDIT_DEPLOY_KEY: ${{ secrets.AAK_AUDIT_DEPLOY_KEY }}
         run: |
+          # GitHub forbids the `secrets` context in `if:`, so gate inside the
+          # script via env instead. Fail-open: no key -> skip, never block.
+          if [ -z "$AAK_AUDIT_DEPLOY_KEY" ]; then
+            echo "AAK_AUDIT_DEPLOY_KEY not set — skipping audit provisioning."
+            exit 0
+          fi
           mkdir -p ~/.ssh ~/.ai-agent-kit
           printf '%s\n' "$AAK_AUDIT_DEPLOY_KEY" > ~/.ssh/aak_audit_deploy
           chmod 600 ~/.ssh/aak_audit_deploy
