@@ -49,15 +49,54 @@
         ]
       }
     ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.agy/hooks/agent-audit-event.sh\" SessionStart'",
+            "name": "agent-audit",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.agy/hooks/agent-audit-event.sh\" BeforeAgent'",
+            "name": "agent-audit",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.agy/hooks/agent-audit-event.sh\" AfterAgent'",
+            "name": "agent-audit",
+            "async": true
+          }
+        ]
+      }
+    ],
     "SessionEnd": [
       {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.agy/hooks/agent-audit-event.sh\"'",
+            "command": "bash -c 'exec \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.agy/hooks/agent-audit-event.sh\" SessionEnd'",
             "name": "agent-audit",
-            "async": true
+            "async": false
           }
         ]
       }
