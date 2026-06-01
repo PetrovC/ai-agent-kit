@@ -15,6 +15,18 @@
 
 ### Added
 
+- **`feat(audit)` - Claude SessionEnd hook auto-imports anonymized session metrics.**
+  The Claude lifecycle hook now reads the `transcript_path` it receives on stdin
+  and runs `import-session-metrics` at run end (before auto-finalize), so every
+  audited Claude session populates `token-context.json` / `pricing-estimate.json`
+  with real tokens / cache-hit / speed / context / cost — no manual step.
+  Previously runs captured only lifecycle/activity events, so cross-run rollups
+  were empty on efficiency metrics. Best-effort and fail-open; only numeric/enum
+  metrics leave the parser (`privacy_scan` backstops). Canonical + dogfood hook
+  mirrors updated; BATS + Pester lifecycle tests assert metrics populate and that
+  raw transcript content never reaches the run folder. (Codex/Antigravity
+  auto-import follows once their transcript path is resolved from the hook.)
+
 - **`feat(audit)` - capture skill activation + aggregate recommendations into findings (closes [#331](https://github.com/PetrovC/ai-agent-kit/issues/331); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
   Adds a `skill.activated` event (controlled `skill_key` payload) so skill usage
   is measurable: per-run counts surface in `run-summary.json` under `skill_usage`
