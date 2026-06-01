@@ -56,6 +56,20 @@ Finalize one run:
 .ai-agent-kit/audit/finalize-run.sh --source-root . --run-id run_20260528_120000_example
 ```
 
+Aggregate finalized runs into cross-run calibration rollups (quality, model-fit
+distribution, tokens, cache-hit, speed, cost, context exhaustion, retries, and
+noise hotspots, grouped by project hash / agent / task type):
+
+```bash
+.ai-agent-kit/audit/rollup.sh --source-root .
+```
+
+This reads the already-sanitized run artifacts under the configured central
+repo and writes `cross-run-rollup.json` + `cross-run-rollup.md` to
+`<central>/agent-audit/rollups/`. It is read-only over the run data (it never
+rewrites run folders) and does not clone or push. Pass `--runs-root` to scan a
+specific `runs/` directory and `--output-dir` to write the rollup elsewhere.
+
 PowerShell wrappers are also installed:
 
 ```powershell
@@ -63,6 +77,7 @@ PowerShell wrappers are also installed:
 .\.ai-agent-kit\audit\emit-event.ps1 -SourceRoot . -Type run.started -Actor system -RunId run_20260528_120000_example
 .\.ai-agent-kit\audit\import-session-metrics.ps1 -SourceRoot . -Provider claude -Transcript $transcript -RunId run_20260528_120000_example
 .\.ai-agent-kit\audit\finalize-run.ps1 -SourceRoot . -RunId run_20260528_120000_example
+.\.ai-agent-kit\audit\rollup.ps1 -SourceRoot .
 ```
 
 The active governance loop that drives `emit-event` (and its mandatory
