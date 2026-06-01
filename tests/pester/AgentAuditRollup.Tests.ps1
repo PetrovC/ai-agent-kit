@@ -38,23 +38,24 @@ Describe "Cross-run rollups (#330)" {
         }
     }
 
-    function Invoke-Emit {
-        param([string]$RunId, [string]$Type, [string]$Actor, [string]$Payload = "", [string]$InvocationId = "")
-        $emitArgs = @("-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-Type", $Type, "-Actor", $Actor, "-RunId", $RunId)
-        if ($Payload) {
-            $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Payload))
-            $emitArgs += @("-PayloadB64", $b64)
-        }
-        if ($InvocationId) { $emitArgs += @("-InvocationId", $InvocationId) }
-        Assert-AakSuccess (Invoke-AakPowerShellScript -Script $script:Emit -Arguments $emitArgs)
-    }
-
-    function Complete-SeedRun {
-        param([string]$RunId)
-        Assert-AakSuccess (Invoke-AakPowerShellScript -Script $script:Finalize -Arguments @("-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", $RunId))
-    }
-
     It "aggregates across runs by project, agent, and task type" {
+        # Pester 5 runs Describe-body code at discovery time, so test helpers are
+        # defined inside the It block (run phase) to stay in scope.
+        function Invoke-Emit {
+            param([string]$RunId, [string]$Type, [string]$Actor, [string]$Payload = "", [string]$InvocationId = "")
+            $emitArgs = @("-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-Type", $Type, "-Actor", $Actor, "-RunId", $RunId)
+            if ($Payload) {
+                $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Payload))
+                $emitArgs += @("-PayloadB64", $b64)
+            }
+            if ($InvocationId) { $emitArgs += @("-InvocationId", $InvocationId) }
+            Assert-AakSuccess (Invoke-AakPowerShellScript -Script $script:Emit -Arguments $emitArgs)
+        }
+        function Complete-SeedRun {
+            param([string]$RunId)
+            Assert-AakSuccess (Invoke-AakPowerShellScript -Script $script:Finalize -Arguments @("-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", $RunId))
+        }
+
         # proj_a run 1: review tier, codex metrics with high context occupancy.
         Invoke-Emit -RunId "run_a1" -Type "run.completed" -Actor "system" -Payload '{"project_hash":"hmac_sha256_proj_a","task_type":"security_review","risk_level":"high","complexity":"large","answered_assigned_task":true,"has_sanitized_evidence":true,"validation_state":"passed","observed_model_tier":"review","report_tokens":800,"status":"completed"}'
         Invoke-Emit -RunId "run_a1" -Type "session.metrics" -Actor "system" -Payload '{"provider":"codex","model":"gpt-5.5","tokens":{"input":900,"output":100,"cache_creation":0,"cache_read":100,"total":1100,"cache_hit_ratio":0.1},"speed":{"avg_tokens_per_sec":50.0,"samples":1},"context":{"context_used_ratio":0.9}}'
