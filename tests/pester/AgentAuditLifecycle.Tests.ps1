@@ -61,4 +61,39 @@ Describe "Lifecycle auto-emit from hooks (#328)" {
             Select-String -Pattern "zzleakzz" -SimpleMatch -List
         if ($leak) { throw "raw content leaked: $($leak.Path -join ', ')" }
     }
+
+    It "claude SessionEnd auto-imports anonymized session metrics from the transcript" {
+        $bash = Get-Command bash -ErrorAction SilentlyContinue
+        if (-not $bash) { Set-ItResult -Skipped -Because "bash is required to run the hook scripts"; return }
+        $kit = ($script:KitRoot -replace '\\', '/')
+        $hook = "$kit/tooling/claude/hooks/agent-audit-event.sh"
+        $transcript = Join-Path $script:AuditRoot "session.jsonl"
+        $lines = @'
+{"type":"user","timestamp":"2026-06-01T10:00:00Z","cwd":"/Users/zzleakzz/p","message":{"role":"user","content":"zzleakzz prompt"}}
+{"type":"assistant","timestamp":"2026-06-01T10:00:05Z","message":{"role":"assistant","model":"claude-opus-4-8","content":[{"type":"text","text":"zzleakzz answer"}],"usage":{"input_tokens":1000,"output_tokens":200,"cache_read_input_tokens":4000,"speed":90.0}}}
+'@
+        [System.IO.File]::WriteAllText($transcript, $lines, (New-Object System.Text.UTF8Encoding($false)))
+        $tpath = ($transcript -replace '\\', '/')
+        $env:CLAUDE_PROJECT_DIR = $kit
+        $env:AAK_AUDIT_CONFIG = ($script:ConfigPath -replace '\\', '/')
+        $env:AAK_AUDIT_RUN_ID = "run_metrics_ps"
+        $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+        if ($pythonCmd) { $env:PYTHON = $pythonCmd.Source }
+        try {
+            "{`"transcript_path`":`"$tpath`"}" | & bash $hook SessionEnd
+        } finally {
+            Remove-Item Env:CLAUDE_PROJECT_DIR, Env:AAK_AUDIT_CONFIG, Env:AAK_AUDIT_RUN_ID, Env:PYTHON -ErrorAction SilentlyContinue
+        }
+
+        $base = Get-ChildItem -LiteralPath $script:CentralPath -Recurse -Directory -Filter "run_metrics_ps" | Select-Object -First 1
+        if (-not $base) { throw "run was not finalized on session end" }
+        $tc = Get-Content -Raw (Join-Path $base.FullName "token-context.json") | ConvertFrom-Json
+        if ($tc.measurement_mode -ne "imported-transcript") { throw "measurement_mode $($tc.measurement_mode)" }
+        if ($tc.tokens.total -ne 5200) { throw "tokens.total $($tc.tokens.total)" }
+        if ($tc.tokens.cache_hit_ratio -ne 0.8) { throw "cache_hit_ratio $($tc.tokens.cache_hit_ratio)" }
+
+        $leak = Get-ChildItem -LiteralPath $base.FullName, $script:RuntimePath -Recurse -File |
+            Select-String -Pattern "zzleakzz" -SimpleMatch -List
+        if ($leak) { throw "raw content leaked: $($leak.Path -join ', ')" }
+    }
 }

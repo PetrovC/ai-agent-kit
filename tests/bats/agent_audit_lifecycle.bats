@@ -68,6 +68,30 @@ PY
     assert_failure
 }
 
+@test "claude SessionEnd auto-imports anonymized session metrics from the transcript" {
+    transcript="$AUDIT_ROOT/session.jsonl"
+    cat > "$transcript" <<'JSON'
+{"type":"user","timestamp":"2026-06-01T10:00:00Z","cwd":"/Users/zzleakzz/p","message":{"role":"user","content":"zzleakzz prompt"}}
+{"type":"assistant","timestamp":"2026-06-01T10:00:05Z","message":{"role":"assistant","model":"claude-opus-4-8","content":[{"type":"text","text":"zzleakzz answer"}],"usage":{"input_tokens":1000,"output_tokens":200,"cache_read_input_tokens":4000,"speed":90.0}}}
+JSON
+    claude_hook run_metrics "$(printf '{"transcript_path":"%s"}' "$transcript")" SessionEnd
+
+    base="$(find "$CENTRAL_PATH/agent-audit/runs" -type d -name run_metrics | head -1)"
+    [ -n "$base" ]
+    python - "$base" <<'PY'
+import json, pathlib, sys
+base = pathlib.Path(sys.argv[1])
+tc = json.loads((base / "token-context.json").read_text())
+assert tc["measurement_mode"] == "imported-transcript", tc
+assert tc["model"] == "claude-opus-4-8", tc
+assert tc["tokens"]["total"] == 5200, tc["tokens"]
+assert tc["tokens"]["cache_hit_ratio"] == 0.8, tc["tokens"]
+PY
+    # raw transcript content (prompt/answer/cwd) must never reach the run folder
+    run grep -rn "zzleakzz" "$base" "$RUNTIME_PATH"
+    assert_failure
+}
+
 @test "codex Stop is the session-close event and finalizes the run" {
     printf '%s' '{"hook_event_name":"Stop"}' | env CODEX_PROJECT_DIR="$KIT_ROOT" \
         AAK_AUDIT_CONFIG="$CONFIG_PATH" AAK_AUDIT_RUN_ID="run_codex_life" \

@@ -15,6 +15,7 @@ EVENT_ARG="${1:-}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 AUDIT_SCRIPT="$PROJECT_DIR/.ai-agent-kit/audit/record-event.sh"
 FINALIZE_SCRIPT="$PROJECT_DIR/.ai-agent-kit/audit/finalize-run.sh"
+IMPORT_SCRIPT="$PROJECT_DIR/.ai-agent-kit/audit/import-session-metrics.sh"
 CONFIG_PATH="${AAK_AUDIT_CONFIG:-$HOME/.ai-agent-kit/config.json}"
 
 if [[ ! -x "$AUDIT_SCRIPT" && ! -f "$AUDIT_SCRIPT" ]]; then
@@ -129,13 +130,17 @@ event = {
 print(run_id)
 print(event_type)
 print(json.dumps(event, separators=(",", ":")))
+# 4th line: transcript path (Claude provides it on the hook stdin). Used to
+# auto-import anonymized session.metrics at run end; empty when unavailable.
+print(str(hook.get("transcript_path") or ""))
 PY
 )"
 
 run_id=""
 event_type=""
 event_json=""
-{ read -r run_id; read -r event_type; read -r event_json; } <<EOF
+transcript_path=""
+{ read -r run_id; read -r event_type; read -r event_json; read -r transcript_path; } <<EOF
 $audit_output
 EOF
 # Strip a trailing CR so Windows python's \r\n stdout does not break the
@@ -143,16 +148,25 @@ EOF
 run_id="${run_id%$'\r'}"
 event_type="${event_type%$'\r'}"
 event_json="${event_json%$'\r'}"
+transcript_path="${transcript_path%$'\r'}"
 
 if [[ -n "$event_json" ]]; then
     printf '%s\n' "$event_json" | "$AUDIT_SCRIPT" --config "$CONFIG_PATH" --source-root "$PROJECT_DIR" >/dev/null 2>&1
 fi
 
-# On a run-end event, auto-finalize this run. Best-effort and synchronous so it
-# completes before the session exits; it no-ops without a configured central
-# audit clone (finalize-run rejects a non-audit branch / missing repo).
-if [[ "$event_type" == "run.completed" && -n "$run_id" && -f "$FINALIZE_SCRIPT" ]]; then
-    "$FINALIZE_SCRIPT" --config "$CONFIG_PATH" --source-root "$PROJECT_DIR" --run-id "$run_id" >/dev/null 2>&1
+# On a run-end event, auto-import anonymized session metrics from the transcript
+# (tokens/cache/speed/context), then auto-finalize. Both best-effort and
+# synchronous so they complete before the session exits; the import only reads
+# numeric/enum metrics (privacy_scan backstops), and finalize no-ops without a
+# configured central audit clone.
+if [[ "$event_type" == "run.completed" && -n "$run_id" ]]; then
+    if [[ -n "$transcript_path" && -f "$transcript_path" && -f "$IMPORT_SCRIPT" ]]; then
+        "$IMPORT_SCRIPT" --config "$CONFIG_PATH" --source-root "$PROJECT_DIR" \
+            --provider claude --transcript "$transcript_path" --run-id "$run_id" >/dev/null 2>&1
+    fi
+    if [[ -f "$FINALIZE_SCRIPT" ]]; then
+        "$FINALIZE_SCRIPT" --config "$CONFIG_PATH" --source-root "$PROJECT_DIR" --run-id "$run_id" >/dev/null 2>&1
+    fi
 fi
 
 exit 0
