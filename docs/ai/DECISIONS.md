@@ -202,3 +202,21 @@ issue changes direction.
   proxies, cost platforms, and IDE plugins stay outside the core kit unless a
   future issue explicitly promotes a narrow adapter.
 - Consequences: The core remains a maintainable multi-agent configurator.
+
+## ADR-019: Enable each tool's native subagents, not a cross-tool platform
+
+- Context: ADR-018 keeps an orchestration *platform* out of scope. Separately,
+  each provider has a first-class, in-tool subagent mechanism: Claude (`Task` +
+  `tooling/claude/agents/*`) and Antigravity (agents + `BeforeAgent/AfterAgent`)
+  already let the main agent invoke the kit's subagent definitions. Codex's
+  `features.multi_agent` (`spawn_agent`/`wait_agent`/…) was kept off when it was
+  experimental; it is now stable and default-on upstream.
+- Decision: Pin `features.multi_agent = true` in the kit's Codex config so the
+  Codex main agent can invoke the kit's subagent definitions (architect,
+  code-reviewer, …) under the kit's governance loop — matching Claude and
+  Antigravity. This is a tool-native, scoped feature, distinct from the
+  out-of-scope cross-tool orchestration platform. Cross-tool delegation
+  (Claude → Codex/Antigravity with model selection) remains a separate, opt-in
+  adapter gated by [#339](https://github.com/PetrovC/ai-agent-kit/issues/339).
+- Consequences: Subagent governance is uniform across the three tools; the kit
+  stays a configurator, not an orchestrator.
