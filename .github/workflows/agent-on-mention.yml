@@ -5,9 +5,12 @@ name: Agent on mention (@claude)
 # AAK_AUDIT_DEPLOY_KEY secret is present (best-effort; never blocks the agent).
 #
 # Required secrets:
-#   ANTHROPIC_API_KEY     - Claude API key (or use CLAUDE_CODE_OAUTH_TOKEN).
-#   AAK_AUDIT_DEPLOY_KEY  - private SSH deploy key with write on the audit repo
-#                           (optional; omit to disable cloud audit capture).
+#   CLAUDE_CODE_OAUTH_TOKEN - auth via your Claude Pro/Max subscription (NOT the
+#                             paid API). Generate locally with `claude setup-token`.
+#                             (Alternative: set ANTHROPIC_API_KEY for API billing
+#                             and swap the input below to anthropic_api_key.)
+#   AAK_AUDIT_DEPLOY_KEY    - private SSH deploy key with write on the audit repo
+#                             (optional; omit to disable cloud audit capture).
 
 on:
   issue_comment:
@@ -81,4 +84,5 @@ jobs:
       - name: Run Claude
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Uses your Claude Pro/Max subscription, not the paid API.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
