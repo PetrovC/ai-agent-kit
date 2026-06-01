@@ -4,6 +4,23 @@
 
 ### Added
 
+- **`feat(audit)` - cross-run governance + efficiency rollups for calibration (closes [#330](https://github.com/PetrovC/ai-agent-kit/issues/330); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
+  Adds a `rollup` command that aggregates ACROSS finalized run folders — quality
+  (avg + category distribution), model-fit distribution, tokens, cache-hit, speed,
+  cost, context-exhaustion rate (peak occupancy ≥ 0.85), retries, and noise
+  hotspots — grouped by `project_hash`, agent category, and task type. This is the
+  lever to calibrate `MODEL_ROUTING.md`, subagent assignments, and agent usage. It
+  reads only the already-sanitized run artifacts (`run-summary.json`,
+  `report-quality.json`, `token-context.json`, `pricing-estimate.json`,
+  `agent-invocations.json`), is read-only over run folders (never rewrites them),
+  and does not clone or push. Output: `cross-run-rollup.json` (canonical) +
+  `cross-run-rollup.md` under `<central>/agent-audit/rollups/`; `--runs-root` and
+  `--output-dir` override the source/target. `write_json`/`write_text` run
+  `privacy_scan` as a backstop. Shipped with `rollup.sh`/`rollup.ps1` wrappers
+  (canonical + dogfood/home mirrors); `AGENT_AUDIT_STORAGE.md` documents the layout;
+  BATS (`agent_audit_rollup.bats`) and Pester (`AgentAuditRollup.Tests.ps1`) cover
+  the aggregation and anonymization.
+
 - **`feat(audit)` - derive model-fit and report-quality from real session signals (closes [#329](https://github.com/PetrovC/ai-agent-kit/issues/329); part of [#308](https://github.com/PetrovC/ai-agent-kit/issues/308)).**
   The #310 scoring engine now reads real run data instead of self-reported tiers
   and flags only. **Model-fit:** the observed tier is derived from the real model

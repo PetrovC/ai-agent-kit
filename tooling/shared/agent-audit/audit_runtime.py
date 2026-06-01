@@ -1835,6 +1835,328 @@ def finalize_run(args: argparse.Namespace) -> int:
     return 0
 
 
+# --- Cross-run rollups (#330) --------------------------------------------
+# Aggregate ACROSS finalized run folders for calibration: quality, model-fit
+# distribution, tokens, cache-hit, speed, cost, context exhaustion, retries, and
+# noise hotspots, grouped by project_hash / agent / task_type. Reads only the
+# already-sanitized run artifacts; write_json/write_text run privacy_scan as a
+# backstop. This is read-only over the run data: it never rewrites run folders.
+
+ROLLUP_SCHEMA_VERSION = "0.1.0"
+# A run is "context-exhausted" when its peak context occupancy reaches this
+# fraction of the window (matches the critical pressure threshold in the
+# token-context contract).
+EXHAUSTION_RATIO_THRESHOLD = 0.85
+
+
+def _mean(values: list[Any]) -> float | None:
+    nums = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
+    return round(sum(nums) / len(nums), 4) if nums else None
+
+
+def _distribution(values: list[Any]) -> dict[str, int]:
+    dist: dict[str, int] = {}
+    for value in values:
+        if value is None:
+            continue
+        key = str(value)
+        dist[key] = dist.get(key, 0) + 1
+    return dist
+
+
+def _read_optional_json(run_dir: pathlib.Path, name: str) -> dict[str, Any]:
+    path = run_dir / name
+    if not path.is_file():
+        return {}
+    try:
+        return read_json_text(path.read_text(encoding="utf-8"), name)
+    except AuditError:
+        return {}
+
+
+def load_run_record(run_dir: pathlib.Path) -> dict[str, Any] | None:
+    """Normalize one finalized run folder into the fields the rollup aggregates.
+
+    Returns None when run-summary.json is absent or unparseable; optional
+    artifacts contribute what they have and are tolerant of missing fields."""
+    summary = _read_optional_json(run_dir, "run-summary.json")
+    if not summary:
+        return None
+    quality = _read_optional_json(run_dir, "report-quality.json")
+    token_context = _read_optional_json(run_dir, "token-context.json")
+    pricing = _read_optional_json(run_dir, "pricing-estimate.json")
+    invocations_doc = _read_optional_json(run_dir, "agent-invocations.json")
+
+    task = summary.get("task_profile") if isinstance(summary.get("task_profile"), dict) else {}
+    outcome = summary.get("outcome") if isinstance(summary.get("outcome"), dict) else {}
+    friction = (
+        summary.get("friction_summary")
+        if isinstance(summary.get("friction_summary"), dict)
+        else {}
+    )
+    usage = (
+        summary.get("usage_summary")
+        if isinstance(summary.get("usage_summary"), dict)
+        else {}
+    )
+    project_ref = (
+        summary.get("project_ref")
+        if isinstance(summary.get("project_ref"), dict)
+        else {}
+    )
+    tokens = token_context.get("tokens") if isinstance(token_context.get("tokens"), dict) else {}
+    speed = token_context.get("speed") if isinstance(token_context.get("speed"), dict) else {}
+    context = token_context.get("context") if isinstance(token_context.get("context"), dict) else {}
+
+    # Context exhaustion: prefer the measured codex ratio, else the run summary's
+    # peak context ratio.
+    context_ratio = context.get("context_used_ratio")
+    if not isinstance(context_ratio, (int, float)):
+        context_ratio = usage.get("peak_context_ratio")
+    if not isinstance(context_ratio, (int, float)) or isinstance(context_ratio, bool):
+        context_ratio = None
+
+    agents = sorted(
+        {
+            str(inv.get("agent_category") or "other")
+            for inv in (invocations_doc.get("invocations") or [])
+            if isinstance(inv, dict)
+        }
+    ) or ["main_agent"]
+
+    cost_amount = pricing.get("amount")
+    currency = pricing.get("currency")
+    return {
+        "run_id": str(summary.get("audit_run_id") or run_dir.name),
+        "project_hash": str(project_ref.get("project_hash") or "unknown"),
+        "task_type": str(task.get("task_type") or "other"),
+        "agents": agents,
+        "model": token_context.get("model") if isinstance(token_context.get("model"), str) else None,
+        "quality_score": quality.get("quality_score"),
+        "quality_category": quality.get("quality_category"),
+        "model_fit": quality.get("model_fit"),
+        "noise_score": quality.get("noise_score"),
+        "noise_level": quality.get("noise_level"),
+        "validation_state": outcome.get("validation_state") or quality.get("validation_state"),
+        "tokens_total": tokens.get("total"),
+        "cache_hit_ratio": tokens.get("cache_hit_ratio"),
+        "avg_tokens_per_sec": speed.get("avg_tokens_per_sec"),
+        "cost_amount": cost_amount if isinstance(cost_amount, (int, float)) and not isinstance(cost_amount, bool) else None,
+        "cost_currency": currency if isinstance(currency, str) and currency not in {"unavailable", ""} else None,
+        "context_ratio": context_ratio,
+        "retry_count": _as_int(friction.get("retry_count"), 0),
+        "blocker_count": _as_int(friction.get("blocker_count"), 0),
+        "escalation_count": _as_int(friction.get("escalation_count"), 0),
+    }
+
+
+def aggregate_group(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Deterministic efficiency + governance metrics for one group of runs."""
+    context_ratios = [r["context_ratio"] for r in records if r["context_ratio"] is not None]
+    exhausted = sum(1 for cr in context_ratios if cr >= EXHAUSTION_RATIO_THRESHOLD)
+    costs = [r["cost_amount"] for r in records if r["cost_amount"] is not None]
+    currencies = {r["cost_currency"] for r in records if r["cost_currency"]}
+    token_totals = [r["tokens_total"] for r in records if isinstance(r["tokens_total"], (int, float))]
+    retries = [r["retry_count"] for r in records]
+    return {
+        "run_count": len(records),
+        "quality": {
+            "avg_score": _mean([r["quality_score"] for r in records]),
+            "category_distribution": _distribution([r["quality_category"] for r in records]),
+        },
+        "model_fit_distribution": _distribution([r["model_fit"] for r in records]),
+        "model_distribution": _distribution([r["model"] for r in records]),
+        "tokens": {
+            "sum_total": sum(token_totals) if token_totals else None,
+            "avg_total": _mean(token_totals),
+        },
+        "cache_hit": {"avg_ratio": _mean([r["cache_hit_ratio"] for r in records])},
+        "speed": {"avg_tokens_per_sec": _mean([r["avg_tokens_per_sec"] for r in records])},
+        "cost": {
+            "sum_amount": round(sum(costs), 4) if costs else None,
+            "currency": (
+                next(iter(currencies)) if len(currencies) == 1
+                else ("mixed" if currencies else None)
+            ),
+            "runs_with_cost": len(costs),
+        },
+        "context_exhaustion": {
+            "threshold": EXHAUSTION_RATIO_THRESHOLD,
+            "measured_run_count": len(context_ratios),
+            "exhausted_run_count": exhausted,
+            "rate": round(exhausted / len(context_ratios), 4) if context_ratios else None,
+            "avg_ratio": _mean(context_ratios),
+        },
+        "retries": {"sum": sum(retries), "avg": _mean(retries)},
+        "friction": {
+            "blocker_sum": sum(r["blocker_count"] for r in records),
+            "escalation_sum": sum(r["escalation_count"] for r in records),
+        },
+        "noise": {
+            "avg_score": _mean([r["noise_score"] for r in records]),
+            "high_count": sum(1 for r in records if r["noise_level"] == "high"),
+        },
+    }
+
+
+def _group_by(
+    records: list[dict[str, Any]], key_fn: Any
+) -> dict[str, dict[str, Any]]:
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for record in records:
+        for key in key_fn(record):
+            groups.setdefault(str(key), []).append(record)
+    return {key: aggregate_group(groups[key]) for key in sorted(groups)}
+
+
+def build_rollup(records: list[dict[str, Any]], generated_at: str) -> dict[str, Any]:
+    by_task = _group_by(records, lambda r: [r["task_type"]])
+    hotspots = sorted(
+        (
+            {
+                "group": "task_type",
+                "key": key,
+                "avg_noise_score": metrics["noise"]["avg_score"],
+                "high_noise_run_count": metrics["noise"]["high_count"],
+                "run_count": metrics["run_count"],
+            }
+            for key, metrics in by_task.items()
+            if metrics["noise"]["high_count"] > 0
+            or (metrics["noise"]["avg_score"] or 0) >= 6.0
+        ),
+        key=lambda h: (h["high_noise_run_count"], h["avg_noise_score"] or 0),
+        reverse=True,
+    )[:5]
+    return {
+        "schema_version": ROLLUP_SCHEMA_VERSION,
+        "generated_at": generated_at,
+        "run_count": len(records),
+        "overall": aggregate_group(records) if records else {},
+        "by_project_hash": _group_by(records, lambda r: [r["project_hash"]]),
+        "by_agent": _group_by(records, lambda r: r["agents"]),
+        "by_task_type": by_task,
+        "noise_hotspots": hotspots,
+    }
+
+
+def _overall_markdown(group: dict[str, Any]) -> list[str]:
+    cost = group["cost"]
+    exhaustion = group["context_exhaustion"]
+    return [
+        f"- Quality: avg {group['quality']['avg_score']}, "
+        f"categories {group['quality']['category_distribution']}",
+        f"- Model-fit: {group['model_fit_distribution']}",
+        f"- Tokens: sum {group['tokens']['sum_total']}, avg {group['tokens']['avg_total']}",
+        f"- Cache-hit avg: {group['cache_hit']['avg_ratio']}",
+        f"- Speed avg tok/s: {group['speed']['avg_tokens_per_sec']}",
+        f"- Cost: sum {cost['sum_amount']} {cost['currency'] or ''} "
+        f"({cost['runs_with_cost']} run(s) priced)",
+        f"- Context exhaustion: {exhaustion['exhausted_run_count']}/"
+        f"{exhaustion['measured_run_count']} (rate {exhaustion['rate']})",
+        f"- Retries: sum {group['retries']['sum']}, avg {group['retries']['avg']}",
+        f"- Noise: avg {group['noise']['avg_score']}, {group['noise']['high_count']} high",
+    ]
+
+
+def rollup_markdown(rollup: dict[str, Any]) -> str:
+    lines = ["# Cross-Run Governance & Efficiency Rollup", ""]
+    lines.append(f"- Generated: {rollup['generated_at']}")
+    lines.append(f"- Runs aggregated: {rollup['run_count']}")
+    lines.append("")
+    if not rollup["run_count"]:
+        lines.append("No finalized runs were found to aggregate.")
+        lines.append("")
+        return "\n".join(lines)
+    lines.append("## Overall")
+    lines.append("")
+    lines.extend(_overall_markdown(rollup["overall"]))
+    lines.append("")
+    for title, key in (
+        ("By project", "by_project_hash"),
+        ("By agent", "by_agent"),
+        ("By task type", "by_task_type"),
+    ):
+        lines.append(f"## {title}")
+        lines.append("")
+        groups = rollup[key]
+        if not groups:
+            lines.extend(["_none_", ""])
+            continue
+        lines.append(
+            "| Group | Runs | Avg quality | Model-fit | Avg noise "
+            "| Exhaustion rate | Retries (sum) | Cost (sum) |"
+        )
+        lines.append("|---|---:|---:|---|---:|---:|---:|---:|")
+        for name, group in groups.items():
+            fit = (
+                ", ".join(f"{k}:{v}" for k, v in sorted(group["model_fit_distribution"].items()))
+                or "-"
+            )
+            rate = group["context_exhaustion"]["rate"]
+            cost = group["cost"]["sum_amount"]
+            currency = group["cost"]["currency"] or ""
+            cost_cell = f"{cost} {currency}".strip() if cost is not None else "-"
+            lines.append(
+                f"| {name} | {group['run_count']} | {group['quality']['avg_score']} | "
+                f"{fit} | {group['noise']['avg_score']} | "
+                f"{rate if rate is not None else '-'} | {group['retries']['sum']} | {cost_cell} |"
+            )
+        lines.append("")
+    if rollup["noise_hotspots"]:
+        lines.append("## Noise hotspots")
+        lines.append("")
+        for hotspot in rollup["noise_hotspots"]:
+            lines.append(
+                f"- `{hotspot['key']}` ({hotspot['group']}): avg noise "
+                f"{hotspot['avg_noise_score']}, {hotspot['high_noise_run_count']} "
+                f"high-noise run(s) of {hotspot['run_count']}."
+            )
+        lines.append("")
+    return "\n".join(lines)
+
+
+def collect_run_records(runs_root: pathlib.Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    if not runs_root.is_dir():
+        return records
+    for summary_path in sorted(runs_root.rglob("run-summary.json")):
+        record = load_run_record(summary_path.parent)
+        if record is not None:
+            records.append(record)
+    return records
+
+
+def rollup(args: argparse.Namespace) -> int:
+    """Aggregate finalized runs into cross-run calibration rollups.
+
+    Read-only over the run data: scans run folders and writes
+    `cross-run-rollup.json` + `cross-run-rollup.md` to the output directory.
+    Does not clone or push; the central repo must already exist."""
+    _, audit = load_config(args.config)
+    source_root = resolve_path(args.source_root)
+    if args.runs_root:
+        runs_root = resolve_path(args.runs_root)
+        default_output = runs_root.parent / "rollups"
+    else:
+        central = resolve_path(str(audit["central_repo_path"]))
+        assert_outside_source(central, source_root, "central_repo_path")
+        if not central.is_dir():
+            raise AuditError(f"central audit repo not found: {central}", 2)
+        runs_root = central / "agent-audit" / "runs"
+        default_output = central / "agent-audit" / "rollups"
+    output_dir = resolve_path(args.output_dir) if args.output_dir else default_output
+    assert_outside_source(output_dir, source_root, "rollup output_dir")
+
+    records = collect_run_records(runs_root)
+    rollup_doc = build_rollup(records, utc_now())
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "cross-run-rollup.json"
+    write_json(json_path, rollup_doc)
+    write_text(output_dir / "cross-run-rollup.md", rollup_markdown(rollup_doc))
+    print(f"rollup: aggregated {len(records)} run(s) -> {json_path}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="ai-agent-kit anonymized audit runtime"
@@ -1884,6 +2206,22 @@ def build_parser() -> argparse.ArgumentParser:
     finalize.add_argument("--commit", action="store_true")
     finalize.add_argument("--push", action="store_true")
     finalize.set_defaults(func=finalize_run)
+
+    roll = sub.add_parser(
+        "rollup",
+        help="aggregate finalized runs into cross-run calibration rollups",
+    )
+    roll.add_argument("--config")
+    roll.add_argument("--source-root", default=".")
+    roll.add_argument(
+        "--runs-root",
+        help="scan this runs/ directory instead of the configured central repo",
+    )
+    roll.add_argument(
+        "--output-dir",
+        help="write rollup artifacts here (default: <central>/agent-audit/rollups)",
+    )
+    roll.set_defaults(func=rollup)
     return parser
 
 

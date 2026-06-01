@@ -67,6 +67,9 @@ agent-audit/
       YYYY-MM.json
     projects/
       project-hash.json
+  rollups/
+    cross-run-rollup.json
+    cross-run-rollup.md
   runs/
     YYYY/
       MM/
@@ -157,6 +160,25 @@ Index records should include:
 
 Index records must not copy raw report text, recommendations, command output,
 file names, file paths, prompts, responses, or branch names.
+
+## Rollup Layout
+
+Cross-run calibration rollups are generated convenience files produced by
+`rollup` (see the agent-audit runtime). They aggregate ACROSS finalized runs —
+quality, model-fit distribution, tokens, cache-hit, speed, cost, context
+exhaustion, retries, and noise hotspots — grouped by project hash, agent
+category, and task type. They are the lever to calibrate `MODEL_ROUTING.md`,
+subagent assignments, and agent usage.
+
+| Path | Purpose |
+|---|---|
+| `rollups/cross-run-rollup.json` | Machine-readable cross-run aggregate (canonical). |
+| `rollups/cross-run-rollup.md` | Human-readable companion for maintainers. |
+
+Like indexes, rollups contain only data already safe to store in run artifacts
+(numeric aggregates and enum distributions); they must not copy raw report text,
+prompts, responses, command output, file paths, or branch names. The rollup
+generator is read-only over run folders and never rewrites them.
 
 ## Policy Folder
 
