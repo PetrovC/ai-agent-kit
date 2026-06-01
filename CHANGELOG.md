@@ -15,6 +15,16 @@
 
 ### Added
 
+- **`feat(codex)` - enable Codex native subagents so the main agent can invoke the kit's agent definitions.**
+  Pins `features.multi_agent = true` in `tooling/codex/config.toml` (+ dogfood
+  mirror). Codex's multi-agent feature (`spawn_agent`/`wait_agent`/…) is now
+  stable and default-on upstream; it was kept off when experimental. Enabling it
+  lets the Codex main agent spawn the kit's subagent definitions (architect,
+  code-reviewer, …) under the governance loop — matching Claude (`Task`) and
+  Antigravity (agents), which already support this. This is each tool's native,
+  scoped subagent feature, distinct from the out-of-scope cross-tool
+  orchestration platform (ADR-019; cross-tool delegation stays gated by #339).
+
 - **`feat(audit)` - Claude SessionEnd hook auto-imports anonymized session metrics.**
   The Claude lifecycle hook now reads the `transcript_path` it receives on stdin
   and runs `import-session-metrics` at run end (before auto-finalize), so every

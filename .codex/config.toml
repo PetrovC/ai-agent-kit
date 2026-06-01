@@ -81,8 +81,11 @@ max_bytes = 10485760  # 10 MiB
 #
 # Available flags (Codex defaults shown in [brackets]):
 #   features.unified_exec   [on]  — unified Bash/Exec tool (kept on; default)
-#   features.multi_agent    [off] — multi-agent orchestration (kit ships its
-#                                   own subagent governance — keep default off)
+#   features.multi_agent    [on]  — native subagents (spawn_agent/wait_agent/…).
+#                                   Now stable + default-on in Codex; pinned on
+#                                   below so the Codex main agent can invoke the
+#                                   kit's subagent definitions (architect, etc.)
+#                                   under the kit's governance loop.
 #   features.memories       [off] — Codex auto-memories (kit prefers explicit
 #                                   docs/ai/ context — keep default off)
 #   features.network_proxy  [off] — outbound HTTP proxy support (off; opt-in)
@@ -93,6 +96,9 @@ max_bytes = 10485760  # 10 MiB
 #                                   above; flag stays default)
 [features]
 hooks = true
+# Pinned on so Codex can spawn the kit's subagent definitions even if the
+# upstream default ever changes (now stable + default-on per the config ref).
+multi_agent = true
 
 # ── MCP servers ───────────────────────────────────────────────────────────────
 # Codex supports Model Context Protocol servers (stdio + HTTP). Uncomment and
