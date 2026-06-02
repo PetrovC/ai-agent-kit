@@ -1,0 +1,54 @@
+# Mandatory CI checks for the quality-gate aggregator (#300).
+#
+# One check-run NAME per line (the `name:` of each job, which is what appears as
+# the check on a PR). The gate FAILS if any of these is missing on the head
+# commit (so a rename can't silently drop protection) or did not pass.
+#
+# Only jobs that run on EVERY pull_request belong here. Path-filtered jobs (e.g.
+# "BATS (Ubuntu)", which runs only on .sh / tests/bats changes) are intentionally
+# NOT listed — they may be legitimately absent — but the gate still requires them
+# to pass when they DO run ("present must pass"). Comment/mention workflows
+# (@claude, @codex/@agy) do not run on pull_request and are excluded.
+
+# pr-branch-name.yml
+Agent branches match the documented pattern
+
+# powershell.yml
+PSScriptAnalyzer
+
+# pr-docs.yml
+Skill structure check
+YAML syntax check
+Skill routing consistency
+CHANGELOG entry required for feat/fix/perf
+Intra-repo markdown links resolve
+GitHub Actions workflow semantics
+
+# pr-hooks.yml
+pre-bash-guard + non-guard hooks behavior
+Codex hooks resolve from git root
+
+# pr-install-parity.yml
+Install + capture file list (bash)
+Install + capture file list (PowerShell)
+Bash and PowerShell installs produce identical file lists
+
+# pr-scripts-powershell.yml
+Smoke install (PowerShell)
+
+# pr-scripts-shell.yml
+Validate filled example
+Smoke install (bash)
+Shell scripts + hooks must be valid
+install -> update -> uninstall -> new-skill (no dry-run)
+
+# pr-tooling.yml
+Claude tooling validity
+Codex tooling validity
+Antigravity tooling validity
+POSIX/Windows JSON variants must share the same key set
+
+# pr-versioning.yml
+Claude/Codex/Antigravity dogfood install policy
+Claude plugin + marketplace manifests valid
+CHANGELOG.md release metadata valid
