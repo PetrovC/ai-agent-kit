@@ -110,6 +110,29 @@ shellcheck --severity=warning -e SC1090,SC1091 scripts/*.sh tooling/claude/hooks
 bats tests/bats/
 ```
 
+## Debugging (`AAK_DEBUG`)
+
+The lifecycle scripts (`scripts/*`) and the installed hooks / shared wrappers are
+black boxes on failure by default. Set `AAK_DEBUG` to a non-empty value other
+than `0`/`false` to turn on an execution trace (Bash `set -x`, PowerShell
+`Set-PSDebug -Trace 1`). It is opt-in and never changes default output or exit
+codes.
+
+```bash
+# Bash: trace an install/update or a hook
+AAK_DEBUG=1 bash scripts/update.sh --target /path/to/project --dry-run
+AAK_DEBUG=1 bash .claude/hooks/pre-bash-guard.sh < payload.json
+```
+
+```powershell
+# PowerShell
+$env:AAK_DEBUG = "1"; .\scripts\update.ps1 -Target C:\path\to\project -DryRun
+Remove-Item Env:\AAK_DEBUG   # turn it back off
+```
+
+`AAK_DEBUG=0` and `AAK_DEBUG=false` are treated as off. The trace goes to stderr
+(Bash) or the PowerShell debug stream, so it never corrupts a hook's stdout.
+
 ## GitHub Actions Checks
 
 The authoritative CI checks are the PR workflows under `.github/workflows/`.

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then set -x; fi  # AAK_DEBUG: opt-in trace (#305)
 # uninstall.sh — Remove ai-agent-kit files from a target project.
 #
 # Removes only files the kit installed:

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then set -x; fi  # AAK_DEBUG: opt-in trace (#305)
 # Best-effort agy hook integration for anonymized agent audit metadata.
 # It exits zero when audit is disabled, unavailable, or unable to record so
 # normal agy behavior is unchanged.

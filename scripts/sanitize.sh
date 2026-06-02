@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then set -x; fi  # AAK_DEBUG: opt-in trace (#305)
 # sanitize.sh - Redact sensitive values from logs or pasted context.
 #
 # Usage:

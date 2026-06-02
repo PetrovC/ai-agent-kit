@@ -28,6 +28,17 @@
 
 ### Added
 
+- **`feat(scripts)` - opt-in `AAK_DEBUG` execution trace for lifecycle scripts and hooks (#305).**
+  Setting `AAK_DEBUG` to a non-empty value other than `0`/`false` turns on a trace
+  (`set -x` in Bash, `Set-PSDebug -Trace 1` in PowerShell) at the top of every
+  `scripts/*` lifecycle script, every `tooling/*/hooks/*` hook, and the shared
+  `agent-audit` / `delegate` wrappers (+ dogfood mirrors). Off by default; never
+  changes default output or exit codes; the trace goes to stderr / the PowerShell
+  debug stream so it never corrupts a hook's stdout. The guard matches the
+  existing `AAK_DEBUG` convention (the #313 install-audit message uses the same
+  `!= 0`/`!= false` test). Documented in `docs/ai/COMMANDS.md`; BATS + Pester
+  assert the toggle traces without altering exit codes.
+
 - **`feat(adapter)` - add the Antigravity provider to the cross-tool delegation adapter.**
   Extends `tooling/shared/delegate/delegate.py` (+ dogfood mirror) with
   `--provider antigravity`. Verified invocation: `agy -p "<brief>" --output-format

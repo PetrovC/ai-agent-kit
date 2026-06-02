@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then set -x; fi  # AAK_DEBUG: opt-in trace (#305)
 # update.sh — Update ai-agent-kit files in a target project.
 #
 # Only files that are missing or whose content differs (byte compare) are
