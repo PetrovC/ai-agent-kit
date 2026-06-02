@@ -435,6 +435,7 @@ function Get-DogfoodSourceCandidates([string]$rel) {
             return $candidates
         }
         "^\.ai-agent-kit/audit/(.+)$" { return @("tooling/shared/agent-audit/$($Matches[1])") }
+        "^\.ai-agent-kit/delegate/(.+)$" { return @("tooling/shared/delegate/$($Matches[1])") }
 
         "^\.claude/settings\.json$" { return @("tooling/claude/settings.json", "tooling/claude/settings.windows.json") }
         "^\.claude/agents/(.+)$" { return @("tooling/claude/agents/$($Matches[1])") }

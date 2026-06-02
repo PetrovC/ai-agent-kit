@@ -104,6 +104,7 @@ function Get-OwningTool([string]$rel) {
     $r = $rel -replace "\\", "/"
     if ($r -eq "AGENTS.md" -or $r -like ".codex/*" -or $r -like ".agents/skills/*") { return "codex" }
     if ($r -like ".ai-agent-kit/audit/*") { return "shared" }
+    if ($r -like ".ai-agent-kit/delegate/*") { return "shared" }
     if ($r -eq "CLAUDE.md" -or $r -eq ".mcp.example.jsonc" -or $r -like ".claude/*") { return "claude" }
     if ($r -eq "AGY.md" -or $r -eq ".agyignore" -or $r -like ".agy/*") { return "agy" }
     return ""
@@ -204,6 +205,13 @@ function Get-ReconstructedFiles([string]$tool) {
                 Get-ChildItem -LiteralPath $auditDir -Recurse -File | ForEach-Object {
                     $rel = $_.FullName.Substring($auditDir.Length).TrimStart('\','/') -replace "\\", "/"
                     $out.Add(".ai-agent-kit/audit/$rel")
+                }
+            }
+            $delegateDir = Join-Path $KitRoot "tooling/shared/delegate"
+            if (Test-Path -LiteralPath $delegateDir) {
+                Get-ChildItem -LiteralPath $delegateDir -Recurse -File | ForEach-Object {
+                    $rel = $_.FullName.Substring($delegateDir.Length).TrimStart('\','/') -replace "\\", "/"
+                    $out.Add(".ai-agent-kit/delegate/$rel")
                 }
             }
         }

@@ -67,6 +67,7 @@ function Get-OwningTool([string]$rel) {
         ".codex/*"           { return "codex" }
         ".agents/skills/*"   { return "codex" }
         ".ai-agent-kit/audit/*" { return "shared" }
+        ".ai-agent-kit/delegate/*" { return "shared" }
         "CLAUDE.md"          { return "claude" }
         ".mcp.example.jsonc" { return "claude" }
         ".claude/*"          { return "claude" }
@@ -318,6 +319,9 @@ if ($ToolList -contains "agy") {
 
 # -- Update shared audit runtime ------------------------------------------
 Update-Directory (Join-Path $KitRoot "tooling\shared\agent-audit") (Join-Path $Target ".ai-agent-kit\audit")
+
+# -- Update shared delegation adapter -------------------------------------
+Update-Directory (Join-Path $KitRoot "tooling\shared\delegate") (Join-Path $Target ".ai-agent-kit\delegate")
 
 # NOTE: docs/ai/ is intentionally NOT updated - it contains project-specific content.
 
