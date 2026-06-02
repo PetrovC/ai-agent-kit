@@ -395,6 +395,10 @@ dogfood_source_candidates() {
             tail="${rel#.ai-agent-kit/audit/}"
             printf '%s\n' "$TARGET/tooling/shared/agent-audit/$tail"
             ;;
+        .ai-agent-kit/delegate/*)
+            tail="${rel#.ai-agent-kit/delegate/}"
+            printf '%s\n' "$TARGET/tooling/shared/delegate/$tail"
+            ;;
 
         .claude/settings.json)
             printf '%s\n' "$TARGET/tooling/claude/settings.json"

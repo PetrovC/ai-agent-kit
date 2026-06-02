@@ -220,3 +220,24 @@ issue changes direction.
   adapter gated by [#339](https://github.com/PetrovC/ai-agent-kit/issues/339).
 - Consequences: Subagent governance is uniform across the three tools; the kit
   stays a configurator, not an orchestrator.
+
+## ADR-020: A narrow, opt-in cross-tool delegation adapter
+
+- Context: ADR-018 keeps an orchestration *platform* out of scope but explicitly
+  leaves room for "a narrow adapter" promoted by a future issue. [#339](https://github.com/PetrovC/ai-agent-kit/issues/339)
+  is that issue: let an orchestrator (Claude) delegate one scoped task to another
+  provider's CLI (Codex; Antigravity to follow) and pick the model strength from
+  the task type and risk.
+- Decision: Ship `tooling/shared/delegate/` (mirrored to `.ai-agent-kit/delegate/`):
+  a single synchronous shell-out to the provider CLI with model routing from
+  [MODEL_ROUTING.md](./MODEL_ROUTING.md), brief/summary sanitization reusing the
+  audit `privacy_scan`, and `agent.selected`/`agent.invoked`/`agent.completed`
+  emission with a `provider` field. It is opt-in, fail-open, and has no
+  background process or always-on dependency. The provider CLI call is the only
+  external boundary; the orchestrator stays the verifier (`report.evaluated`
+  still applies before trust). See [DELEGATION.md](./DELEGATION.md).
+- Consequences: Cross-tool hand-offs become measurable in the audit (feeding the
+  #330 rollup and #331 findings) without turning the kit into an orchestrator.
+  The adapter is the *only* sanctioned cross-tool delegation surface; broader
+  orchestration stays out of scope per ADR-018. Rollback is removing the adapter
+  directory — no default behavior depends on it.

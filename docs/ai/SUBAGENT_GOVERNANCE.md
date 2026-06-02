@@ -134,6 +134,16 @@ emit-event.sh --type run.completed --actor system \
 `AGENT_AUDIT_GOVERNANCE.md` defines how the emitted events are scored;
 `AGENT_AUDIT_SCHEMA.md` defines each event's payload schema and privacy rules.
 
+## Cross-Tool Delegation
+
+The same loop covers handing a scoped task to another provider's CLI. The opt-in
+delegation adapter (`.ai-agent-kit/delegate/`) emits `agent.selected`/`invoked`/
+`completed` with a `provider` field and routes the model strength from the task
+type and risk, so cross-tool hand-offs are audited like in-tool subagents. The
+mandatory checkpoint still applies: the orchestrator verifies the delegated
+report and emits `report.evaluated` before trusting it. See
+[DELEGATION.md](./DELEGATION.md).
+
 ## Mandatory Subagent Report Structure
 
 Every useful report should include:

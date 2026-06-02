@@ -15,6 +15,25 @@
 
 ### Added
 
+- **`feat(adapter)` - add an opt-in cross-tool delegation adapter (Codex provider).**
+  Ships `tooling/shared/delegate/{delegate.py,delegate.sh,delegate.ps1}` (+ dogfood
+  mirror under `.ai-agent-kit/delegate/`): an orchestrator can hand one scoped task
+  to the Codex CLI and pick the model strength from `--task-type`/`--risk` via
+  `MODEL_ROUTING.md` (deep→`high`, standard→`medium`, readonly→`low`). The verified
+  invocation is `codex exec -m <model> -c model_reasoning_effort=<…> -s read-only
+  --json "<brief>"`. The brief is `privacy_scan`-ed before it reaches the CLI and
+  the summary before it is printed or recorded; each `agent.selected`/`invoked`/
+  `completed` event carries a `provider` field, feeding the #330 rollup and #331
+  findings. Synchronous, fail-open, no background process — a privacy rejection,
+  missing/failing CLI, or audit failure never changes the orchestrator's default
+  behavior; the `report.evaluated` checkpoint still applies before trust. The
+  executable is resolved with `shutil.which` so the real Windows `codex.cmd` is
+  found. This is the narrow adapter ADR-018 leaves room for, recorded as ADR-020;
+  see `docs/ai/DELEGATION.md`. Wired through install/update/uninstall/validate and
+  the manifest; BATS + Pester cover argv/model mapping, sanitization, emitted
+  events, and fail-open with a stub CLI. Antigravity follows in a separate PR; the
+  real `codex exec` call is verified end-to-end in the user's environment (#339).
+
 - **`feat(codex)` - enable Codex native subagents so the main agent can invoke the kit's agent definitions.**
   Pins `features.multi_agent = true` in `tooling/codex/config.toml` (+ dogfood
   mirror). Codex's multi-agent feature (`spawn_agent`/`wait_agent`/…) is now
