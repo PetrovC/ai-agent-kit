@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then set -x; fi  # AAK_DEBUG: opt-in trace (#305)
 # format-on-save.sh — Codex PostToolUse hook (apply_patch)
 #
 # Closes #57: previously this hook ignored its stdin payload and ran the

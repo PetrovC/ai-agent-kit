@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then set -x; fi  # AAK_DEBUG: opt-in trace (#305)
 # format-on-save.sh — PostToolUse(Edit|Write) hook
 #
 # Reads the edited file path from Claude's hook JSON (stdin) and runs the

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then set -x; fi  # AAK_DEBUG: opt-in trace (#305)
 # new-skill.sh — Scaffold a new skill under skills/<name>/SKILL.md
 #
 # Creates the skill file with the standard structure all existing skills follow,

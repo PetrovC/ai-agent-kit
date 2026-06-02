@@ -7,6 +7,7 @@ param(
     [switch]$Commit,
     [switch]$Push
 )
+if ($env:AAK_DEBUG -and $env:AAK_DEBUG -ne "0" -and $env:AAK_DEBUG -ne "false") { Set-PSDebug -Trace 1 }  # AAK_DEBUG: opt-in trace (#305)
 
 $ErrorActionPreference = "Stop"
 
