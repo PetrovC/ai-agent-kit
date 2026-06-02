@@ -144,6 +144,32 @@ mandatory checkpoint still applies: the orchestrator verifies the delegated
 report and emits `report.evaluated` before trusting it. See
 [DELEGATION.md](./DELEGATION.md).
 
+## Governance in CI
+
+The loop is not only for local sessions — the kit's agent CI workflows emit it
+too, so a run summoned from an issue populates the same rich audit.
+
+- **`@claude`** (`agent-on-mention.yml`): `claude-code-action` runs Claude with
+  the kit's hooks, so the lifecycle events and `session.metrics` import fire
+  automatically (the `SessionEnd` auto-finalize, Phase 1a). No extra wiring.
+- **`@codex` / `@agy`** (`agent-codex-agy-on-mention.yml`): there is no
+  in-tool hook path, so the workflow emits the loop **explicitly** around the
+  provider call via `emit-event` — `run.started` → `task.classified` →
+  `agent.selected`/`agent.invoked` → (run the provider) → `agent.completed`
+  (with the real status) → `run.completed` — then calls `finalize-run` to score
+  and push the run. Each `agent.*` event carries a `provider` field, so CI
+  hand-offs flow into the #330 rollup and #331 findings like local ones.
+
+Two honest limits of the unattended path:
+
+- It emits the **lifecycle**, not `report.evaluated`. The checkpoint is a
+  verification act; an unattended wrapper does not verify the provider's answer,
+  so it does not claim a quality category. Runs simply carry no self-evaluation
+  (the scorer handles that — it never invents one).
+- Every audit call is **best-effort and fail-open**: with no
+  `AAK_AUDIT_DEPLOY_KEY` secret the provisioning, emission, and finalize all
+  no-op, and the agent's reply is unaffected.
+
 ## Mandatory Subagent Report Structure
 
 Every useful report should include:
