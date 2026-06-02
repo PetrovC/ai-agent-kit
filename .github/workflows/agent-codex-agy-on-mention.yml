@@ -186,7 +186,7 @@ jobs:
           emit --type agent.selected --actor ci --invocation-id inv_agy --payload '{"provider":"antigravity","agent_category":"delegated","agent_key":"antigravity","model_tier":"standard"}'
           emit --type agent.invoked --actor ci --invocation-id inv_agy --payload '{"provider":"antigravity"}'
 
-          if out="$(agy -p "$prompt" --output-format json --dangerously-skip-permissions 2>&1)"; then status=success; else status=error; fi
+          if out="$(agy -p "$prompt" --sandbox --dangerously-skip-permissions 2>&1)"; then status=success; else status=error; fi
 
           emit --type agent.completed --actor ci --invocation-id inv_agy --payload "{\"provider\":\"antigravity\",\"status\":\"$status\"}"
 

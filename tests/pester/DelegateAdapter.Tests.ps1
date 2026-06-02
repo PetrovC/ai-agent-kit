@@ -67,13 +67,13 @@ Describe "Cross-tool delegation adapter" {
 
         # Antigravity stub: records the raw command line and the model hint the
         # adapter passes via the ANTIGRAVITY_MODEL environment variable, then
-        # emits a structured (JSON) answer like `agy -p --output-format json`.
+        # prints a plain-text answer like `agy -p` would.
         function Write-AgyStub {
             $cmd = @(
                 '@echo off',
                 'echo %* > "%STUB_RECORD%"',
                 'echo %ANTIGRAVITY_MODEL% > "%STUB_ENV%"',
-                'echo {"response":"Stub Antigravity analysis: no blocking issue."}'
+                'echo Stub Antigravity analysis: no blocking issue.'
             ) -join "`r`n"
             [System.IO.File]::WriteAllText((Join-Path $script:Bin "agy.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
         }
@@ -151,7 +151,7 @@ Describe "Cross-tool delegation adapter" {
         Assert-AakSuccess $result
         Assert-AakOutputContains $result "Stub Antigravity analysis"
         $argv = Get-Content -Raw $script:StubRecord
-        if (-not $argv.Contains("--output-format")) { throw "expected --output-format in argv: $argv" }
+        if (-not $argv.Contains("--sandbox")) { throw "expected --sandbox in argv: $argv" }
         if (-not $argv.Contains("--dangerously-skip-permissions")) { throw "expected skip-permissions in argv: $argv" }
         $model = Get-Content -Raw $script:StubEnv
         if (-not $model.Contains("gemini-3.1-pro")) { throw "expected Pro model hint, got: $model" }

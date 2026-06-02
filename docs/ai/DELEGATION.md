@@ -77,17 +77,18 @@ codex exec -m gpt-5.5 -c model_reasoning_effort=<low|medium|high> \
 - `-s read-only` sandboxes the delegated run.
 - `--json` yields JSON-Lines output the adapter parses into a summary.
 
-**Antigravity** (headless) — verified against `antigravity.google/docs/cli-using`:
+**Antigravity** (headless) — verified against the installed CLI (`agy --help`, v1.0.3):
 
 ```
-agy -p "<sanitized brief>" --output-format json --dangerously-skip-permissions
+agy -p "<sanitized brief>" --sandbox --dangerously-skip-permissions
 ```
 
-- `--dangerously-skip-permissions` is required for unattended automation.
-- `--output-format` yields a structured (parseable) summary. The format token
-  (`json` by default) is configurable via `AAK_DELEGATE_AGY_FORMAT`.
-- Antigravity has no verified stable per-call model flag, so the adapter passes a
-  non-secret model **hint** via the environment (`ANTIGRAVITY_MODEL` by default,
+- `-p` (`--print`) runs a single prompt non-interactively and prints the response
+  as **plain text** (there is no `--output-format` flag).
+- `--sandbox` restricts terminal access; `--dangerously-skip-permissions`
+  auto-approves tool prompts for unattended use.
+- Antigravity has no per-call model flag, so the adapter passes a non-secret
+  model **hint** via the environment (`ANTIGRAVITY_MODEL` by default,
   configurable via `AAK_DELEGATE_AGY_MODEL_ENV`) rather than invent a `--model`
   flag. The model strength is still recorded in the audit `model_tier`. Binding
   that hint to the actual per-call model is the one part to confirm end-to-end in
