@@ -86,9 +86,6 @@ ANTIGRAVITY_MODEL_BY_DEPTH = {
 ANTIGRAVITY_MODEL_ENV = os.environ.get(
     "AAK_DELEGATE_AGY_MODEL_ENV", "ANTIGRAVITY_MODEL"
 )
-# Structured (parseable) output format for `agy -p`. Configurable because the
-# exact format token is verified end-to-end in the user's environment.
-ANTIGRAVITY_OUTPUT_FORMAT = os.environ.get("AAK_DELEGATE_AGY_FORMAT", "json")
 
 # Routing depth → audit model tier, so emitted events line up with the audit
 # scorer's tier vocabulary (fast/standard/review/deep).
@@ -223,34 +220,33 @@ def _collect_message_text(obj: dict[str, Any]) -> list[str]:
 
 
 def build_antigravity_argv(brief: str, depth: str) -> list[str]:
-    """Build the verified non-interactive Antigravity invocation.
+    """Build the non-interactive Antigravity invocation.
 
-    agy -p "<brief>" --output-format <structured> --dangerously-skip-permissions
+    agy -p "<brief>" --sandbox --dangerously-skip-permissions
 
-    ``--dangerously-skip-permissions`` is required for unattended automation;
-    ``--output-format`` yields a structured (parseable) summary. The model is not
-    set on the command line (no verified per-call flag) — it is passed as a
-    non-secret env hint via ``provider_env``. Verified against
-    antigravity.google/docs/cli-using.
+    ``-p`` (``--print``) runs a single prompt non-interactively and prints the
+    response; ``--sandbox`` restricts terminal access for the delegated run; and
+    ``--dangerously-skip-permissions`` auto-approves tool prompts for unattended
+    use. Verified against the installed CLI (``agy --help``, v1.0.3): there is no
+    ``--output-format`` or per-call model flag, so the model is selected via the
+    Antigravity settings and passed as a non-secret env hint by ``provider_env``.
     """
     return [
         "agy",
         "-p",
         brief,
-        "--output-format",
-        ANTIGRAVITY_OUTPUT_FORMAT,
+        "--sandbox",
         "--dangerously-skip-permissions",
     ]
 
 
 def extract_antigravity_summary(stdout: str) -> str:
-    """Best-effort extraction of the answer from Antigravity structured output.
+    """Extract the answer from Antigravity print-mode output.
 
-    ``agy --output-format <structured>`` emits a structured document (typically a
-    single JSON object). The exact schema is verified end-to-end in the user's
-    environment, so this is tolerant: it pulls the first string answer field from
-    a JSON object and falls back to the raw stdout when nothing parses. The result
-    is privacy-scanned by the caller before it is used.
+    ``agy -p`` prints the response as plain text, so the common path is to return
+    the trimmed stdout. The function stays tolerant of a JSON object (pulling the
+    first string answer field) in case a future version emits one. The result is
+    privacy-scanned by the caller before it is used.
     """
     import json
 

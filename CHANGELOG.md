@@ -4,6 +4,19 @@
 
 ### Fixed
 
+- **`fix(adapter)` - correct the Antigravity (`agy`) delegation invocation to the real CLI flags.**
+  A live test showed the assumed `agy -p "<brief>" --output-format json` errored
+  (`flags provided but not defined: -output-format`) — the installed `agy` (v1.0.3)
+  has no `--output-format` and no per-call model flag. The adapter now invokes
+  `agy -p "<brief>" --sandbox --dangerously-skip-permissions` (verified against
+  `agy --help`); `-p` prints the response as plain text, so summary extraction
+  uses the trimmed stdout (still tolerant of a JSON object). Removed the unused
+  `AAK_DELEGATE_AGY_FORMAT` knob; the model is still passed as a non-secret
+  `ANTIGRAVITY_MODEL` env hint and recorded in the audit `model_tier`. Updated the
+  CI workflow invocation, BATS/Pester argv assertions, and `DELEGATION.md`. The
+  Codex path was validated end-to-end against a real `codex exec` (answered
+  correctly); `agy`'s headless print output depends on the local agy session.
+
 - **`fix(audit)` - audit `finalize-run`/`rollup` wrappers now run on Windows when the Microsoft Store Python alias is present.**
   `finalize-run.sh` and `rollup.sh` resolved Python with a presence-only check
   (`command -v python3`), which on Windows picks the Microsoft Store

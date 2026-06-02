@@ -61,11 +61,11 @@ STUB
 write_agy_stub() {
     cat > "$BIN/agy" <<'STUB'
 #!/usr/bin/env bash
-# Record argv and the model hint passed via the environment, then emit a
-# structured (JSON) answer like `agy -p --output-format json` would.
+# Record argv and the model hint passed via the environment, then print a
+# plain-text answer like `agy -p` would.
 printf '%s\n' "$@" > "$STUB_RECORD"
 printf '%s\n' "${ANTIGRAVITY_MODEL:-}" > "$STUB_ENV"
-echo '{"response":"Stub Antigravity analysis: no blocking issue."}'
+echo "Stub Antigravity analysis: no blocking issue."
 STUB
     chmod +x "$BIN/agy"
 }
@@ -134,7 +134,7 @@ delegate() {
     assert_output_contains "Stub Antigravity analysis"
     run cat "$STUB_RECORD"
     assert_output_contains "-p"
-    assert_output_contains "--output-format"
+    assert_output_contains "--sandbox"
     assert_output_contains "--dangerously-skip-permissions"
     run cat "$STUB_ENV"
     assert_output_contains "gemini-3.1-pro"
