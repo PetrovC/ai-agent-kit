@@ -1,0 +1,38 @@
+name: Quality gate
+
+# Single required status for branch protection (#300). Branch protection should
+# require ONLY this check; `quality-gate` then reflects every mandatory CI check
+# on the PR head commit. Renaming any individual job makes it disappear from the
+# required-checks list on the commit, which FAILS the gate (the safe behavior)
+# rather than silently dropping protection.
+#
+# See docs/ai/TESTING.md ("Quality gate") for the design and the mandatory vs
+# optional check lists (`.github/required-checks.txt`, `.github/optional-checks.txt`).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  checks: read
+  statuses: read
+
+concurrency:
+  group: quality-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Aggregate required checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 .github/scripts/quality_gate.py

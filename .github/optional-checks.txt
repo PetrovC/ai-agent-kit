@@ -1,0 +1,10 @@
+# Optional / non-blocking checks for the quality-gate aggregator (#300).
+#
+# One check-run NAME per line. A check listed here NEVER blocks the gate, even if
+# it fails or is absent. Use this only for genuinely advisory / experimental
+# checks. Anything not listed here and not in required-checks.txt still has to
+# pass IF it runs on the commit ("present must pass") — that default keeps new
+# checks (e.g. CodeQL "Analyze (...)") blocking by default rather than silently
+# ignored.
+#
+# (Empty by default.)

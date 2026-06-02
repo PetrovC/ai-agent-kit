@@ -89,6 +89,42 @@ implementation:
 - Public release checks for root `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`,
   root `VERSION`, release tags, and release checklist.
 
+## Quality gate (required status)
+
+CI is split across many workflows, each with its own job names. If branch
+protection listed every job by name, renaming one would silently drop it from
+the required set. Instead, branch protection requires a single check —
+`quality-gate` (`.github/workflows/quality-gate.yml`) — which reflects all the
+others.
+
+How it works (`.github/scripts/quality_gate.py`):
+
+- It polls the GitHub check-runs API for the PR head commit until the
+  **mandatory** checks are present and every check has completed (or a timeout).
+- It then **fails** if any mandatory check is missing — a missing mandatory check
+  means a rename/removal, so failing is the safe outcome — or if any check that
+  ran (and is not explicitly optional) did not pass.
+
+Two maintained lists:
+
+- **`.github/required-checks.txt`** — mandatory checks (must be present **and**
+  pass). Only jobs that run on every `pull_request` belong here. Add a line when
+  a new always-run job is introduced; if a listed name stops matching a real job
+  (a rename), the gate fails because that check is then missing on the commit.
+- **`.github/optional-checks.txt`** — advisory checks that never block (empty by
+  default). Anything not in either list still has to pass **if it runs**
+  ("present must pass"), so new checks (e.g. CodeQL `Analyze (...)`) block by
+  default rather than being silently ignored.
+
+Path-filtered jobs (e.g. `BATS (Ubuntu)`, which runs only on `.sh` / `tests/bats`
+changes) are intentionally **not** mandatory — they may be legitimately absent —
+but they still must pass when they do run. The `@claude` / `@codex` / `@agy`
+mention workflows do not run on `pull_request` and are excluded.
+
+**Branch protection:** require only the `quality-gate` status check on the
+protected branches (`master`). After this lands, update branch protection to drop
+the individual job names and add `quality-gate`.
+
 ## Test Data and Fixtures
 
 Prefer small disposable target directories for script tests. Never run install,
