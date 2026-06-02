@@ -74,6 +74,12 @@ These ideas are valuable, but should wait until the core is more stable:
 - project architecture generator;
 - replacing human PR review.
 
+## Provider Parity
+
+The [PROVIDER_PARITY.md](./PROVIDER_PARITY.md) matrix tracks which Claude / Codex
+/ Antigravity features the kit wires. Re-verify it every 90 days or on a provider
+major release; it is the starting point for the next audit.
+
 ## Issue Requirement
 
 For every planned improvement:
