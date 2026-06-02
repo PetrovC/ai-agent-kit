@@ -77,6 +77,7 @@ function Get-OwningTool([string]$rel) {
         ".codex/*"           { return "codex" }
         ".agents/skills/*"   { return "codex" }
         ".ai-agent-kit/audit/*" { return "shared" }
+        ".ai-agent-kit/delegate/*" { return "shared" }
         "CLAUDE.md"          { return "claude" }
         ".mcp.example.jsonc" { return "claude" }
         ".claude/*"          { return "claude" }
@@ -355,6 +356,10 @@ if ($ToolList -contains "agy") {
 # -- Shared audit runtime --------------------------------------------------
 Write-Step "Installing shared audit runtime -> .ai-agent-kit/audit/"
 Copy-KitDirectory (Join-Path $KitRoot "tooling\shared\agent-audit") (Join-Path $Target ".ai-agent-kit\audit")
+
+# -- Shared cross-tool delegation adapter ----------------------------------
+Write-Step "Installing shared delegation adapter -> .ai-agent-kit/delegate/"
+Copy-KitDirectory (Join-Path $KitRoot "tooling\shared\delegate") (Join-Path $Target ".ai-agent-kit\delegate")
 
 # -- Optional global audit config -----------------------------------------
 Write-Step "Anonymized audit setup"

@@ -101,6 +101,9 @@
 .ai-agent-kit/audit/record-event.sh
 .ai-agent-kit/audit/rollup.ps1
 .ai-agent-kit/audit/rollup.sh
+.ai-agent-kit/delegate/delegate.ps1
+.ai-agent-kit/delegate/delegate.py
+.ai-agent-kit/delegate/delegate.sh
 .claude/agents/architect.md
 .claude/agents/codebase-investigator.md
 .claude/agents/code-reviewer.md

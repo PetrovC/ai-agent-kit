@@ -193,6 +193,7 @@ owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
         .ai-agent-kit/audit/*)                           echo shared ;;
+        .ai-agent-kit/delegate/*)                        echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         AGY.md|.agyignore|.agy/*)               echo agy ;;
         *)                                               echo ""     ;;
@@ -331,6 +332,11 @@ fi
 update_dir "$KIT_ROOT/tooling/shared/agent-audit" "$TARGET/.ai-agent-kit/audit"
 [[ "$DRY_RUN" == "false" && -d "$TARGET/.ai-agent-kit/audit" ]] && \
     find "$TARGET/.ai-agent-kit/audit" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+
+# -- Update shared delegation adapter -------------------------------------
+update_dir "$KIT_ROOT/tooling/shared/delegate" "$TARGET/.ai-agent-kit/delegate"
+[[ "$DRY_RUN" == "false" && -d "$TARGET/.ai-agent-kit/delegate" ]] && \
+    find "$TARGET/.ai-agent-kit/delegate" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 
 # NOTE: docs/ai/ is intentionally NOT updated — it contains project-specific content.
 

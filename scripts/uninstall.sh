@@ -143,6 +143,7 @@ owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
         .ai-agent-kit/audit/*)                           echo shared ;;
+        .ai-agent-kit/delegate/*)                        echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         AGY.md|.agyignore|.agy/*)               echo agy ;;
         *)                                               echo ""     ;;
@@ -200,6 +201,9 @@ reconstruct_shared() {
     [[ -d "$KIT_ROOT/tooling/shared/agent-audit" ]] && \
         find "$KIT_ROOT/tooling/shared/agent-audit" -type f \
              -printf '.ai-agent-kit/audit/%P\n'
+    [[ -d "$KIT_ROOT/tooling/shared/delegate" ]] && \
+        find "$KIT_ROOT/tooling/shared/delegate" -type f \
+             -printf '.ai-agent-kit/delegate/%P\n'
 }
 
 # ── Header ─────────────────────────────────────────────────────────────────

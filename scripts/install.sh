@@ -130,6 +130,7 @@ owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
         .ai-agent-kit/audit/*)                           echo shared ;;
+        .ai-agent-kit/delegate/*)                        echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         AGY.md|.agyignore|.agy/*)               echo agy ;;
         *)                                               echo ""     ;;
@@ -357,6 +358,11 @@ fi
 step "Installing shared audit runtime -> .ai-agent-kit/audit/"
 copy_dir "$KIT_ROOT/tooling/shared/agent-audit" "$TARGET/.ai-agent-kit/audit"
 find "$TARGET/.ai-agent-kit/audit" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+
+# -- Shared cross-tool delegation adapter ----------------------------------
+step "Installing shared delegation adapter -> .ai-agent-kit/delegate/"
+copy_dir "$KIT_ROOT/tooling/shared/delegate" "$TARGET/.ai-agent-kit/delegate"
+find "$TARGET/.ai-agent-kit/delegate" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 
 # -- Optional global audit config -----------------------------------------
 step "Anonymized audit setup"
