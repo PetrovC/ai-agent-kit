@@ -16,9 +16,18 @@ name: Agent on mention (@codex / @agy)
 #     single quoted CLI argument — never interpolated into a shell command (that
 #     would be a shell-injection sink).
 #
+# Governance audit: each run emits the governance loop (run.started →
+# task.classified → agent.selected/invoked/completed → run.completed) via the
+# kit's emit-event wrapper and finalizes it, so CI summons populate the rich
+# audit exactly like a local session (see docs/ai/SUBAGENT_GOVERNANCE.md →
+# "Governance in CI"). All audit calls are best-effort and fail-open: with no
+# AAK_AUDIT_DEPLOY_KEY they no-op and never affect the agent's reply.
+#
 # Required secrets (add these in repo settings → Secrets and variables → Actions):
-#   OPENAI_API_KEY  - Codex CLI auth (for @codex).
-#   GEMINI_API_KEY  - Antigravity CLI auth (for @agy).
+#   OPENAI_API_KEY        - Codex CLI auth (for @codex).
+#   GEMINI_API_KEY        - Antigravity CLI auth (for @agy).
+#   AAK_AUDIT_DEPLOY_KEY  - optional; SSH deploy key for the private audit repo.
+#                           Omit to skip cloud audit capture (everything else runs).
 #
 # The CLI install commands below are the expected package names; adjust them to
 # whatever your environment uses. Each job degrades gracefully (posts a helpful
@@ -52,10 +61,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Provision audit (optional)
+        env:
+          AAK_AUDIT_DEPLOY_KEY: ${{ secrets.AAK_AUDIT_DEPLOY_KEY }}
+        run: bash .github/scripts/provision-audit.sh
+
       - name: Install Codex CLI (best-effort)
         run: npm install -g @openai/codex || true
 
-      - name: Run Codex on the mention
+      - name: Run Codex on the mention (governance-audited)
         env:
           # Untrusted input and the secret are kept out of `if:` and out of the
           # command line — referenced only as quoted shell variables below.
@@ -84,9 +98,22 @@ jobs:
           prompt="$(printf '%s' "$prompt" | sed 's/^[[:space:]]*//')"
           [ -n "$prompt" ] || prompt="Summarize this issue and suggest next steps."
 
-          # Non-interactive, read-only sandbox. Never fail the job on a provider
-          # error — post whatever came back so the thread always gets a reply.
-          out="$(codex exec --json -s read-only "$prompt" 2>&1 || true)"
+          # Governance loop (best-effort, fail-open): emit the lifecycle events
+          # so this CI run populates the rich audit like a local session. emit()
+          # uses the kit wrapper and the config from the provisioning step; with
+          # no deploy-key secret every call no-ops via `|| true`.
+          export AAK_AUDIT_RUN_ID="run_ci_codex_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          emit() { bash tooling/shared/agent-audit/emit-event.sh --source-root "$GITHUB_WORKSPACE" "$@" >/dev/null 2>&1 || true; }
+          emit --type run.started --actor ci
+          emit --type task.classified --actor ci --payload '{"task_type":"ci_agent_mention","risk_level":"low","complexity":"small"}'
+          emit --type agent.selected --actor ci --invocation-id inv_codex --payload '{"provider":"codex","agent_category":"delegated","agent_key":"codex","model_tier":"standard"}'
+          emit --type agent.invoked --actor ci --invocation-id inv_codex --payload '{"provider":"codex"}'
+
+          # Non-interactive, read-only sandbox. Capture the real status without
+          # failing the job (the `if` swallows the exit under `set -e`).
+          if out="$(codex exec --json -s read-only "$prompt" 2>&1)"; then status=success; else status=error; fi
+
+          emit --type agent.completed --actor ci --invocation-id inv_codex --payload "{\"provider\":\"codex\",\"status\":\"$status\"}"
 
           {
             echo "### 🤖 Codex"
@@ -96,6 +123,9 @@ jobs:
             echo '```'
           } > "$RUNNER_TEMP/codex-reply.md"
           gh issue comment "$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/codex-reply.md"
+
+          emit --type run.completed --actor ci --payload '{"project_hash":"ci_aak_codex_mention","status":"completed","validation_state":"unavailable","observed_model_tier":"standard"}'
+          bash tooling/shared/agent-audit/finalize-run.sh --source-root "$GITHUB_WORKSPACE" --run-id "$AAK_AUDIT_RUN_ID" >/dev/null 2>&1 || true
 
   agy:
     if: >-
@@ -110,11 +140,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Provision audit (optional)
+        env:
+          AAK_AUDIT_DEPLOY_KEY: ${{ secrets.AAK_AUDIT_DEPLOY_KEY }}
+        run: bash .github/scripts/provision-audit.sh
+
       - name: Install Antigravity CLI (best-effort)
         # Expected package name; adjust to whatever distributes the `agy` CLI.
         run: npm install -g @antigravity/agy || true
 
-      - name: Run Antigravity on the mention
+      - name: Run Antigravity on the mention (governance-audited)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           COMMENT_BODY: ${{ github.event.comment.body }}
@@ -138,7 +173,18 @@ jobs:
           prompt="$(printf '%s' "$prompt" | sed 's/^[[:space:]]*//')"
           [ -n "$prompt" ] || prompt="Summarize this issue and suggest next steps."
 
-          out="$(agy -p "$prompt" --output-format json --dangerously-skip-permissions 2>&1 || true)"
+          # Governance loop (best-effort, fail-open) — see the codex job for the
+          # rationale; the model tier here is the Antigravity Pro/Flash routing.
+          export AAK_AUDIT_RUN_ID="run_ci_agy_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          emit() { bash tooling/shared/agent-audit/emit-event.sh --source-root "$GITHUB_WORKSPACE" "$@" >/dev/null 2>&1 || true; }
+          emit --type run.started --actor ci
+          emit --type task.classified --actor ci --payload '{"task_type":"ci_agent_mention","risk_level":"low","complexity":"small"}'
+          emit --type agent.selected --actor ci --invocation-id inv_agy --payload '{"provider":"antigravity","agent_category":"delegated","agent_key":"antigravity","model_tier":"standard"}'
+          emit --type agent.invoked --actor ci --invocation-id inv_agy --payload '{"provider":"antigravity"}'
+
+          if out="$(agy -p "$prompt" --output-format json --dangerously-skip-permissions 2>&1)"; then status=success; else status=error; fi
+
+          emit --type agent.completed --actor ci --invocation-id inv_agy --payload "{\"provider\":\"antigravity\",\"status\":\"$status\"}"
 
           {
             echo "### 🤖 Antigravity"
@@ -148,3 +194,6 @@ jobs:
             echo '```'
           } > "$RUNNER_TEMP/agy-reply.md"
           gh issue comment "$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/agy-reply.md"
+
+          emit --type run.completed --actor ci --payload '{"project_hash":"ci_aak_agy_mention","status":"completed","validation_state":"unavailable","observed_model_tier":"standard"}'
+          bash tooling/shared/agent-audit/finalize-run.sh --source-root "$GITHUB_WORKSPACE" --run-id "$AAK_AUDIT_RUN_ID" >/dev/null 2>&1 || true
