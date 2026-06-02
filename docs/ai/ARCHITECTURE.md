@@ -227,3 +227,9 @@ and summarize the rules agents need for safe work.
 ## Architecture Decisions
 
 See [DECISIONS.md](./DECISIONS.md).
+
+## Provider Parity
+
+For a feature-by-feature comparison of how the kit wires Claude / Codex /
+Antigravity (hooks, subagents, MCP, sandbox, permissions, delegation, audit, …),
+see [PROVIDER_PARITY.md](./PROVIDER_PARITY.md).
