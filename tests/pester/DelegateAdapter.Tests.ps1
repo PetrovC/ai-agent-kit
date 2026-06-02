@@ -8,6 +8,7 @@ Describe "Cross-tool delegation adapter" {
         $script:Bin = Join-Path $script:AuditRoot "bin"
         $script:ConfigPath = Join-Path $script:AuditRoot "config.json"
         $script:StubRecord = Join-Path $script:AuditRoot "argv.txt"
+        $script:StubEnv = Join-Path $script:AuditRoot "model-env.txt"
         $script:BriefPath = Join-Path $script:AuditRoot "brief.txt"
         New-Item -ItemType Directory -Path $script:RuntimePath -Force | Out-Null
         New-Item -ItemType Directory -Path $script:CentralPath -Force | Out-Null
@@ -16,6 +17,7 @@ Describe "Cross-tool delegation adapter" {
         & git -C $script:CentralPath checkout -b agent-audit-data | Out-Null
         Write-DelegateConfig $script:ConfigPath
         Write-CodexStub
+        Write-AgyStub
         [System.IO.File]::WriteAllText($script:BriefPath, "Please review the auth module for injection risks.", (New-Object System.Text.UTF8Encoding($false)))
     }
 
@@ -63,19 +65,36 @@ Describe "Cross-tool delegation adapter" {
             [System.IO.File]::WriteAllText((Join-Path $script:Bin "codex.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
         }
 
-        # Invoke delegate.ps1 with the stub bin on PATH and STUB_RECORD in env.
+        # Antigravity stub: records the raw command line and the model hint the
+        # adapter passes via the ANTIGRAVITY_MODEL environment variable, then
+        # emits a structured (JSON) answer like `agy -p --output-format json`.
+        function Write-AgyStub {
+            $cmd = @(
+                '@echo off',
+                'echo %* > "%STUB_RECORD%"',
+                'echo %ANTIGRAVITY_MODEL% > "%STUB_ENV%"',
+                'echo {"response":"Stub Antigravity analysis: no blocking issue."}'
+            ) -join "`r`n"
+            [System.IO.File]::WriteAllText((Join-Path $script:Bin "agy.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
+        }
+
+        # Invoke delegate.ps1 with the stub bin on PATH and STUB_RECORD/STUB_ENV
+        # in the environment.
         function Invoke-Delegate {
             param([string[]]$Arguments, [switch]$WithStub)
             $delegateScript = Join-Path $script:KitRoot "tooling\shared\delegate\delegate.ps1"
             $oldPath = $env:PATH
             $oldRecord = $env:STUB_RECORD
+            $oldEnv = $env:STUB_ENV
             try {
                 if ($WithStub) { $env:PATH = "$script:Bin;$oldPath" }
                 $env:STUB_RECORD = $script:StubRecord
+                $env:STUB_ENV = $script:StubEnv
                 return Invoke-AakPowerShellScript -Script $delegateScript -Arguments $Arguments
             } finally {
                 $env:PATH = $oldPath
                 if ($null -eq $oldRecord) { Remove-Item Env:\STUB_RECORD -ErrorAction SilentlyContinue } else { $env:STUB_RECORD = $oldRecord }
+                if ($null -eq $oldEnv) { Remove-Item Env:\STUB_ENV -ErrorAction SilentlyContinue } else { $env:STUB_ENV = $oldEnv }
             }
         }
 
@@ -92,7 +111,7 @@ Describe "Cross-tool delegation adapter" {
     }
 
     It "rejects an unsupported provider" {
-        $result = Invoke-Delegate -Arguments @("-Provider", "antigravity", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_unsup")
+        $result = Invoke-Delegate -Arguments @("-Provider", "gemini", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_unsup")
         Assert-AakFailure $result
     }
 
@@ -124,6 +143,34 @@ Describe "Cross-tool delegation adapter" {
         }
         $completed = Get-Content $eventsFile | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.event_type -eq "agent.completed" } | Select-Object -First 1
         if ($completed.payload.provider -ne "codex") { throw "expected provider codex, got $($completed.payload.provider)" }
+        if ($completed.payload.status -ne "success") { throw "expected status success, got $($completed.payload.status)" }
+    }
+
+    It "routes investigation/medium to the Antigravity Pro model hint" {
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "investigation", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_deep")
+        Assert-AakSuccess $result
+        Assert-AakOutputContains $result "Stub Antigravity analysis"
+        $argv = Get-Content -Raw $script:StubRecord
+        if (-not $argv.Contains("--output-format")) { throw "expected --output-format in argv: $argv" }
+        if (-not $argv.Contains("--dangerously-skip-permissions")) { throw "expected skip-permissions in argv: $argv" }
+        $model = Get-Content -Raw $script:StubEnv
+        if (-not $model.Contains("gemini-3.1-pro")) { throw "expected Pro model hint, got: $model" }
+    }
+
+    It "routes daily/medium to the Antigravity Flash model hint" {
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "daily", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_std")
+        Assert-AakSuccess $result
+        $model = Get-Content -Raw $script:StubEnv
+        if (-not $model.Contains("gemini-3-flash")) { throw "expected Flash model hint, got: $model" }
+    }
+
+    It "emits Antigravity events with the provider field" {
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "investigation", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_events", "-InvocationId", "inv_agy")
+        Assert-AakSuccess $result
+        $eventsFile = Get-DelegateEventsFile "run_agy_events"
+        Assert-AakFileExists $eventsFile
+        $completed = Get-Content $eventsFile | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.event_type -eq "agent.completed" } | Select-Object -First 1
+        if ($completed.payload.provider -ne "antigravity") { throw "expected provider antigravity, got $($completed.payload.provider)" }
         if ($completed.payload.status -ne "success") { throw "expected status success, got $($completed.payload.status)" }
     }
 

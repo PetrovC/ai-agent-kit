@@ -16,13 +16,15 @@ setup() {
     CONFIG_PATH="$AUDIT_ROOT/config.json"
     BIN="$AUDIT_ROOT/bin"
     STUB_RECORD="$AUDIT_ROOT/argv.txt"
+    STUB_ENV="$AUDIT_ROOT/model-env.txt"
     BRIEF="$AUDIT_ROOT/brief.txt"
     mkdir -p "$RUNTIME_PATH" "$CENTRAL_PATH" "$BIN"
     git -C "$CENTRAL_PATH" init >/dev/null
     git -C "$CENTRAL_PATH" checkout -b agent-audit-data >/dev/null
-    export AUDIT_ROOT RUNTIME_PATH CENTRAL_PATH CONFIG_PATH BIN STUB_RECORD BRIEF
+    export AUDIT_ROOT RUNTIME_PATH CENTRAL_PATH CONFIG_PATH BIN STUB_RECORD STUB_ENV BRIEF
     write_config
     write_codex_stub
+    write_agy_stub
     echo "Please review the auth module for injection risks." > "$BRIEF"
 }
 
@@ -56,13 +58,25 @@ STUB
     chmod +x "$BIN/codex"
 }
 
+write_agy_stub() {
+    cat > "$BIN/agy" <<'STUB'
+#!/usr/bin/env bash
+# Record argv and the model hint passed via the environment, then emit a
+# structured (JSON) answer like `agy -p --output-format json` would.
+printf '%s\n' "$@" > "$STUB_RECORD"
+printf '%s\n' "${ANTIGRAVITY_MODEL:-}" > "$STUB_ENV"
+echo '{"response":"Stub Antigravity analysis: no blocking issue."}'
+STUB
+    chmod +x "$BIN/agy"
+}
+
 events_file() {
     find "$RUNTIME_PATH/runs" -name events.ndjson | head -1
 }
 
-# Run the adapter with the stub codex on PATH.
+# Run the adapter with the stub CLIs on PATH.
 delegate() {
-    run env PATH="$BIN:$PATH" STUB_RECORD="$STUB_RECORD" \
+    run env PATH="$BIN:$PATH" STUB_RECORD="$STUB_RECORD" STUB_ENV="$STUB_ENV" \
         bash "$KIT_ROOT/tooling/shared/delegate/delegate.sh" \
         --config "$CONFIG_PATH" --source-root "$TARGET" --brief-file "$BRIEF" "$@"
 }
@@ -76,7 +90,7 @@ delegate() {
 @test "delegate rejects an unsupported provider" {
     run bash "$KIT_ROOT/tooling/shared/delegate/delegate.sh" \
         --config "$CONFIG_PATH" --source-root "$TARGET" \
-        --brief-file "$BRIEF" --provider antigravity
+        --brief-file "$BRIEF" --provider gemini
     assert_failure
 }
 
@@ -110,6 +124,37 @@ delegate() {
     assert_output_contains '"event_type":"agent.invoked"'
     assert_output_contains '"event_type":"agent.completed"'
     assert_output_contains '"provider":"codex"'
+    assert_output_contains '"status":"success"'
+}
+
+@test "delegate routes investigation/medium to the Antigravity Pro model hint" {
+    delegate --provider antigravity --task-type investigation --risk medium \
+        --run-id run_agy_deep
+    assert_success
+    assert_output_contains "Stub Antigravity analysis"
+    run cat "$STUB_RECORD"
+    assert_output_contains "-p"
+    assert_output_contains "--output-format"
+    assert_output_contains "--dangerously-skip-permissions"
+    run cat "$STUB_ENV"
+    assert_output_contains "gemini-3.1-pro"
+}
+
+@test "delegate routes daily/medium to the Antigravity Flash model hint" {
+    delegate --provider antigravity --task-type daily --risk medium \
+        --run-id run_agy_std
+    assert_success
+    run cat "$STUB_ENV"
+    assert_output_contains "gemini-3-flash"
+}
+
+@test "delegate emits Antigravity events with the provider field" {
+    delegate --provider antigravity --task-type investigation --risk medium \
+        --run-id run_agy_events --invocation-id inv_agy
+    assert_success
+    run cat "$(events_file)"
+    assert_output_contains '"event_type":"agent.completed"'
+    assert_output_contains '"provider":"antigravity"'
     assert_output_contains '"status":"success"'
 }
 

@@ -15,6 +15,19 @@
 
 ### Added
 
+- **`feat(adapter)` - add the Antigravity provider to the cross-tool delegation adapter.**
+  Extends `tooling/shared/delegate/delegate.py` (+ dogfood mirror) with
+  `--provider antigravity`. Verified invocation: `agy -p "<brief>" --output-format
+  json --dangerously-skip-permissions`. The routing depth maps to a model hint
+  (deep→`gemini-3.1-pro`, standard/readonly→`gemini-3-flash`) passed as a
+  non-secret env var (`ANTIGRAVITY_MODEL`, configurable) since `agy` has no
+  verified per-call model flag; the strength is still recorded in the audit
+  `model_tier`. Same privacy scan (brief in / summary out), same fail-open
+  behavior, same `agent.*` events with a `provider` field. BATS + Pester cover
+  argv, the model hint, emitted events, and fail-open with an `agy` stub. Docs
+  updated (`DELEGATION.md`). Binding the model hint to the actual per-call model
+  is to be verified end-to-end in the user's environment (#339).
+
 - **`feat(adapter)` - add an opt-in cross-tool delegation adapter (Codex provider).**
   Ships `tooling/shared/delegate/{delegate.py,delegate.sh,delegate.ps1}` (+ dogfood
   mirror under `.ai-agent-kit/delegate/`): an orchestrator can hand one scoped task
