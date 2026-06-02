@@ -226,7 +226,7 @@ issue changes direction.
 - Context: ADR-018 keeps an orchestration *platform* out of scope but explicitly
   leaves room for "a narrow adapter" promoted by a future issue. [#339](https://github.com/PetrovC/ai-agent-kit/issues/339)
   is that issue: let an orchestrator (Claude) delegate one scoped task to another
-  provider's CLI (Codex; Antigravity to follow) and pick the model strength from
+  provider's CLI (Codex and Antigravity) and pick the model strength from
   the task type and risk.
 - Decision: Ship `tooling/shared/delegate/` (mirrored to `.ai-agent-kit/delegate/`):
   a single synchronous shell-out to the provider CLI with model routing from

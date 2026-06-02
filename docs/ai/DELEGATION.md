@@ -6,7 +6,7 @@ task type and risk. This is the narrow adapter [ADR-018](./DECISIONS.md#adr-018-
 and [ADR-020](./DECISIONS.md#adr-020-a-narrow-opt-in-cross-tool-delegation-adapter)
 explicitly leave room for — **not** a cross-tool orchestration platform.
 
-Status: **Codex provider shipped; Antigravity follows in a separate PR.**
+Status: **Codex and Antigravity providers shipped.**
 
 ## What it is (and is not)
 
@@ -42,7 +42,7 @@ orchestrator trusts a delegated result.
 
 | Argument | Meaning |
 |---|---|
-| `--provider` | `codex` (Antigravity in a follow-up PR). |
+| `--provider` | `codex` \| `antigravity`. |
 | `--task-type` | Drives model routing (e.g. `security_review`, `formatting`, `other`). |
 | `--risk` | `low` \| `medium` \| `high` \| `critical`. High/critical force the deepest tier. |
 | `--brief-file` | Path to a **sanitized** brief. Never pass secrets; never inline a brief on the command line. |
@@ -58,11 +58,11 @@ read and verify. Audit events carry only numeric/enum metrics, never the answer.
 The task type and risk map to a **routing depth**, and each depth maps to a
 provider-specific model/effort. See [MODEL_ROUTING.md](./MODEL_ROUTING.md).
 
-| Depth | When | Codex (`gpt-5.5`) effort |
-|---|---|---|
-| `deep` | security/architecture/review/investigation tasks, or `high`/`critical` risk | `model_reasoning_effort=high` |
-| `standard` | everyday implementation | `model_reasoning_effort=medium` |
-| `readonly` | mechanical / exploration / lookup | `model_reasoning_effort=low` |
+| Depth | When | Codex (`gpt-5.5`) effort | Antigravity model hint |
+|---|---|---|---|
+| `deep` | security/architecture/review/investigation tasks, or `high`/`critical` risk | `model_reasoning_effort=high` | `gemini-3.1-pro` |
+| `standard` | everyday implementation | `model_reasoning_effort=medium` | `gemini-3-flash` |
+| `readonly` | mechanical / exploration / lookup | `model_reasoning_effort=low` | `gemini-3-flash` |
 
 ## Verified provider invocations
 
@@ -77,15 +77,21 @@ codex exec -m gpt-5.5 -c model_reasoning_effort=<low|medium|high> \
 - `-s read-only` sandboxes the delegated run.
 - `--json` yields JSON-Lines output the adapter parses into a summary.
 
-**Antigravity** (headless) — *not yet wired*; lands in a follow-up PR:
+**Antigravity** (headless) — verified against `antigravity.google/docs/cli-using`:
 
 ```
-agy -p "<sanitized brief>" --output-format <structured> --dangerously-skip-permissions
+agy -p "<sanitized brief>" --output-format json --dangerously-skip-permissions
 ```
 
-Antigravity has no verified stable per-call model flag, so the adapter will pass
-a non-secret model **hint** via the environment rather than invent a `--model`
-flag.
+- `--dangerously-skip-permissions` is required for unattended automation.
+- `--output-format` yields a structured (parseable) summary. The format token
+  (`json` by default) is configurable via `AAK_DELEGATE_AGY_FORMAT`.
+- Antigravity has no verified stable per-call model flag, so the adapter passes a
+  non-secret model **hint** via the environment (`ANTIGRAVITY_MODEL` by default,
+  configurable via `AAK_DELEGATE_AGY_MODEL_ENV`) rather than invent a `--model`
+  flag. The model strength is still recorded in the audit `model_tier`. Binding
+  that hint to the actual per-call model is the one part to confirm end-to-end in
+  your environment.
 
 ## Privacy and safety
 

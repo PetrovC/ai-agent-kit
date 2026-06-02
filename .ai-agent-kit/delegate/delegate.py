@@ -2,10 +2,10 @@
 """Cross-tool delegation adapter (issue #339, Phase 2).
 
 A narrow, opt-in adapter that lets an orchestrator (Claude) delegate a single
-scoped task to another provider's CLI (Codex today; Antigravity in a follow-up)
-and choose the model strength from the task type and risk. This is the narrow
-adapter ADR-018/ADR-019 explicitly leave room for — NOT a cross-tool
-orchestration platform.
+scoped task to another provider's CLI (Codex or Antigravity) and choose the
+model strength from the task type and risk. This is the narrow adapter
+ADR-018/ADR-020 explicitly leave room for — NOT a cross-tool orchestration
+platform.
 
 Design constraints (all enforced here):
   - The provider CLI invocation via ``subprocess.run`` is the ONLY mockable
@@ -72,6 +72,23 @@ CODEX_MODEL = os.environ.get("AAK_DELEGATE_CODEX_MODEL", "gpt-5.5")
 # type and risk (see route_depth); the mapping is the one documented in #339:
 # deep→high, standard→medium, readonly→low.
 CODEX_EFFORT_BY_DEPTH = {"deep": "high", "standard": "medium", "readonly": "low"}
+
+# Antigravity (agy) has a fixed picker model set, not a verified per-call model
+# flag, so the adapter passes a non-secret model HINT via the environment rather
+# than invent a `--model` flag. See docs/ai/MODEL_ROUTING.md (Antigravity CLI).
+ANTIGRAVITY_MODEL_BY_DEPTH = {
+    "deep": "gemini-3.1-pro",
+    "standard": "gemini-3-flash",
+    "readonly": "gemini-3-flash",
+}
+# The non-secret env var the hint is exported under. Configurable so a future
+# agy that reads a specific variable (or none) does not require a code change.
+ANTIGRAVITY_MODEL_ENV = os.environ.get(
+    "AAK_DELEGATE_AGY_MODEL_ENV", "ANTIGRAVITY_MODEL"
+)
+# Structured (parseable) output format for `agy -p`. Configurable because the
+# exact format token is verified end-to-end in the user's environment.
+ANTIGRAVITY_OUTPUT_FORMAT = os.environ.get("AAK_DELEGATE_AGY_FORMAT", "json")
 
 # Routing depth → audit model tier, so emitted events line up with the audit
 # scorer's tier vocabulary (fast/standard/review/deep).
@@ -205,6 +222,67 @@ def _collect_message_text(obj: dict[str, Any]) -> list[str]:
     return found
 
 
+def build_antigravity_argv(brief: str, depth: str) -> list[str]:
+    """Build the verified non-interactive Antigravity invocation.
+
+    agy -p "<brief>" --output-format <structured> --dangerously-skip-permissions
+
+    ``--dangerously-skip-permissions`` is required for unattended automation;
+    ``--output-format`` yields a structured (parseable) summary. The model is not
+    set on the command line (no verified per-call flag) — it is passed as a
+    non-secret env hint via ``provider_env``. Verified against
+    antigravity.google/docs/cli-using.
+    """
+    return [
+        "agy",
+        "-p",
+        brief,
+        "--output-format",
+        ANTIGRAVITY_OUTPUT_FORMAT,
+        "--dangerously-skip-permissions",
+    ]
+
+
+def extract_antigravity_summary(stdout: str) -> str:
+    """Best-effort extraction of the answer from Antigravity structured output.
+
+    ``agy --output-format <structured>`` emits a structured document (typically a
+    single JSON object). The exact schema is verified end-to-end in the user's
+    environment, so this is tolerant: it pulls the first string answer field from
+    a JSON object and falls back to the raw stdout when nothing parses. The result
+    is privacy-scanned by the caller before it is used.
+    """
+    import json
+
+    text = stdout.strip()
+    if not text:
+        return ""
+    try:
+        obj = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+    if isinstance(obj, dict):
+        for key in ("response", "output", "text", "message", "result", "content"):
+            value = obj.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return text
+
+
+def provider_env(provider: str, depth: str) -> dict[str, str] | None:
+    """Extra process environment for the provider call, or None to inherit.
+
+    For Antigravity, export a non-secret model hint (Pro for deep work, Flash
+    otherwise). Returns a FULL environment copy because passing ``env`` to
+    ``subprocess.run`` replaces — not augments — the child's environment, and the
+    CLI still needs PATH and its own credentials from the inherited environment.
+    """
+    if provider == "antigravity":
+        model = ANTIGRAVITY_MODEL_BY_DEPTH[depth]
+        return {**os.environ, ANTIGRAVITY_MODEL_ENV: model}
+    return None
+
+
 def safe_text(value: str) -> bool:
     """True when the text passes the audit privacy scan (no path/URL/secret)."""
     try:
@@ -272,7 +350,9 @@ def emit(
         warn(f"audit event {event_type} skipped (fail-open): {exc}")
 
 
-def run_provider(argv: list[str], timeout: int) -> tuple[int, str, str]:
+def run_provider(
+    argv: list[str], timeout: int, env: dict[str, str] | None = None
+) -> tuple[int, str, str]:
     """Invoke the provider CLI — the single mockable boundary. Fail-open.
 
     Returns (exit_code, stdout, stderr). A missing CLI or a timeout is reported
@@ -282,7 +362,8 @@ def run_provider(argv: list[str], timeout: int) -> tuple[int, str, str]:
     Windows PATHEXT: the real Codex CLI installs as ``codex.cmd`` on Windows,
     which a bare ``subprocess.run(["codex", ...])`` would not find (and could
     hang on). Resolving to None means the CLI is absent — short-circuit to 127
-    instead of invoking anything.
+    instead of invoking anything. ``env`` (when given) fully replaces the child's
+    environment, so callers pass a complete copy (see ``provider_env``).
     """
     resolved = shutil.which(argv[0])
     if resolved is None:
@@ -295,6 +376,7 @@ def run_provider(argv: list[str], timeout: int) -> tuple[int, str, str]:
             stderr=subprocess.PIPE,
             stdin=subprocess.DEVNULL,
             timeout=timeout,
+            env=env,
             check=False,
         )
         return result.returncode, result.stdout or "", result.stderr or ""
@@ -355,7 +437,9 @@ def delegate(args: argparse.Namespace) -> int:
 
     if provider == "codex":
         argv = build_codex_argv(brief, depth)
-    else:  # pragma: no cover - argparse restricts choices to codex in PR1
+    elif provider == "antigravity":
+        argv = build_antigravity_argv(brief, depth)
+    else:  # pragma: no cover - argparse restricts the choices
         raise DelegateError(f"unsupported provider: {provider}")
 
     emit(
@@ -363,7 +447,9 @@ def delegate(args: argparse.Namespace) -> int:
         {"provider": provider}, invocation_id,
     )
 
-    exit_code, stdout, stderr = run_provider(argv, args.timeout)
+    exit_code, stdout, stderr = run_provider(
+        argv, args.timeout, provider_env(provider, depth)
+    )
 
     if exit_code != 0:
         warn(
@@ -381,7 +467,12 @@ def delegate(args: argparse.Namespace) -> int:
         )
         return 0
 
-    summary = extract_codex_summary(stdout) if provider == "codex" else stdout.strip()
+    if provider == "codex":
+        summary = extract_codex_summary(stdout)
+    elif provider == "antigravity":
+        summary = extract_antigravity_summary(stdout)
+    else:  # pragma: no cover - argparse restricts the choices
+        summary = stdout.strip()
 
     # Sanitize the summary BEFORE it is printed or recorded. If it carries
     # path/URL/secret-like content, redact it rather than leak it.
@@ -419,10 +510,10 @@ def build_parser() -> argparse.ArgumentParser:
             "model strength from task type and risk. Opt-in and fail-open."
         ),
     )
-    # PR1 wires Codex only; Antigravity is added in a follow-up PR. argparse
-    # rejects an unsupported provider with a clear message rather than shipping
-    # a half-wired code path.
-    parser.add_argument("--provider", required=True, choices=["codex"])
+    # argparse rejects any provider outside the wired set with a clear message.
+    parser.add_argument(
+        "--provider", required=True, choices=["codex", "antigravity"]
+    )
     parser.add_argument("--task-type", dest="task_type", default="other")
     parser.add_argument("--risk", default="medium")
     parser.add_argument("--brief-file", dest="brief_file", required=True)
