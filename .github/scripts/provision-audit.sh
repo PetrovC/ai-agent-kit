@@ -25,6 +25,12 @@ Host github-aak-audit
 SSH
 ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
 
+# finalize-run commits into the freshly-cloned central audit repo, which has no
+# author identity in CI; set a global one so the commit (and therefore the push)
+# succeeds. Only configured when audit is actually provisioned.
+git config --global user.name "github-actions[bot]"
+git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
 cat > ~/.ai-agent-kit/config.json <<'CFG'
 {
   "schema_version": "0.1.0",
