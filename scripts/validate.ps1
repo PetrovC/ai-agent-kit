@@ -264,11 +264,10 @@ if ($routerFiles.Count -eq 0) {
 Write-Host ""
 Write-Host "> Model-read doc budget (<= 200 lines)"
 $DocBudgetMax = 200
-$DocBudgetExceptions = @(
-    "docs/ai/AGENT_AUDIT_SCHEMA.md",
-    "docs/ai/AGENT_AUDIT_GOVERNANCE.md",
-    "docs/ai/AGENT_AUDIT_STORAGE.md"
-)
+# The audit reference specs were split into <=200-line cores plus on-demand
+# companions under docs/ai/references/ (#325); references/ is not swept, so the
+# deep detail can be long there.
+$DocBudgetExceptions = @()
 $docBudgetFiles = @()
 foreach ($r in @("AGENTS.md", "CLAUDE.md", "AGY.md")) {
     if (Test-Path -LiteralPath (Join-Path $Target $r)) { $docBudgetFiles += $r }

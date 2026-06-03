@@ -52,44 +52,7 @@ CI expectations:
 
 ## Central Layout
 
-The central repository stores audit data under `agent-audit/`.
-
-```text
-agent-audit/
-  README.md
-  policy/
-    README.md
-  indexes/
-    README.md
-    years/
-      YYYY.json
-    months/
-      YYYY-MM.json
-    projects/
-      project-hash.json
-  rollups/
-    cross-run-rollup.json
-    cross-run-rollup.md
-  runs/
-    YYYY/
-      MM/
-        project-hash/
-          run-id/
-            README.md
-            run-summary.json
-            governance-events.ndjson
-            token-context.json
-            agent-invocations.json
-            friction.json
-            activity.json
-            report-quality.json
-            governance-recommendations.json
-            pricing-estimate.json
-            recommendations.md
-```
-
-`master` may contain anonymized fixtures that use this layout. Real generated
-run data belongs on `agent-audit-data`.
+The central repo stores audit data under `agent-audit/` — run folders at `runs/YYYY/MM/project-hash/run-id/`, plus `indexes/`, `rollups/`, and `policy/`. The full directory tree is in the [storage layout reference](./references/storage-layout.md#central-layout). `master` may hold anonymized fixtures using this layout; real run data lives on `agent-audit-data`.
 
 ## Run Folder Naming
 
@@ -140,83 +103,15 @@ alias if encountered, but future writers should emit only `token-context.json`.
 
 ## Index Layout
 
-Indexes are generated convenience files. They must contain only data already
-safe to store in run artifacts.
-
-| Path | Purpose |
-|---|---|
-| `indexes/years/YYYY.json` | One year of run-summary pointers and aggregate counters. |
-| `indexes/months/YYYY-MM.json` | One month of run-summary pointers and aggregate counters. |
-| `indexes/projects/project-hash.json` | Runs for one anonymized project hash. |
-
-Index records should include:
-
-- `schema_version`;
-- index period or project hash;
-- generated timestamp;
-- run count;
-- aggregate task type, technical scope, status, and token estimate buckets;
-- relative pointers to `run-summary.json` files.
-
-Index records must not copy raw report text, recommendations, command output,
-file names, file paths, prompts, responses, or branch names.
+Generated convenience files under `indexes/` (`years/`, `months/`, `projects/`) hold only data already safe in run artifacts — run-summary pointers and aggregate counters, never raw text, paths, or branch names. The full record fields are in the [storage layout reference](./references/storage-layout.md#index-layout).
 
 ## Rollup Layout
 
-Cross-run calibration rollups are generated convenience files produced by
-`rollup` (see the agent-audit runtime). They aggregate ACROSS finalized runs —
-quality, model-fit distribution, tokens, cache-hit, speed, cost, context
-exhaustion, retries, and noise hotspots — grouped by project hash, agent
-category, and task type. They are the lever to calibrate `MODEL_ROUTING.md`,
-subagent assignments, and agent usage.
-
-| Path | Purpose |
-|---|---|
-| `rollups/cross-run-rollup.json` | Machine-readable cross-run aggregate (canonical). |
-| `rollups/cross-run-rollup.md` | Human-readable companion for maintainers. |
-
-The rollup JSON also carries two cross-run sections:
-
-- `skill_usage` — total skill activations and a per-skill distribution, sourced
-  from `skill.activated` events (`run-summary.json` → `skill_usage`). This makes
-  skill usage measurable across runs.
-- `findings` — per-run `governance-recommendations.json` aggregated across runs
-  by `(category, summary_code)`, with occurrence and affected-run counts, the
-  strongest evidence/confidence seen, and an `issue_candidate`. **Issue creation
-  stays manual:** a finding only flags a candidate (when a recommendation already
-  flagged it, evidence/confidence is high, or the pattern repeats across runs) —
-  the generator never opens an issue.
-
-Like indexes, rollups contain only data already safe to store in run artifacts
-(numeric aggregates and enum distributions); they must not copy raw report text,
-prompts, responses, command output, file paths, or branch names. The rollup
-generator is read-only over run folders and never rewrites them.
+Cross-run calibration rollups (`rollups/cross-run-rollup.{json,md}`, produced by `rollup`) aggregate ACROSS finalized runs — quality, model-fit, tokens, cost, noise, `skill_usage`, and `findings` — to calibrate `MODEL_ROUTING.md` and subagent assignments. **Issue creation stays manual:** a finding only flags a candidate. Rollups carry only safe numeric aggregates and enum distributions; the generator is read-only over run folders. Details in the [storage layout reference](./references/storage-layout.md#rollup-layout).
 
 ## Reading Reports to Improve the Architecture
 
-The audit pays off only when its reports drive concrete changes. Read them in
-this order:
-
-1. **Per-run `report-quality.json`** — was the report accepted, and was the model
-   fit appropriate? An `underpowered`/`overkill` `model_fit` with strong evidence
-   is a routing signal; `observed_model_tier` vs `expected_model_tier` shows the
-   gap.
-2. **Cross-run `rollups/cross-run-rollup.json`** — the calibration lever:
-   - `by_task_type` / `by_agent` model-fit distributions reveal which task classes
-     or agents are routinely under- or over-powered → adjust `MODEL_ROUTING.md`
-     and the per-subagent model assignments.
-   - `context_exhaustion.rate` and `noise_hotspots` show where prompts/scope waste
-     context → tighten skill instructions or split work.
-   - `tokens` / `cost` / `cache_hit` per group show where efficiency work pays off.
-   - `skill_usage` shows which skills actually fire → prune unused skills, fix
-     under-triggering descriptions.
-3. **`findings`** — the actionable shortlist. Each issue candidate is safe for a
-   human to review and, if warranted, turn into a GitHub issue manually. Cite the
-   finding's `summary_code`, `affected_run_count`, and evidence in the issue.
-
-Calibration is a loop: change a policy, let new runs accumulate, re-run `rollup`,
-and confirm the distribution moved in the intended direction before the next
-change.
+The audit pays off only when its reports drive change. Read per-run `report-quality.json` (model-fit gaps: `observed_` vs `expected_model_tier`), then the cross-run rollup (the calibration lever: `by_task_type`/`by_agent` distributions, `context_exhaustion`, `noise_hotspots`, `skill_usage`), then `findings` (the actionable shortlist for manual issues). Calibration is a loop — change a policy, accumulate runs, re-run `rollup`, confirm the distribution moved. The full step-by-step is in the [storage layout reference](./references/storage-layout.md#reading-reports-to-improve-the-architecture).
 
 ## Policy Folder
 
@@ -235,20 +130,9 @@ generated indexes do not.
 ## External Project Ingestion
 
 Audit data produced while working in an external source project must not be
-written into that source project.
-
-Expected flow:
-
-1. The agent runs in an external project.
-2. Runtime audit metadata is buffered in a local runtime folder outside the
-   source repository.
-3. The runtime folder keeps any local-only mapping files and hash salts outside
-   source control.
-4. The final anonymized report is written to the central audit repository under
-   `agent-audit/runs/YYYY/MM/project-hash/run-id/`.
-5. The writer switches to or targets `agent-audit-data` before committing audit
-   run data.
-6. Generated indexes are updated on `agent-audit-data`.
+written into that source project. The buffered-runtime → sanitized-report →
+central-repo flow is detailed in the
+[storage layout reference](./references/storage-layout.md#external-project-ingestion-flow).
 
 Source project write policy:
 
@@ -283,16 +167,8 @@ If the writer cannot push:
 
 ## Contributor Consent
 
-Central audit ingestion is opt-in.
-
-Contributor-facing wording may say:
-
-> This project can contribute anonymized agent audit metadata to a central
-> ai-agent-kit audit repository. The report stores technical counters,
-> timings, task classifications, and estimates only. It does not store prompts,
-> responses, command output, file contents, exact paths, repository URLs, branch
-> names, credentials, or business data. You can disable audit contribution
-> without changing normal agent behavior.
+Central audit ingestion is opt-in. Suggested contributor-facing wording is in
+the [storage layout reference](./references/storage-layout.md#contributor-facing-consent-wording).
 
 Consent requirements:
 
@@ -305,16 +181,7 @@ Consent requirements:
 
 ## Fixture Expectations
 
-An anonymized fixture should:
-
-- live under the same `runs/YYYY/MM/project-hash/run-id/` layout;
-- use obvious fake hashes such as `hmac_sha256_example_project`;
-- include main session, at least one subagent, one retry, one escalation, token
-  estimates, report quality, and recommendations;
-- parse as valid JSON or NDJSON where applicable;
-- avoid all forbidden M0A data, even in Markdown examples.
-
-See [agent-audit/](../../agent-audit/) for the repository fixture.
+Anonymized fixtures use the same `runs/YYYY/MM/project-hash/run-id/` layout with obvious fake hashes (`hmac_sha256_example_project`), include a main session + at least one subagent + one retry + one escalation + token estimates + report quality + recommendations, parse as valid JSON/NDJSON, and avoid all forbidden M0A data (even in Markdown). See [agent-audit/](../../agent-audit/) and the [storage layout reference](./references/storage-layout.md#fixture-expectations).
 
 ## Issue Coverage
 
@@ -324,3 +191,8 @@ See [agent-audit/](../../agent-audit/) for the repository fixture.
 | [#271](https://github.com/PetrovC/ai-agent-kit/issues/271) | `agent-audit-data` branch strategy, separation from code changes, writer branch safety, and CI expectations. |
 | [#272](https://github.com/PetrovC/ai-agent-kit/issues/272) | External project ingestion flow, source project write policy, runtime folder, central target, unauthorized push fallback, and opt-in consent. |
 | [#273](https://github.com/PetrovC/ai-agent-kit/issues/273) | Fixture expectations and the anonymized example run folder. |
+
+## Related Documents
+
+- [Storage layout reference](./references/storage-layout.md) — full central/index/rollup trees, report-reading workflow, and fixture details.
+- [AGENT_AUDIT_SCHEMA.md](./AGENT_AUDIT_SCHEMA.md) · [AGENT_AUDIT_GOVERNANCE.md](./AGENT_AUDIT_GOVERNANCE.md) · [AGENT_AUDIT_RUNTIME.md](./AGENT_AUDIT_RUNTIME.md)
