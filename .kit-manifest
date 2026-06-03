@@ -169,8 +169,10 @@
 .codex/hooks/agent-audit-event.sh
 .codex/hooks/format-on-save.sh
 .codex/hooks/notify-done.sh
+.codex/hooks/permission-request-log.sh
 .codex/hooks/pre-bash-guard.sh
 .codex/hooks/run-hook.ps1
+.codex/hooks/session-start-summary.sh
 .mcp.example.jsonc
 AGENTS.md
 AGY.md

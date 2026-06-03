@@ -110,6 +110,8 @@ jobs:
             "/tmp/smoke-target/.codex/hooks/pre-bash-guard.sh"
             "/tmp/smoke-target/.codex/hooks/format-on-save.sh"
             "/tmp/smoke-target/.codex/hooks/notify-done.sh"
+            "/tmp/smoke-target/.codex/hooks/permission-request-log.sh"
+            "/tmp/smoke-target/.codex/hooks/session-start-summary.sh"
             "/tmp/smoke-target/.agents/skills/architect/SKILL.md"
             "/tmp/smoke-target/.agents/skills/security-reviewer/SKILL.md"
             "/tmp/smoke-target/.agy/commands/bug-fix.toml"

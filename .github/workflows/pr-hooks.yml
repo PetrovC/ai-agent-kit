@@ -198,6 +198,8 @@ jobs:
           # this pass keeps the script rc=0 even when delivery fails.
           expect_rc0 "notify-claude"                  tooling/claude/hooks/notify-done.sh ''
           expect_rc0 "notify-codex"                   tooling/codex/hooks/notify-done.sh ''
+          expect_rc0 "codex-session-start-summary"    tooling/codex/hooks/session-start-summary.sh '{"source":"startup","profile":"ci"}'
+          expect_rc0 "codex-permission-request-log"   tooling/codex/hooks/permission-request-log.sh '{"tool_name":"Bash","sandbox_permissions":"require_escalated","justification":"test"}'
 
           # session-summary (Claude) — anchor on CLAUDE_PROJECT_DIR so the
           # log lands in a temp dir; no git state available, the script must
