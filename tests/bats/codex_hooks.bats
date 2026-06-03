@@ -11,8 +11,8 @@ setup() {
 @test "session-start-summary prints kit version and active profile" {
     payload='{"source":"startup"}'
 
-    run env CODEX_PROJECT_DIR="$KIT_ROOT" CODEX_PROFILE="standard" \
-        bash "$KIT_ROOT/tooling/codex/hooks/session-start-summary.sh" <<< "$payload"
+    run bash -c 'exec env CODEX_PROJECT_DIR="$1" CODEX_PROFILE=standard bash "$1/tooling/codex/hooks/session-start-summary.sh" 2>&1' \
+        _ "$KIT_ROOT" <<< "$payload"
 
     assert_success
     assert_output_contains "ai-agent-kit"
@@ -23,7 +23,8 @@ setup() {
 @test "permission-request-log logs permission metadata without raw reason" {
     payload='{"tool_name":"Bash","sandbox_permissions":"require_escalated","justification":"secret local path /Users/example"}'
 
-    run bash "$KIT_ROOT/tooling/codex/hooks/permission-request-log.sh" <<< "$payload"
+    run bash -c 'exec bash "$1/tooling/codex/hooks/permission-request-log.sh" 2>&1' \
+        _ "$KIT_ROOT" <<< "$payload"
 
     assert_success
     assert_output_contains "PermissionRequest"

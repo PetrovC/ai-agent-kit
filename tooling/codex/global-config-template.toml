@@ -20,13 +20,8 @@ model_reasoning_summary = "concise"
 #                  closed unless you explicitly opt into them.
 approval_policy = "on-request"
 # Pilot granular policy. Uncomment this line instead of the string value above.
-# approval_policy = { granular = {
-#   sandbox_approval = true,
-#   rules = true,
-#   mcp_elicitations = true,
-#   request_permissions = false,
-#   skill_approval = false
-# } }
+# TOML inline tables must stay on one line.
+# approval_policy = { granular = { sandbox_approval = true, rules = true, mcp_elicitations = true, request_permissions = false, skill_approval = false } }
 
 sandbox_mode = "workspace-write" # workspace-write | read-only | danger-full-access
 

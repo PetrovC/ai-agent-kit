@@ -7,9 +7,12 @@ set +e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 PROJECT_DIR="${CODEX_PROJECT_DIR:-$(pwd)}"
-if [[ ! -f "$PROJECT_DIR/VERSION" && -f "$SCRIPT_DIR/../../VERSION" ]]; then
-    PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." >/dev/null 2>&1 && pwd)"
-fi
+for candidate in "$PROJECT_DIR" "$(pwd)" "$SCRIPT_DIR/../.." "$SCRIPT_DIR/../../.."; do
+    if [[ -f "$candidate/VERSION" ]]; then
+        PROJECT_DIR="$(cd "$candidate" >/dev/null 2>&1 && pwd)"
+        break
+    fi
+done
 VERSION_FILE="$PROJECT_DIR/VERSION"
 if [[ -f "$VERSION_FILE" ]]; then
     KIT_VERSION="$(head -n 1 "$VERSION_FILE" 2>/dev/null | tr -d '\r\n')"
