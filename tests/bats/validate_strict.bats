@@ -58,3 +58,16 @@ EOF
     assert_success
     assert_output_contains "update dry-run preserves docs/ai/ and .mcp.json"
 }
+
+@test "validate.sh fails when root MCP example drifts from Claude source" {
+    mkdir -p "$TARGET/tooling/claude"
+    cp "$KIT_ROOT/tooling/claude/.mcp.example.jsonc" "$TARGET/tooling/claude/.mcp.example.jsonc"
+    cp "$KIT_ROOT/tooling/claude/.mcp.example.jsonc" "$TARGET/.mcp.example.jsonc"
+    printf '.mcp.example.jsonc\n' > "$TARGET/.kit-manifest"
+    printf '\n// local drift\n' >> "$TARGET/.mcp.example.jsonc"
+
+    run _validate --target "$TARGET" --strict
+
+    assert_failure
+    assert_output_contains ".mcp.example.jsonc differs from its source under tooling/ or skills/"
+}

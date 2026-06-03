@@ -62,4 +62,20 @@ exit 0
         Assert-AakSuccess $result
         Assert-AakOutputContains $result "update dry-run preserves docs/ai/ and .mcp.json"
     }
+
+    It "validate.ps1 fails when root MCP example drifts from Claude source" {
+        $sourceDir = Join-Path $script:Target "tooling\claude"
+        New-Item -ItemType Directory -Path $sourceDir -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $script:KitRoot "tooling\claude\.mcp.example.jsonc") `
+            -Destination (Join-Path $sourceDir ".mcp.example.jsonc")
+        Copy-Item -LiteralPath (Join-Path $script:KitRoot "tooling\claude\.mcp.example.jsonc") `
+            -Destination (Join-Path $script:Target ".mcp.example.jsonc")
+        Set-Content -LiteralPath (Join-Path $script:Target ".kit-manifest") -Value ".mcp.example.jsonc" -NoNewline
+        Add-Content -LiteralPath (Join-Path $script:Target ".mcp.example.jsonc") -Value "`n// local drift"
+
+        $result = Invoke-AakValidate -Arguments @("-Strict")
+
+        Assert-AakFailure $result
+        Assert-AakOutputContains $result ".mcp.example.jsonc differs from its source under tooling/ or skills/"
+    }
 }
