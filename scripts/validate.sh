@@ -229,10 +229,10 @@ fi
 echo ""
 echo "> Model-read doc budget (<= 200 lines)"
 DOC_BUDGET_MAX=200
+# The audit reference specs were split into ≤200-line cores plus on-demand
+# companions under docs/ai/references/ (#325). references/ is not swept (the
+# budget check is maxdepth 1), so the deep detail can be long there.
 DOC_BUDGET_EXCEPTIONS=(
-    "docs/ai/AGENT_AUDIT_SCHEMA.md"       # on-demand audit schema reference
-    "docs/ai/AGENT_AUDIT_GOVERNANCE.md"   # on-demand governance scoring spec
-    "docs/ai/AGENT_AUDIT_STORAGE.md"      # on-demand storage-layout reference
 )
 doc_budget_files=()
 for r in AGENTS.md CLAUDE.md AGY.md; do
