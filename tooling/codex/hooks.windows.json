@@ -32,6 +32,18 @@
         ]
       }
     ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" permission-request-log.sh",
+            "statusMessage": "Logging permission request"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "*",
@@ -54,6 +66,11 @@
           {
             "type": "command",
             "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh"
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" session-start-summary.sh",
+            "statusMessage": "Printing session context"
           }
         ]
       }

@@ -11,8 +11,19 @@ model                  = "gpt-5.5"
 model_reasoning_effort = "medium"
 model_reasoning_summary = "concise"
 
-approval_policy = "on-request"     # untrusted | on-request | never  (on-failure deprecated)
-sandbox_mode    = "workspace-write" # workspace-write | read-only | danger-full-access
+# Approval prompting:
+#   untrusted   -> ask before anything not pre-allowlisted
+#   on-request  -> ask when a tool requests escalation
+#   never       -> do not ask; use only for supervised automation
+#   granular    -> per-category prompting; useful to keep sandbox/MCP prompts
+#                  interactive while failing request_permissions/skill scripts
+#                  closed unless you explicitly opt into them.
+approval_policy = "on-request"
+# Pilot granular policy. Uncomment this line instead of the string value above.
+# TOML inline tables must stay on one line.
+# approval_policy = { granular = { sandbox_approval = true, rules = true, mcp_elicitations = true, request_permissions = false, skill_approval = false } }
+
+sandbox_mode = "workspace-write" # workspace-write | read-only | danger-full-access
 
 web_search       = "cached"
 allow_login_shell = false

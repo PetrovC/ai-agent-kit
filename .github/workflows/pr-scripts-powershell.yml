@@ -46,6 +46,7 @@ jobs:
             ".codex\config.toml", ".codex\hooks.json",
             ".codex\hooks\pre-bash-guard.sh", ".codex\hooks\format-on-save.sh",
             ".codex\hooks\notify-done.sh", ".codex\hooks\run-hook.ps1",
+            ".codex\hooks\permission-request-log.sh", ".codex\hooks\session-start-summary.sh",
             ".agents\skills\architect\SKILL.md", ".agents\skills\security-reviewer\SKILL.md",
             ".agy\commands\bug-fix.toml", ".agy\commands\security-audit.toml",
             "docs\ai\PROJECT.md"

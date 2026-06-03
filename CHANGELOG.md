@@ -28,6 +28,15 @@
 
 ### Added
 
+- **`feat(codex)` - add granular approval policy guidance and Codex PermissionRequest hooks (#186).**
+  Documents the `approval_policy = { granular = { ... } }` pilot in the global
+  Codex config template, wires `PermissionRequest` logging, and adds a
+  `SessionStart` summary hook that prints the kit version and active profile
+  context. The permission logger records only tool/permission metadata plus a
+  hashed reason, avoiding raw command or prompt leakage. Canonical Codex tooling
+  and dogfood mirrors were updated together, with BATS smoke coverage for both
+  new hooks.
+
 - **`feat(scripts)` - opt-in `AAK_DEBUG` execution trace for lifecycle scripts and hooks (#305).**
   Setting `AAK_DEBUG` to a non-empty value other than `0`/`false` turns on a trace
   (`set -x` in Bash, `Set-PSDebug -Trace 1` in PowerShell) at the top of every
