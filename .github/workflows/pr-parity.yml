@@ -66,8 +66,12 @@ jobs:
         run: |
           $target = Join-Path $env:RUNNER_TEMP "install-target-ps"
           Push-Location $target
-          $files = Get-ChildItem -File -Recurse | ForEach-Object {
-              Resolve-Path -Path $_.FullName -Relative
+          # Build forward-slash paths relative to the target dir.
+          # Use $PWD.Path (set by Push-Location) to strip the absolute prefix,
+          # then replace backslashes with forward slashes for cross-OS comparison.
+          $baseLen = $PWD.Path.TrimEnd('\').Length + 1  # length of "D:\...\target\"
+          $files = Get-ChildItem -File -Recurse -Force | ForEach-Object {
+              $_.FullName.Substring($baseLen).Replace('\', '/')
           } | Sort-Object
           Pop-Location
           $outputPath = Join-Path $env:RUNNER_TEMP "manifest-ps.txt"
@@ -103,10 +107,13 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Normalize path separators by replacing backslashes with forward slashes,
-          # and sort using LC_ALL=C to guarantee identical sort orders.
-          cat bash-manifest-dir/manifest-bash.txt | tr '\\' '/' | LC_ALL=C sort > /tmp/bash-normalized.txt
-          cat ps-manifest-dir/manifest-ps.txt | tr '\\' '/' | LC_ALL=C sort > /tmp/ps-normalized.txt
+          # Normalize for cross-OS comparison:
+          #   - replace backslashes with forward slashes
+          #   - strip CRLF (\r) from the Windows-generated PS manifest
+          #   - strip leading './' (bash `find` emits './path')
+          #   - sort using LC_ALL=C to guarantee identical sort orders
+          cat bash-manifest-dir/manifest-bash.txt | tr '\\' '/' | sed 's|^\./||' | LC_ALL=C sort > /tmp/bash-normalized.txt
+          cat ps-manifest-dir/manifest-ps.txt | tr '\\' '/' | tr -d '\r' | sed 's|^\./||' | LC_ALL=C sort > /tmp/ps-normalized.txt
           
           # Diff the two sorted file lists.
           # If a file is intentionally platform-specific and should be exempted from

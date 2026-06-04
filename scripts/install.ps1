@@ -37,7 +37,10 @@ param(
     [ValidateSet("disabled", "prompt", "official")]
     [string]$Audit = "disabled",
 
-    [string]$AuditConfig = ""
+    [string]$AuditConfig = "",
+
+    [ValidateSet("full", "minimal")]
+    [string]$Profile = "full"
 )
 if ($env:AAK_DEBUG -and $env:AAK_DEBUG -ne "0" -and $env:AAK_DEBUG -ne "false") { Set-PSDebug -Trace 1 }  # AAK_DEBUG: opt-in trace (#305)
 
@@ -288,6 +291,7 @@ Write-Host "  Target : $Target"
 Write-Host "  Tools  : $($ToolList -join ', ')"
 Write-Host "  Version: $KitVersion"
 Write-Host "  Mode   : OVERWRITE (kit files only; docs/ai/ preserved)" -ForegroundColor Yellow
+Write-Host "  Profile: $Profile"
 Write-Host "  Audit  : $Audit"
 
 # -- Skills ----------------------------------------------------------------
@@ -310,73 +314,81 @@ if ($ToolList -contains "agy") {
 if ($ToolList -contains "codex") {
     Write-Step "Installing Codex tooling"
     Copy-KitFile (Join-Path $KitRoot "tooling\codex\AGENTS.md")   (Join-Path $Target "AGENTS.md")
-    Copy-KitFile (Join-Path $KitRoot "tooling\codex\config.toml") (Join-Path $Target ".codex\config.toml")
-    Copy-KitFile (Join-Path $KitRoot "tooling\codex\hooks.windows.json") (Join-Path $Target ".codex\hooks.json")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\codex\hooks")  (Join-Path $Target ".codex\hooks")
-    # Codex-specific skills (the 5 subagents) merge into the shared .agents/skills/
-    # directory alongside the tool-agnostic skills already installed above.
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\codex\skills") (Join-Path $Target ".agents\skills")
+    if ($Profile -eq "full") {
+        Copy-KitFile (Join-Path $KitRoot "tooling\codex\config.toml") (Join-Path $Target ".codex\config.toml")
+        Copy-KitFile (Join-Path $KitRoot "tooling\codex\hooks.windows.json") (Join-Path $Target ".codex\hooks.json")
+        Copy-KitDirectory (Join-Path $KitRoot "tooling\codex\hooks")  (Join-Path $Target ".codex\hooks")
+        # Codex-specific skills (the 5 subagents) merge into the shared .agents/skills/
+        # directory alongside the tool-agnostic skills already installed above.
+        Copy-KitDirectory (Join-Path $KitRoot "tooling\codex\skills") (Join-Path $Target ".agents\skills")
+    }
 }
 
 # -- Claude ----------------------------------------------------------------
 if ($ToolList -contains "claude") {
     Write-Step "Installing Claude Code tooling"
     Copy-KitFile (Join-Path $KitRoot "tooling\claude\CLAUDE.md")     (Join-Path $Target "CLAUDE.md")
-    Copy-KitFile (Join-Path $KitRoot "tooling\claude\settings.windows.json") (Join-Path $Target ".claude\settings.json")
-    # .mcp.json is initialized once and then OWNED BY THE PROJECT — install
-    # bootstraps an empty file only when missing, update never overwrites it.
-    # The versioned reference users copy server blocks from is .mcp.example.jsonc.
-    $mcpJsonDst = Join-Path $Target ".mcp.json"
-    if (Test-Path -LiteralPath $mcpJsonDst) {
-        Write-Preserve ".mcp.json"
-    } else {
-        # See Copy-KitFile comment: Copy-Item -Destination interprets
-        # wildcards, so use the .NET API for a literal dst path.
-        [System.IO.File]::Copy((Join-Path $KitRoot "tooling\claude\.mcp.json"), $mcpJsonDst, $true)
-        Write-Ok ".mcp.json"
+    if ($Profile -eq "full") {
+        Copy-KitFile (Join-Path $KitRoot "tooling\claude\settings.windows.json") (Join-Path $Target ".claude\settings.json")
+        # .mcp.json is initialized once and then OWNED BY THE PROJECT — install
+        # bootstraps an empty file only when missing, update never overwrites it.
+        # The versioned reference users copy server blocks from is .mcp.example.jsonc.
+        $mcpJsonDst = Join-Path $Target ".mcp.json"
+        if (Test-Path -LiteralPath $mcpJsonDst) {
+            Write-Preserve ".mcp.json"
+        } else {
+            # See Copy-KitFile comment: Copy-Item -Destination interprets
+            # wildcards, so use the .NET API for a literal dst path.
+            [System.IO.File]::Copy((Join-Path $KitRoot "tooling\claude\.mcp.json"), $mcpJsonDst, $true)
+            Write-Ok ".mcp.json"
+        }
+        Copy-KitFile (Join-Path $KitRoot "tooling\claude\.mcp.example.jsonc") (Join-Path $Target ".mcp.example.jsonc")
+        Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\agents")   (Join-Path $Target ".claude\agents")
+        Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\commands") (Join-Path $Target ".claude\commands")
+        Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\hooks")    (Join-Path $Target ".claude\hooks")
+        Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\rules")    (Join-Path $Target ".claude\rules")
     }
-    Copy-KitFile (Join-Path $KitRoot "tooling\claude\.mcp.example.jsonc") (Join-Path $Target ".mcp.example.jsonc")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\agents")   (Join-Path $Target ".claude\agents")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\commands") (Join-Path $Target ".claude\commands")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\hooks")    (Join-Path $Target ".claude\hooks")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\claude\rules")    (Join-Path $Target ".claude\rules")
 }
 
 # -- Antigravity ----------------------------------------------------------------
 if ($ToolList -contains "agy") {
     Write-Step "Installing Antigravity CLI tooling"
     Copy-KitFile (Join-Path $KitRoot "tooling\agy\AGY.md")     (Join-Path $Target "AGY.md")
-    Copy-KitFile (Join-Path $KitRoot "tooling\agy\.agyignore") (Join-Path $Target ".agyignore")
-    Copy-KitFile (Join-Path $KitRoot "tooling\agy\settings.windows.json") (Join-Path $Target ".agy\settings.json")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\agents")   (Join-Path $Target ".agy\agents")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\commands") (Join-Path $Target ".agy\commands")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\hooks")    (Join-Path $Target ".agy\hooks")
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\policies") (Join-Path $Target ".agy\policies")
+    if ($Profile -eq "full") {
+        Copy-KitFile (Join-Path $KitRoot "tooling\agy\.agyignore") (Join-Path $Target ".agyignore")
+        Copy-KitFile (Join-Path $KitRoot "tooling\agy\settings.windows.json") (Join-Path $Target ".agy\settings.json")
+        Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\agents")   (Join-Path $Target ".agy\agents")
+        Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\commands") (Join-Path $Target ".agy\commands")
+        Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\hooks")    (Join-Path $Target ".agy\hooks")
+        Copy-KitDirectory (Join-Path $KitRoot "tooling\agy\policies") (Join-Path $Target ".agy\policies")
+    }
 }
 
 # -- Shared audit runtime --------------------------------------------------
-Write-Step "Installing shared audit runtime -> .ai-agent-kit/audit/"
-Copy-KitDirectory (Join-Path $KitRoot "tooling\shared\agent-audit") (Join-Path $Target ".ai-agent-kit\audit")
+if ($Profile -eq "full") {
+    Write-Step "Installing shared audit runtime -> .ai-agent-kit/audit/"
+    Copy-KitDirectory (Join-Path $KitRoot "tooling\shared\agent-audit") (Join-Path $Target ".ai-agent-kit\audit")
 
-# -- Shared cross-tool delegation adapter ----------------------------------
-Write-Step "Installing shared delegation adapter -> .ai-agent-kit/delegate/"
-Copy-KitDirectory (Join-Path $KitRoot "tooling\shared\delegate") (Join-Path $Target ".ai-agent-kit\delegate")
+    # -- Shared cross-tool delegation adapter ----------------------------------
+    Write-Step "Installing shared delegation adapter -> .ai-agent-kit/delegate/"
+    Copy-KitDirectory (Join-Path $KitRoot "tooling\shared\delegate") (Join-Path $Target ".ai-agent-kit\delegate")
 
-# -- Optional global audit config -----------------------------------------
-Write-Step "Anonymized audit setup"
-Initialize-AuditConfig $Audit
+    # -- Optional global audit config -----------------------------------------
+    Write-Step "Anonymized audit setup"
+    Initialize-AuditConfig $Audit
 
-# -- Project template (docs/ai/) - preserved if it exists ------------------
-Write-Step "Installing project template -> docs/ai/"
+    # -- Project template (docs/ai/) - preserved if it exists ------------------
+    Write-Step "Installing project template -> docs/ai/"
 
-$docsAiDir = Join-Path $Target "docs\ai"
+    $docsAiDir = Join-Path $Target "docs\ai"
 
-Get-ChildItem -LiteralPath (Join-Path $KitRoot "project-template") -File | ForEach-Object {
-    $dst = Join-Path $docsAiDir $_.Name
-    if (Test-Path -LiteralPath $dst) {
-        Write-Preserve "docs/ai/$($_.Name)"
-    } else {
-        Copy-KitFile $_.FullName $dst
+    Get-ChildItem -LiteralPath (Join-Path $KitRoot "project-template") -File | ForEach-Object {
+        $dst = Join-Path $docsAiDir $_.Name
+        if (Test-Path -LiteralPath $dst) {
+            Write-Preserve "docs/ai/$($_.Name)"
+        } else {
+            Copy-KitFile $_.FullName $dst
+        }
     }
 }
 
@@ -408,9 +420,9 @@ foreach ($ref in @("codex", "claude", "agy")) {
     }
 }
 $fullToolsStr = $fullTools -join ","
-$stamp = "ai-agent-kit@$KitVersion - installed $(Get-Date -Format 'yyyy-MM-dd') - tools: $fullToolsStr"
+$stamp = "ai-agent-kit@$KitVersion - installed $(Get-Date -Format 'yyyy-MM-dd') - tools: $fullToolsStr profile: $Profile"
 Write-Utf8NoBom (Join-Path $Target ".kit-version") $stamp
-Write-Ok ".kit-version (tools: $fullToolsStr)"
+Write-Ok ".kit-version (tools: $fullToolsStr profile: $Profile)"
 
 # Manifest merge: keep entries from the old .kit-manifest whose owning tool
 # is NOT in this run's -Tools, plus the entries we just installed. Mirrors

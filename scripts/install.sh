@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then set -x; fi  # AAK_DEBUG: opt-in trace (#305)
-# install.sh — Install ai-agent-kit into a target project.
+# install.sh — Install ai-agent-kit into a target project. Supports --profile minimal|full.
 #
 # Semantics:
 #   - Kit files (skills, tooling, agents, root .md) are ALWAYS overwritten.
@@ -32,6 +32,7 @@ TARGET=""
 TOOLS="codex,claude,agy"
 AUDIT="disabled"
 AUDIT_CONFIG=""
+PROFILE="full"
 
 # Validate that a flag's value argument is present and is not another flag.
 # Without this, `--target` with no further args trips `set -u` on `$2` with a
@@ -75,6 +76,7 @@ while [[ $# -gt 0 ]]; do
         --tools)  require_value "$1" "${2-}" "$#"; TOOLS="$2";  shift 2 ;;
         --audit)  require_value "$1" "${2-}" "$#"; AUDIT="$2";  shift 2 ;;
         --audit-config) require_value "$1" "${2-}" "$#"; AUDIT_CONFIG="$2"; shift 2 ;;
+        --profile) require_value "$1" "${2-}" "$#"; PROFILE="$2"; shift 2 ;;
         *) echo "Unknown argument: $1"; exit 1 ;;
     esac
 done
@@ -114,6 +116,11 @@ for t in "${TOOL_LIST[@]}"; do
         exit 1
     fi
 done
+
+case "$PROFILE" in
+    full|minimal) ;;
+    *) echo "Error: unknown profile '$PROFILE'. Valid options: full, minimal" >&2; exit 1 ;;
+esac
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 step() { echo -e "\n\033[36m> $1\033[0m"; }
@@ -208,6 +215,8 @@ contains() {
     return 1
 }
 
+is_full() { [[ "$PROFILE" == "full" ]]; }
+
 owner_in_manifest_scope() {
     local owner="$1"
     [[ "$owner" == "shared" ]] && return 0
@@ -287,6 +296,7 @@ echo "  Target : $TARGET"
 echo "  Tools  : $TOOLS"
 echo "  Version: $KIT_VERSION"
 echo "  Mode   : OVERWRITE (kit files only; docs/ai/ preserved)"
+echo "  Profile: $PROFILE"
 echo "  Audit  : $AUDIT"
 
 # ── Skills ─────────────────────────────────────────────────────────────────
@@ -309,79 +319,87 @@ fi
 if contains "codex"; then
     step "Installing Codex tooling"
     copy_file "$KIT_ROOT/tooling/codex/AGENTS.md"   "$TARGET/AGENTS.md"
-    copy_file "$KIT_ROOT/tooling/codex/config.toml" "$TARGET/.codex/config.toml"
-    copy_file "$KIT_ROOT/tooling/codex/hooks.json"  "$TARGET/.codex/hooks.json"
-    copy_dir  "$KIT_ROOT/tooling/codex/hooks"       "$TARGET/.codex/hooks"
-    # Codex-specific skills (the 5 subagents) merge into the shared .agents/skills/
-    # directory alongside the tool-agnostic skills already installed above.
-    copy_dir  "$KIT_ROOT/tooling/codex/skills"      "$TARGET/.agents/skills"
-    # Make hook scripts executable
-    find "$TARGET/.codex/hooks" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+    if is_full; then
+        copy_file "$KIT_ROOT/tooling/codex/config.toml" "$TARGET/.codex/config.toml"
+        copy_file "$KIT_ROOT/tooling/codex/hooks.json"  "$TARGET/.codex/hooks.json"
+        copy_dir  "$KIT_ROOT/tooling/codex/hooks"       "$TARGET/.codex/hooks"
+        # Codex-specific skills (the 5 subagents) merge into the shared .agents/skills/
+        # directory alongside the tool-agnostic skills already installed above.
+        copy_dir  "$KIT_ROOT/tooling/codex/skills"      "$TARGET/.agents/skills"
+        # Make hook scripts executable
+        find "$TARGET/.codex/hooks" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+    fi
 fi
 
 # ── Claude ─────────────────────────────────────────────────────────────────
 if contains "claude"; then
     step "Installing Claude Code tooling"
     copy_file "$KIT_ROOT/tooling/claude/CLAUDE.md"      "$TARGET/CLAUDE.md"
-    copy_file "$KIT_ROOT/tooling/claude/settings.json"  "$TARGET/.claude/settings.json"
-    # .mcp.json is initialized once and then OWNED BY THE PROJECT — install
-    # bootstraps an empty file only when missing, update never overwrites it.
-    # The versioned reference users copy server blocks from is .mcp.example.jsonc.
-    if [[ -f "$TARGET/.mcp.json" ]]; then
-        skip ".mcp.json"
-    else
-        mkdir -p "$TARGET"
-        cp "$KIT_ROOT/tooling/claude/.mcp.json" "$TARGET/.mcp.json"
-        ok ".mcp.json"
+    if is_full; then
+        copy_file "$KIT_ROOT/tooling/claude/settings.json"  "$TARGET/.claude/settings.json"
+        # .mcp.json is initialized once and then OWNED BY THE PROJECT — install
+        # bootstraps an empty file only when missing, update never overwrites it.
+        # The versioned reference users copy server blocks from is .mcp.example.jsonc.
+        if [[ -f "$TARGET/.mcp.json" ]]; then
+            skip ".mcp.json"
+        else
+            mkdir -p "$TARGET"
+            cp "$KIT_ROOT/tooling/claude/.mcp.json" "$TARGET/.mcp.json"
+            ok ".mcp.json"
+        fi
+        copy_file "$KIT_ROOT/tooling/claude/.mcp.example.jsonc" "$TARGET/.mcp.example.jsonc"
+        copy_dir  "$KIT_ROOT/tooling/claude/agents"         "$TARGET/.claude/agents"
+        copy_dir  "$KIT_ROOT/tooling/claude/commands"       "$TARGET/.claude/commands"
+        copy_dir  "$KIT_ROOT/tooling/claude/hooks"          "$TARGET/.claude/hooks"
+        copy_dir  "$KIT_ROOT/tooling/claude/rules"          "$TARGET/.claude/rules"
+        # Make hook scripts executable
+        find "$TARGET/.claude/hooks" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
     fi
-    copy_file "$KIT_ROOT/tooling/claude/.mcp.example.jsonc" "$TARGET/.mcp.example.jsonc"
-    copy_dir  "$KIT_ROOT/tooling/claude/agents"         "$TARGET/.claude/agents"
-    copy_dir  "$KIT_ROOT/tooling/claude/commands"       "$TARGET/.claude/commands"
-    copy_dir  "$KIT_ROOT/tooling/claude/hooks"          "$TARGET/.claude/hooks"
-    copy_dir  "$KIT_ROOT/tooling/claude/rules"          "$TARGET/.claude/rules"
-    # Make hook scripts executable
-    find "$TARGET/.claude/hooks" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 fi
 
 # ── Antigravity ─────────────────────────────────────────────────────────────────
 if contains "agy"; then
     step "Installing Antigravity CLI tooling"
     copy_file "$KIT_ROOT/tooling/agy/AGY.md"      "$TARGET/AGY.md"
-    copy_file "$KIT_ROOT/tooling/agy/.agyignore"  "$TARGET/.agyignore"
-    copy_file "$KIT_ROOT/tooling/agy/settings.json"  "$TARGET/.agy/settings.json"
-    copy_dir  "$KIT_ROOT/tooling/agy/agents"         "$TARGET/.agy/agents"
-    copy_dir  "$KIT_ROOT/tooling/agy/commands"       "$TARGET/.agy/commands"
-    copy_dir  "$KIT_ROOT/tooling/agy/hooks"          "$TARGET/.agy/hooks"
-    copy_dir  "$KIT_ROOT/tooling/agy/policies"       "$TARGET/.agy/policies"
+    if is_full; then
+        copy_file "$KIT_ROOT/tooling/agy/.agyignore"  "$TARGET/.agyignore"
+        copy_file "$KIT_ROOT/tooling/agy/settings.json"  "$TARGET/.agy/settings.json"
+        copy_dir  "$KIT_ROOT/tooling/agy/agents"         "$TARGET/.agy/agents"
+        copy_dir  "$KIT_ROOT/tooling/agy/commands"       "$TARGET/.agy/commands"
+        copy_dir  "$KIT_ROOT/tooling/agy/hooks"          "$TARGET/.agy/hooks"
+        copy_dir  "$KIT_ROOT/tooling/agy/policies"       "$TARGET/.agy/policies"
+    fi
 fi
 
 # -- Shared audit runtime --------------------------------------------------
-step "Installing shared audit runtime -> .ai-agent-kit/audit/"
-copy_dir "$KIT_ROOT/tooling/shared/agent-audit" "$TARGET/.ai-agent-kit/audit"
-find "$TARGET/.ai-agent-kit/audit" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+if is_full; then
+    step "Installing shared audit runtime -> .ai-agent-kit/audit/"
+    copy_dir "$KIT_ROOT/tooling/shared/agent-audit" "$TARGET/.ai-agent-kit/audit"
+    find "$TARGET/.ai-agent-kit/audit" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 
-# -- Shared cross-tool delegation adapter ----------------------------------
-step "Installing shared delegation adapter -> .ai-agent-kit/delegate/"
-copy_dir "$KIT_ROOT/tooling/shared/delegate" "$TARGET/.ai-agent-kit/delegate"
-find "$TARGET/.ai-agent-kit/delegate" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+    # -- Shared cross-tool delegation adapter ----------------------------------
+    step "Installing shared delegation adapter -> .ai-agent-kit/delegate/"
+    copy_dir "$KIT_ROOT/tooling/shared/delegate" "$TARGET/.ai-agent-kit/delegate"
+    find "$TARGET/.ai-agent-kit/delegate" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 
-# -- Optional global audit config -----------------------------------------
-step "Anonymized audit setup"
-init_audit_config "$AUDIT"
+    # -- Optional global audit config -----------------------------------------
+    step "Anonymized audit setup"
+    init_audit_config "$AUDIT"
 
-# ── Project template (docs/ai/) — preserved if it exists ───────────────────
-step "Installing project template -> docs/ai/"
-mkdir -p "$TARGET/docs/ai"
+    # ── Project template (docs/ai/) — preserved if it exists ───────────────────
+    step "Installing project template -> docs/ai/"
+    mkdir -p "$TARGET/docs/ai"
 
-find "$KIT_ROOT/project-template" -maxdepth 1 -type f | while read -r src_file; do
-    file_name="$(basename "$src_file")"
-    dst="$TARGET/docs/ai/$file_name"
-    if [[ -f "$dst" ]]; then
-        skip "docs/ai/$file_name"
-    else
-        copy_file "$src_file" "$dst"
-    fi
-done
+    find "$KIT_ROOT/project-template" -maxdepth 1 -type f | while read -r src_file; do
+        file_name="$(basename "$src_file")"
+        dst="$TARGET/docs/ai/$file_name"
+        if [[ -f "$dst" ]]; then
+            skip "docs/ai/$file_name"
+        else
+            copy_file "$src_file" "$dst"
+        fi
+    done
+fi
 
 # ── .kit-version + .kit-manifest ───────────────────────────────────────────
 # A partial install (`--tools agy` on top of a codex+claude install) must
@@ -412,8 +430,8 @@ for ref in codex claude agy; do
     [[ "$keep" == "true" ]] && FULL_TOOLS+=("$ref")
 done
 FULL_TOOLS_STR="$(IFS=,; echo "${FULL_TOOLS[*]}")"
-echo "ai-agent-kit@$KIT_VERSION - installed $(date +%Y-%m-%d) - tools: $FULL_TOOLS_STR" > "$TARGET/.kit-version"
-ok ".kit-version (tools: $FULL_TOOLS_STR)"
+echo "ai-agent-kit@$KIT_VERSION - installed $(date +%Y-%m-%d) - tools: $FULL_TOOLS_STR profile: $PROFILE" > "$TARGET/.kit-version"
+ok ".kit-version (tools: $FULL_TOOLS_STR profile: $PROFILE)"
 
 # Manifest merge: keep entries from the old .kit-manifest whose owning tool
 # is NOT in this run's --tools (other tools' artifacts survive a partial run),

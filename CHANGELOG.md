@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(scripts)` — add `--profile minimal` to `install.sh` / `install.ps1` (#170).**
+  `--profile minimal` installs only skills + root router files (CLAUDE.md, AGENTS.md, AGY.md),
+  skipping hooks, settings, commands, agents, docs/ai/ templates, and shared tooling.
+  `--profile full` (default) preserves the existing behavior unchanged. Profile is
+  recorded in `.kit-version`.
+
 - **`feat(claude)` — add strict minimal output template to `/run-tests` (#162).**
   `tooling/claude/commands/run-tests.md` now specifies an exact Markdown table
   format for test results: pass/fail/skip counts, commands run, top-5 failing
