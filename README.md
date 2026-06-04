@@ -1,5 +1,7 @@
 # ai-agent-kit
 
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/PetrovC/ai-agent-kit/badge)](https://securityscorecards.dev/viewer/?uri=github.com/PetrovC/ai-agent-kit)
+
 A reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and Antigravity CLI.
 
 ## Philosophy
