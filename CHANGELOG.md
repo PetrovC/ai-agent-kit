@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`docs` — add `docs/RELEASE_CHECKLIST.md` and version-pinning guidance in README (#140).**
+  `docs/RELEASE_CHECKLIST.md` is a concise maintainer checklist covering pre-flight checks,
+  CHANGELOG promotion, tag creation (with confirmation note), and GitHub Release creation.
+  README gains a "Pinning to a release" sub-section explaining how to install from a
+  specific git tag for reproducible installs.
+
 - **`ci` — add OpenSSF Scorecard workflow + badge (#164).**
   Adds `.github/workflows/scorecard.yml` (runs weekly + on push to master, uploads
   SARIF to the code-scanning dashboard) and the Scorecard badge to README.
