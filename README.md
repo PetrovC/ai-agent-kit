@@ -111,7 +111,7 @@ particular has no marketplace mechanism, so files must be placed in the repo.
 ./scripts/install.sh --target /path/to/your-project --tools codex,claude,agy
 ```
 
-Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
+Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project. Governance policy templates (CONTEXT_GOVERNANCE, SUBAGENT_GOVERNANCE, MCP_POLICY, MODEL_ROUTING, CONTEXT_SANITIZATION) are now also installed as editable project-owned templates.
 
 #### Windows notes
 
