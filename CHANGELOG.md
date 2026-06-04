@@ -4,6 +4,10 @@
 
 ### Added
 
+- **`ci` — add OpenSSF Scorecard workflow + badge (#164).**
+  Adds `.github/workflows/scorecard.yml` (runs weekly + on push to master, uploads
+  SARIF to the code-scanning dashboard) and the Scorecard badge to README.
+
 - **`docs(claude)` — document `strictKnownMarketplaces` + `enabledPlugins` for target projects (#188).**
   Target projects can now pin the plugin marketplace source and pre-enable the kit plugin
   via two `settings.json` keys. README Option B section and CONTRIBUTING both updated with
