@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(scripts)` — add `scripts/init.sh` + `scripts/init.ps1` stack-preset wizard (#168).**
+  Seeds `docs/ai/COMMANDS.md` with stack-specific build/test commands for 6 presets:
+  `dotnet`, `node`, `python`, `go`, `rust`, `generic`. Supports non-interactive
+  `--preset <name>` flag. Skips if COMMANDS.md is already filled (no STOP notice).
+  BATS and Pester test coverage included.
+
 - **`ci` — add release checksums and cosign signing workflow (#165).**
   `.github/workflows/release-checksums.yml` generates `SHA256SUMS` and signs
   it with sigstore/cosign (keyless) on each release publication. `SHA256SUMS`
