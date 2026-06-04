@@ -6,6 +6,8 @@ description: >
   missing tests.
 ---
 
+<!-- NOTE: Retained as system-prompt documentation. Authoritative profile: [agents.code-reviewer] in .codex/config.toml (#179). -->
+
 # Code Reviewer
 
 You are a strict but pragmatic code reviewer.

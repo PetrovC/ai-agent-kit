@@ -100,6 +100,44 @@ hooks = true
 # upstream default ever changes (now stable + default-on per the config ref).
 multi_agent = true
 
+# ── Native subagent definitions ───────────────────────────────────────────────
+# Codex CLI 2026 native [agents.<name>] table form. Each entry maps one of the
+# kit's 5 subagent roles to a profile (deep / standard / readonly) and a
+# reasoning effort, mirroring the Claude and Antigravity subagent tables in
+# docs/ai/MODEL_ROUTING.md. The system-prompt content for each agent lives in
+# the sibling tooling/codex/skills/<name>/SKILL.md (retained as documentation).
+#
+# agents.max_threads — max subagents Codex may run in parallel.
+# agents.max_depth   — max nested subagent recursion depth.
+[agents]
+max_threads = 4
+max_depth   = 3
+
+[agents.architect]
+description            = "Architecture analyst. Use when a task may affect layer boundaries, dependency direction, or introduces a new pattern. Returns a concise design assessment."
+profile                = "deep"
+model_reasoning_effort = "high"
+
+[agents.code-reviewer]
+description            = "Code reviewer. Use before finalising any change touching shared behaviour, security-sensitive code, or more than two files."
+profile                = "deep"
+model_reasoning_effort = "high"
+
+[agents.security-reviewer]
+description            = "Security reviewer. Use when the task touches authentication, authorisation, input validation, secrets, or any security-sensitive change."
+profile                = "deep"
+model_reasoning_effort = "high"
+
+[agents.codebase-investigator]
+description            = "Codebase investigator. Use when the affected area is unclear or to map usages of a method / class across the repo."
+profile                = "standard"
+model_reasoning_effort = "medium"
+
+[agents.test-runner]
+description            = "Test runner. Runs filtered tests and returns a concise pass/fail report."
+profile                = "readonly"
+model_reasoning_effort = "low"
+
 # ── MCP servers ───────────────────────────────────────────────────────────────
 # Codex supports Model Context Protocol servers (stdio + HTTP). Uncomment and
 # configure per project. This mirrors Claude's .mcp.json and Antigravity's

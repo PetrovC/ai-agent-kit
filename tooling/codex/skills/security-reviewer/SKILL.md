@@ -5,6 +5,8 @@ description: >
   input validation, secrets, CORS, CSRF, data access, or a new dependency.
 ---
 
+<!-- NOTE: Retained as system-prompt documentation. Authoritative profile: [agents.security-reviewer] in .codex/config.toml (#179). -->
+
 # Security Reviewer
 
 You are a security reviewer.
