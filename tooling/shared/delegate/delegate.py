@@ -85,6 +85,30 @@ ANTIGRAVITY_MODEL_BY_DEPTH = {
     "standard": "claude-sonnet-4-6",
     "readonly": "claude-sonnet-4-6",
 }
+# Fallback models for Antigravity when the primary model's quota is exhausted.
+# deep:     Opus exhausted → Sonnet (still Anthropic quota, one tier down).
+# standard: Sonnet exhausted → Gemini 3.1 Pro (High) — separate Gemini quota.
+# readonly: same as standard.
+ANTIGRAVITY_FALLBACK_BY_DEPTH = {
+    "deep": "claude-sonnet-4-6",
+    "standard": "gemini-3.1-pro",
+    "readonly": "gemini-3.1-pro",
+}
+
+# Substrings (lowercased) in provider stderr/stdout that signal quota exhaustion
+# and should trigger a fallback retry. Matches common API rate-limit messages
+# from Anthropic, Google, and OpenAI.
+QUOTA_EXHAUSTED_PATTERNS = (
+    "quota",
+    "rate limit",
+    "ratelimit",
+    "resource_exhausted",
+    "resource exhausted",
+    "too many requests",
+    "429",
+    "limit exceeded",
+)
+
 # The non-secret env var the hint is exported under. Configurable so a future
 # agy that reads a specific variable (or none) does not require a code change.
 ANTIGRAVITY_MODEL_ENV = os.environ.get(
@@ -145,6 +169,19 @@ _sequence_counter = itertools.count()
 def is_implementation(task_type: str) -> bool:
     """True for task types that require write access to the workspace."""
     return task_type.strip().lower() in IMPLEMENTATION_TASK_TYPES
+
+
+def is_quota_exhausted(exit_code: int, stderr: str, stdout: str) -> bool:
+    """True when a non-zero provider exit looks like a quota / rate-limit error.
+
+    Checks stderr and stdout (combined, lowercased) for any of the strings in
+    QUOTA_EXHAUSTED_PATTERNS. Only fires on non-zero exit so a successful run
+    that happens to mention "quota" in its output does not trigger a retry.
+    """
+    if exit_code == 0:
+        return False
+    combined = (stderr + stdout).lower()
+    return any(p in combined for p in QUOTA_EXHAUSTED_PATTERNS)
 
 
 class DelegateError(Exception):
@@ -294,16 +331,22 @@ def extract_antigravity_summary(stdout: str) -> str:
     return text
 
 
-def provider_env(provider: str, depth: str) -> dict[str, str] | None:
+def provider_env(
+    provider: str,
+    depth: str,
+    model_override: str | None = None,
+) -> dict[str, str] | None:
     """Extra process environment for the provider call, or None to inherit.
 
     For Antigravity, export a non-secret model hint (Pro for deep work, Flash
-    otherwise). Returns a FULL environment copy because passing ``env`` to
-    ``subprocess.run`` replaces — not augments — the child's environment, and the
-    CLI still needs PATH and its own credentials from the inherited environment.
+    otherwise). ``model_override`` replaces the depth-derived primary model —
+    used by the quota-fallback retry path to switch to a cheaper model.
+    Returns a FULL environment copy because passing ``env`` to
+    ``subprocess.run`` replaces — not augments — the child's environment, and
+    the CLI still needs PATH and its own credentials from the inherited env.
     """
     if provider == "antigravity":
-        model = ANTIGRAVITY_MODEL_BY_DEPTH[depth]
+        model = model_override if model_override else ANTIGRAVITY_MODEL_BY_DEPTH[depth]
         return {**os.environ, ANTIGRAVITY_MODEL_ENV: model}
     return None
 
@@ -477,6 +520,24 @@ def delegate(args: argparse.Namespace) -> int:
         argv, args.timeout, provider_env(provider, depth)
     )
 
+    # Quota fallback: when Antigravity's primary model quota is exhausted,
+    # retry once with the depth's fallback model (e.g. Sonnet → Gemini 3.1 Pro
+    # for standard tasks). Codex has no per-model quota to fall back from, so
+    # only the antigravity provider gets this retry path.
+    fallback_used = False
+    fallback_model: str | None = None
+    if provider == "antigravity" and is_quota_exhausted(exit_code, stderr, stdout):
+        fallback_model = ANTIGRAVITY_FALLBACK_BY_DEPTH.get(depth)
+        if fallback_model:
+            warn(
+                f"primary model quota exhausted; retrying with fallback "
+                f"'{fallback_model}'"
+            )
+            exit_code, stdout, stderr = run_provider(
+                argv, args.timeout, provider_env(provider, depth, model_override=fallback_model)
+            )
+            fallback_used = True
+
     if exit_code != 0:
         warn(
             f"provider '{provider}' exited {exit_code} (fail-open); "
@@ -487,7 +548,11 @@ def delegate(args: argparse.Namespace) -> int:
             {
                 "provider": provider,
                 "status": "error",
-                "result_summary": {"exit_code": exit_code},
+                "result_summary": {
+                    "exit_code": exit_code,
+                    "fallback_used": fallback_used,
+                    **({"fallback_model": fallback_model} if fallback_model else {}),
+                },
             },
             invocation_id,
         )
@@ -517,6 +582,8 @@ def delegate(args: argparse.Namespace) -> int:
             "result_summary": {
                 "summary_chars": len(summary),
                 "summary_redacted": redacted,
+                "fallback_used": fallback_used,
+                **({"fallback_model": fallback_model} if fallback_model else {}),
             },
         },
         invocation_id,
