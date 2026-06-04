@@ -1,4 +1,4 @@
-﻿# ai-agent-kit
+# ai-agent-kit
 
 A reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and Antigravity CLI.
 
@@ -110,6 +110,23 @@ particular has no marketplace mechanism, so files must be placed in the repo.
 ```
 
 Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
+
+#### Pinning to a release
+
+To install from a specific tagged release rather than `master`:
+
+```bash
+# Clone at a specific tag
+git clone --branch v1.21.0 --depth 1 <repo-url> ai-agent-kit-kit
+cd ai-agent-kit-kit
+./scripts/install.sh --target /path/to/your-project --tools codex,claude,agy
+```
+
+Tagged releases are listed on the Releases page. Using a tag ensures your
+install is reproducible — `master` may include unreleased changes.
+
+For the plugin marketplace (Option B), pinning is not yet supported; the
+marketplace always installs from `master`.
 
 #### Windows notes
 

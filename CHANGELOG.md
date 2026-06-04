@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`docs` — add `docs/RELEASE_CHECKLIST.md` and version-pinning guidance in README (#140).**
+  `docs/RELEASE_CHECKLIST.md` is a concise maintainer checklist covering pre-flight checks,
+  CHANGELOG promotion, tag creation (with confirmation note), and GitHub Release creation.
+  README gains a "Pinning to a release" sub-section explaining how to install from a
+  specific git tag for reproducible installs.
+
 - **`feat(release)` - add shared `release-management` skill (#250).**
   Adds `skills/release-management/SKILL.md` (SemVer rules, VERSION source of truth,
   CHANGELOG maintenance, release readiness checklist, tag naming, explicit confirmation
