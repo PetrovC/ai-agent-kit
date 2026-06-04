@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(scripts)` — add `scripts/init.sh` + `scripts/init.ps1` stack-preset wizard (#168).**
+  Seeds `docs/ai/COMMANDS.md` with stack-specific build/test commands for 6 presets:
+  `dotnet`, `node`, `python`, `go`, `rust`, `generic`. Supports non-interactive
+  `--preset <name>` flag. Skips if COMMANDS.md is already filled (no STOP notice).
+  BATS and Pester test coverage included.
+
 - **`feat(shared)` — add 5 governance-policy templates to `project-template/` (#172).**
   `CONTEXT_GOVERNANCE.md`, `SUBAGENT_GOVERNANCE.md`, `MCP_POLICY.md`,
   `MODEL_ROUTING.md`, and `CONTEXT_SANITIZATION.md` are now installed into
