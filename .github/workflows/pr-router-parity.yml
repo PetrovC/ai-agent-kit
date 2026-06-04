@@ -1,0 +1,132 @@
+name: PR — router parity
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - tooling/claude/CLAUDE.md
+      - tooling/codex/AGENTS.md
+      - tooling/agy/AGY.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  router-parity:
+    name: Router parity check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare headings and detect drift
+        run: |
+          set -euo pipefail
+
+          # Document the exception list (tool-specific headings that are allowed to differ).
+          # Base exceptions:
+          # - "How to run" (prefix matches tool-specific variants)
+          # - "Session hygiene"
+          # - "Personal overrides"
+          # - "PR and commit settings"
+          # - "Configuration cascade"
+          # - "Lifecycle hooks"
+          # - "Subagent routing table"
+          #
+          # Additional tool-specific sections present in the repo to prevent false positives:
+          # - "Safety model — read this"
+          # - "MCP servers"
+          # - "Plugin marketplace (opt-in)"
+          # - "Project config" (prefix match for Codex config)
+          # - "Hardening and integration"
+          # - "Slash commands"
+
+          FILES=(
+            "tooling/claude/CLAUDE.md"
+            "tooling/codex/AGENTS.md"
+            "tooling/agy/AGY.md"
+          )
+
+          EXCEPTIONS=(
+            "How to run"
+            "Session hygiene"
+            "Personal overrides"
+            "PR and commit settings"
+            "Configuration cascade"
+            "Lifecycle hooks"
+            "Subagent routing table"
+            "Safety model — read this"
+            "MCP servers"
+            "Plugin marketplace (opt-in)"
+            "Project config"
+            "Hardening and integration"
+            "Slash commands"
+          )
+
+          is_exempt() {
+            local heading="$1"
+            for exc in "${EXCEPTIONS[@]}"; do
+              if [[ "$heading" == "$exc"* ]]; then
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          exists_in_file() {
+            local h="$1"
+            local target_file="$2"
+            while IFS= read -r line; do
+              line=$(echo "$line" | tr -d '\r')
+              if [[ -z "$line" ]]; then
+                continue
+              fi
+              # Exact or prefix match (either direction)
+              if [[ "$h" == "$line" || "$h" == "$line"* || "$line" == "$h"* ]]; then
+                return 0
+              fi
+            done < <(grep "^## " "$target_file" | sed 's/^## //')
+            return 1
+          }
+
+          errors=0
+
+          for i in "${!FILES[@]}"; do
+            file_a="${FILES[i]}"
+            echo "Checking headings of $file_a..."
+            
+            while IFS= read -r heading; do
+              heading=$(echo "$heading" | tr -d '\r')
+              if [[ -z "$heading" ]]; then
+                continue
+              fi
+              
+              if is_exempt "$heading"; then
+                echo "  (Exempt) $heading"
+                continue
+              fi
+              
+              # Check if heading exists in other files
+              for j in "${!FILES[@]}"; do
+                if [[ "$i" -eq "$j" ]]; then
+                  continue
+                fi
+                file_b="${FILES[j]}"
+                if ! exists_in_file "$heading" "$file_b"; then
+                  echo "  ::error file=$file_a::Drift detected: Heading '$heading' in $file_a is missing or does not match in $file_b"
+                  errors=$((errors+1))
+                fi
+              done
+            done < <(grep "^## " "$file_a" | sed 's/^## //')
+          done
+
+          if [[ "$errors" -gt 0 ]]; then
+            echo "FAILED: $errors drift(s) found across router files."
+            exit 1
+          else
+            echo "SUCCESS: No drift found!"
+            exit 0
+          fi
