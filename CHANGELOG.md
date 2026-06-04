@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`feat(delegate)` - switch Antigravity model hints to Claude and add `write_mode` for implementation tasks.**
+  `ANTIGRAVITY_MODEL_BY_DEPTH` updated from Gemini models to `claude-opus-4-6` (deep) and
+  `claude-sonnet-4-6` (standard/readonly) — agy v1.0.4 exposes these with a separate Anthropic
+  quota from the linked Gemini pool. Adds `IMPLEMENTATION_TASK_TYPES` and `is_implementation()`
+  so tasks of type `feat`, `fix`, `refactor`, `ci`, `script`, etc. use Codex `workspace-write`
+  sandbox (was always `read-only`) and drop agy `--sandbox`, enabling the provider to write files,
+  run git, and create pull-requests. `MODEL_ROUTING.md` updated to reflect the new agy subagent
+  model table.
+
 ### Fixed
 
 - **`fix(adapter)` - correct the Antigravity (`agy`) delegation invocation to the real CLI flags.**
