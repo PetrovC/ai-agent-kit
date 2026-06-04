@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(scripts)` — add `--profile minimal` to `install.sh` / `install.ps1` (#170).**
+  `--profile minimal` installs only skills + root router files (CLAUDE.md, AGENTS.md, AGY.md),
+  skipping hooks, settings, commands, agents, docs/ai/ templates, and shared tooling.
+  `--profile full` (default) preserves the existing behavior unchanged. Profile is
+  recorded in `.kit-version`.
+
 - **`ci` — add release checksums and cosign signing workflow (#165).**
   `.github/workflows/release-checksums.yml` generates `SHA256SUMS` and signs
   it with sigstore/cosign (keyless) on each release publication. `SHA256SUMS`

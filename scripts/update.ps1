@@ -121,7 +121,7 @@ if (Test-Path -LiteralPath $versionFile) {
     if ($versionLine -match "ai-agent-kit@([0-9]+\.[0-9]+\.[0-9]+)") {
         $installedVersion = $Matches[1]
     }
-    if ($versionLine -match "tools: (.+)") {
+    if ($versionLine -match "tools: ([^\s]+)") {
         $installedTools = $Matches[1].Trim()
     }
 } else {
