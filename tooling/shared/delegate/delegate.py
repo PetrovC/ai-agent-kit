@@ -76,10 +76,14 @@ CODEX_EFFORT_BY_DEPTH = {"deep": "high", "standard": "medium", "readonly": "low"
 # Antigravity (agy) has a fixed picker model set, not a verified per-call model
 # flag, so the adapter passes a non-secret model HINT via the environment rather
 # than invent a `--model` flag. See docs/ai/MODEL_ROUTING.md (Antigravity CLI).
+# Available models (agy 1.0.4): Gemini 3.5 Flash (Medium/High/Low),
+# Gemini 3.1 Pro (Low/High), Claude Sonnet 4.6 (Thinking),
+# Claude Opus 4.6 (Thinking), GPT-OSS 120B (Medium).
+# Claude models are on a separate Anthropic quota from the linked Gemini pool.
 ANTIGRAVITY_MODEL_BY_DEPTH = {
-    "deep": "gemini-3.1-pro",
-    "standard": "gemini-3-flash",
-    "readonly": "gemini-3-flash",
+    "deep": "claude-opus-4-6",
+    "standard": "claude-sonnet-4-6",
+    "readonly": "claude-sonnet-4-6",
 }
 # The non-secret env var the hint is exported under. Configurable so a future
 # agy that reads a specific variable (or none) does not require a code change.
@@ -115,10 +119,32 @@ READONLY_TASK_TYPES = {
     "lookup",
 }
 
+# Task types that require write access to the workspace (implementing features,
+# fixing bugs, adding CI, writing docs). When a task type appears in this set
+# the adapter uses Codex workspace-write sandbox and drops agy --sandbox so the
+# provider can write files, run git, and create pull-requests.
+IMPLEMENTATION_TASK_TYPES = {
+    "implementation",
+    "feat",
+    "fix",
+    "refactor",
+    "feature",
+    "bugfix",
+    "ci",
+    "docs_write",
+    "script",
+    "chore",
+}
+
 HIGH_RISK = {"high", "critical"}
 VALID_RISK = {"low", "medium", "high", "critical"}
 
 _sequence_counter = itertools.count()
+
+
+def is_implementation(task_type: str) -> bool:
+    """True for task types that require write access to the workspace."""
+    return task_type.strip().lower() in IMPLEMENTATION_TASK_TYPES
 
 
 class DelegateError(Exception):
@@ -149,17 +175,20 @@ def route_depth(task_type: str, risk: str) -> str:
     return "standard"
 
 
-def build_codex_argv(brief: str, depth: str) -> list[str]:
+def build_codex_argv(brief: str, depth: str, write_mode: bool = False) -> list[str]:
     """Build the verified non-interactive Codex invocation.
 
     codex exec -m <model> -c model_reasoning_effort=<low|medium|high>
-               -s read-only --json "<brief>"
+               -s <workspace-write|read-only> --json "<brief>"
 
-    ``-s read-only`` sandboxes the delegated run; ``--json`` yields JSON-Lines
+    ``write_mode=True`` uses ``workspace-write`` so Codex can write files,
+    run git, and create pull-requests (implementation tasks). ``False`` keeps
+    ``read-only`` for analysis/review tasks. ``--json`` yields JSON-Lines
     output we can parse for a summary. Verified against
     developers.openai.com/codex/noninteractive and /config-reference.
     """
     effort = CODEX_EFFORT_BY_DEPTH[depth]
+    sandbox = "workspace-write" if write_mode else "read-only"
     return [
         "codex",
         "exec",
@@ -168,7 +197,7 @@ def build_codex_argv(brief: str, depth: str) -> list[str]:
         "-c",
         f"model_reasoning_effort={effort}",
         "-s",
-        "read-only",
+        sandbox,
         "--json",
         brief,
     ]
@@ -219,25 +248,25 @@ def _collect_message_text(obj: dict[str, Any]) -> list[str]:
     return found
 
 
-def build_antigravity_argv(brief: str, depth: str) -> list[str]:
+def build_antigravity_argv(brief: str, depth: str, write_mode: bool = False) -> list[str]:
     """Build the non-interactive Antigravity invocation.
 
-    agy -p "<brief>" --sandbox --dangerously-skip-permissions
+    agy -p "<brief>" [--sandbox] --dangerously-skip-permissions
 
     ``-p`` (``--print``) runs a single prompt non-interactively and prints the
-    response; ``--sandbox`` restricts terminal access for the delegated run; and
-    ``--dangerously-skip-permissions`` auto-approves tool prompts for unattended
-    use. Verified against the installed CLI (``agy --help``, v1.0.3): there is no
-    ``--output-format`` or per-call model flag, so the model is selected via the
-    Antigravity settings and passed as a non-secret env hint by ``provider_env``.
+    response; ``--dangerously-skip-permissions`` auto-approves tool prompts for
+    unattended use. ``--sandbox`` restricts terminal access — it is included for
+    analysis/review tasks but dropped when ``write_mode=True`` so the provider
+    can write files, run git, and create pull-requests. Verified against the
+    installed CLI (``agy --help``, v1.0.4): there is no per-call model flag; the
+    model is selected via Antigravity settings and passed as a non-secret env
+    hint by ``provider_env``.
     """
-    return [
-        "agy",
-        "-p",
-        brief,
-        "--sandbox",
-        "--dangerously-skip-permissions",
-    ]
+    argv = ["agy", "-p", brief]
+    if not write_mode:
+        argv.append("--sandbox")
+    argv.append("--dangerously-skip-permissions")
+    return argv
 
 
 def extract_antigravity_summary(stdout: str) -> str:
@@ -431,10 +460,11 @@ def delegate(args: argparse.Namespace) -> int:
         selection_payload, invocation_id,
     )
 
+    write_mode = is_implementation(args.task_type)
     if provider == "codex":
-        argv = build_codex_argv(brief, depth)
+        argv = build_codex_argv(brief, depth, write_mode)
     elif provider == "antigravity":
-        argv = build_antigravity_argv(brief, depth)
+        argv = build_antigravity_argv(brief, depth, write_mode)
     else:  # pragma: no cover - argparse restricts the choices
         raise DelegateError(f"unsupported provider: {provider}")
 

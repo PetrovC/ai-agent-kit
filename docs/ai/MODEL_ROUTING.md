@@ -84,20 +84,20 @@ Per-subagent model assignment used in this repository (see
 
 | Subagent | Model | max_turns | Justification |
 |---|---|---|---|
-| `architect` | `gemini-3.1-pro` | 15 | Decision-bearing design assessment. |
-| `code-reviewer` | `gemini-3.1-pro` | 20 | High-stakes review. |
-| `security-reviewer` | `gemini-3.1-pro` | 15 | Real exploitable vulnerabilities, not theoretical risk. |
-| `codebase-investigator` | `gemini-3-flash` | 15 | Narrow lookups; Flash is sufficient. |
-| `test-runner` | `gemini-3-flash` | 10 | Mechanical: run tests, summarize output. |
+| `architect` | `claude-opus-4-6` | 15 | Decision-bearing design assessment. |
+| `code-reviewer` | `claude-opus-4-6` | 20 | High-stakes review. |
+| `security-reviewer` | `claude-opus-4-6` | 15 | Real exploitable vulnerabilities, not theoretical risk. |
+| `codebase-investigator` | `claude-sonnet-4-6` | 15 | Narrow lookups; Sonnet is sufficient. |
+| `test-runner` | `claude-sonnet-4-6` | 10 | Mechanical: run tests, summarize output. |
 
-Antigravity is a VS Code-based IDE with a fixed, user-selected model picker
-(not a free-form per-call model id). As of 2026-05-31 the picker offered
-`gemini-3.1-pro` (default) and `gemini-3-flash`, plus Claude Sonnet 4.6, Claude
-Opus 4.6, and GPT-OSS-120B; `gemini-3.1-flash-lite` is also available. The kit's
-`agy` subagents pin the two Gemini picker entries as model hints, and the
-default session model in `tooling/agy/settings.json` is `gemini-3-flash`.
-Antigravity's docs are JS-rendered and not machine-readable, so the picker set
-was confirmed from the live product and current secondary reporting; see
+Antigravity (agy) is a CLI with a fixed, user-selected model picker (no
+per-call model flag). As of 2026-06-04 the picker offered Gemini 3.5 Flash
+(Medium/High/Low), Gemini 3.1 Pro (Low/High), **Claude Sonnet 4.6 (Thinking)**,
+**Claude Opus 4.6 (Thinking)**, and GPT-OSS 120B (Medium). The kit's delegate
+adapter now pins Claude models as the default hints: Opus for deep work (separate
+Anthropic quota from the linked Gemini pool), Sonnet for standard/readonly work.
+The model hint is passed via the `ANTIGRAVITY_MODEL` environment variable before
+the `agy -p` call. Confirmed from the live product (agy v1.0.4); see
 <https://antigravity.google/docs/models>.
 
 ## Command and Agent Guidance

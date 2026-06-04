@@ -146,7 +146,7 @@ Describe "Cross-tool delegation adapter" {
         if ($completed.payload.status -ne "success") { throw "expected status success, got $($completed.payload.status)" }
     }
 
-    It "routes investigation/medium to the Antigravity Pro model hint" {
+    It "routes investigation/medium to the Antigravity Opus model hint" {
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "investigation", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_deep")
         Assert-AakSuccess $result
         Assert-AakOutputContains $result "Stub Antigravity analysis"
@@ -154,14 +154,30 @@ Describe "Cross-tool delegation adapter" {
         if (-not $argv.Contains("--sandbox")) { throw "expected --sandbox in argv: $argv" }
         if (-not $argv.Contains("--dangerously-skip-permissions")) { throw "expected skip-permissions in argv: $argv" }
         $model = Get-Content -Raw $script:StubEnv
-        if (-not $model.Contains("gemini-3.1-pro")) { throw "expected Pro model hint, got: $model" }
+        if (-not $model.Contains("claude-opus-4-6")) { throw "expected Opus model hint, got: $model" }
     }
 
-    It "routes daily/medium to the Antigravity Flash model hint" {
+    It "routes daily/medium to the Antigravity Sonnet model hint" {
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "daily", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_std")
         Assert-AakSuccess $result
         $model = Get-Content -Raw $script:StubEnv
-        if (-not $model.Contains("gemini-3-flash")) { throw "expected Flash model hint, got: $model" }
+        if (-not $model.Contains("claude-sonnet-4-6")) { throw "expected Sonnet model hint, got: $model" }
+    }
+
+    It "uses workspace-write sandbox for Codex implementation tasks" {
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "feat", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_codex_impl")
+        Assert-AakSuccess $result
+        $argv = Get-Content -Raw $script:StubRecord
+        if (-not $argv.Contains("workspace-write")) { throw "expected workspace-write sandbox in argv: $argv" }
+        if ($argv.Contains("read-only")) { throw "expected no read-only in impl argv: $argv" }
+    }
+
+    It "drops --sandbox for Antigravity implementation tasks" {
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "feat", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_impl")
+        Assert-AakSuccess $result
+        $argv = Get-Content -Raw $script:StubRecord
+        if (-not $argv.Contains("--dangerously-skip-permissions")) { throw "expected skip-permissions in argv: $argv" }
+        if ($argv.Contains("--sandbox")) { throw "expected no --sandbox in impl argv: $argv" }
     }
 
     It "emits Antigravity events with the provider field" {
