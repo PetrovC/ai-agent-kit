@@ -4,6 +4,10 @@
 
 ### Added
 
+- **`ci` — add OpenSSF Scorecard workflow + badge (#164).**
+  Adds `.github/workflows/scorecard.yml` (runs weekly + on push to master, uploads
+  SARIF to the code-scanning dashboard) and the Scorecard badge to README.
+
 - **`feat(release)` - add shared `release-management` skill (#250).**
   Adds `skills/release-management/SKILL.md` (SemVer rules, VERSION source of truth,
   CHANGELOG maintenance, release readiness checklist, tag naming, explicit confirmation
