@@ -66,15 +66,17 @@ jobs:
         run: |
           $target = Join-Path $env:RUNNER_TEMP "install-target-ps"
           Push-Location $target
-          # -Force includes hidden items (e.g. .agents/, .claude/ which start
-          # with a dot — on Windows these may carry the Hidden attribute).
+          # Use forward-slash relative paths to match bash `find .` output.
+          # Enumerate ALL files (including inside dot-prefixed directories).
           $allItems = Get-ChildItem -File -Recurse -Force
           Write-Host "Total files found: $($allItems.Count)"
           $files = $allItems | ForEach-Object {
-              $rel = Resolve-Path -Path $_.FullName -Relative
+              # Build relative path manually using forward slashes, no leading ./
+              $rel = $_.FullName.Substring($target.Length).TrimStart('\', '/')
+              $rel = $rel.Replace('\', '/')
               $rel
           } | Sort-Object
-          Write-Host "First 3 paths in manifest:"
+          Write-Host "First 3 paths:"
           $files | Select-Object -First 3 | ForEach-Object { Write-Host "  $_" }
           Pop-Location
           $outputPath = Join-Path $env:RUNNER_TEMP "manifest-ps.txt"
