@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then set -x; fi  # AAK_DEBUG: opt-in trace (#305)
-# install.sh — Install ai-agent-kit into a target project.
+# install.sh — Install ai-agent-kit into a target project. Supports --profile minimal|full.
 #
 # Semantics:
 #   - Kit files (skills, tooling, agents, root .md) are ALWAYS overwritten.
