@@ -68,9 +68,14 @@ jobs:
           Push-Location $target
           # -Force includes hidden items (e.g. .agents/, .claude/ which start
           # with a dot — on Windows these may carry the Hidden attribute).
-          $files = Get-ChildItem -File -Recurse -Force | ForEach-Object {
-              Resolve-Path -Path $_.FullName -Relative
+          $allItems = Get-ChildItem -File -Recurse -Force
+          Write-Host "Total files found: $($allItems.Count)"
+          $files = $allItems | ForEach-Object {
+              $rel = Resolve-Path -Path $_.FullName -Relative
+              $rel
           } | Sort-Object
+          Write-Host "First 3 paths in manifest:"
+          $files | Select-Object -First 3 | ForEach-Object { Write-Host "  $_" }
           Pop-Location
           $outputPath = Join-Path $env:RUNNER_TEMP "manifest-ps.txt"
           [System.IO.File]::WriteAllLines($outputPath, $files)
