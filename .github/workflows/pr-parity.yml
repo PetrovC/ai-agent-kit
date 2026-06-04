@@ -67,18 +67,12 @@ jobs:
           $target = Join-Path $env:RUNNER_TEMP "install-target-ps"
           Push-Location $target
           # Build forward-slash paths relative to the target dir.
-          # After Push-Location, $PWD.Path is the install target; strip it
-          # and normalize separators so paths match bash `find .` output.
-          $basePath = $PWD.Path
-          $baseLen  = $basePath.TrimEnd('\').Length + 1  # length of "D:\...\target\"
-          Write-Host "Base path: $basePath (len $baseLen)"
-          $allItems = Get-ChildItem -File -Recurse -Force
-          Write-Host "Total files found: $($allItems.Count)"
-          $files = $allItems | ForEach-Object {
+          # Use $PWD.Path (set by Push-Location) to strip the absolute prefix,
+          # then replace backslashes with forward slashes for cross-OS comparison.
+          $baseLen = $PWD.Path.TrimEnd('\').Length + 1  # length of "D:\...\target\"
+          $files = Get-ChildItem -File -Recurse -Force | ForEach-Object {
               $_.FullName.Substring($baseLen).Replace('\', '/')
           } | Sort-Object
-          Write-Host "First 3 paths:"
-          $files | Select-Object -First 3 | ForEach-Object { Write-Host "  $_" }
           Pop-Location
           $outputPath = Join-Path $env:RUNNER_TEMP "manifest-ps.txt"
           [System.IO.File]::WriteAllLines($outputPath, $files)
