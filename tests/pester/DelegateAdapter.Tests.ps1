@@ -65,6 +65,23 @@ Describe "Cross-tool delegation adapter" {
             [System.IO.File]::WriteAllText((Join-Path $script:Bin "codex.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
         }
 
+        # An agy stub that simulates quota exhaustion on the primary (Sonnet) model:
+        # exits non-zero with a 429-like error so the adapter's fallback path fires,
+        # then succeeds when the fallback model (gemini-3.1-pro) is set.
+        function Write-QuotaAgyStub {
+            $cmd = @(
+                '@echo off',
+                'echo %* >> "%STUB_RECORD%"',
+                'echo %ANTIGRAVITY_MODEL% >> "%STUB_ENV%"',
+                'if "%ANTIGRAVITY_MODEL%"=="claude-sonnet-4-6" (',
+                '    echo Error: quota exhausted 1>&2',
+                '    exit /b 1',
+                ')',
+                'echo Stub Antigravity fallback analysis: succeeded with fallback model.'
+            ) -join "`r`n"
+            [System.IO.File]::WriteAllText((Join-Path $script:Bin "agy.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
+        }
+
         # Antigravity stub: records the raw command line and the model hint the
         # adapter passes via the ANTIGRAVITY_MODEL environment variable, then
         # prints a plain-text answer like `agy -p` would.
@@ -196,6 +213,33 @@ Describe "Cross-tool delegation adapter" {
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "other", "-Risk", "low", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_priv")
         Assert-AakSuccess $result
         Assert-AakFileMissing $script:StubRecord
+    }
+
+    It "retries with Gemini fallback when Antigravity Sonnet quota is exhausted" {
+        Write-QuotaAgyStub
+        # Reset so both model hints are appended by the quota stub.
+        [System.IO.File]::WriteAllText($script:StubEnv, "", (New-Object System.Text.UTF8Encoding($false)))
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "feat", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_fallback")
+        Assert-AakSuccess $result
+        Assert-AakOutputContains $result "fallback analysis"
+        $model = Get-Content -Raw $script:StubEnv
+        if (-not $model.Contains("gemini-3.1-pro")) { throw "expected gemini-3.1-pro in accumulated model hints, got: $model" }
+        $eventsFile = Get-DelegateEventsFile "run_agy_fallback"
+        Assert-AakFileExists $eventsFile
+        $completed = Get-Content $eventsFile | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.event_type -eq "agent.completed" } | Select-Object -First 1
+        if ($completed.payload.result_summary.fallback_used -ne $true) { throw "expected fallback_used=true in completed event" }
+    }
+
+    It "does not retry fallback for Codex quota errors" {
+        # Codex has no per-model fallback path; a quota error is an ordinary
+        # provider failure that records status=error and returns 0.
+        Write-FailingCodexStub
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "feat", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_codex_quota")
+        Assert-AakSuccess $result
+        $eventsFile = Get-DelegateEventsFile "run_codex_quota"
+        Assert-AakFileExists $eventsFile
+        $completed = Get-Content $eventsFile | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.event_type -eq "agent.completed" } | Select-Object -First 1
+        if ($completed.payload.status -ne "error") { throw "expected status error (no fallback for codex), got $($completed.payload.status)" }
     }
 
     It "is fail-open when the provider CLI fails" {

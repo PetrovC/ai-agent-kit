@@ -70,6 +70,23 @@ STUB
     chmod +x "$BIN/agy"
 }
 
+# An agy stub that simulates quota exhaustion on the primary (Sonnet) model:
+# exits non-zero with a 429-like error so the adapter's fallback path fires,
+# then succeeds on the next call (fallback model != claude-sonnet-4-6).
+write_quota_agy_stub() {
+    cat > "$BIN/agy" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$@" >> "$STUB_RECORD"
+printf '%s\n' "${ANTIGRAVITY_MODEL:-}" >> "$STUB_ENV"
+if [ "${ANTIGRAVITY_MODEL:-}" = "claude-sonnet-4-6" ]; then
+    echo "Error: 429 quota exhausted for claude-sonnet-4-6" >&2
+    exit 1
+fi
+echo "Stub Antigravity fallback analysis: succeeded with fallback model."
+STUB
+    chmod +x "$BIN/agy"
+}
+
 events_file() {
     find "$RUNTIME_PATH/runs" -name events.ndjson | head -1
 }
@@ -185,6 +202,39 @@ delegate() {
     delegate --provider codex --task-type other --risk low --run-id run_deleg_priv
     assert_success
     assert_file_missing "$STUB_RECORD"
+}
+
+@test "delegate retries with Gemini fallback when Antigravity Sonnet quota is exhausted" {
+    write_quota_agy_stub
+    : > "$STUB_ENV"   # reset so both model hints are appended by the quota stub
+    delegate --provider antigravity --task-type feat --risk medium \
+        --run-id run_agy_fallback
+    assert_success
+    # The fallback agy call prints this to stdout; the adapter forwards it.
+    assert_output_contains "fallback analysis"
+    # Both the primary (claude-sonnet-4-6) and fallback (gemini-3.1-pro) hints
+    # must appear in the accumulated env file.
+    run cat "$STUB_ENV"
+    assert_output_contains "gemini-3.1-pro"
+    # The completed event must carry fallback_used:true.
+    run cat "$(events_file)"
+    assert_output_contains '"fallback_used":true'
+}
+
+@test "delegate does not retry fallback for Codex quota errors" {
+    # Codex has no per-model fallback path; a quota error is an ordinary
+    # provider failure that records status=error and returns 0.
+    cat > "$BIN/codex" <<'STUB'
+#!/usr/bin/env bash
+echo "Error: 429 quota exhausted" >&2
+exit 1
+STUB
+    chmod +x "$BIN/codex"
+    delegate --provider codex --task-type feat --risk medium \
+        --run-id run_codex_quota
+    assert_success
+    run cat "$(events_file)"
+    assert_output_contains '"status":"error"'
 }
 
 @test "delegate is fail-open when the provider CLI fails" {

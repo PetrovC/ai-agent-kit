@@ -100,6 +100,19 @@ The model hint is passed via the `ANTIGRAVITY_MODEL` environment variable before
 the `agy -p` call. Confirmed from the live product (agy v1.0.4); see
 <https://antigravity.google/docs/models>.
 
+**Quota fallback (automatic):** when the adapter detects a 429 / quota-exhausted
+error from agy, it retries once with the depth's fallback model:
+
+| Depth | Primary model | Fallback model |
+|---|---|---|
+| `deep` | `claude-opus-4-6` | `claude-sonnet-4-6` (Anthropic quota, lower tier) |
+| `standard` | `claude-sonnet-4-6` | `gemini-3.1-pro` (Gemini quota — separate pool) |
+| `readonly` | `claude-sonnet-4-6` | `gemini-3.1-pro` |
+
+Detection patterns: `quota`, `rate limit`, `resource_exhausted`, `429`,
+`too many requests`. Codex does not have this retry path (no per-model quota
+to fall back from).
+
 ## Command and Agent Guidance
 
 Current repository agents already use strong models in several sensitive areas.

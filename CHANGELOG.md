@@ -4,6 +4,16 @@
 
 ### Added
 
+- **`feat(delegate)` - add quota-fallback retry for Antigravity model exhaustion.**
+  When `agy` exits non-zero with a 429 / quota-related error, the adapter now
+  retries once with the depth's fallback model: `claude-opus-4-6` → `claude-sonnet-4-6`
+  (deep), `claude-sonnet-4-6` → `gemini-3.1-pro` (standard/readonly). The
+  `ANTIGRAVITY_FALLBACK_BY_DEPTH` table and `is_quota_exhausted()` are the only new
+  symbols; `provider_env()` gains an optional `model_override` param used for the
+  retry. The `agent.completed` event now carries `fallback_used` (bool) and
+  `fallback_model` (str, omitted when unused). Codex has no fallback path.
+  `MODEL_ROUTING.md` documents the fallback table and detection patterns.
+
 - **`feat(scripts)` - add `doctor.sh` and `doctor.ps1` to diagnose target installs (#149).**
   Ships `doctor.sh` and `doctor.ps1` scripts that inspect a target project installation's health (verifying manifest integrity, hook executability, docs presence, MCP example presence, and kit version checks) and report status without auto-fixing.
 
