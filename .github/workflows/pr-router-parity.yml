@@ -64,6 +64,8 @@ jobs:
             "Project config"
             "Hardening and integration"
             "Slash commands"
+            "Permissions: ask rules"
+            "Windows hook setup"
           )
 
           is_exempt() {
