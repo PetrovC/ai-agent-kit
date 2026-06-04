@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(claude)` - tune skill listing budget for 30 skills (#187).**
+  Adds `skillListingBudgetFraction: 0.01` and `maxSkillDescriptionChars: 600` to
+  `tooling/claude/settings.json` and its Windows variant. At 30 skills, capping descriptions
+  at 600 chars saves ~28 k tokens per session vs the 1536-char default while keeping all
+  skill prose intact in the SKILL.md files. `MODEL_ROUTING.md` documents the rationale.
+
 - **`feat(delegate)` - add quota-fallback retry for Antigravity model exhaustion.**
   When `agy` exits non-zero with a 429 / quota-related error, the adapter now
   retries once with the depth's fallback model: `claude-opus-4-6` → `claude-sonnet-4-6`

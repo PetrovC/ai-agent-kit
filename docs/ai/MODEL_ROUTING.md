@@ -128,6 +128,21 @@ Cheap or fast models are acceptable for repetitive Markdown formatting or
 fixture-like edits only when the scope is narrow and the result is easy to
 verify.
 
+### Skill listing budget
+
+The kit ships 30 skills. By default, Claude Code lists all skill descriptions
+at up to 1536 characters each. To manage this and keep the context budget
+readable, the following settings are applied:
+
+- `skillListingBudgetFraction: 0.01` — keep the default; this caps the listing
+  to 1% of the context.
+- `maxSkillDescriptionChars: 600` — cap descriptions at 600 characters to
+  reduce per-skill token cost.
+- Combined, 30 skills at 600 characters ≈ 18 k tokens at the cap vs 46 k
+  tokens at the default 1536-character limit.
+- Skill descriptions remain full-text in the actual `SKILL.md` files; only
+  the listing summary is capped.
+
 ## Prompt Caching
 
 Model power is not the only cost lever. Prompt caching cuts input tokens
