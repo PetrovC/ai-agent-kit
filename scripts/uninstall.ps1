@@ -61,7 +61,7 @@ if ([string]::IsNullOrWhiteSpace($Tools)) {
     $versionFile = Join-Path $Target ".kit-version"
     if (Test-Path -LiteralPath $versionFile) {
         $versionLine = (Get-Content -LiteralPath $versionFile -Raw).Trim()
-        if ($versionLine -match "tools: (.+)") {
+        if ($versionLine -match "tools: ([^\s]+)") {
             $Tools = $Matches[1].Trim()
         }
     }
@@ -83,7 +83,7 @@ $versionFileForScope = Join-Path $Target ".kit-version"
 $installedForScope = "codex,claude,agy"
 if (Test-Path -LiteralPath $versionFileForScope) {
     $versionLineForScope = (Get-Content -LiteralPath $versionFileForScope -Raw).Trim()
-    if ($versionLineForScope -match "tools: (.+)") {
+    if ($versionLineForScope -match "tools: ([^\s]+)") {
         $installedForScope = $Matches[1].Trim()
     }
 }
@@ -320,7 +320,7 @@ $versionFile = Join-Path $Target ".kit-version"
 if (Test-Path -LiteralPath $versionFile) {
     $versionLine = (Get-Content -LiteralPath $versionFile -Raw).Trim()
     $installedRaw = "codex,claude,agy"
-    if ($versionLine -match "tools: (.+)") {
+    if ($versionLine -match "tools: ([^\s]+)") {
         $installedRaw = $Matches[1].Trim()
     }
     $installedVersion = "unknown"

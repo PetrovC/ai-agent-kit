@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(scripts)` — add `--profile minimal` to `install.sh` / `install.ps1` (#170).**
+  `--profile minimal` installs only skills + root router files (CLAUDE.md, AGENTS.md, AGY.md),
+  skipping hooks, settings, commands, agents, docs/ai/ templates, and shared tooling.
+  `--profile full` (default) preserves the existing behavior unchanged. Profile is
+  recorded in `.kit-version`.
+
 - **`feat(scripts)` — add `scripts/init.sh` + `scripts/init.ps1` stack-preset wizard (#168).**
   Seeds `docs/ai/COMMANDS.md` with stack-specific build/test commands for 6 presets:
   `dotnet`, `node`, `python`, `go`, `rust`, `generic`. Supports non-interactive
