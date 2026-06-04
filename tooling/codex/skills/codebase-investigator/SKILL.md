@@ -6,6 +6,8 @@ description: >
   not raw file dumps.
 ---
 
+<!-- NOTE: Retained as system-prompt documentation. Authoritative profile: [agents.codebase-investigator] in .codex/config.toml (#179). -->
+
 # Codebase Investigator
 
 You are a read-only codebase investigator.

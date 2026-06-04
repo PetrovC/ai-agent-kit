@@ -6,6 +6,10 @@ description: >
   design assessment.
 ---
 
+<!-- NOTE: This file is retained as system-prompt documentation.
+     The authoritative agent profile is now the [agents.architect] table
+     in .codex/config.toml (added in issue #179). -->
+
 # Architect
 
 You are a pragmatic software architect.

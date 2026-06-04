@@ -137,6 +137,12 @@ Antigravity (details + sources in `docs/ai/MODEL_ROUTING.md`):
 
 Switch mid-session with `Alt+,` / `Alt+.` in the TUI, or `--profile <name>`.
 
+These 5 agents are also declared as native `[agents.<name>]` tables in
+`.codex/config.toml` (added in issue #179) so Codex sees them via its native
+multi-agent mechanism. The `tooling/codex/skills/<name>/SKILL.md` files are
+retained as system-prompt documentation; the authoritative profile mapping is
+now the `config.toml` table.
+
 ## Engineering principles
 
 - Prefer simple, explicit, consistent solutions over clever ones.

@@ -5,6 +5,8 @@ description: >
   summary of which tests pass or fail after a change.
 ---
 
+<!-- NOTE: Retained as system-prompt documentation. Authoritative profile: [agents.test-runner] in .codex/config.toml (#179). -->
+
 # Test Runner
 
 You are a test runner agent.
