@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`docs` — add `docs/RELEASE_CHECKLIST.md` and version-pinning guidance in README (#140).**
+  `docs/RELEASE_CHECKLIST.md` is a concise maintainer checklist covering pre-flight checks,
+  CHANGELOG promotion, tag creation (with confirmation note), and GitHub Release creation.
+  README gains a "Pinning to a release" sub-section explaining how to install from a
+  specific git tag for reproducible installs.
+
 - **`docs(claude)` — document `strictKnownMarketplaces` + `enabledPlugins` for target projects (#188).**
   Target projects can now pin the plugin marketplace source and pre-enable the kit plugin
   via two `settings.json` keys. README Option B section and CONTRIBUTING both updated with
