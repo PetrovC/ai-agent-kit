@@ -4,6 +4,14 @@
 
 ### Added
 
+- **`feat(release)` - add shared `release-management` skill (#250).**
+  Adds `skills/release-management/SKILL.md` (SemVer rules, VERSION source of truth,
+  CHANGELOG maintenance, release readiness checklist, tag naming, explicit confirmation
+  before tagging) and `skills/release-management/references/edge-cases.md` (7 edge cases:
+  missing VERSION, malformed CHANGELOG, duplicate tag, dirty tree, HEAD drift, wrong branch,
+  major/minor without confirmation). Skill routing tables updated in all three provider
+  tooling files and their dogfood copies. Installed outputs added to `.kit-manifest`.
+
 - **`feat(claude)` - tune skill listing budget for 30 skills (#187).**
   Adds `skillListingBudgetFraction: 0.01` and `maxSkillDescriptionChars: 600` to
   `tooling/claude/settings.json` and its Windows variant. At 30 skills, capping descriptions
