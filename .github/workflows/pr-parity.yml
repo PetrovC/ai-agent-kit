@@ -113,11 +113,13 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Normalize path separators: replace backslashes with forward slashes,
-          # strip leading './' (bash `find` emits './path', PowerShell emits '.path'),
-          # then sort using LC_ALL=C to guarantee identical sort orders.
+          # Normalize for cross-OS comparison:
+          #   - replace backslashes with forward slashes
+          #   - strip CRLF (\r) from the Windows-generated PS manifest
+          #   - strip leading './' (bash `find` emits './path')
+          #   - sort using LC_ALL=C to guarantee identical sort orders
           cat bash-manifest-dir/manifest-bash.txt | tr '\\' '/' | sed 's|^\./||' | LC_ALL=C sort > /tmp/bash-normalized.txt
-          cat ps-manifest-dir/manifest-ps.txt | tr '\\' '/' | sed 's|^\./||' | LC_ALL=C sort > /tmp/ps-normalized.txt
+          cat ps-manifest-dir/manifest-ps.txt | tr '\\' '/' | tr -d '\r' | sed 's|^\./||' | LC_ALL=C sort > /tmp/ps-normalized.txt
           
           # Diff the two sorted file lists.
           # If a file is intentionally platform-specific and should be exempted from
