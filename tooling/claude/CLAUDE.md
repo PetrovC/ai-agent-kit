@@ -21,6 +21,19 @@ reads this file at startup, auto-loads any `.claude/rules/*.md` whose `paths:`
 match the files you open, and lazy-loads skills via the routing table below.
 Reference: [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code).
 
+## Permissions: ask rules
+
+The `permissions.ask` list holds commands that require explicit interactive confirmation before each run. This list sits between `allow` (silently permitted) and `deny` (hard-blocked).
+
+Commands currently configured under `ask`:
+- `git push` (all remotes)
+- `git tag` (all forms)
+- `dotnet publish`
+- `npm publish`
+- `docker push`
+
+**Rationale:** These operations are irreversible or cross network/registry boundaries (e.g., pushing code or container images to remotes, creating release tags, or publishing build artifacts), and thus warrant confirmation. To adjust these rules, edit `tooling/claude/settings.json` and its Windows variant `tooling/claude/settings.windows.json`.
+
 ## Session hygiene
 
 Actions, not philosophy. Full detail: `docs/ai/CONTEXT_GOVERNANCE.md`.

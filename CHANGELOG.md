@@ -66,6 +66,12 @@
 
 ### Added
 
+- **`feat(claude)` - introduce `ask` permission rules for borderline commands (#191).**
+  Adds a `permissions.ask` list to `tooling/claude/settings.json` and its Windows variant with
+  five commands that warrant interactive confirmation: `git push` (all remotes), `git tag`,
+  `dotnet publish`, `npm publish`, `docker push`. These sit between `allow` (silently permitted)
+  and `deny` (hard-blocked). `tooling/claude/CLAUDE.md` documents the rationale and the list.
+
 - **`feat(codex)` - add granular approval policy guidance and Codex PermissionRequest hooks (#186).**
   Documents the `approval_policy = { granular = { ... } }` pilot in the global
   Codex config template, wires `PermissionRequest` logging, and adds a

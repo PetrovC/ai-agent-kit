@@ -43,6 +43,7 @@ jobs:
           # - "Project config" (prefix match for Codex config)
           # - "Hardening and integration"
           # - "Slash commands"
+          # - "Permissions: ask rules" (Claude Code-specific; Codex/agy have no permissions.ask JSON)
 
           FILES=(
             "tooling/claude/CLAUDE.md"
@@ -64,6 +65,7 @@ jobs:
             "Project config"
             "Hardening and integration"
             "Slash commands"
+            "Permissions: ask rules"
           )
 
           is_exempt() {
