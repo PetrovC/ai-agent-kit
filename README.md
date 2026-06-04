@@ -492,6 +492,7 @@ Copy these to `.github/workflows/` in your project (they are **not** installed a
 | `uninstall.ps1` / `uninstall.sh` | Removes only kit-installed files for the chosen tools, using `.kit-manifest` as the source of truth. User files added inside managed dirs (e.g. `.claude/agents/team-agent.md`, `.claude/settings.local.json`) are preserved. Falls back to a reconstructed file list when no manifest is present. Preserves `docs/ai/`. |
 | `validate.ps1` / `validate.sh` | Verifies `docs/ai/` templates have been filled, guards Codex router context budget plus context/model/subagent link hygiene, prints a compact largest Codex-facing file summary, and in this source repo flags Claude/Codex dogfood drift from `tooling/` or `skills/`. |
 | `new-skill.ps1` / `new-skill.sh` | Scaffolds a new skill under `skills/<name>/` with the standard template — for kit contributors. |
+| `doctor.ps1` / `doctor.sh` | Diagnoses target project installation health (missing files, manifest drift, outdated version, non-executable hooks, docs/ai and MCP example presence). |
 
 **`docs/ai/` is never overwritten** by either install / update script — it holds your project-specific
 content. To get fresh templates back, delete the folder manually before reinstalling.

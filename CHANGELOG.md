@@ -4,6 +4,16 @@
 
 ### Added
 
+- **`feat(scripts)` - add `doctor.sh` and `doctor.ps1` to diagnose target installs (#149).**
+  Ships `doctor.sh` and `doctor.ps1` scripts that inspect a target project installation's health (verifying manifest integrity, hook executability, docs presence, MCP example presence, and kit version checks) and report status without auto-fixing.
+
+- **`feat(codex)` - migrate Codex subagents to native `[agents.*]` config tables (#179).**
+  Adds native Codex agent definitions for architect, code-reviewer, security-reviewer,
+  codebase-investigator, and test-runner in `tooling/codex/config.toml`, while retaining
+  the existing `tooling/codex/skills/*/SKILL.md` files as documentation and system-prompt
+  content. Updates the Codex router and model-routing docs to point maintainers at the
+  native agent tables.
+
 - **`feat(delegate)` - switch Antigravity model hints to Claude and add `write_mode` for implementation tasks.**
   `ANTIGRAVITY_MODEL_BY_DEPTH` updated from Gemini models to `claude-opus-4-6` (deep) and
   `claude-sonnet-4-6` (standard/readonly) — agy v1.0.4 exposes these with a separate Anthropic
