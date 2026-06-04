@@ -4,6 +4,11 @@
 
 ### Added
 
+- **`docs(claude)` — document `strictKnownMarketplaces` + `enabledPlugins` for target projects (#188).**
+  Target projects can now pin the plugin marketplace source and pre-enable the kit plugin
+  via two `settings.json` keys. README Option B section and CONTRIBUTING both updated with
+  a ready-to-paste snippet.
+
 - **`feat(release)` - add shared `release-management` skill (#250).**
   Adds `skills/release-management/SKILL.md` (SemVer rules, VERSION source of truth,
   CHANGELOG maintenance, release readiness checklist, tag naming, explicit confirmation

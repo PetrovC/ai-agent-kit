@@ -80,6 +80,14 @@ tmp="$(mktemp -d)"
 ./scripts/uninstall.sh --target "$tmp" --dry-run
 ```
 
+## Plugin pinning
+
+If your project uses the kit as a Claude plugin, consider committing
+`strictKnownMarketplaces: true` and `enabledPlugins: ["PetrovC/ai-agent-kit@ai-agent-kit"]`
+to the project `settings.json`. This ensures all contributors automatically have
+the plugin active and cannot accidentally install plugins from other sources.
+See the README "Option B — Plugin pinning" section for the full snippet.
+
 ## Pull Requests
 
 Each pull request should link the issue it resolves, explain what changed and
