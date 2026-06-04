@@ -1,0 +1,125 @@
+name: PR — script lifecycle parity (cross-OS)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'scripts/install.sh'
+      - 'scripts/install.ps1'
+      - 'scripts/update.sh'
+      - 'scripts/update.ps1'
+      - 'scripts/uninstall.sh'
+      - 'scripts/uninstall.ps1'
+      - 'scripts/validate.sh'
+      - 'scripts/validate.ps1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  parity-bash:
+    name: parity-bash
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run install.sh
+        run: |
+          set -euo pipefail
+          TARGET_DIR="$RUNNER_TEMP/install-target-bash"
+          mkdir -p "$TARGET_DIR"
+          bash scripts/install.sh --target "$TARGET_DIR" --tools codex,claude,agy
+
+      - name: Snapshot and sort file list
+        run: |
+          set -euo pipefail
+          TARGET_DIR="$RUNNER_TEMP/install-target-bash"
+          (cd "$TARGET_DIR" && find . -type f | LC_ALL=C sort) > "$RUNNER_TEMP/manifest-bash.txt"
+
+      - name: Upload Bash manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: bash-manifest
+          path: ${{ runner.temp }}/manifest-bash.txt
+
+  parity-powershell:
+    name: parity-powershell
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run install.ps1
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP "install-target-ps"
+          New-Item -ItemType Directory -Path $target -Force | Out-Null
+          & .\scripts\install.ps1 -Target $target -Tools "codex,claude,agy"
+
+      - name: Snapshot and sort file list
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP "install-target-ps"
+          Push-Location $target
+          $files = Get-ChildItem -File -Recurse | ForEach-Object {
+              Resolve-Path -Path $_.FullName -Relative
+          } | Sort-Object
+          Pop-Location
+          $outputPath = Join-Path $env:RUNNER_TEMP "manifest-ps.txt"
+          [System.IO.File]::WriteAllLines($outputPath, $files)
+
+      - name: Upload PowerShell manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ps-manifest
+          path: ${{ runner.temp }}/manifest-ps.txt
+
+  bash-ps-parity:
+    name: bash-ps-parity
+    needs: [parity-bash, parity-powershell]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Bash manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: bash-manifest
+          path: bash-manifest-dir
+
+      - name: Download PowerShell manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: ps-manifest
+          path: ps-manifest-dir
+
+      - name: Normalize and diff manifests
+        run: |
+          set -euo pipefail
+          
+          # Normalize path separators by replacing backslashes with forward slashes,
+          # and sort using LC_ALL=C to guarantee identical sort orders.
+          cat bash-manifest-dir/manifest-bash.txt | tr '\\' '/' | LC_ALL=C sort > /tmp/bash-normalized.txt
+          cat ps-manifest-dir/manifest-ps.txt | tr '\\' '/' | LC_ALL=C sort > /tmp/ps-normalized.txt
+          
+          # Diff the two sorted file lists.
+          # If a file is intentionally platform-specific and should be exempted from
+          # the parity check, you can filter it out of the manifest files before the diff.
+          # E.g., grep -v "excepted-file" /tmp/bash-normalized.txt > /tmp/bash-filtered.txt
+          if ! diff -u /tmp/bash-normalized.txt /tmp/ps-normalized.txt; then
+            echo "FAIL: Bash and PowerShell install manifests have drifted!"
+            echo "      Lines prefixed with '-' are in Bash install only."
+            echo "      Lines prefixed with '+' are in PowerShell install only."
+            echo ""
+            echo "How to add a legitimate exception:"
+            echo "If this drift is intentional, you can filter out the excepted files"
+            echo "using 'grep -v' in this step of .github/workflows/pr-parity.yml."
+            exit 1
+          fi
+          echo "OK: Bash and PowerShell install manifests match perfectly."
