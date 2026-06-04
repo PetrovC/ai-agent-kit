@@ -1,0 +1,56 @@
+name: Release — checksums and signing
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  checksums:
+    name: Generate SHA256SUMS and sign
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout at tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Collect installable assets
+        run: |
+          mkdir -p dist
+          # Copy all user-facing installable files into dist/
+          cp -r skills/ dist/skills
+          cp -r tooling/ dist/tooling
+          cp -r project-template/ dist/project-template
+          cp scripts/install.sh scripts/install.ps1 \
+             scripts/update.sh scripts/update.ps1 \
+             scripts/uninstall.sh scripts/uninstall.ps1 \
+             scripts/validate.sh scripts/validate.ps1 \
+             scripts/new-skill.sh scripts/new-skill.ps1 \
+             scripts/doctor.sh scripts/doctor.ps1 \
+             dist/
+          cp VERSION .kit-manifest dist/
+
+      - name: Generate SHA256SUMS
+        run: |
+          cd dist
+          find . -type f | sort | xargs sha256sum > ../SHA256SUMS
+          cat ../SHA256SUMS
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign SHA256SUMS with cosign (keyless)
+        run: |
+          cosign sign-blob --yes SHA256SUMS \
+            --bundle SHA256SUMS.bundle
+
+      - name: Upload SHA256SUMS and bundle to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            SHA256SUMS
+            SHA256SUMS.bundle

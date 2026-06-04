@@ -37,3 +37,20 @@ see [RELEASE.md](ai/RELEASE.md). For automated readiness checks, use the
 - [ ] Tag visible: `git tag --list | grep vX.Y.Z`
 - [ ] GitHub Release page populated
 - [ ] `[Unreleased]` section is empty and ready for the next cycle
+
+## Verification
+
+Users can verify the integrity of a release using `SHA256SUMS` published on the Releases page.
+
+```bash
+# Verify a specific file (e.g. scripts/install.sh)
+sha256sum --check --ignore-missing SHA256SUMS
+
+# Verify the signature with cosign (keyless)
+cosign verify-blob SHA256SUMS --bundle SHA256SUMS.bundle \
+  --certificate-identity-regexp ".*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+`SHA256SUMS` and `SHA256SUMS.bundle` are automatically generated and uploaded by
+the `release-checksums.yml` CI workflow when a release is published.

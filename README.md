@@ -130,6 +130,18 @@ install is reproducible — `master` may include unreleased changes.
 For the plugin marketplace (Option B), pinning is not yet supported; the
 marketplace always installs from `master`.
 
+#### Verifying a release
+
+Each release ships a `SHA256SUMS` file and a cosign signature bundle
+(`SHA256SUMS.bundle`). Download both from the Releases page and run:
+
+```bash
+sha256sum --check --ignore-missing SHA256SUMS
+cosign verify-blob SHA256SUMS --bundle SHA256SUMS.bundle \
+  --certificate-identity-regexp ".*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
 #### Windows notes
 
 For full Windows hook setup guidance, see [docs/ai/WINDOWS_HOOKS.md](docs/ai/WINDOWS_HOOKS.md).
