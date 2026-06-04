@@ -1,11 +1,11 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 ## Role
 
 You are a software engineering agent working on this repository. Your job:
 implement, refactor, review, test, and document changes while keeping the
 codebase simple, maintainable, testable, and understandable. The goal is not
-clever code — it is code a new developer can understand and a team can safely
+clever code â€” it is code a new developer can understand and a team can safely
 evolve for years.
 
 ## How to run Claude Code
@@ -27,18 +27,18 @@ Actions, not philosophy. Full detail: `docs/ai/CONTEXT_GOVERNANCE.md`.
 
 | Context state | Action |
 |---|---|
-| 0–39% | Continue normally. |
-| 40–59% | Compact before any broad read, large log dump, or multi-file refactor. |
-| 60–79% | Run `/compact` before the next step. Default to compaction. |
+| 0â€“39% | Continue normally. |
+| 40â€“59% | Compact before any broad read, large log dump, or multi-file refactor. |
+| 60â€“79% | Run `/compact` before the next step. Default to compaction. |
 | 80%+ | Stop. Summarize state, then start a fresh session. |
 
 - `/compact` summarises conversation + tool output and preserves the working
-  summary; prefer it over `/clear`. You cannot invoke it — recommend it, then
+  summary; prefer it over `/clear`. You cannot invoke it â€” recommend it, then
   wait for the user.
 - Recommend `/compact` **before** a heavy step: 4+ sequential reads, a large
   log/diff/test dump just landed, ~20+ turns, or a broad multi-file refactor.
 - One PR per session; quit between PRs. Stay in-session only when the next PR
-  depends on the previous PR's uncommitted reasoning — once merged, it is in git.
+  depends on the previous PR's uncommitted reasoning â€” once merged, it is in git.
 
 ## Slash commands
 
@@ -50,19 +50,19 @@ each command file documents its purpose and argument:
 
 ## MCP servers
 
-`.mcp.json` at the project root configures MCP servers. Empty by default — add
+`.mcp.json` at the project root configures MCP servers. Empty by default â€” add
 per project. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
 
 ## Plugin marketplace (opt-in)
 
-Also published as a Claude plugin marketplace shipping the 30 skills:
+Also published as a Claude plugin marketplace shipping the 31 skills:
 `/plugin marketplace add PetrovC/ai-agent-kit` then
-`/plugin install ai-agent-kit@ai-agent-kit`. Skills slice only — the install
+`/plugin install ai-agent-kit@ai-agent-kit`. Skills slice only â€” the install
 script remains canonical for the full multi-tool setup.
 
 ## Personal overrides
 
-Create `CLAUDE.local.md` (gitignored) for developer-specific preferences — local
+Create `CLAUDE.local.md` (gitignored) for developer-specific preferences â€” local
 paths, aliases, verbosity, machine-specific tools. Merged automatically; never
 commit it.
 
@@ -70,7 +70,7 @@ commit it.
 
 Optional `settings.json` (or `CLAUDE.local.json`) keys: `attribution` (commit/PR
 footer), `prUrlTemplate` (PR-badge links), `includeGitInstructions: false`
-(suppress Claude's built-in git briefing — this file's Git rules replace it;
+(suppress Claude's built-in git briefing â€” this file's Git rules replace it;
 already set in the kit).
 
 ## Context strategy
@@ -93,14 +93,14 @@ GitHub issues, PRs, and `CHANGELOG.md`; in-conversation tasks are redundant.
 
 ## Skill routing
 
-Match the task domain to the skill name — full descriptions live in each skill's
+Match the task domain to the skill name â€” full descriptions live in each skill's
 `description:` frontmatter.
 
-Backends: `dotnet` skill · `java-kotlin` skill · `python` skill · `node` skill · `go` skill · `rust` skill  
-Frontends: `angular` skill · `vue` skill · `svelte` skill · `react` skill · `mobile-rn` skill · `mobile-flutter` skill  
-Data/Infra: `database` skill · `infrastructure` skill · `api-design` skill · `graphql` skill  
-Quality: `architecture` skill · `testing` skill · `code-review` skill · `security` skill · `dependencies` skill · `github-workflow` skill  
-Ops/X-cut: `observability` skill · `messaging` skill · `error-handling` skill · `monorepo` skill · `accessibility` skill · `i18n` skill · `ai-dev` skill · `performance` skill
+Backends: `dotnet` skill Â· `java-kotlin` skill Â· `python` skill Â· `node` skill Â· `go` skill Â· `rust` skill  
+Frontends: `angular` skill Â· `vue` skill Â· `svelte` skill Â· `react` skill Â· `mobile-rn` skill Â· `mobile-flutter` skill  
+Data/Infra: `database` skill Â· `infrastructure` skill Â· `api-design` skill Â· `graphql` skill  
+Quality: `architecture` skill Â· `testing` skill Â· `code-review` skill Â· `security` skill Â· `dependencies` skill Â· `github-workflow` skill  
+Ops/X-cut: `observability` skill Â· `messaging` skill Â· `error-handling` skill Â· `monorepo` skill Â· `accessibility` skill Â· `i18n` skill Â· `ai-dev` skill Â· `performance` skill Â· `release-management` skill
 
 ## Subagent routing
 
@@ -131,21 +131,21 @@ Do not use subagents for simple one-file changes.
 You may notice out-of-scope improvements (outdated/vulnerable packages,
 deprecated APIs, upgradable runtimes). Never fix them silently and never mix them
 with the current task. Surface each explicitly (what, why, risk), wait for
-approval, then apply with build + tests — one concern per PR, proposed
+approval, then apply with build + tests â€” one concern per PR, proposed
 separately. Watch for: package updates/security patches, runtime LTS upgrades,
 deprecated APIs with drop-in replacements, and transitive vulnerabilities
 (`npm audit`, `pip-audit`, `cargo audit`, `dotnet list package --vulnerable`).
 
 ## Git rules
 
-**Commit messages** — Conventional Commits: `<type>(<scope>): <subject>`.
+**Commit messages** â€” Conventional Commits: `<type>(<scope>): <subject>`.
 - Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`.
-- Subject ≤ 72 chars, imperative mood (`add`, not `added`).
+- Subject â‰¤ 72 chars, imperative mood (`add`, not `added`).
 - Breaking changes: append `!` after type and add a `BREAKING CHANGE:` footer.
 - One concern per commit. If the message needs `and`, split the commit.
 
 **Push and history:**
-- Never push directly to `main`, `master`, or `dev` — always via PR.
+- Never push directly to `main`, `master`, or `dev` â€” always via PR.
 - Agent branches: `agent/<agent>/<model>/<type>/<area>` (dots OK, no `()` or spaces); work issue-first from an up-to-date `master`; English-only branch/issue/PR/commit text. See `docs/ai/WORKFLOW.md`.
 - Do not rewrite history on shared branches.
 - Do not run destructive Git commands without explicit approval.
@@ -177,8 +177,8 @@ Optional, opt-in `settings.json` keys (off by default): `autoMemoryEnabled` /
 
 ## Final response format
 
-1. **Summary** — what changed and why.
-2. **Files changed** — with layer.
-3. **Verification** — commands and results.
+1. **Summary** â€” what changed and why.
+2. **Files changed** â€” with layer.
+3. **Verification** â€” commands and results.
 4. **Risks / assumptions**.
-5. **Next step** — only if useful.
+5. **Next step** â€” only if useful.

@@ -27,6 +27,7 @@
 .agents/skills/python/SKILL.md
 .agents/skills/react/SKILL.md
 .agents/skills/README.md
+.agents/skills/release-management/SKILL.md
 .agents/skills/rust/SKILL.md
 .agents/skills/security/SKILL.md
 .agents/skills/security-reviewer/SKILL.md
@@ -82,6 +83,7 @@
 .agy/skills/python/SKILL.md
 .agy/skills/react/SKILL.md
 .agy/skills/README.md
+.agy/skills/release-management/SKILL.md
 .agy/skills/rust/SKILL.md
 .agy/skills/security/SKILL.md
 .agy/skills/svelte/SKILL.md
@@ -159,6 +161,7 @@
 .claude/skills/python/SKILL.md
 .claude/skills/react/SKILL.md
 .claude/skills/README.md
+.claude/skills/release-management/SKILL.md
 .claude/skills/rust/SKILL.md
 .claude/skills/security/SKILL.md
 .claude/skills/svelte/SKILL.md
