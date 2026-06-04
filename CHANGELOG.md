@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(claude)` — add strict minimal output template to `/run-tests` (#162).**
+  `tooling/claude/commands/run-tests.md` now specifies an exact Markdown table
+  format for test results: pass/fail/skip counts, commands run, top-5 failing
+  tests with one-line reasons, and pre-existing failure flag. No prose allowed
+  outside the template.
+
 - **`feat(scripts)` — add `scripts/init.sh` + `scripts/init.ps1` stack-preset wizard (#168).**
   Seeds `docs/ai/COMMANDS.md` with stack-specific build/test commands for 6 presets:
   `dotnet`, `node`, `python`, `go`, `rust`, `generic`. Supports non-interactive
