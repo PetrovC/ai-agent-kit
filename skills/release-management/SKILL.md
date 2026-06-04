@@ -69,3 +69,14 @@ Before any release is tag-ready, the following validation checks must pass:
 - **Tag Pushing**: Explicit human confirmation is required before pushing any release tag to a remote repository.
 - **No Automation**: Never automatically push release tags or perform destructive operations without direct user instruction.
 - **No Silent Actions**: Always prompt the user before cutting the release.
+
+---
+
+## Final response requirements
+
+Always report:
+- Action taken: VERSION value before and after the bump (if any).
+- CHANGELOG section promoted (if any) — version string and date used.
+- Tag created or pushed (if any) — with explicit confirmation noted.
+- Working tree state at end: clean / staged / dirty.
+- Any validation step that was skipped and why.
