@@ -4,6 +4,14 @@
 
 ### Added
 
+- **`feat(release)` - add shared `release-management` skill (#250).**
+  Adds `skills/release-management/SKILL.md` (SemVer rules, VERSION source of truth,
+  CHANGELOG maintenance, release readiness checklist, tag naming, explicit confirmation
+  before tagging) and `skills/release-management/references/edge-cases.md` (7 edge cases:
+  missing VERSION, malformed CHANGELOG, duplicate tag, dirty tree, HEAD drift, wrong branch,
+  major/minor without confirmation). Skill routing tables updated in all three provider
+  tooling files and their dogfood copies. Installed outputs added to `.kit-manifest`.
+
 - **`docs(claude)` - improve Windows hook guidance for bash-installed setups (#151).**
   Adds "Windows hook setup" section to `CLAUDE.md`, links to a new dedicated guide
   `docs/ai/WINDOWS_HOOKS.md`, and updates `README.md` to help Windows users verify

@@ -100,7 +100,7 @@ Backends: `dotnet` skill · `java-kotlin` skill · `python` skill · `node` skil
 Frontends: `angular` skill · `vue` skill · `svelte` skill · `react` skill · `mobile-rn` skill · `mobile-flutter` skill  
 Data/Infra: `database` skill · `infrastructure` skill · `api-design` skill · `graphql` skill  
 Quality: `architecture` skill · `testing` skill · `code-review` skill · `security` skill · `dependencies` skill · `github-workflow` skill  
-Ops/X-cut: `observability` skill · `messaging` skill · `error-handling` skill · `monorepo` skill · `accessibility` skill · `i18n` skill · `ai-dev` skill · `performance` skill
+Ops/X-cut: `observability` skill · `messaging` skill · `error-handling` skill · `monorepo` skill · `accessibility` skill · `i18n` skill · `ai-dev` skill · `performance` skill · `release-management` skill
 
 ## Subagent routing
 
