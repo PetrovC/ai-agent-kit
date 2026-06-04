@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`ci` — add release checksums and cosign signing workflow (#165).**
+  `.github/workflows/release-checksums.yml` generates `SHA256SUMS` and signs
+  it with sigstore/cosign (keyless) on each release publication. `SHA256SUMS`
+  and `SHA256SUMS.bundle` are uploaded as release assets. `docs/RELEASE_CHECKLIST.md`
+  and README document the verification steps.
+
 - **`feat(shared)` — add 5 governance-policy templates to `project-template/` (#172).**
   `CONTEXT_GOVERNANCE.md`, `SUBAGENT_GOVERNANCE.md`, `MCP_POLICY.md`,
   `MODEL_ROUTING.md`, and `CONTEXT_SANITIZATION.md` are now installed into
