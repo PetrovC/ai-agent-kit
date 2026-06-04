@@ -66,15 +66,16 @@ jobs:
         run: |
           $target = Join-Path $env:RUNNER_TEMP "install-target-ps"
           Push-Location $target
-          # Use forward-slash relative paths to match bash `find .` output.
-          # Enumerate ALL files (including inside dot-prefixed directories).
+          # Build forward-slash paths relative to the target dir.
+          # After Push-Location, $PWD.Path is the install target; strip it
+          # and normalize separators so paths match bash `find .` output.
+          $basePath = $PWD.Path
+          $baseLen  = $basePath.TrimEnd('\').Length + 1  # length of "D:\...\target\"
+          Write-Host "Base path: $basePath (len $baseLen)"
           $allItems = Get-ChildItem -File -Recurse -Force
           Write-Host "Total files found: $($allItems.Count)"
           $files = $allItems | ForEach-Object {
-              # Build relative path manually using forward slashes, no leading ./
-              $rel = $_.FullName.Substring($target.Length).TrimStart('\', '/')
-              $rel = $rel.Replace('\', '/')
-              $rel
+              $_.FullName.Substring($baseLen).Replace('\', '/')
           } | Sort-Object
           Write-Host "First 3 paths:"
           $files | Select-Object -First 3 | ForEach-Object { Write-Host "  $_" }
