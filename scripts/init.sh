@@ -12,7 +12,6 @@ if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" 
 #
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET=""
 PRESET=""
 
@@ -56,9 +55,12 @@ if [[ -z "$PRESET" ]]; then
 fi
 
 # Validate preset
-valid=false
-for p in "${PRESETS[@]}"; do [[ "$PRESET" == "$p" ]] && valid=true && break; done
-if ! $valid; then
+is_valid_preset() {
+  local p
+  for p in "${PRESETS[@]}"; do [[ "$PRESET" == "$p" ]] && return 0; done
+  return 1
+}
+if ! is_valid_preset; then
   echo "Error: Unknown preset '$PRESET'. Valid: ${PRESETS[*]}" >&2; exit 1
 fi
 
