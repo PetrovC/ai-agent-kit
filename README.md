@@ -1,4 +1,4 @@
-﻿# ai-agent-kit
+# ai-agent-kit
 
 A reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and Antigravity CLI.
 
@@ -190,6 +190,31 @@ Antigravity, or `docs/ai/`, use Option A.
 > collaborator, or authenticated `gh`/git). The plugin `source` is `"./"`
 > (same-repo relative path), so the plugin is served from that one
 > authenticated clone â€” no second fetch that could fail on a private repo.
+
+#### Pinning and pre-enabling the plugin (team setup)
+
+For teams where everyone should have the plugin active and no unapproved
+plugins should be installable, add these two keys to the project
+`settings.json` (or `CLAUDE.local.json` for personal overrides):
+
+```json
+{
+  "strictKnownMarketplaces": true,
+  "enabledPlugins": ["PetrovC/ai-agent-kit@ai-agent-kit"]
+}
+```
+
+- **`strictKnownMarketplaces: true`** — Claude Code will only allow installing
+  plugins from sources already listed in your `settings.json` marketplace
+  entries. Prevents accidental installs from unknown sources.
+- **`enabledPlugins`** — list of plugin IDs that are automatically active for
+  every session. The format is `<org>/<repo>@<plugin-name>`, which matches the
+  values you pass to `/plugin install`.
+
+> **Note:** `enabledPlugins` does not replace `/plugin marketplace add` on each
+> machine; it is a session-activation shortcut — the marketplace source must
+> still be present (or be resolvable from the repo clone). Use it alongside a
+> shared `settings.json` committed to the project.
 
 ### Optional artifacts (not auto-installed, by design)
 
