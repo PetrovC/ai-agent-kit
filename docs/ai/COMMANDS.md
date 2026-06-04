@@ -17,6 +17,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Target "C:\path\to\project" -Strict
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Target "C:\path\to\project" -RouterMaxLines 300
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\new-skill.ps1 -Name "skill-name" -Description "Use when building a focused capability."
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\doctor.ps1 -Target "C:\path\to\project"
 ```
 
 ## POSIX Shell
@@ -29,6 +30,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\new-skill.ps1 
 ./scripts/validate.sh --target /path/to/project --strict
 ./scripts/validate.sh --target /path/to/project --router-max-lines 300
 ./scripts/new-skill.sh --name skill-name --description "Use when building a focused capability."
+./scripts/doctor.sh --target /path/to/project
 ```
 
 ## Script Semantics
@@ -40,6 +42,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\new-skill.ps1 
 | `uninstall.ps1` / `uninstall.sh` | `Target` or `--target`; optional `Tools` or `--tools`; `DryRun` or `--dry-run` | Removes managed files by manifest. Preserves `docs/ai` and user-added files. |
 | `validate.ps1` / `validate.sh` | `Target` or `--target`; optional `Strict` or `--strict`; optional `RouterMaxLines` or `--router-max-lines` | Checks required `docs/ai` files, template warning notices, HTML placeholders, common template placeholders, router line budgets (default 320 lines; override via flag or `AAK_ROUTER_MAX_LINES`), Codex context/model/subagent link hygiene, largest Codex-facing context files, and repo-local Claude/Codex/Antigravity dogfood drift (content + git mode) when run against this source tree. In strict mode, fails if update dry-run would modify project-owned `docs/ai/` or `.mcp.json`. |
 | `new-skill.ps1` / `new-skill.sh` | `Name` or `--name`; optional `Description` or `--description` | Scaffolds `skills/<name>/SKILL.md` and routing placeholders. |
+| `doctor.ps1` / `doctor.sh` | `Target` or `--target` | Diagnoses target project installation health (missing files, manifest drift, outdated version, non-executable hooks, docs/ai and MCP example presence). |
 
 ## Install / Update Audit Record
 
