@@ -4,6 +4,13 @@
 
 ### Added
 
+- **`feat(shared)` — add 5 governance-policy templates to `project-template/` (#172).**
+  `CONTEXT_GOVERNANCE.md`, `SUBAGENT_GOVERNANCE.md`, `MCP_POLICY.md`,
+  `MODEL_ROUTING.md`, and `CONTEXT_SANITIZATION.md` are now installed into
+  `docs/ai/` on first `install.sh` / `install.ps1` run (skip-if-exists,
+  same behaviour as the existing project-template files). Target projects can
+  opt out by deleting the files after install.
+
 - **`docs` — add `docs/RELEASE_CHECKLIST.md` and version-pinning guidance in README (#140).**
   `docs/RELEASE_CHECKLIST.md` is a concise maintainer checklist covering pre-flight checks,
   CHANGELOG promotion, tag creation (with confirmation note), and GitHub Release creation.
