@@ -127,7 +127,7 @@ delegate() {
     assert_output_contains '"status":"success"'
 }
 
-@test "delegate routes investigation/medium to the Antigravity Pro model hint" {
+@test "delegate routes investigation/medium to the Antigravity Opus model hint" {
     delegate --provider antigravity --task-type investigation --risk medium \
         --run-id run_agy_deep
     assert_success
@@ -137,15 +137,35 @@ delegate() {
     assert_output_contains "--sandbox"
     assert_output_contains "--dangerously-skip-permissions"
     run cat "$STUB_ENV"
-    assert_output_contains "gemini-3.1-pro"
+    assert_output_contains "claude-opus-4-6"
 }
 
-@test "delegate routes daily/medium to the Antigravity Flash model hint" {
+@test "delegate routes daily/medium to the Antigravity Sonnet model hint" {
     delegate --provider antigravity --task-type daily --risk medium \
         --run-id run_agy_std
     assert_success
     run cat "$STUB_ENV"
-    assert_output_contains "gemini-3-flash"
+    assert_output_contains "claude-sonnet-4-6"
+}
+
+@test "delegate uses workspace-write sandbox for Codex implementation tasks" {
+    delegate --provider codex --task-type feat --risk medium \
+        --run-id run_codex_impl
+    assert_success
+    run cat "$STUB_RECORD"
+    assert_output_contains "workspace-write"
+    run grep "read-only" "$STUB_RECORD"
+    assert_failure
+}
+
+@test "delegate drops --sandbox for Antigravity implementation tasks" {
+    delegate --provider antigravity --task-type feat --risk medium \
+        --run-id run_agy_impl
+    assert_success
+    run cat "$STUB_RECORD"
+    assert_output_contains "--dangerously-skip-permissions"
+    run grep -- "--sandbox" "$STUB_RECORD"
+    assert_failure
 }
 
 @test "delegate emits Antigravity events with the provider field" {
