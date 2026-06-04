@@ -113,6 +113,8 @@ Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
 
 #### Windows notes
 
+For full Windows hook setup guidance, see [docs/ai/WINDOWS_HOOKS.md](docs/ai/WINDOWS_HOOKS.md).
+
 For maintainer-side command references and hook diagnostics, see
 [docs/ai/COMMANDS.md](docs/ai/COMMANDS.md) and
 [docs/ai/CONTEXT_SANITIZATION.md](docs/ai/CONTEXT_SANITIZATION.md).
