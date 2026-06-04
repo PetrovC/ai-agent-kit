@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`docs(claude)` - improve Windows hook guidance for bash-installed setups (#151).**
+  Adds "Windows hook setup" section to `CLAUDE.md`, links to a new dedicated guide
+  `docs/ai/WINDOWS_HOOKS.md`, and updates `README.md` to help Windows users verify
+  and configure their default shells correctly, resolving common issues where hooks
+  silently fail due to WSL or MS Store bash aliases.
+
 - **`feat(claude)` - tune skill listing budget for 30 skills (#187).**
   Adds `skillListingBudgetFraction: 0.01` and `maxSkillDescriptionChars: 600` to
   `tooling/claude/settings.json` and its Windows variant. At 30 skills, capping descriptions

@@ -166,6 +166,14 @@ Optional, opt-in `settings.json` keys (off by default): `autoMemoryEnabled` /
 `awsCredentialExport` / `gcpAuthRefresh` (runtime credentials),
 `disableSkillShellExecution` (block skill shell exec in locked-down CI).
 
+## Windows hook setup
+
+Hooks run as bash scripts. On Windows, Claude Code must resolve `bash` to Git Bash or WSL bash,
+NOT the Microsoft Store app-execution alias.
+
+Quick check: `bash -c "echo ok"` must print `ok` in the terminal Claude Code uses.
+See `docs/ai/WINDOWS_HOOKS.md` for full guidance.
+
 ## Definition of Done
 
 - [ ] Requested behavior implemented.
