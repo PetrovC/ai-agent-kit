@@ -87,8 +87,7 @@ PowerShell.
 - Hooks are not a sandbox and cannot provide process isolation.
 - No built-in signed integrity verification for installed hook/script assets.
 - No universal audit log writer exists yet for hook decisions or MCP invocation
-  history; the anonymized data contract is defined in
-  [AGENT_AUDIT_SCHEMA.md](./AGENT_AUDIT_SCHEMA.md).
+  history; governance relies on PR review and CI validation.
 - Permission hardening depends on provider/runtime configuration in target repos.
 
 ## Review Cadence
