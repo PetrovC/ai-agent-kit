@@ -1,6 +1,11 @@
 # ai-agent-kit
 
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/PetrovC/ai-agent-kit/badge)](https://securityscorecards.dev/viewer/?uri=github.com/PetrovC/ai-agent-kit)
+[![Quality gate](https://github.com/PetrovC/ai-agent-kit/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/PetrovC/ai-agent-kit/actions/workflows/quality-gate.yml)
+[![OpenSSF Scorecard workflow](https://github.com/PetrovC/ai-agent-kit/actions/workflows/scorecard.yml/badge.svg)](https://github.com/PetrovC/ai-agent-kit/actions/workflows/scorecard.yml)
+![GitHub License](https://img.shields.io/github/license/PetrovC/ai-agent-kit)
+![GitHub release](https://img.shields.io/github/v/release/PetrovC/ai-agent-kit)
+![GitHub last commit](https://img.shields.io/github/last-commit/PetrovC/ai-agent-kit)
 
 A reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and Antigravity CLI.
 
@@ -602,6 +607,23 @@ first update after upgrading to this version just establishes the baseline
 A complete reference of what filled templates look like — for a fictional
 SaaS — is in `examples/filled-project/docs/ai/`. Use it as a model when
 filling `docs/ai/` in your own project.
+
+---
+
+## Security posture
+
+This repository uses several automated guardrails and visibility signals:
+
+- **OpenSSF Scorecard** — supply-chain security posture, visible in the badge above.
+- **GitHub Actions quality gate** — pull request validation (scripts, hooks, install, parity, manifest).
+- **GitHub Dependabot** — automatic dependency and GitHub Actions updates.
+- **GitHub code scanning / CodeQL** — static analysis enabled through GitHub Advanced Security default setup.
+- **Published security policy** — [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+- **MIT license** — open, auditable source.
+
+These are guardrails and visibility signals. They reduce risk but do not replace
+code review, least-privilege workflow permissions, isolated agent execution, or
+responsible disclosure.
 
 ---
 
