@@ -111,7 +111,24 @@ particular has no marketplace mechanism, so files must be placed in the repo.
 ./scripts/install.sh --target /path/to/your-project --tools codex,claude,agy
 ```
 
-Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project. Governance policy templates (CONTEXT_GOVERNANCE, SUBAGENT_GOVERNANCE, MCP_POLICY, MODEL_ROUTING, CONTEXT_SANITIZATION) are now also installed as editable project-owned templates.
+Then fill in `docs/ai/PROJECT.md` and `docs/ai/COMMANDS.md` in your project.
+
+#### Governance templates
+
+A full install (`--profile full`, the default) also copies five governance policy
+templates into your project's `docs/ai/` directory:
+
+| File | Purpose | Fill in |
+|---|---|---|
+| `CONTEXT_GOVERNANCE.md` | Context thresholds, compaction policy, router budgets | Team-specific thresholds, project CI commands |
+| `SUBAGENT_GOVERNANCE.md` | When to delegate vs. work inline; no-duplicate-reading rules | Project-specific subagent registry |
+| `MCP_POLICY.md` | Which MCP servers are allowed, scopes, approval process | Your approved server list |
+| `MODEL_ROUTING.md` | Model selection rules per task complexity | Your preferred models |
+| `CONTEXT_SANITIZATION.md` | What must never appear in briefs or logs | Project-specific secrets and PII patterns |
+
+Each file is **project-owned** — the kit never overwrites them after the first
+install. Edit them to match your team's standards. The templates contain
+`<!-- TODO: fill in -->` markers to guide customization.
 
 #### Pinning to a release
 
