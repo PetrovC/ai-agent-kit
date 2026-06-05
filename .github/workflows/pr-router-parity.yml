@@ -67,6 +67,7 @@ jobs:
             "Slash commands"
             "Permissions: ask rules"
             "Windows hook setup"
+            "Token logger"
           )
 
           is_exempt() {

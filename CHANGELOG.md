@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(hooks)` — add opt-in approximate token logger hook (#159).**
+  `tooling/claude/hooks/token-log.sh` is a new `PostToolUse` hook that appends
+  per-call approximate token usage to `.claude/session-log/token-log.jsonl`.
+  Token counts are estimated (input/output chars / 4). Disabled by default;
+  opt-in via `settings.json`.
+
 - **`feat(scripts)` — add `--profile minimal` to `install.sh` / `install.ps1` (#170).**
   `--profile minimal` installs only skills + root router files (CLAUDE.md, AGENTS.md, AGY.md),
   skipping hooks, settings, commands, agents, docs/ai/ templates, and shared tooling.
@@ -99,6 +105,15 @@
   sandbox (was always `read-only`) and drop agy `--sandbox`, enabling the provider to write files,
   run git, and create pull-requests. `MODEL_ROUTING.md` updated to reflect the new agy subagent
   model table.
+
+### Changed
+
+- **`docs` — expand README governance section and add CONTRIBUTING.md link (#175).**
+  The install-script section now includes a table describing each of the five
+  governance templates (`CONTEXT_GOVERNANCE`, `SUBAGENT_GOVERNANCE`, `MCP_POLICY`,
+  `MODEL_ROUTING`, `CONTEXT_SANITIZATION`) that a full install copies into
+  `docs/ai/`. `CONTRIBUTING.md` now links to these templates for contributors
+  making policy-relevant changes.
 
 ### Fixed
 
