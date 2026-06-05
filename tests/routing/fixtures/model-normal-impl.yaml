@@ -1,0 +1,9 @@
+description: "Normal implementation, medium risk -> balanced, no confirmation"
+task: "implement user login endpoint with JWT validation"
+risk: medium
+context_size: medium
+expected:
+  intent: implementation
+  base_tier: balanced
+  final_tier: balanced
+  requires_confirmation: false

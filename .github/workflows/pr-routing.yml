@@ -5,9 +5,12 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'scripts/select-skills.py'
+      - 'scripts/select-model.py'
       - 'skills/**'
+      - 'config/model-policy.yaml'
       - 'tests/routing/**'
       - 'tests/bats/routing.bats'
+      - 'tests/bats/model-routing.bats'
 
 permissions:
   contents: read
@@ -23,15 +26,16 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
 
-      - name: Run skill selector on all fixtures
+      - name: Run skill selector on all skill fixtures
         run: |
           set -euo pipefail
           errors=0
           for fixture in tests/routing/fixtures/*.yaml; do
+            # Skip model-selection fixtures (handled in the next step)
             name=$(basename "$fixture" .yaml)
-            echo "--- fixture: $name ---"
+            case "$name" in model-*) continue ;; esac
+            echo "--- skill fixture: $name ---"
 
-            # Extract task and files from fixture using python
             task=$(python3 -c "
           import sys
           lines = open('$fixture').read()
@@ -64,7 +68,47 @@ jobs:
             fi
           done
           [[ "$errors" -eq 0 ]] || exit 1
-          echo "All fixtures passed"
+          echo "All skill fixtures passed"
+
+      - name: Run model selector on all model fixtures
+        run: |
+          set -euo pipefail
+          errors=0
+          for fixture in tests/routing/fixtures/model-*.yaml; do
+            name=$(basename "$fixture" .yaml)
+            echo "--- model fixture: $name ---"
+
+            task=$(python3 -c "
+          import re
+          lines = open('$fixture').read()
+          m = re.search(r'^task: \"(.*)\"', lines, re.MULTILINE)
+          if not m:
+              m = re.search(r\"^task: '(.*)'\", lines, re.MULTILINE)
+          print(m.group(1) if m else '')
+          ")
+
+            risk=$(python3 -c "
+          import re
+          lines = open('$fixture').read()
+          m = re.search(r'^risk: (\w+)', lines, re.MULTILINE)
+          print(m.group(1) if m else 'medium')
+          ")
+
+            ctx=$(python3 -c "
+          import re
+          lines = open('$fixture').read()
+          m = re.search(r'^context_size: (\w+)', lines, re.MULTILINE)
+          print(m.group(1) if m else 'medium')
+          ")
+
+            python3 scripts/select-model.py \
+              --task "$task" --risk "$risk" --context-size "$ctx" || {
+              echo "FAILED: $fixture"
+              errors=$((errors+1))
+            }
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+          echo "All model fixtures passed"
 
       - name: Install bats
         run: |
@@ -73,3 +117,6 @@ jobs:
 
       - name: Run routing BATS tests
         run: bats tests/bats/routing.bats
+
+      - name: Run model routing BATS tests
+        run: bats tests/bats/model-routing.bats

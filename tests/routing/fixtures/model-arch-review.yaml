@@ -1,0 +1,9 @@
+description: "Architecture review with high risk -> high_reasoning, confirmation required"
+task: "review the service layer architecture and identify boundary violations"
+risk: high
+context_size: medium
+expected:
+  intent: architecture_review
+  base_tier: high_reasoning
+  final_tier: high_reasoning
+  requires_confirmation: true
