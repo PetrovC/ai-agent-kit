@@ -1,0 +1,6 @@
+# Testing skill paths: any test file in any language
+tests/Unit/UserTests.cs
+src/__tests__/Button.test.tsx
+test_api.py
+app_test.go
+spec/user_spec.rb

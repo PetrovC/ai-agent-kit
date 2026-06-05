@@ -1,0 +1,4 @@
+# Normal source files should not trigger testing skill alone
+src/api/Program.cs
+main.py
+go.mod

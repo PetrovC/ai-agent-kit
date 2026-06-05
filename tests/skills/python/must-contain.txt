@@ -1,0 +1,5 @@
+# Key terms in python/SKILL.md
+pytest
+pip
+virtualenv
+type hints
