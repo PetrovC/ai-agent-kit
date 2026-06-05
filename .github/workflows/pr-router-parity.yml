@@ -69,6 +69,7 @@ jobs:
             "Windows hook setup"
             "Token logger"
             "Worktree settings"
+            "Statusline"
           )
 
           is_exempt() {
