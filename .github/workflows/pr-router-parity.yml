@@ -68,6 +68,7 @@ jobs:
             "Permissions: ask rules"
             "Windows hook setup"
             "Token logger"
+            "Worktree settings"
           )
 
           is_exempt() {
