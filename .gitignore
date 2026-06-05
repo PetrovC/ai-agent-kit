@@ -40,3 +40,6 @@ CLAUDE.local.md
 
 # Local runtime lock written by the scheduled-task / loop feature.
 /.claude/scheduled_tasks.lock
+
+# Runtime cache written by CLI tools (e.g. gh, agy).
+/cache/
