@@ -31,6 +31,12 @@
 
 ### Added
 
+- **`feat(routing)` — define adaptive skill and subagent routing design (#414).**
+  New `docs/ai/ADAPTIVE_ROUTING.md` documents the 5-stage adaptive routing
+  pipeline: classify task intent → select skills → select references → decide
+  delegation → synthesize results. Includes 4 worked examples, context protection
+  rules, delegation plan shape, and design principles.
+
 - **`feat(agents)` — add reverse-validation directive to all agent instructions (#423).**
   `AGENTS.md`, `AGY.md`, and `tooling/claude/CLAUDE.md`, `tooling/codex/AGENTS.md`,
   `tooling/agy/AGY.md` each gain a `## Reverse validation` section placed before
