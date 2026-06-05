@@ -1,0 +1,9 @@
+description: "Security audit -> high_reasoning, confirmation required"
+task: "security review of the authentication and session management code"
+risk: high
+context_size: medium
+expected:
+  intent: security_review
+  base_tier: high_reasoning
+  final_tier: high_reasoning
+  requires_confirmation: true

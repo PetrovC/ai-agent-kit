@@ -1,0 +1,9 @@
+description: "Small fix bumped from fast to balanced by high risk"
+task: "update config file environment variables"
+risk: high
+context_size: medium
+expected:
+  intent: small_fix
+  base_tier: fast
+  final_tier: balanced
+  requires_confirmation: false

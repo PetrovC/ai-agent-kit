@@ -1,0 +1,196 @@
+# Model Selection Policy
+# Machine-readable policy consumed by scripts/select-model.py.
+# Human-readable companion: docs/ai/MODEL_SELECTION.md
+#
+# Parser constraint: no YAML anchors, no multiline block scalars.
+# This keeps the file parseable by the minimal stdlib parser in select-model.py.
+version: "1.0"
+updated: "2026-06-05"
+
+# Provider → tier → model identifier.
+# Centralised here so scripts never hardcode model names.
+providers:
+  claude:
+    tiers:
+      fast: "claude-haiku-4-5"
+      balanced: "claude-sonnet-4-6"
+      high_reasoning: "claude-opus-4-8"
+  codex:
+    tiers:
+      fast: "gpt-5.5/low"
+      balanced: "gpt-5.5/medium"
+      high_reasoning: "gpt-5.5/high"
+  antigravity:
+    tiers:
+      fast: "claude-sonnet-4-6"
+      balanced: "claude-sonnet-4-6"
+      high_reasoning: "claude-opus-4-8"
+
+# Intent definitions.
+# The script matches keywords (case-insensitive substring) against --task text.
+# First match wins; fallback intent is "implementation" (balanced tier).
+intents:
+  - name: docs_typo
+    tier: fast
+    keywords:
+      - "typo"
+      - "fix typo"
+      - "fix spelling"
+      - "whitespace"
+      - "fix format"
+      - "formatting"
+    description: "Documentation typo cleanup, simple formatting."
+
+  - name: small_fix
+    tier: fast
+    keywords:
+      - "small fix"
+      - "simple fix"
+      - "isolated fix"
+      - "rename variable"
+      - "update constant"
+      - "update config"
+      - "update env"
+    description: "Small isolated script or config fix."
+
+  - name: ci
+    tier: fast
+    keywords:
+      - "github actions"
+      - "ci pipeline"
+      - "update workflow"
+      - "add workflow"
+    description: "CI workflow addition or update."
+
+  - name: test_update
+    tier: balanced
+    keywords:
+      - "update test"
+      - "add test"
+      - "fix test"
+      - "test coverage"
+      - "write test"
+      - "unit test"
+      - "integration test"
+    description: "Test additions or updates."
+
+  - name: implementation
+    tier: balanced
+    keywords:
+      - "implement"
+      - "add feature"
+      - "add endpoint"
+      - "add api"
+      - "add command"
+      - "add script"
+      - "build feature"
+      - "new feature"
+      - "create endpoint"
+    description: "Normal implementation work."
+
+  - name: debugging
+    tier: balanced
+    keywords:
+      - "debug"
+      - "fix bug"
+      - "bugfix"
+      - "trace error"
+      - "reproduce error"
+      - "fix crash"
+      - "fix regression"
+    description: "Everyday bug fixes and debugging."
+
+  - name: refactor
+    tier: balanced
+    keywords:
+      - "refactor"
+      - "clean up"
+      - "extract function"
+      - "extract class"
+      - "move file"
+      - "reorganize"
+      - "restructure"
+    description: "Scoped refactor within one area."
+
+  - name: architecture_review
+    tier: high_reasoning
+    keywords:
+      - "architecture review"
+      - "design review"
+      - "layer boundary"
+      - "system design"
+      - "service boundary"
+      - "domain model"
+      - "cross-service"
+      - "broad refactor"
+      - "cross-module"
+    description: "Architecture review or broad, cross-cutting refactor."
+
+  - name: security_review
+    tier: high_reasoning
+    keywords:
+      - "security review"
+      - "security audit"
+      - "authentication"
+      - "authorization"
+      - "threat model"
+      - "csrf"
+      - "cors"
+      - "injection"
+      - "vulnerability"
+      - "cve"
+      - "pentest"
+    description: "Security-sensitive changes or audit."
+
+  - name: investigation
+    tier: high_reasoning
+    keywords:
+      - "investigate"
+      - "root cause"
+      - "production bug"
+      - "incident"
+      - "data loss"
+      - "migration plan"
+      - "cross-repo"
+    description: "Ambiguous production bug investigation or cross-repo migration."
+
+  - name: planning
+    tier: high_reasoning
+    keywords:
+      - "planning"
+      - "release plan"
+      - "roadmap"
+      - "spike"
+      - "technical decision"
+      - "tech debt triage"
+      - "architecture decision"
+      - "adr"
+    description: "Release planning, cross-cutting design, ADR."
+
+# Risk bumps: how many tier levels to add based on risk.
+# fast→balanced = 1, balanced→high_reasoning = 1 (clamped at high_reasoning).
+risk_bumps:
+  high: 1
+  critical: 2
+
+# Context-size bumps: how many tier levels to add.
+context_size_bumps:
+  large: 1
+
+# Tier ordering used for bump arithmetic (index = level number).
+tier_order:
+  - fast
+  - balanced
+  - high_reasoning
+
+# Whether the user must confirm before the tier is used.
+confirmation_policy:
+  high_reasoning: true
+  balanced: false
+  fast: false
+
+# Default provider fallback order when --provider is "any".
+fallback_order:
+  - claude
+  - codex
+  - antigravity
