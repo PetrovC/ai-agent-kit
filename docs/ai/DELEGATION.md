@@ -6,7 +6,27 @@ task type and risk. This is the narrow adapter [ADR-018](./DECISIONS.md#adr-018-
 and [ADR-020](./DECISIONS.md#adr-020-a-narrow-opt-in-cross-tool-delegation-adapter)
 explicitly leave room for — **not** a cross-tool orchestration platform.
 
-Status: **Codex and Antigravity providers shipped.**
+Status: **Claude, Codex, and Antigravity providers shipped. Delegation is symmetrical.**
+
+## Symmetry model
+
+Any of the three supported agents can delegate to either of the other two:
+
+```text
+Claude Code  ──►  Codex CLI
+             ──►  Antigravity
+
+Codex CLI    ──►  Claude Code
+             ──►  Antigravity
+
+Antigravity  ──►  Claude Code
+             ──►  Codex CLI
+```
+
+Provider-specific behavior lives in thin adapter functions
+(`build_claude_argv`, `build_codex_argv`, `build_antigravity_argv`) inside the
+adapter. Shared policy (routing depth, privacy scan, fail-open contract) is
+never duplicated. See `AGENTS.md` and `AGY.md` for per-agent delegation guides.
 
 ## What it is (and is not)
 
@@ -55,13 +75,25 @@ read and verify.
 The task type and risk map to a **routing depth**, and each depth maps to a
 provider-specific model/effort. See [MODEL_ROUTING.md](./MODEL_ROUTING.md).
 
-| Depth | When | Codex (`gpt-5.5`) effort | Antigravity model hint |
-|---|---|---|---|
-| `deep` | security/architecture/review/investigation tasks, or `high`/`critical` risk | `model_reasoning_effort=high` | `gemini-3.1-pro` |
-| `standard` | everyday implementation | `model_reasoning_effort=medium` | `gemini-3-flash` |
-| `readonly` | mechanical / exploration / lookup | `model_reasoning_effort=low` | `gemini-3-flash` |
+| Depth | When | Codex (`gpt-5.5`) effort | Antigravity model hint | Claude model |
+|---|---|---|---|---|
+| `deep` | security/architecture/review/investigation, or `high`/`critical` risk | `model_reasoning_effort=high` | `claude-opus-4-8` | `claude-opus-4-8` |
+| `standard` | everyday implementation | `model_reasoning_effort=medium` | `claude-sonnet-4-6` | `claude-sonnet-4-6` |
+| `readonly` | mechanical / exploration / lookup | `model_reasoning_effort=low` | `claude-sonnet-4-6` | `claude-haiku-4-5` |
 
 ## Verified provider invocations
+
+**Claude Code** (headless `--print` mode) — verified against
+`code.claude.com/docs` (accessed 2026-06-05):
+
+```
+claude --print "<sanitized brief>" --model <model> [--dangerously-skip-permissions]
+```
+
+- `--print` runs a single prompt non-interactively and prints plain text.
+- `--model` sets the model for this invocation.
+- `--dangerously-skip-permissions` is added only for implementation tasks
+  (`write_mode=True`); read-only delegations omit it to avoid accidental writes.
 
 **Codex** (non-interactive) — verified against
 `developers.openai.com/codex/noninteractive` and `/config-reference`:

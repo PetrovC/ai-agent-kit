@@ -30,6 +30,8 @@ __pycache__/
 /.claude/settings.local.json
 /.claude/session-log/
 /.claude/worktrees/
+/.claude/briefs/
+/.claude/merge-changelog.py
 CLAUDE.local.md
 
 # Local release-readiness signal written by the /cut-release command.

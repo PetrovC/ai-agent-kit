@@ -143,6 +143,41 @@ multi-agent mechanism. The `tooling/codex/skills/<name>/SKILL.md` files are
 retained as system-prompt documentation; the authoritative profile mapping is
 now the `config.toml` table.
 
+## Cross-agent delegation
+
+Codex can delegate a single scoped task to Claude or Antigravity using the
+kit's delegation adapter. This is **opt-in** and fail-open — a missing or
+failing provider CLI leaves default behavior unchanged.
+
+**When to delegate:**
+- The task fits a different provider's strengths (e.g., Claude for planning
+  and multi-step write workflows, Antigravity for Gemini-pool tasks).
+- A review, security check, or architecture assessment benefits from a second
+  provider opinion.
+
+**How to invoke (POSIX):**
+```bash
+python3 .ai-agent-kit/delegate/delegate.py \
+  --provider claude \
+  --task-type security_review --risk high \
+  --brief-file ./brief.txt
+
+python3 .ai-agent-kit/delegate/delegate.py \
+  --provider antigravity \
+  --task-type implementation --risk medium \
+  --brief-file ./brief.txt
+```
+
+| Argument | Meaning |
+|---|---|
+| `--provider` | `claude` \| `codex` \| `antigravity` |
+| `--task-type` | drives model-tier routing (`security_review`, `implementation`, `exploration`, …) |
+| `--risk` | `low` \| `medium` \| `high` \| `critical` |
+| `--brief-file` | path to a sanitized plain-text brief (never inline secrets or absolute paths) |
+
+The sanitized provider answer is printed to stdout. Always verify it at a
+mandatory checkpoint before trusting it. See `docs/ai/DELEGATION.md`.
+
 ## Engineering principles
 
 - Prefer simple, explicit, consistent solutions over clever ones.
