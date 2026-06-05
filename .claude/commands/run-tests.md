@@ -12,11 +12,28 @@ Steps:
 3. If they pass, run the full suite.
 4. Use the `test-runner` subagent if the output is large.
 
-Report:
-- Commands run.
-- Result: X passed, Y failed, Z skipped.
-- Failing tests: name + short failure reason.
-- Whether failures are pre-existing or caused by the current change.
-- What is NOT covered and why.
+## Output format (strict — no prose)
 
-Do not fix test failures. Report them.
+Use exactly this Markdown table. Do not add narration outside the table and the failures list.
+
+| | Count |
+|---|---|
+| ✅ Passed | `N` |
+| ❌ Failed | `N` |
+| ⏭️ Skipped | `N` |
+| 🕒 Duration | `Ns` |
+
+**Commands run:** `<command 1>`, `<command 2>`
+
+**Failing tests (top 5):**
+
+| Test | Reason |
+|---|---|
+| `<TestName>` | `<one-line reason>` |
+
+**Pre-existing failures:** yes / no / unknown
+
+**Not covered:** `<what was not tested and why, or "none">`
+
+Do not fix test failures. Report them only.
+

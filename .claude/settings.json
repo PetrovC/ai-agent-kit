@@ -1,6 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "model": "claude-sonnet-4-6",
+  "skillListingBudgetFraction": 0.01,
+  "maxSkillDescriptionChars": 600,
   "cleanupPeriodDays": 30,
   "includeGitInstructions": false,
   "permissions": {
@@ -40,6 +42,13 @@
       "WebFetch(domain:go.dev)",
       "WebFetch(domain:doc.rust-lang.org)",
       "WebFetch(domain:kubernetes.io)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git tag:*)",
+      "Bash(dotnet publish:*)",
+      "Bash(npm publish:*)",
+      "Bash(docker push:*)"
     ],
     "deny": [
       "Bash(git push --force:*)",

@@ -1,4 +1,4 @@
-﻿# CLAUDE.md
+# CLAUDE.md
 
 ## Role
 
@@ -21,6 +21,19 @@ reads this file at startup, auto-loads any `.claude/rules/*.md` whose `paths:`
 match the files you open, and lazy-loads skills via the routing table below.
 Reference: [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code).
 
+## Permissions: ask rules
+
+The `permissions.ask` list holds commands that require explicit interactive confirmation before each run. This list sits between `allow` (silently permitted) and `deny` (hard-blocked).
+
+Commands currently configured under `ask`:
+- `git push` (all remotes)
+- `git tag` (all forms)
+- `dotnet publish`
+- `npm publish`
+- `docker push`
+
+**Rationale:** These operations are irreversible or cross network/registry boundaries (e.g., pushing code or container images to remotes, creating release tags, or publishing build artifacts), and thus warrant confirmation. To adjust these rules, edit `tooling/claude/settings.json` and its Windows variant `tooling/claude/settings.windows.json`.
+
 ## Session hygiene
 
 Actions, not philosophy. Full detail: `docs/ai/CONTEXT_GOVERNANCE.md`.
@@ -33,12 +46,32 @@ Actions, not philosophy. Full detail: `docs/ai/CONTEXT_GOVERNANCE.md`.
 | 80%+ | Stop. Summarize state, then start a fresh session. |
 
 - `/compact` summarises conversation + tool output and preserves the working
-  summary; prefer it over `/clear`. You cannot invoke it â€” recommend it, then
+  summary; prefer it over `/clear`. You cannot invoke it — recommend it, then
   wait for the user.
 - Recommend `/compact` **before** a heavy step: 4+ sequential reads, a large
   log/diff/test dump just landed, ~20+ turns, or a broad multi-file refactor.
 - One PR per session; quit between PRs. Stay in-session only when the next PR
-  depends on the previous PR's uncommitted reasoning â€” once merged, it is in git.
+  depends on the previous PR's uncommitted reasoning — once merged, it is in git.
+
+## Token logger (opt-in)
+
+`tooling/claude/hooks/token-log.sh` appends per-tool-call approximate token
+estimates to `.claude/session-log/token-log.jsonl`. To enable, add it to
+`PostToolUse` in `.claude/settings.json`:
+
+```json
+{
+  "matcher": "",
+  "hooks": [{
+    "type": "command",
+    "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/token-log.sh\"",
+    "async": true
+  }]
+}
+```
+
+Token counts are estimated (chars / 4). Use them for session cost trends, not
+billing reconciliation.
 
 ## Slash commands
 
@@ -165,6 +198,14 @@ Optional, opt-in `settings.json` keys (off by default): `autoMemoryEnabled` /
 `autoMemoryDirectory` (persist cross-session facts), `apiKeyHelper` /
 `awsCredentialExport` / `gcpAuthRefresh` (runtime credentials),
 `disableSkillShellExecution` (block skill shell exec in locked-down CI).
+
+## Windows hook setup
+
+Hooks run as bash scripts. On Windows, Claude Code must resolve `bash` to Git Bash or WSL bash,
+NOT the Microsoft Store app-execution alias.
+
+Quick check: `bash -c "echo ok"` must print `ok` in the terminal Claude Code uses.
+See `docs/ai/WINDOWS_HOOKS.md` for full guidance.
 
 ## Definition of Done
 
