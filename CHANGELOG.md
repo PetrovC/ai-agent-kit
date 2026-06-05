@@ -4,6 +4,11 @@
 
 ### Added
 
+- **`docs(claude)` — add worktree settings guidance to CLAUDE.md and CONTEXT_GOVERNANCE.md (#189).**
+  Documents recommended values for `worktree.baseRef`, `worktree.symlinkDirectories`,
+  `worktree.sparsePaths`, and `worktree.bgIsolation` in `tooling/claude/CLAUDE.md`
+  with rationale table. Adds a short cross-reference in `docs/ai/CONTEXT_GOVERNANCE.md`.
+
 - **`feat(hooks)` — add opt-in approximate token logger hook (#159).**
   `tooling/claude/hooks/token-log.sh` is a new `PostToolUse` hook that appends
   per-call approximate token usage to `.claude/session-log/token-log.jsonl`.
