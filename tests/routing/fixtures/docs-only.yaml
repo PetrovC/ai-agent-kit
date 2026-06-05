@@ -1,0 +1,12 @@
+description: "Docs-only change"
+task: "Update the README with the new installation steps"
+files:
+  - "README.md"
+  - "docs/ai/COMMANDS.md"
+expected:
+  min_skills: []
+  excluded_skills:
+    - dotnet
+    - angular
+    - code-review
+  should_delegate: false

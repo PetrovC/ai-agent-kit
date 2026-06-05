@@ -88,3 +88,13 @@ assert_file_missing() {
         return 1
     fi
 }
+
+refute_output_contains() {
+    local expected="$1"
+    if echo "$output" | grep -qF "$expected"; then
+        echo "Expected output to NOT contain: $expected"
+        echo "Actual output: $output"
+        return 1
+    fi
+}
+

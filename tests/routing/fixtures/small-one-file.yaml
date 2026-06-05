@@ -1,0 +1,11 @@
+description: "Small one-file fix"
+task: "Fix typo in README"
+files:
+  - "README.md"
+expected:
+  min_skills: []
+  excluded_skills:
+    - code-review
+    - architecture
+    - dotnet
+  should_delegate: false

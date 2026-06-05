@@ -155,3 +155,59 @@ merge_strategy: >
 - **Cap subagent count**: Cap concurrent subagents at 2–3 maximum to prevent excessive multi-agent overhead.
 - **Summarized handbacks**: Subagents must only return summaries. The main agent remains responsible for synthesizing the final output.
 - **Evolving design**: Adaptive routing rules are subject to evolution; refer to decisions logged in [DECISIONS.md](DECISIONS.md) for ADRs affecting routing behavior.
+
+## Delegation planner
+
+### Delegation algorithm
+1. Count how many independent technical areas the selected skills cover (backend group vs frontend group vs docs/CI group).
+2. If count < 2: do not delegate.
+3. If task text signals small scope ("small", "quick fix", "typo", "rename", "format", "lint", etc.): do not delegate.
+4. If user explicitly scoped to one area: do not delegate.
+5. Otherwise: delegate (cap at 2–3 subagents).
+
+### Subagent assignment rules
+- **Backend subagent**: takes `dotnet`, `java-kotlin`, `node`, `go`, `rust`, `python` skills.
+- **Frontend subagent**: takes `angular`, `vue`, `react`, `svelte`, `mobile-rn`, `mobile-flutter` skills.
+- **Docs/CI subagent**: takes `github-workflow`, `infrastructure`, docs-related tasks.
+- Each subagent receives: scope definition, skill list, intent, and a brief summary.
+
+### Representative fixtures for the planner
+
+```yaml
+# no-delegation: small task
+task: "Fix typo in README"
+files: [README.md]
+expected:
+  should_delegate: false
+  reason: "small-change intent and no strong skill signal"
+
+# no-delegation: single area
+task: "Add the TripApproval aggregate to the Domain layer"
+files: [src/Domain/Trip.cs, src/Application/Commands/ApproveTripCommand.cs]
+expected:
+  should_delegate: false
+  reason: "single technical area (dotnet backend)"
+
+# delegation: backend + frontend
+task: "Review and fix my Planora project"
+files: [src/Api/Program.cs, src/Domain/Trip.cs, apps/web/src/app/app.component.ts]
+expected:
+  should_delegate: true
+  suggested_subagents: 2
+  reason: "backend (.cs) and frontend (.ts/Angular) are independent areas"
+
+# no-delegation: docs only
+task: "Update the README with the new installation steps"
+files: [README.md, docs/ai/COMMANDS.md]
+expected:
+  should_delegate: false
+  reason: "docs-only task"
+
+# no-delegation: CI only
+task: "Add a GitHub Actions workflow for release"
+files: [.github/workflows/release.yml]
+expected:
+  should_delegate: false
+  reason: "CI-only task (single area)"
+```
+

@@ -1,0 +1,11 @@
+description: "EF Core migration"
+task: "Add EF Core migration for TripApproval table"
+files:
+  - "src/Infrastructure/Migrations/AddTripApproval.cs"
+  - "src/Infrastructure/Persistence/TripDbContext.cs"
+expected:
+  min_skills:
+    - dotnet
+  excluded_skills:
+    - angular
+  should_delegate: false
