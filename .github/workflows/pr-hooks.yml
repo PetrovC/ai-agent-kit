@@ -16,7 +16,7 @@ jobs:
     name: pre-bash-guard + non-guard hooks behavior
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Verify hook scripts exist and are executable
         run: |
@@ -290,7 +290,7 @@ jobs:
     name: Codex hooks resolve from git root
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: hooks.json commands must not use fragile relative paths
         run: |
