@@ -73,6 +73,34 @@ estimates to `.claude/session-log/token-log.jsonl`. To enable, add it to
 Token counts are estimated (chars / 4). Use them for session cost trends, not
 billing reconciliation.
 
+## Worktree settings
+
+Claude Code can spin up isolated worktrees for background and parallel tasks.
+Configure these in `.claude/settings.json`:
+
+```json
+{
+  "worktree": {
+    "baseRef": "head",
+    "symlinkDirectories": ["node_modules", "vendor", ".venv"],
+    "sparsePaths": [],
+    "bgIsolation": "sandbox"
+  }
+}
+```
+
+| Setting | Recommended | Rationale |
+|---|---|---|
+| `baseRef` | `"head"` | Branch from the current working branch, not `main`. Keeps worktree in sync with in-progress agent work. Use `"main"` only if you always work from a clean main. |
+| `symlinkDirectories` | `["node_modules", "vendor", ".venv"]` | Avoids duplicating large dependency trees into each worktree. Add your own heavy directories. |
+| `sparsePaths` | `[]` | Empty means all files — suitable for most projects. Use sparse paths only if the repo is unusually large (monorepo with >10 GB). |
+| `bgIsolation` | `"sandbox"` | Background subagents run in their own worktree sandbox. Prevents parallel agents from overwriting each other's in-progress edits. |
+
+These settings are not installed by the kit's `install.sh` script — they are
+intentionally left to the user to configure, since values depend on the target
+project's tech stack. The `settings.json` template installed by the script leaves
+the `worktree` block commented out as a starting point.
+
 ## Slash commands
 
 Fourteen workflow prompts under `.claude/commands/` (type `/` to autocomplete);

@@ -66,6 +66,15 @@ the moment; their governance is enforced through hook guards
 (`pre-bash-guard`), the `docs/ai/SUBAGENT_GOVERNANCE.md` rules, and
 the `/compact` reminder above.
 
+## Worktree isolation
+
+When Claude Code runs background agents it can place them in isolated git
+worktrees. Set `worktree.bgIsolation: "sandbox"` in `.claude/settings.json` to
+ensure parallel agents cannot overwrite each other's working files.
+
+See the **Worktree settings** section of `tooling/claude/CLAUDE.md` for the full
+recommended configuration and rationale.
+
 ## Cache Freshness
 
 Short-lived prompt/context cache windows are signals, not correctness
