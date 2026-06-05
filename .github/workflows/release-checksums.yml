@@ -49,7 +49,7 @@ jobs:
             --bundle SHA256SUMS.bundle
 
       - name: Upload SHA256SUMS and bundle to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             SHA256SUMS
