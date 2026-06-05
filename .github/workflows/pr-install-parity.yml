@@ -41,7 +41,7 @@ jobs:
           echo "--- linux file count ---"
           wc -l "$RUNNER_TEMP/install-list-linux.txt"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: install-list-linux
           path: ${{ runner.temp }}/install-list-linux.txt
@@ -78,7 +78,7 @@ jobs:
           echo "--- windows file count ---"
           wc -l "$out_unix"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: install-list-windows
           path: ${{ runner.temp }}/install-list-windows.txt

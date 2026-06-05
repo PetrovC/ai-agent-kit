@@ -42,7 +42,7 @@ jobs:
           (cd "$TARGET_DIR" && find . -type f | LC_ALL=C sort) > "$RUNNER_TEMP/manifest-bash.txt"
 
       - name: Upload Bash manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bash-manifest
           path: ${{ runner.temp }}/manifest-bash.txt
@@ -78,7 +78,7 @@ jobs:
           [System.IO.File]::WriteAllLines($outputPath, $files)
 
       - name: Upload PowerShell manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ps-manifest
           path: ${{ runner.temp }}/manifest-ps.txt
