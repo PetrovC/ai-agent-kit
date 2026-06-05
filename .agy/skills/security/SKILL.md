@@ -11,6 +11,7 @@ allowed-tools:
   - "Bash(gitleaks:*)"
   - "Bash(trivy:*)"
   - "Bash(dotnet:*)"
+version: "1.0.0"
 ---
 
 # Security Skill

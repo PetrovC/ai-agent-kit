@@ -9,6 +9,7 @@ paths:
   - "**/go.sum"
 allowed-tools:
   - "Bash(go:*)"
+version: "1.0.0"
 ---
 
 # Go Skill

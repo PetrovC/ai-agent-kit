@@ -3,6 +3,7 @@ name: security-reviewer
 description: >
   Security reviewer. Use when changes touch authentication, authorization,
   input validation, secrets, CORS, CSRF, data access, or a new dependency.
+version: "1.0.0"
 ---
 
 <!-- NOTE: Retained as system-prompt documentation. Authoritative profile: [agents.security-reviewer] in .codex/config.toml (#179). -->

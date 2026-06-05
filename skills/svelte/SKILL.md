@@ -13,6 +13,7 @@ allowed-tools:
   - "Bash(pnpm:*)"
   - "Bash(npx:*)"
   - "Bash(vite:*)"
+version: "1.0.0"
 ---
 
 # Svelte Skill

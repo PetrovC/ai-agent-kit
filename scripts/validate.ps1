@@ -415,6 +415,39 @@ if (Test-Path -LiteralPath $skillsDir -PathType Container) {
     Ok "no shared skills/ directory to check"
 }
 
+Write-Host ""
+Write-Host "> Skill frontmatter: version required"
+if (Test-Path -LiteralPath $skillsDir -PathType Container) {
+    $skillFiles = @(Get-ChildItem -LiteralPath $skillsDir -Directory |
+        ForEach-Object { Join-Path $_.FullName "SKILL.md" } |
+        Where-Object { Test-Path -LiteralPath $_ -PathType Leaf })
+    if ($skillFiles.Count -eq 0) {
+        Ok "no shared skills/ directory to check"
+    } else {
+        $skillVersionMissing = $false
+        foreach ($f in $skillFiles) {
+            $found = $false
+            $inFm = $false
+            $closed = $false
+            foreach ($line in (Get-Content -LiteralPath $f)) {
+                if ($line -match '^---\s*$') {
+                    if (-not $inFm) { $inFm = $true; continue }
+                    $closed = $true; break
+                }
+                if ($inFm -and $line -match '^version:\s*') { $found = $true }
+            }
+            if (-not $found) {
+                $rel = Convert-ToTargetRelative $f
+                Warn "$rel missing version in frontmatter"
+                $skillVersionMissing = $true
+            }
+        }
+        if (-not $skillVersionMissing) { Ok "all shared skills declare version" }
+    }
+} else {
+    Ok "no shared skills/ directory to check"
+}
+
 function Get-DogfoodSourceCandidates([string]$rel) {
     switch -Regex ($rel) {
         "^AGENTS\.md$" { return @("tooling/codex/AGENTS.md") }

@@ -8,6 +8,7 @@ allowed-tools:
   - "Bash(npm:*)"
   - "Bash(npx:*)"
   - "Bash(pnpm:*)"
+version: "1.0.0"
 ---
 
 # Accessibility (a11y) Skill

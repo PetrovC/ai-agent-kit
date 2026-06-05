@@ -9,6 +9,7 @@ allowed-tools:
   - "Bash(rabbitmqctl:*)"
   - "Bash(redis-cli:*)"
   - "Bash(aws:*)"
+version: "1.0.0"
 ---
 
 # Messaging / Event-Driven Skill

@@ -17,6 +17,7 @@ allowed-tools:
   - "Bash(vite:*)"
   - "Bash(vue-tsc:*)"
   - "Bash(nuxt:*)"
+version: "1.0.0"
 ---
 
 # Vue Skill

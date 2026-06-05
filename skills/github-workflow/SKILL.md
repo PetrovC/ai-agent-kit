@@ -9,6 +9,7 @@ paths:
 allowed-tools:
   - "Bash(git:*)"
   - "Bash(gh:*)"
+version: "1.0.0"
 ---
 
 # GitHub Workflow Skill

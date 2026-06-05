@@ -22,6 +22,7 @@ allowed-tools:
   - "Bash(npx:*)"
   - "Bash(bun:*)"
   - "Bash(deno:*)"
+version: "1.0.0"
 ---
 
 # Node.js (Backend) Skill

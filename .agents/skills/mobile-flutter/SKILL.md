@@ -11,6 +11,7 @@ paths:
 allowed-tools:
   - "Bash(flutter:*)"
   - "Bash(dart:*)"
+version: "1.0.0"
 ---
 
 # Flutter Skill

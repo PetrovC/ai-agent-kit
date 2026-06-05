@@ -4,6 +4,7 @@ description: >
   Read-only codebase investigator. Use to map affected files, execution
   paths, and dependencies before editing. Returns a concise summary —
   not raw file dumps.
+version: "1.0.0"
 ---
 
 <!-- NOTE: Retained as system-prompt documentation. Authoritative profile: [agents.codebase-investigator] in .codex/config.toml (#179). -->

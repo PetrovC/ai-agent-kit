@@ -14,6 +14,7 @@ allowed-tools:
   - "Bash(npm:*)"
   - "Bash(npx:*)"
   - "Bash(expo:*)"
+version: "1.0.0"
 ---
 
 # React Native Skill

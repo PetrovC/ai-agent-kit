@@ -15,6 +15,7 @@ paths:
 allowed-tools:
   - "Bash(./gradlew:*)"
   - "Bash(mvn:*)"
+version: "1.0.0"
 ---
 
 # Java / Kotlin Skill

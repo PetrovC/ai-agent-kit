@@ -16,6 +16,7 @@ allowed-tools:
   - "Bash(docker:*)"
   - "Bash(kubectl:*)"
   - "Bash(terraform:*)"
+version: "1.0.0"
 ---
 
 # Infrastructure Skill

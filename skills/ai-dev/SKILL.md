@@ -12,6 +12,7 @@ allowed-tools:
   - "Bash(python3:*)"
   - "Bash(uv:*)"
   - "Bash(pip:*)"
+version: "1.0.0"
 ---
 
 # AI Development Skill

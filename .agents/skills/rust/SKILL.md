@@ -10,6 +10,7 @@ paths:
   - "**/Cargo.lock"
 allowed-tools:
   - "Bash(cargo:*)"
+version: "1.0.0"
 ---
 
 # Rust Skill
