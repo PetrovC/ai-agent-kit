@@ -14,6 +14,11 @@
 
 ### Added
 
+- **`ci(scorecard)` — add minimal CodeQL/SAST workflow (#406).**
+  Analyzes Python tooling and GitHub Actions YAML on every PR and weekly
+  schedule. Improves OpenSSF Scorecard SAST check. Actions pinned to SHA.
+  Permissions: contents:read at workflow level, security-events:write at job level.
+
 - **`feat(skills)` — lightweight offline skill eval harness (#167).**
   `tests/skills/run-evals.sh` validates skill routing (path glob matching) and
   content (key term presence) without LLM calls. Ships with 3 evals: `dotnet`,
