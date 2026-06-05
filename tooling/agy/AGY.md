@@ -157,6 +157,17 @@ deprecated APIs with drop-in replacements, and transitive vulnerabilities
 - Do not read `.env`, secret files, or credentials unless explicitly approved.
 - Do not weaken authentication, authorization, CORS, CSRF, CSP, or rate limits.
 
+## Reverse validation
+
+For non-trivial tasks, do not stop at the first plausible solution. After
+proposing or implementing a solution, work backwards from that solution to the
+original problem. Verify that the resulting behavior satisfies the actual need,
+constraints, edge cases, and maintainability expectations. If the reverse check
+reveals gaps, adjust the solution before presenting it. Keep this check concise
+for small tasks and explicit for risky business logic, architecture, security,
+data, or workflow changes. See `docs/ai/REVERSE_VALIDATION.md` for guidance and
+examples.
+
 ## Definition of Done
 
 - [ ] Requested behavior implemented.

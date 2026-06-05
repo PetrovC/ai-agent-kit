@@ -24,6 +24,16 @@
 
 ### Added
 
+- **`feat(agents)` — add reverse-validation directive to all agent instructions (#423).**
+  `AGENTS.md`, `AGY.md`, and `tooling/claude/CLAUDE.md`, `tooling/codex/AGENTS.md`,
+  `tooling/agy/AGY.md` each gain a `## Reverse validation` section placed before
+  `## Definition of Done`. The directive requires agents to work backwards from any
+  non-trivial proposed solution to the original problem before presenting it, and to
+  adjust or explicitly report remaining uncertainty when the reverse check reveals gaps.
+  A new `docs/ai/REVERSE_VALIDATION.md` (and `project-template/REVERSE_VALIDATION.md`)
+  provides the full checklist and an annotated annual-leave calculation example.
+  Root `CLAUDE.md` updated identically.
+
 - **`feat(install)` — one-command bootstrap installer (#413).**
   `scripts/bootstrap.sh` (Unix/macOS) and `scripts/bootstrap.ps1` (Windows) download
   a pinned release archive from GitHub and run the local installer.
