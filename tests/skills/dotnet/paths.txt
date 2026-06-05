@@ -1,0 +1,6 @@
+src/Api/Program.cs
+src/Domain/User.cs
+tests/Unit/UserTests.cs
+MyApp/MyApp.csproj
+Directory.Build.props
+global.json

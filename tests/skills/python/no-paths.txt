@@ -1,0 +1,4 @@
+# Should NOT route to python
+src/components/Button.tsx
+Program.cs
+go.mod

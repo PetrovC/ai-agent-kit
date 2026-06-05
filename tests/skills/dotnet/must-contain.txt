@@ -1,0 +1,4 @@
+# Key terms that must appear in dotnet/SKILL.md
+dotnet build
+dotnet test
+NuGet

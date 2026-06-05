@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(skills)` — lightweight offline skill eval harness (#167).**
+  `tests/skills/run-evals.sh` validates skill routing (path glob matching) and
+  content (key term presence) without LLM calls. Ships with 3 evals: `dotnet`,
+  `python`, `testing`. Not wired to CI — run manually when editing a skill.
+  Add new evals following the pattern in `tests/skills/README.md`.
+
 - **`feat(claude)` — opt-in statusline showing context% and cache age (#156).**
   `tooling/claude/hooks/statusline.sh` is a PostToolUse hook that prints
   `[aak] ctx: N% (~X tok) | N calls | cache: <age>` after each tool call.

@@ -1,0 +1,4 @@
+# Key terms in testing/SKILL.md
+unit test
+integration test
+coverage

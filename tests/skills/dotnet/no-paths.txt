@@ -1,0 +1,5 @@
+# These should NOT route to dotnet
+src/components/Button.tsx
+main.py
+go.mod
+Cargo.toml
