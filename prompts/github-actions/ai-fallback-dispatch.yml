@@ -93,7 +93,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # actions/checkout@v4
 
       - name: Dispatch one run per open ai-fallback issue without a contract-compliant PR
         run: |
@@ -139,7 +139,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -229,7 +229,7 @@ jobs:
       - name: Claude
         if: steps.gate0.outputs.done != 'true'
         continue-on-error: true
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@0170fdd543ea09e8d47e76eeb1f3f2b1c2d66173 # anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: "Read ./.ai-task/PROMPT.md and complete the task exactly as it specifies, including the BRANCH / PR CONTRACT."
@@ -251,7 +251,7 @@ jobs:
       - name: Codex
         if: steps.gate1.outputs.done != 'true'
         continue-on-error: true
-        uses: openai/codex-action@v1
+        uses: openai/codex-action@a26d2d4d8b78a694338b8e3715c3630254340b2c # openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt: "Read ./.ai-task/PROMPT.md and complete the task exactly as it specifies, including the BRANCH / PR CONTRACT. Use git and gh to push and (only when done) open the PR."

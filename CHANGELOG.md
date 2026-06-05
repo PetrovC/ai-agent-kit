@@ -150,6 +150,12 @@
 
 ### Changed
 
+- **`ci(scorecard)` — pin all GitHub Actions to full commit SHAs (#405).**
+  Replaces mutable version tags in `.github/workflows/` and `prompts/github-actions/`
+  with 40-char commit SHAs. Human-readable tag preserved as a comment.
+  Improves OpenSSF Scorecard Pinned-Dependencies check. Dependabot can still
+  propose updates for GitHub Actions.
+
 - **`ci(scorecard)` — harden GitHub token permissions in agent-on-mention.yml (#409).**
   Removed unnecessary id-token:write. Moved write permissions to job level.
   Top-level default is now contents:read. Improves OpenSSF Scorecard
