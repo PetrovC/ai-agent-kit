@@ -145,6 +145,12 @@
 
 ### Changed
 
+- **`ci(scorecard)` — pin all GitHub Actions to full commit SHAs (#405).**
+  Replaces mutable version tags in `.github/workflows/` and `prompts/github-actions/`
+  with 40-char commit SHAs. Human-readable tag preserved as a comment.
+  Improves OpenSSF Scorecard Pinned-Dependencies check. Dependabot can still
+  propose updates for GitHub Actions.
+
 - **`refactor(skills)` — split 22 long skills into SKILL.md + SKILL.deep.md (#158).**
   Every skill that exceeded 200 lines now ships a slim `SKILL.md` (≤ 80 lines)
   for always-on loading and a `SKILL.deep.md` for extended how-to reference.

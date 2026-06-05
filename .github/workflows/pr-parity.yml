@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
 
       - name: Run install.sh
         run: |
@@ -42,7 +42,7 @@ jobs:
           (cd "$TARGET_DIR" && find . -type f | LC_ALL=C sort) > "$RUNNER_TEMP/manifest-bash.txt"
 
       - name: Upload Bash manifest
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # actions/upload-artifact@v7
         with:
           name: bash-manifest
           path: ${{ runner.temp }}/manifest-bash.txt
@@ -52,7 +52,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
 
       - name: Run install.ps1
         shell: pwsh
@@ -78,7 +78,7 @@ jobs:
           [System.IO.File]::WriteAllLines($outputPath, $files)
 
       - name: Upload PowerShell manifest
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # actions/upload-artifact@v7
         with:
           name: ps-manifest
           path: ${{ runner.temp }}/manifest-ps.txt
@@ -89,16 +89,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
 
       - name: Download Bash manifest
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # actions/download-artifact@v8
         with:
           name: bash-manifest
           path: bash-manifest-dir
 
       - name: Download PowerShell manifest
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # actions/download-artifact@v8
         with:
           name: ps-manifest
           path: ps-manifest-dir

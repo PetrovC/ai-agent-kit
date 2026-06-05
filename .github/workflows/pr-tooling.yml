@@ -16,7 +16,7 @@ jobs:
     name: Claude tooling validity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
 
       - name: Every rule file must have a paths frontmatter key
         run: |
@@ -135,7 +135,7 @@ jobs:
     name: Codex tooling validity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
 
       - name: Each approval_policy line must use a value the Rust CLI accepts
         run: |
@@ -221,7 +221,7 @@ jobs:
     name: Antigravity tooling validity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
 
       - name: Each Antigravity subagent must have name + description frontmatter
         run: |
@@ -306,7 +306,7 @@ jobs:
     name: POSIX/Windows JSON variants must share the same key set
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
 
       # Audit P1-D. install.sh copies tooling/{claude/settings.json,
       # codex/hooks.json}; install.ps1 copies the *.windows.json sibling.

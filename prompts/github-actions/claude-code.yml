@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@0170fdd543ea09e8d47e76eeb1f3f2b1c2d66173 # anthropics/claude-code-action@v1
         with:
           # Direct Anthropic API. For AWS Bedrock or Google Vertex AI, omit this and
           # pass the relevant cloud env vars instead — see:

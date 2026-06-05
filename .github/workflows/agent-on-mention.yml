@@ -37,12 +37,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Run Claude
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@0170fdd543ea09e8d47e76eeb1f3f2b1c2d66173 # anthropics/claude-code-action@v1
         with:
           # Uses your Claude Pro/Max subscription, not the paid API.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
