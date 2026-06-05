@@ -150,6 +150,11 @@
 
 ### Changed
 
+- **`ci(scorecard)` — harden GitHub token permissions in agent-on-mention.yml (#409).**
+  Removed unnecessary id-token:write. Moved write permissions to job level.
+  Top-level default is now contents:read. Improves OpenSSF Scorecard
+  Token-Permissions check.
+
 - **`refactor(skills)` — split 22 long skills into SKILL.md + SKILL.deep.md (#158).**
   Every skill that exceeded 200 lines now ships a slim `SKILL.md` (≤ 80 lines)
   for always-on loading and a `SKILL.deep.md` for extended how-to reference.
