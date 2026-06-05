@@ -18,27 +18,38 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name }}
 
-      - name: Collect installable assets
+      - name: Collect distributable assets
         run: |
           mkdir -p dist
-          # Copy all user-facing installable files into dist/
-          cp -r skills/ dist/skills
-          cp -r tooling/ dist/tooling
+          # Distributable kit content — no repo dogfood files
+          # (.kit-manifest, .kit-version, .agents/, .claude/, .codex/, .agy/,
+          #  docs/ai/ are repo-local install output and must NOT appear in releases)
+          cp -r skills/           dist/skills
+          cp -r tooling/          dist/tooling
           cp -r project-template/ dist/project-template
-          cp scripts/install.sh scripts/install.ps1 \
-             scripts/update.sh scripts/update.ps1 \
-             scripts/uninstall.sh scripts/uninstall.ps1 \
-             scripts/validate.sh scripts/validate.ps1 \
-             scripts/new-skill.sh scripts/new-skill.ps1 \
-             scripts/doctor.sh scripts/doctor.ps1 \
+          cp -r prompts/          dist/prompts
+          cp scripts/install.sh    scripts/install.ps1  \
+             scripts/update.sh     scripts/update.ps1   \
+             scripts/uninstall.sh  scripts/uninstall.ps1 \
+             scripts/validate.sh   scripts/validate.ps1 \
+             scripts/new-skill.sh  scripts/new-skill.ps1 \
+             scripts/doctor.sh     scripts/doctor.ps1   \
+             scripts/bootstrap.sh  scripts/bootstrap.ps1 \
              dist/
-          cp VERSION .kit-manifest dist/
+          cp VERSION README.md LICENSE SECURITY.md CHANGELOG.md dist/
+
+      - name: Package release archive
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          tar -czf "ai-agent-kit-${TAG}.tar.gz" -C dist .
+          cd dist && zip -r "../ai-agent-kit-${TAG}.zip" . && cd ..
 
       - name: Generate SHA256SUMS
         run: |
-          cd dist
-          find . -type f | sort | xargs sha256sum > ../SHA256SUMS
-          cat ../SHA256SUMS
+          find dist -type f | sort | xargs sha256sum > SHA256SUMS
+          sha256sum "ai-agent-kit-${{ github.event.release.tag_name }}.tar.gz" \
+                    "ai-agent-kit-${{ github.event.release.tag_name }}.zip" >> SHA256SUMS
+          cat SHA256SUMS
 
       - name: Install cosign
         uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # sigstore/cosign-installer@v3
@@ -48,9 +59,13 @@ jobs:
           cosign sign-blob --yes SHA256SUMS \
             --bundle SHA256SUMS.bundle
 
-      - name: Upload SHA256SUMS and bundle to release
+      - name: Upload release artifacts
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # softprops/action-gh-release@v3
         with:
           files: |
+            ai-agent-kit-${{ github.event.release.tag_name }}.tar.gz
+            ai-agent-kit-${{ github.event.release.tag_name }}.zip
+            dist/bootstrap.sh
+            dist/bootstrap.ps1
             SHA256SUMS
             SHA256SUMS.bundle

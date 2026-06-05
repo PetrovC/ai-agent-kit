@@ -12,7 +12,24 @@
   Updated install/update/uninstall/validate scripts. The `/security-audit` and
   `/performance-audit` slash commands are retained (they are generic review prompts).
 
+### Changed
+
+- **`ci(release)` — produce clean release archives, exclude repo dogfood from dist (#412).**
+  The release workflow now creates `ai-agent-kit-{tag}.tar.gz` and `.zip` archives containing
+  only distributable kit content (`skills/`, `tooling/`, `project-template/`, `prompts/`,
+  installer scripts, `README.md`, `LICENSE`, `SECURITY.md`, `CHANGELOG.md`, `VERSION`).
+  `.kit-manifest` (a repo-local dogfood file) is no longer included in release artifacts.
+  `SHA256SUMS` now also covers the archives. Both archives and the bootstrap scripts are
+  uploaded as named release assets.
+
 ### Added
+
+- **`feat(install)` — one-command bootstrap installer (#413).**
+  `scripts/bootstrap.sh` (Unix/macOS) and `scripts/bootstrap.ps1` (Windows) download
+  a pinned release archive from GitHub and run the local installer.
+  Supports `--version`, `--target`, `--tools`, `--profile`, and `--dry-run`.
+  Uploaded to each release as standalone assets for direct `curl`/`irm` use.
+  README updated with a Quick Install section near the top.
 
 - **`docs(security)` — add security posture badges and section to README (#410).**
   Expanded badge block: quality-gate, Scorecard workflow, license, release, last-commit badges.

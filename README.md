@@ -7,6 +7,31 @@
 ![GitHub release](https://img.shields.io/github/v/release/PetrovC/ai-agent-kit)
 ![GitHub last commit](https://img.shields.io/github/last-commit/PetrovC/ai-agent-kit)
 
+## Quick install
+
+```bash
+# Unix / macOS — installs codex, claude, and agy into the current directory
+curl -fsSL https://github.com/PetrovC/ai-agent-kit/releases/latest/download/bootstrap.sh | bash
+```
+
+```powershell
+# Windows PowerShell — installs codex, claude, and agy into the current directory
+irm https://github.com/PetrovC/ai-agent-kit/releases/latest/download/bootstrap.ps1 | iex
+```
+
+Both commands download the latest [release artifact](https://github.com/PetrovC/ai-agent-kit/releases) and run the local installer.
+Pass explicit options to control what is installed (see [Quick start](#quick-start-5-minutes)):
+
+```bash
+curl -fsSL https://github.com/PetrovC/ai-agent-kit/releases/download/v1.21.0/bootstrap.sh \
+  | bash -s -- --target /path/to/project --tools claude --version v1.21.0
+```
+
+```powershell
+& ([scriptblock]::Create((irm 'https://github.com/PetrovC/ai-agent-kit/releases/latest/download/bootstrap.ps1'))) `
+    -Target '.\target-project' -Tools 'claude,codex,agy'
+```
+
 A reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and Antigravity CLI.
 
 ## Philosophy
@@ -137,12 +162,23 @@ install. Edit them to match your team's standards. The templates contain
 
 #### Pinning to a release
 
-To install from a specific tagged release rather than `master`:
+To install from a specific tagged release, pass `--version` to the bootstrap script:
 
 ```bash
-# Clone at a specific tag
-git clone --branch v1.21.0 --depth 1 <repo-url> ai-agent-kit-kit
-cd ai-agent-kit-kit
+curl -fsSL https://github.com/PetrovC/ai-agent-kit/releases/download/v1.21.0/bootstrap.sh \
+  | bash -s -- --target /path/to/your-project --tools codex,claude,agy --version v1.21.0
+```
+
+```powershell
+& ([scriptblock]::Create((irm 'https://github.com/PetrovC/ai-agent-kit/releases/download/v1.21.0/bootstrap.ps1'))) `
+    -Target '.\your-project' -Tools 'codex,claude,agy' -Version 'v1.21.0'
+```
+
+Alternatively, clone the tag and run the local scripts directly:
+
+```bash
+git clone --branch v1.21.0 --depth 1 <repo-url> ai-agent-kit
+cd ai-agent-kit
 ./scripts/install.sh --target /path/to/your-project --tools codex,claude,agy
 ```
 
