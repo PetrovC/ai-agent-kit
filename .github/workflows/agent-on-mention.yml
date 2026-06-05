@@ -15,10 +15,7 @@ on:
 
 # Least privilege for what the agent may need to do on the thing it was summoned on.
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: agent-mention-${{ github.event.issue.number || github.event.pull_request.number }}
@@ -35,6 +32,11 @@ jobs:
        github.event.comment.author_association == 'MEMBER' ||
        github.event.comment.author_association == 'COLLABORATOR')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write      # create branches, push commits
+      pull-requests: write # open / update PRs
+      issues: write        # post comments
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
