@@ -4,6 +4,10 @@
 
 ### Added
 
+- **`docs(claude)` — add teammateMode section to SUBAGENT_GOVERNANCE.md (#190).**
+  Documents `teammateMode: auto|in-process|tmux` with a comparison table and
+  usage guidelines for this kit. Links to worktree isolation settings.
+
 - **`feat(hooks)` — add opt-in approximate token logger hook (#159).**
   `tooling/claude/hooks/token-log.sh` is a new `PostToolUse` hook that appends
   per-call approximate token usage to `.claude/session-log/token-log.jsonl`.
