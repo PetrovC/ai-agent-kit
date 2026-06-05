@@ -1,5 +1,5 @@
 description: "Architecture review with high risk -> high_reasoning, confirmation required"
-task: "review the service layer architecture and identify boundary violations"
+task: "architecture review of the service layer to identify boundary violations"
 risk: high
 context_size: medium
 expected:
