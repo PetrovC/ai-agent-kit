@@ -14,6 +14,11 @@
 
 ### Added
 
+- **`docs(security)` — add security posture badges and section to README (#410).**
+  Expanded badge block: quality-gate, Scorecard workflow, license, release, last-commit badges.
+  Added `## Security posture` section listing active guardrails. CodeQL mentioned as
+  text only (no codeql.yml workflow file). Honest tone: badges are signals, not guarantees.
+
 - **`feat(skills)` — lightweight offline skill eval harness (#167).**
   `tests/skills/run-evals.sh` validates skill routing (path glob matching) and
   content (key term presence) without LLM calls. Ships with 3 evals: `dotnet`,
