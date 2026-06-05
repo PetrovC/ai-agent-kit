@@ -19,6 +19,23 @@ allowed-tools:
   - "Bash(npx:*)"
   - "Bash(pnpm:*)"
 version: "1.0.0"
+keywords:
+  - angular
+  - typescript
+  - component
+  - ng
+  - ngrx
+  - angular material
+task_intents:
+  - implement
+  - review
+  - fix
+  - refactor
+delegation_hints:
+  can_delegate: true
+  when: >
+    When the task also involves backend (.NET, Node, etc.) — delegate frontend
+    to a focused subagent.
 ---
 
 # Angular Skill

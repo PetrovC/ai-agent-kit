@@ -361,3 +361,33 @@ jobs:
                     "otherwise one platform silently loses a hook / setting.")
               sys.exit(1)
           PY
+
+  lint-skills:
+    name: Skill reference integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+
+      - name: Every referenced skill file must exist
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          from pathlib import Path
+
+          errors = []
+          skills_root = Path("skills")
+          for skill_md in sorted(skills_root.glob("*/SKILL.md")):
+              skill_dir = skill_md.parent
+              content = skill_md.read_text(encoding="utf-8")
+              # Match Markdown links like [text](references/foo.md)
+              for m in re.finditer(r'\]\(references/([^)]+\.md)\)', content):
+                  ref = skill_dir / "references" / m.group(1)
+                  if not ref.exists():
+                      errors.append(f"{skill_md}: references {ref} but file does not exist")
+
+          if errors:
+              for e in errors:
+                  print(f"::error::{e}")
+              sys.exit(1)
+          print(f"OK: all skill references exist")
+          PY

@@ -11,6 +11,10 @@
 .agents/skills/database/SKILL.md
 .agents/skills/dependencies/SKILL.md
 .agents/skills/dotnet/SKILL.md
+.agents/skills/dotnet/references/clean-architecture.md
+.agents/skills/dotnet/references/ef-core.md
+.agents/skills/dotnet/references/package-maintenance.md
+.agents/skills/dotnet/references/testing.md
 .agents/skills/error-handling/SKILL.md
 .agents/skills/github-workflow/SKILL.md
 .agents/skills/go/SKILL.md
@@ -67,6 +71,10 @@
 .agy/skills/database/SKILL.md
 .agy/skills/dependencies/SKILL.md
 .agy/skills/dotnet/SKILL.md
+.agy/skills/dotnet/references/clean-architecture.md
+.agy/skills/dotnet/references/ef-core.md
+.agy/skills/dotnet/references/package-maintenance.md
+.agy/skills/dotnet/references/testing.md
 .agy/skills/error-handling/SKILL.md
 .agy/skills/github-workflow/SKILL.md
 .agy/skills/go/SKILL.md
@@ -133,6 +141,10 @@
 .claude/skills/database/SKILL.md
 .claude/skills/dependencies/SKILL.md
 .claude/skills/dotnet/SKILL.md
+.claude/skills/dotnet/references/clean-architecture.md
+.claude/skills/dotnet/references/ef-core.md
+.claude/skills/dotnet/references/package-maintenance.md
+.claude/skills/dotnet/references/testing.md
 .claude/skills/error-handling/SKILL.md
 .claude/skills/github-workflow/SKILL.md
 .claude/skills/go/SKILL.md
