@@ -93,7 +93,6 @@
 .agy/skills/vue/SKILL.md
 .agyignore
 .ai-agent-kit/audit/README.md
-.ai-agent-kit/audit/__pycache__/audit_runtime.cpython-314.pyc
 .ai-agent-kit/audit/audit_runtime.py
 .ai-agent-kit/audit/config.example.json
 .ai-agent-kit/audit/emit-event.ps1
