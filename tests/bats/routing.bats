@@ -7,7 +7,14 @@
 
 load 'bats_helper'
 
-SELECTOR="$KIT_ROOT/scripts/select-skills.py"
+# KIT_ROOT is set by aak_setup(), which must run in setup() before each test.
+# Do NOT set SELECTOR at the global level — KIT_ROOT is empty at load time.
+SELECTOR=""
+
+setup() {
+    aak_setup
+    SELECTOR="$KIT_ROOT/scripts/select-skills.py"
+}
 
 # Helper: run the selector and capture output
 run_selector() {
