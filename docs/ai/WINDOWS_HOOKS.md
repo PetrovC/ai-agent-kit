@@ -1,6 +1,6 @@
 # Windows Hook Setup Guidance
 
-Claude Code hooks (such as `pre-bash-guard`, `agent-audit-event`, etc.) are shell scripts designed to run under Git Bash or WSL on Windows. Since Windows environments can resolve `bash` in different, sometimes conflicting ways, this guide outlines how to ensure hooks execute correctly.
+Claude Code hooks (such as `pre-bash-guard`, etc.) are shell scripts designed to run under Git Bash or WSL on Windows. Since Windows environments can resolve `bash` in different, sometimes conflicting ways, this guide outlines how to ensure hooks execute correctly.
 
 ## Why Git Bash or WSL Bash is Required
 

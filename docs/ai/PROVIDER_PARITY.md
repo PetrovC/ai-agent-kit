@@ -1,7 +1,7 @@
 # Provider Feature Parity
 
 A single matrix comparing the three providers the kit configures —
-**Claude Code**, **Codex CLI**, and **Antigravity** (`agy`) — so audits don't
+**Claude Code**, **Codex CLI**, and **Antigravity** (`agy`) — so configurations don't
 restart from scratch. "Kit uses?" is whether *this kit* wires the feature, not
 whether the provider merely supports it.
 
@@ -27,12 +27,11 @@ after any provider's major release** — whichever comes first.
 | **Permissions / approval** | ✅ `allow`/`deny`(/`ask`) | ✅ `approval_policy` (`on-request`) | ✅ `--approval-mode` (`default`/`auto_edit`/`yolo`) | ✅ all three |
 | **Web search** | ✅ `WebSearch` + `WebFetch` allowlist | ✅ `web_search` (`cached`) | ✅ built-in (Gemini grounding) | ⚠️ Claude domain allowlist; Codex `cached` |
 | **Cross-tool delegation** | orchestrator (`delegate.*`) | ✅ target (`codex exec`) | ✅ target (`agy -p`) | ✅ opt-in adapter (ADR-020) |
-| **Audit / governance loop** | ✅ auto via hooks (Phase 1a) | ✅ via hooks + `emit-event` | ✅ via hooks + `emit-event` | ✅ shared `agent-audit` runtime |
 | **Debug trace** | ✅ `AAK_DEBUG` (hooks) | ✅ `AAK_DEBUG` (hooks) | ✅ `AAK_DEBUG` (hooks) | ✅ all three (#305) |
 | **Plugins / extensions** | ✅ plugin marketplace (`.claude-plugin/`) | ❌ no marketplace | ✅ `agy plugin …` | ⚠️ Claude-only marketplace (skills slice) |
 | **Output styles** | ✅ supported | ❌ | ❌ | ❌ not used (invalid `outputStyle:"default"` — omit) |
 | **Statusline** | ✅ `statusLine` | ❌ | ❌ | ❌ not used |
-| **Env redaction / safety** | `permissions.deny` + `pre-bash-guard` | `shell_environment_policy` + `pre-bash-guard` | policies + `pre-bash-guard` | ✅ + audit `privacy_scan` |
+| **Env redaction / safety** | `permissions.deny` + `pre-bash-guard` | `shell_environment_policy` + `pre-bash-guard` | policies + `pre-bash-guard` | ✅ via pre-bash-guard |
 
 ✅ supported & wired · ⚠️ supported, partially/conditionally wired · ❌ not
 supported or not used.
@@ -48,8 +47,7 @@ The exact hook events each provider exposes that the kit wires:
 | Antigravity | `BeforeTool`, `AfterTool`, `BeforeAgent`, `AfterAgent`, `SessionStart`, `SessionEnd` |
 
 Names differ but the coverage is equivalent: a pre/post tool guard, a session
-boundary for audit finalize/import, and a subagent/agent boundary. The shared
-`agent-audit` runtime normalizes them into one event schema.
+boundary, and a subagent/agent boundary.
 
 ## Notes per row
 
