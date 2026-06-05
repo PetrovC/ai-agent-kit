@@ -13,6 +13,15 @@ commands. One concern belongs in one issue.
 See [docs/ai/WORKFLOW.md](docs/ai/WORKFLOW.md) for the canonical workflow
 policy, including PR-first delivery and documentation-only boundaries.
 
+### Governance policy templates
+
+Five governance templates live in `docs/ai/` (installed from `project-template/`):
+`CONTEXT_GOVERNANCE.md`, `SUBAGENT_GOVERNANCE.md`, `MCP_POLICY.md`,
+`MODEL_ROUTING.md`, and `CONTEXT_SANITIZATION.md`. If you are contributing a
+change that affects cross-cutting policy (context limits, subagent rules, model
+routing, MCP server approvals), update the relevant template in `project-template/`
+and document why. The kit ships the templates; projects own their copies.
+
 ## Branches and Commits
 
 Create one dedicated branch per issue. Use a short, conventional topic name:
