@@ -4,6 +4,10 @@
 
 ### Added
 
+- **`docs(claude)` — add teammateMode section to SUBAGENT_GOVERNANCE.md (#190).**
+  Documents `teammateMode: auto|in-process|tmux` with a comparison table and
+  usage guidelines for this kit. Links to worktree isolation settings.
+
 - **`docs(claude)` — add worktree settings guidance to CLAUDE.md and CONTEXT_GOVERNANCE.md (#189).**
   Documents recommended values for `worktree.baseRef`, `worktree.symlinkDirectories`,
   `worktree.sparsePaths`, and `worktree.bgIsolation` in `tooling/claude/CLAUDE.md`

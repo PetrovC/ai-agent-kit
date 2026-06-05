@@ -197,3 +197,41 @@ These are not actionable:
 - Rerun with a stronger model and narrower scope.
 - Inspect exact files directly.
 - Ask for or create a narrower issue before implementation work.
+
+## teammateMode — choosing in-process vs tmux
+
+When Claude Code launches a parallel teammate (subagent), the `teammateMode`
+setting in `.claude/settings.json` controls how it runs.
+
+```json
+{ "teammateMode": "auto" }   // default — Claude decides
+{ "teammateMode": "in-process" }
+{ "teammateMode": "tmux" }
+```
+
+| Mode | Overhead | Isolation | When to use |
+|---|---|---|---|
+| `auto` | — | — | Default. Let Claude pick based on task size and availability of tmux. |
+| `in-process` | Low | Shares process state | Short-lived helpers: quick search, doc lookup, single-file analysis. The subagent shares the parent's environment variables and file handles. Good when you need the result immediately and don't need the subagent to outlive the request. |
+| `tmux` | Medium | Independent shell | Long-running parallel work: running tests while writing code, two investigator agents scanning different directories simultaneously. Requires tmux to be available in the environment. Background isolation is stronger — the subagent has its own shell state and cannot accidentally affect the parent's working directory. |
+
+### Guidelines for this kit
+
+- **Prefer `auto`** in all normal usage. It degrades gracefully when tmux is not
+  present (CI, Windows without tmux, minimal Docker images).
+- **Prefer `in-process`** when the subagent is a quick lookup that will be done
+  in seconds and you want the result inline.
+- **Prefer `tmux`** only when you explicitly want to watch two agents work
+  side-by-side in a terminal, or when OS-level isolation is required (e.g.,
+  one agent modifies files while another runs tests that must not see partial edits).
+- Set `worktree.bgIsolation: "sandbox"` alongside `tmux` mode to prevent
+  parallel agents from overwriting each other's working files. See
+  `tooling/claude/CLAUDE.md` for worktree settings.
+
+### Relation to subagent ROI
+
+`teammateMode` affects performance, not the decision to delegate. Whether to
+delegate at all is governed by the **Use Subagents When** / **Do Not Use Subagents When**
+rules above. `tmux` mode does not justify delegation that would otherwise fail
+the no-duplicate-reading or deterministic-search-first rules.
+
