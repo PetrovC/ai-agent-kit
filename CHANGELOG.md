@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(claude)` — opt-in statusline showing context% and cache age (#156).**
+  `tooling/claude/hooks/statusline.sh` is a PostToolUse hook that prints
+  `[aak] ctx: N% (~X tok) | N calls | cache: <age>` after each tool call.
+  Requires `token-log.sh` to be enabled. Context % estimated from session
+  cumulative tokens ÷ `AAK_CONTEXT_WINDOW` (default 200 000).
+
 - **`feat(skills)` — add version metadata to all skill frontmatters (#166).**
   Every `SKILL.md` now declares `version: "1.0.0"` in its YAML frontmatter.
   Applies to all 36 shared skills under `.agents/skills/` and the 5 Codex

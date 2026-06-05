@@ -73,6 +73,39 @@ estimates to `.claude/session-log/token-log.jsonl`. To enable, add it to
 Token counts are estimated (chars / 4). Use them for session cost trends, not
 billing reconciliation.
 
+## Statusline (opt-in)
+
+`tooling/claude/hooks/statusline.sh` prints a one-line context-cost summary
+after each tool call:
+
+```
+[aak] ctx: 4% (~8 400 tok) | 14 calls | cache: < 5 min
+```
+
+Requires `token-log.sh` to be enabled first (it provides the data). Add both
+hooks to `PostToolUse` in `.claude/settings.json`:
+
+```json
+{
+  "matcher": "",
+  "hooks": [
+    {
+      "type": "command",
+      "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/token-log.sh\"",
+      "async": true
+    },
+    {
+      "type": "command",
+      "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/statusline.sh\"",
+      "async": true
+    }
+  ]
+}
+```
+
+Context % is estimated: cumulative session tokens ÷ `AAK_CONTEXT_WINDOW`
+(default 200 000 for Claude Sonnet 4). Override: `export AAK_CONTEXT_WINDOW=100000`.
+
 ## Worktree settings
 
 Claude Code can spin up isolated worktrees for background and parallel tasks.
