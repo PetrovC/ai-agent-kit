@@ -4,6 +4,11 @@
 
 ### Added
 
+- **`docs(claude)` — add worktree settings guidance to CLAUDE.md and CONTEXT_GOVERNANCE.md (#189).**
+  Documents recommended values for `worktree.baseRef`, `worktree.symlinkDirectories`,
+  `worktree.sparsePaths`, and `worktree.bgIsolation` in `tooling/claude/CLAUDE.md`
+  with rationale table. Adds a short cross-reference in `docs/ai/CONTEXT_GOVERNANCE.md`.
+
 - **`feat(scripts)` — add `--profile minimal` to `install.sh` / `install.ps1` (#170).**
   `--profile minimal` installs only skills + root router files (CLAUDE.md, AGENTS.md, AGY.md),
   skipping hooks, settings, commands, agents, docs/ai/ templates, and shared tooling.
