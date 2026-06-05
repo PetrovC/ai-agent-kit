@@ -1,0 +1,420 @@
+## Issue #167 — Lightweight skill evals harness (not required CI)
+
+**Task type:** feat
+**Branch to create:** agent/agy/claude-sonnet-4-6/feat/skill-evals-167
+
+---
+
+### Start here — ALWAYS do this first before any file changes
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/feat/skill-evals-167
+```
+
+---
+
+### Background
+
+When skills are edited, there's no way to verify that the skill still correctly
+routes and provides useful guidance. This task adds a minimal eval harness:
+
+- **Routing eval**: given a file path, does the skill's `paths:` glob match it?
+- **Content eval**: does the skill contain the expected key terms?
+- **NOT an LLM eval** (no API calls required, no CI gate).
+
+The harness lives in `tests/skills/` and is documented so contributors can run
+it manually: `bash tests/skills/run-evals.sh`.
+
+---
+
+### Directory structure to create
+
+```
+tests/
+  skills/
+    README.md           — explains what the harness does and how to run it
+    run-evals.sh        — runner script
+    dotnet/
+      paths.txt         — file paths that SHOULD match the dotnet skill
+      no-paths.txt      — file paths that should NOT match the dotnet skill
+      must-contain.txt  — terms that must appear in SKILL.md
+    python/
+      paths.txt
+      no-paths.txt
+      must-contain.txt
+    testing/
+      paths.txt
+      no-paths.txt
+      must-contain.txt
+```
+
+(Three evals minimum: dotnet, python, testing. These are diverse, widely-used skills.)
+
+---
+
+### STEP 1 — Create `tests/skills/README.md`
+
+Content:
+
+```markdown
+# Skill evals
+
+Lightweight, offline validation for skill routing and content.
+No LLM calls. No CI gate. Run manually when editing a skill.
+
+## What is tested
+
+| Check | Description |
+|---|---|
+| Path routing | Paths in `paths.txt` match the skill's `paths:` glob patterns |
+| No-match paths | Paths in `no-paths.txt` do NOT match the skill's globs |
+| Content | Every term in `must-contain.txt` appears in the skill's SKILL.md |
+
+## How to run
+
+```bash
+# All evals
+bash tests/skills/run-evals.sh
+
+# One skill
+bash tests/skills/run-evals.sh dotnet
+```
+
+## How to add an eval for a new skill
+
+1. Create `tests/skills/<skill-name>/`
+2. Add `paths.txt` — one file path per line that should trigger the skill
+3. Add `no-paths.txt` — one file path per line that should NOT trigger the skill
+4. Add `must-contain.txt` — key terms (one per line) that must appear in SKILL.md
+5. Run `bash tests/skills/run-evals.sh <skill-name>` to verify
+
+## File format
+
+`paths.txt` / `no-paths.txt`: one file path per line (relative, no leading `/`).
+`must-contain.txt`: one search term per line. Blank lines and `#` comments ignored.
+```
+
+---
+
+### STEP 2 — Create `tests/skills/run-evals.sh`
+
+The runner must:
+1. Accept an optional skill name argument: `run-evals.sh [skill-name]`
+2. For each eval directory (or just the named one):
+   a. Load the skill's `paths:` globs from `.agents/skills/<name>/SKILL.md` frontmatter
+   b. For each path in `paths.txt`: verify at least one glob from the skill matches it
+   c. For each path in `no-paths.txt`: verify NO glob from the skill matches it
+   d. For each term in `must-contain.txt`: verify it appears in `.agents/skills/<name>/SKILL.md`
+3. Print PASS / FAIL per check, with a summary count at the end
+4. Exit 0 if all pass, exit 1 if any fail
+
+**Glob matching**: Use bash glob matching. Convert YAML path globs (e.g., `**/*.cs`)
+to bash patterns (replace `**/` with any-depth prefix matching using a helper).
+
+Here is a starter implementation:
+
+```bash
+#!/usr/bin/env bash
+# run-evals.sh — Offline skill routing + content eval harness.
+# Usage: bash run-evals.sh [skill-name]
+set -euo pipefail
+
+SKILLS_SRC=".agents/skills"
+EVALS_DIR="tests/skills"
+PASS=0
+FAIL=0
+
+color_pass() { printf '\033[0;32mPASS\033[0m'; }
+color_fail() { printf '\033[0;31mFAIL\033[0m'; }
+
+# Extract paths: list from SKILL.md frontmatter (lines under "paths:" key, before next key)
+get_skill_paths() {
+    local skill_file="$1"
+    awk '
+      /^---$/ { block++; next }
+      block == 1 && /^paths:/ { in_paths=1; next }
+      block == 1 && in_paths && /^[a-z]/ { in_paths=0 }
+      block == 1 && in_paths && /^[[:space:]]*-/ {
+          gsub(/^[[:space:]]*-[[:space:]]*"?/, "")
+          gsub(/"?[[:space:]]*$/, "")
+          print
+      }
+      block >= 2 { exit }
+    ' "$skill_file"
+}
+
+# Returns 0 if $1 (file path) matches glob pattern $2 (bash glob, ** expanded)
+path_matches_glob() {
+    local filepath="$1"
+    local pattern="$2"
+    # Convert ** to a marker, then use case
+    # Simple approach: use python-style fnmatch via bash extglob
+    # Normalize: replace **/ with "any depth" check
+    shopt -s globstar extglob nullglob 2>/dev/null || true
+    case "$filepath" in
+        $pattern) return 0 ;;
+    esac
+    # Also try matching without leading directory component
+    local base="${filepath##*/}"
+    local ext_pattern="${pattern##**/}"
+    case "$base" in
+        $ext_pattern) return 0 ;;
+    esac
+    return 1
+}
+
+run_eval() {
+    local skill_name="$1"
+    local eval_dir="$EVALS_DIR/$skill_name"
+    local skill_file="$SKILLS_SRC/$skill_name/SKILL.md"
+
+    echo ""
+    echo "=== Eval: $skill_name ==="
+
+    if [[ ! -f "$skill_file" ]]; then
+        echo "  SKIP — $skill_file not found"
+        return
+    fi
+
+    # Load skill globs
+    mapfile -t GLOBS < <(get_skill_paths "$skill_file")
+    echo "  Skill globs: ${GLOBS[*]:-none}"
+
+    # --- paths.txt (should match) ---
+    if [[ -f "$eval_dir/paths.txt" ]]; then
+        while IFS= read -r fpath || [[ -n "$fpath" ]]; do
+            [[ -z "$fpath" || "${fpath:0:1}" == "#" ]] && continue
+            matched=false
+            for glob in "${GLOBS[@]:-}"; do
+                [[ -z "$glob" ]] && continue
+                if path_matches_glob "$fpath" "$glob"; then
+                    matched=true
+                    break
+                fi
+            done
+            if $matched; then
+                printf '  %s  routes %s\n' "$(color_pass)" "$fpath"
+                (( PASS++ )) || true
+            else
+                printf '  %s  should route %s (no glob matched)\n' "$(color_fail)" "$fpath"
+                (( FAIL++ )) || true
+            fi
+        done < "$eval_dir/paths.txt"
+    fi
+
+    # --- no-paths.txt (should NOT match) ---
+    if [[ -f "$eval_dir/no-paths.txt" ]]; then
+        while IFS= read -r fpath || [[ -n "$fpath" ]]; do
+            [[ -z "$fpath" || "${fpath:0:1}" == "#" ]] && continue
+            matched=false
+            for glob in "${GLOBS[@]:-}"; do
+                [[ -z "$glob" ]] && continue
+                if path_matches_glob "$fpath" "$glob"; then
+                    matched=true
+                    break
+                fi
+            done
+            if ! $matched; then
+                printf '  %s  correctly ignores %s\n' "$(color_pass)" "$fpath"
+                (( PASS++ )) || true
+            else
+                printf '  %s  should NOT route %s (glob matched unexpectedly)\n' "$(color_fail)" "$fpath"
+                (( FAIL++ )) || true
+            fi
+        done < "$eval_dir/no-paths.txt"
+    fi
+
+    # --- must-contain.txt ---
+    if [[ -f "$eval_dir/must-contain.txt" ]]; then
+        while IFS= read -r term || [[ -n "$term" ]]; do
+            [[ -z "$term" || "${term:0:1}" == "#" ]] && continue
+            if grep -qiF "$term" "$skill_file" 2>/dev/null; then
+                printf '  %s  contains "%s"\n' "$(color_pass)" "$term"
+                (( PASS++ )) || true
+            else
+                printf '  %s  missing "%s"\n' "$(color_fail)" "$term"
+                (( FAIL++ )) || true
+            fi
+        done < "$eval_dir/must-contain.txt"
+    fi
+}
+
+# --- Main ---
+cd "$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")"
+
+if [[ -n "${1:-}" ]]; then
+    run_eval "$1"
+else
+    for d in "$EVALS_DIR"/*/; do
+        skill=$(basename "$d")
+        [[ "$skill" == "README.md" ]] && continue
+        run_eval "$skill"
+    done
+fi
+
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ "$FAIL" -gt 0 ]]; then
+    exit 1
+fi
+exit 0
+```
+
+After creating the file:
+```bash
+chmod +x tests/skills/run-evals.sh
+git update-index --chmod=+x tests/skills/run-evals.sh
+```
+
+---
+
+### STEP 3 — Create eval fixtures for 3 skills
+
+#### `tests/skills/dotnet/paths.txt`
+```
+src/Api/Program.cs
+src/Domain/User.cs
+tests/Unit/UserTests.cs
+MyApp/MyApp.csproj
+Directory.Build.props
+global.json
+```
+
+#### `tests/skills/dotnet/no-paths.txt`
+```
+# These should NOT route to dotnet
+src/components/Button.tsx
+main.py
+go.mod
+Cargo.toml
+```
+
+#### `tests/skills/dotnet/must-contain.txt`
+```
+# Key terms that must appear in dotnet/SKILL.md
+dotnet build
+dotnet test
+NuGet
+```
+
+---
+
+#### `tests/skills/python/paths.txt`
+```
+app/main.py
+src/utils/helpers.py
+tests/test_api.py
+pyproject.toml
+requirements.txt
+setup.cfg
+```
+
+#### `tests/skills/python/no-paths.txt`
+```
+# Should NOT route to python
+src/components/Button.tsx
+Program.cs
+go.mod
+```
+
+#### `tests/skills/python/must-contain.txt`
+```
+# Key terms in python/SKILL.md
+pytest
+pip
+virtualenv
+type hints
+```
+
+---
+
+#### `tests/skills/testing/paths.txt`
+```
+# Testing skill paths: any test file in any language
+tests/Unit/UserTests.cs
+src/__tests__/Button.test.tsx
+test_api.py
+app_test.go
+spec/user_spec.rb
+```
+
+#### `tests/skills/testing/no-paths.txt`
+```
+# Normal source files should not trigger testing skill alone
+src/api/Program.cs
+main.py
+go.mod
+```
+
+#### `tests/skills/testing/must-contain.txt`
+```
+# Key terms in testing/SKILL.md
+unit test
+integration test
+coverage
+```
+
+---
+
+### STEP 4 — Update `CHANGELOG.md`
+
+Under `## [Unreleased]` → `### Added`, prepend:
+
+```
+- **`feat(skills)` — lightweight offline skill eval harness (#167).**
+  `tests/skills/run-evals.sh` validates skill routing (path glob matching) and
+  content (key term presence) without LLM calls. Ships with 3 evals: `dotnet`,
+  `python`, `testing`. Not wired to CI — run manually when editing a skill.
+  Add new evals following the pattern in `tests/skills/README.md`.
+```
+
+---
+
+### Constraints
+
+- Create: `tests/skills/run-evals.sh`, `tests/skills/README.md`,
+  `tests/skills/dotnet/{paths,no-paths,must-contain}.txt`,
+  `tests/skills/python/{paths,no-paths,must-contain}.txt`,
+  `tests/skills/testing/{paths,no-paths,must-contain}.txt`
+- Touch also: `CHANGELOG.md`
+- Do NOT modify any skill files or CI workflows
+- shellcheck must pass on run-evals.sh
+
+---
+
+### Verification
+
+```bash
+# Run the evals (must all pass)
+bash tests/skills/run-evals.sh
+# Expected: "Results: N passed, 0 failed"
+
+# shellcheck
+shellcheck --severity=warning -e SC1090,SC1091 tests/skills/run-evals.sh
+```
+
+---
+
+### After making changes
+
+1. `bash tests/skills/run-evals.sh` — all must pass
+2. `shellcheck --severity=warning -e SC1090,SC1091 tests/skills/run-evals.sh`
+3. `git add tests/skills/ CHANGELOG.md`
+4. `git commit -m "feat(skills): add lightweight offline skill eval harness (#167)"`
+5. `git push origin agent/agy/claude-sonnet-4-6/feat/skill-evals-167`
+6. `gh pr create --title "feat(skills): add lightweight offline skill eval harness (#167)" --body "Closes #167
+
+Adds tests/skills/run-evals.sh — an offline harness that validates skill routing (path glob matching) and content (key term presence) without LLM calls or CI requirement. Ships with 3 evals: dotnet, python, testing." --base master`
+
+---
+
+### Acceptance criteria
+
+- [ ] `tests/skills/run-evals.sh` exists and is executable
+- [ ] `tests/skills/README.md` explains how to run and extend evals
+- [ ] At least 3 skill evals: dotnet, python, testing (each with paths.txt, no-paths.txt, must-contain.txt)
+- [ ] `bash tests/skills/run-evals.sh` exits 0 (all evals pass)
+- [ ] shellcheck passes on run-evals.sh
+- [ ] CHANGELOG entry added

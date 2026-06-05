@@ -105,6 +105,40 @@ Native subagents live in `.agy/agents/*.md`, invoked by `@name`. The kit ships f
 The main agent may also delegate automatically based on each file's `description:`.
 Reference: [agycli.com/docs/core/subagents](https://agycli.com/docs/core/subagents/).
 
+## Cross-agent delegation
+
+Antigravity can delegate a single scoped task to Claude or Codex using the
+kit's delegation adapter. This is **opt-in** and fail-open — a missing or
+failing provider CLI leaves default behavior unchanged.
+
+**When to delegate:**
+- The task fits a different provider's strengths (e.g., Codex for workspace
+  write operations with strong reasoning effort, Claude for planning and review).
+- A review or investigation benefits from a second provider opinion.
+
+**How to invoke (POSIX):**
+```bash
+python3 .ai-agent-kit/delegate/delegate.py \
+  --provider claude \
+  --task-type architecture_review --risk high \
+  --brief-file ./brief.txt
+
+python3 .ai-agent-kit/delegate/delegate.py \
+  --provider codex \
+  --task-type implementation --risk medium \
+  --brief-file ./brief.txt
+```
+
+| Argument | Meaning |
+|---|---|
+| `--provider` | `claude` \| `codex` \| `antigravity` |
+| `--task-type` | drives model-tier routing (`security_review`, `implementation`, `exploration`, …) |
+| `--risk` | `low` \| `medium` \| `high` \| `critical` |
+| `--brief-file` | path to a sanitized plain-text brief (never inline secrets or absolute paths) |
+
+The sanitized provider answer is printed to stdout. Always verify it at a
+mandatory checkpoint before trusting it. See `docs/ai/DELEGATION.md`.
+
 ## Slash commands
 
 Eleven workflow prompts as Antigravity custom commands in `.agy/commands/*.toml`

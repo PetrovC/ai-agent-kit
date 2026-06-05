@@ -1,0 +1,78 @@
+## Task: feat(claude): introduce permissions ask: rules (third path between allow/deny)
+
+### Context
+
+This repository is a versioned configuration kit for Claude Code, Codex CLI, and Antigravity (agy).
+Claude Code's `permissions` object in settings.json supports three lists: `allow`, `deny`, and `ask`.
+Currently the kit only uses `allow` and `deny`. The `ask` list triggers an interactive prompt instead
+of silently allowing or hard-blocking — ideal for borderline commands that could be destructive if
+run without intent (e.g., pushing to remote, publishing packages, creating tags).
+
+### Files to modify
+
+1. `tooling/claude/settings.json` — add an `"ask"` array inside `"permissions"` (alongside `"allow"` and `"deny"`)
+2. `tooling/claude/settings.windows.json` — identical change
+3. `tooling/claude/CLAUDE.md` — add a short paragraph explaining the `ask` rules and the commands chosen
+4. `CHANGELOG.md` — add a feat(claude) entry under [Unreleased] > Added
+
+### Commands to put in `ask`
+
+Choose at least 3-5 commands that are borderline (not safe to auto-allow, but not hard-blocked either):
+
+Recommended candidates:
+- `"Bash(git push:*)"` — pushing to any remote (already blocked for --force; plain push should ask)
+- `"Bash(git tag:*)"` — creating or deleting tags (release tags need confirmation)
+- `"Bash(dotnet publish:*)"` — builds a publishable artifact; risky if run on wrong config
+- `"Bash(npm publish:*)"` — publishes to npm registry; irreversible
+- `"Bash(docker push:*)"` — pushes a container image to a registry; irreversible
+
+### JSON structure
+
+In both `settings.json` and `settings.windows.json`, inside `"permissions"`:
+
+```json
+"ask": [
+  "Bash(git push:*)",
+  "Bash(git tag:*)",
+  "Bash(dotnet publish:*)",
+  "Bash(npm publish:*)",
+  "Bash(docker push:*)"
+]
+```
+
+Place the `"ask"` key after `"allow"` and before `"deny"`.
+
+### Documentation to add (tooling/claude/CLAUDE.md)
+
+Add a short "Permissions: ask rules" section (or paragraph) explaining:
+- The `ask` list holds commands that require explicit confirmation before each run.
+- It sits between `allow` (silently permitted) and `deny` (hard-blocked).
+- Commands in `ask`: git push (all remotes), git tag (all forms), dotnet publish, npm publish, docker push.
+- Rationale: these are irreversible or boundary-crossing operations (pushing to remote, creating tags, publishing artifacts).
+- To adjust the list, edit `tooling/claude/settings.json` (and the Windows variant).
+
+### CHANGELOG entry
+
+```
+- **`feat(claude)` - introduce `ask` permission rules for borderline commands (#191).**
+  Adds a `permissions.ask` list to `tooling/claude/settings.json` and its Windows variant with
+  five commands that warrant interactive confirmation: `git push` (all remotes), `git tag`,
+  `dotnet publish`, `npm publish`, `docker push`. These sit between `allow` (silently permitted)
+  and `deny` (hard-blocked). `tooling/claude/CLAUDE.md` documents the rationale and the list.
+```
+
+### Branch and PR
+
+Create branch: `agent/agy/claude-sonnet-4-6/feat/permissions-ask-rules`
+Branch from: master
+Commit message: `feat(claude): introduce permissions ask: rules for borderline commands (#191)`
+Push and open a pull request targeting master.
+PR title: `feat(claude): introduce permissions ask: rules (third path between allow/deny)`
+
+### Validation
+
+After the change:
+```
+python -c "import json; s=json.load(open('tooling/claude/settings.json')); print(s['permissions']['ask'])"
+```
+Should print the list of 5 ask-guarded commands.

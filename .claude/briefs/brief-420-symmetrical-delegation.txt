@@ -1,0 +1,429 @@
+﻿BRIEF — Issue #420: Symmetrical cross-agent delegation
+=======================================================
+
+## Context
+
+The ai-agent-kit repository ships a delegation adapter at
+`.ai-agent-kit/delegate/delegate.py` (+ `delegate.sh` and `delegate.ps1`).
+
+Currently it lets Claude delegate to Codex or Antigravity.  Issue #420 asks
+that delegation be symmetrical: each of the three agents (Claude Code, Codex,
+Antigravity) should be able to delegate to the other two using the same
+adapter, contract, and safety checks.
+
+The existing adapter is already provider-neutral in structure — it just needs:
+1. `claude` added as a supported target `--provider`.
+2. Codex (AGENTS.md) and Antigravity (AGY.md) updated to document when and how
+   to invoke the adapter.
+3. docs/ai/DELEGATION.md updated to show the full symmetrical picture.
+4. BATS tests for the new claude provider path.
+
+## Start here
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/feat/symmetrical-delegation
+```
+
+## Files to modify
+
+### 1. `.ai-agent-kit/delegate/delegate.py`
+
+Add `claude` as a third supported provider.
+
+a) After the ANTIGRAVITY_FALLBACK_BY_DEPTH dict, add:
+
+```python
+# Claude Code CLI — per-call model flag is --model.
+# deep → Opus (architecture/security/review), standard → Sonnet (daily work),
+# readonly → Haiku (mechanical, exploration).
+# Verified against platform.claude.com/docs/en/about-claude/models/overview
+# (accessed 2026-06-05).
+CLAUDE_MODEL_BY_DEPTH = {
+    "deep": "claude-opus-4-8",
+    "standard": "claude-sonnet-4-6",
+    "readonly": "claude-haiku-4-5",
+}
+```
+
+b) Add two functions after `extract_antigravity_summary`:
+
+```python
+def build_claude_argv(brief: str, depth: str, write_mode: bool = False) -> list[str]:
+    """Build the non-interactive Claude Code invocation.
+
+    claude --print "<brief>" --model <model> [--dangerously-skip-permissions]
+
+    ``--print`` runs a single prompt non-interactively and prints the response
+    as plain text.  ``--dangerously-skip-permissions`` auto-approves tool
+    prompts for unattended use and is added only for implementation tasks
+    (``write_mode=True``) to keep read-only delegations from writing files.
+    Verified against code.claude.com/docs (accessed 2026-06-05).
+    """
+    model = CLAUDE_MODEL_BY_DEPTH[depth]
+    argv = ["claude", "--print", brief, "--model", model]
+    if write_mode:
+        argv.append("--dangerously-skip-permissions")
+    return argv
+
+
+def extract_claude_summary(stdout: str) -> str:
+    """Extract the answer from Claude Code print-mode output.
+
+    ``claude --print`` emits plain text, so return the trimmed stdout.
+    The function is tolerant of an optional JSON wrapper in case a future
+    version adds one.  The result is privacy-scanned by the caller.
+    """
+    import json
+
+    text = stdout.strip()
+    if not text:
+        return ""
+    try:
+        obj = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+    if isinstance(obj, dict):
+        for key in ("response", "output", "text", "message", "result", "content"):
+            value = obj.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return text
+```
+
+c) Update `provider_env` to handle `claude`:
+```python
+def provider_env(
+    provider: str,
+    depth: str,
+    model_override: str | None = None,
+) -> dict[str, str] | None:
+    if provider == "antigravity":
+        model = model_override if model_override else ANTIGRAVITY_MODEL_BY_DEPTH[depth]
+        return {**os.environ, ANTIGRAVITY_MODEL_ENV: model}
+    return None  # claude and codex inherit environment as-is
+```
+
+d) In `delegate()`, update the argv builder section:
+```python
+    if provider == "codex":
+        argv = build_codex_argv(brief, depth, write_mode)
+    elif provider == "antigravity":
+        argv = build_antigravity_argv(brief, depth, write_mode)
+    elif provider == "claude":
+        argv = build_claude_argv(brief, depth, write_mode)
+    else:  # pragma: no cover - argparse restricts the choices
+        raise DelegateError(f"unsupported provider: {provider}")
+```
+
+e) After the quota-fallback block, update the extract step:
+```python
+    if provider == "codex":
+        summary = extract_codex_summary(stdout)
+    elif provider == "antigravity":
+        summary = extract_antigravity_summary(stdout)
+    elif provider == "claude":
+        summary = extract_claude_summary(stdout)
+    else:  # pragma: no cover
+        summary = stdout.strip()
+```
+
+f) Update `build_parser` to add `"claude"` to the choices list:
+```python
+    parser.add_argument(
+        "--provider", required=True, choices=["claude", "codex", "antigravity"]
+    )
+```
+
+g) Update the module docstring at the top to mention that Claude Code is also
+a supported provider target.
+
+### 2. `AGENTS.md`
+
+Add a new section **"Cross-agent delegation"** after the "Subagents" section
+(approximately after line 140, before "Proactive maintenance"):
+
+```markdown
+## Cross-agent delegation
+
+Codex can delegate a single scoped task to Claude or Antigravity using the
+kit's delegation adapter.  This is **opt-in** and fail-open — a missing or
+failing provider CLI leaves default behavior unchanged.
+
+**When to delegate:**
+- The task requires a capability or model that Codex cannot express (e.g.,
+  a write-heavy multi-step workflow that fits Claude Code better).
+- A review, security check, or architecture assessment benefits from a second
+  provider opinion.
+
+**How to invoke (POSIX):**
+```bash
+python3 .ai-agent-kit/delegate/delegate.py \
+  --provider claude \
+  --task-type security_review --risk high \
+  --brief-file ./brief.txt
+```
+
+```bash
+python3 .ai-agent-kit/delegate/delegate.py \
+  --provider antigravity \
+  --task-type implementation --risk medium \
+  --brief-file ./brief.txt
+```
+
+- `--provider`: `claude` | `codex` | `antigravity`.
+- `--task-type`: drives model-tier routing (e.g. `security_review`,
+  `implementation`, `exploration`).
+- `--risk`: `low` | `medium` | `high` | `critical`.
+- `--brief-file`: path to a sanitized plain-text brief (never inline secrets
+  or absolute paths).
+
+The sanitized provider answer is printed to stdout.  Always verify it at a
+mandatory checkpoint before trusting it.  See `docs/ai/DELEGATION.md`.
+```
+
+### 3. `AGY.md`
+
+Add a similar **"Cross-agent delegation"** section after the "Subagents"
+section (after line ~107, before "Slash commands"):
+
+```markdown
+## Cross-agent delegation
+
+Antigravity can delegate a single scoped task to Claude or Codex using the
+kit's delegation adapter.  This is **opt-in** and fail-open.
+
+**When to delegate:**
+- The task fits a different provider's strengths (e.g., Codex for workspace
+  write operations, Claude for planning / review).
+- A review or investigation benefits from a second provider opinion.
+
+**How to invoke (POSIX):**
+```bash
+python3 .ai-agent-kit/delegate/delegate.py \
+  --provider claude \
+  --task-type architecture_review --risk high \
+  --brief-file ./brief.txt
+```
+
+```bash
+python3 .ai-agent-kit/delegate/delegate.py \
+  --provider codex \
+  --task-type implementation --risk medium \
+  --brief-file ./brief.txt
+```
+
+See the argument reference in `docs/ai/DELEGATION.md`.  The answer printed to
+stdout must be verified before it is trusted.
+```
+
+### 4. `docs/ai/DELEGATION.md`
+
+a) Update the "Status" line (line 9):
+   Change: `Status: **Codex and Antigravity providers shipped.**`
+   To: `Status: **Claude, Codex, and Antigravity providers shipped. Delegation is symmetrical.**`
+
+b) After the "## What it is (and is not)" section, add a new section
+**"## Symmetry model"**:
+
+```markdown
+## Symmetry model
+
+Any of the three supported agents can delegate to either of the other two:
+
+```text
+Claude Code  ──►  Codex CLI
+             ──►  Antigravity
+
+Codex CLI    ──►  Claude Code
+             ──►  Antigravity
+
+Antigravity  ──►  Claude Code
+             ──►  Codex CLI
+```
+
+Provider-specific behavior lives in thin adapter functions
+(`build_claude_argv`, `build_codex_argv`, `build_antigravity_argv`) inside
+the adapter.  Shared policy (routing depth, privacy scan, fail-open contract)
+is never duplicated.
+```
+
+c) Update the model-routing table to add the Claude row:
+
+```markdown
+| Depth | When | Codex effort | Antigravity model | Claude model |
+|---|---|---|---|---|
+| `deep` | security/architecture/review/high-risk | `model_reasoning_effort=high` | `claude-opus-4-8` | `claude-opus-4-8` |
+| `standard` | everyday implementation | `model_reasoning_effort=medium` | `claude-sonnet-4-6` | `claude-sonnet-4-6` |
+| `readonly` | mechanical / exploration | `model_reasoning_effort=low` | `claude-sonnet-4-6` | `claude-haiku-4-5` |
+```
+
+d) Add a new **"## Verified provider invocations"** entry for Claude:
+
+```markdown
+**Claude Code** (headless `--print` mode) — verified against
+`code.claude.com/docs` (accessed 2026-06-05):
+
+```
+claude --print "<sanitized brief>" --model <model> [--dangerously-skip-permissions]
+```
+
+- `--print` runs a single prompt non-interactively and prints plain text.
+- `--model` sets the model for this run.
+- `--dangerously-skip-permissions` is added only for implementation tasks
+  (write_mode=True); read-only delegations omit it.
+```
+
+### 5. `tests/bats/` — add new test file `tests/bats/delegation-claude.bats`
+
+Create `tests/bats/delegation-claude.bats`:
+
+```bash
+#!/usr/bin/env bats
+# Regression tests for the claude provider path in delegate.py
+# Tests run delegate.py in unit mode (mock CLI absent = fail-open).
+
+load 'bats_helper.bash'
+
+setup() {
+    aak_setup
+    DELEGATE="$KIT_ROOT/.ai-agent-kit/delegate/delegate.py"
+    BRIEF_FILE="$(mktemp /tmp/test-brief-XXXXXX.txt)"
+    echo "Summarise the attached context in one sentence." > "$BRIEF_FILE"
+}
+
+teardown() {
+    rm -f "$BRIEF_FILE"
+}
+
+@test "claude provider: fail-open when cli is absent" {
+    # PATH without a real 'claude' binary — adapter should exit 0 (fail-open)
+    run env PATH=/usr/bin:/bin python3 "$DELEGATE" \
+        --provider claude --task-type exploration --risk low \
+        --brief-file "$BRIEF_FILE"
+    [ "$status" -eq 0 ]
+}
+
+@test "claude provider: deep depth for security_review" {
+    # The argv builder selects claude-opus-4-8 for deep tasks.
+    # We test route_depth logic via Python import.
+    run python3 -c "
+import sys
+sys.path.insert(0, '$(dirname "$DELEGATE")')
+from delegate import route_depth
+depth = route_depth('security_review', 'medium')
+assert depth == 'deep', f'expected deep, got {depth}'
+print('OK')
+"
+    [ "$status" -eq 0 ]
+    assert_output_contains "OK"
+}
+
+@test "claude provider: readonly depth for exploration" {
+    run python3 -c "
+import sys
+sys.path.insert(0, '$(dirname "$DELEGATE")')
+from delegate import route_depth
+depth = route_depth('exploration', 'low')
+assert depth == 'readonly', f'expected readonly, got {depth}'
+print('OK')
+"
+    [ "$status" -eq 0 ]
+    assert_output_contains "OK"
+}
+
+@test "claude provider: build_claude_argv omits --dangerously-skip-permissions for read-only" {
+    run python3 -c "
+import sys
+sys.path.insert(0, '$(dirname "$DELEGATE")')
+from delegate import build_claude_argv
+argv = build_claude_argv('brief text', 'standard', write_mode=False)
+assert '--dangerously-skip-permissions' not in argv, f'unexpected flag: {argv}'
+assert '--model' in argv
+print('OK')
+"
+    [ "$status" -eq 0 ]
+    assert_output_contains "OK"
+}
+
+@test "claude provider: build_claude_argv adds --dangerously-skip-permissions for write_mode" {
+    run python3 -c "
+import sys
+sys.path.insert(0, '$(dirname "$DELEGATE")')
+from delegate import build_claude_argv
+argv = build_claude_argv('brief text', 'deep', write_mode=True)
+assert '--dangerously-skip-permissions' in argv, f'flag missing: {argv}'
+print('OK')
+"
+    [ "$status" -eq 0 ]
+    assert_output_contains "OK"
+}
+
+@test "claude provider: all three providers accepted by argparse" {
+    run python3 -c "
+import sys
+sys.path.insert(0, '$(dirname "$DELEGATE")')
+from delegate import build_parser
+p = build_parser()
+# Should not raise for any of the three providers
+for prov in ('claude', 'codex', 'antigravity'):
+    args = p.parse_args(['--provider', prov, '--brief-file', 'x.txt'])
+    assert args.provider == prov
+print('OK')
+"
+    [ "$status" -eq 0 ]
+    assert_output_contains "OK"
+}
+
+@test "claude provider: extract_claude_summary returns plain text" {
+    run python3 -c "
+import sys
+sys.path.insert(0, '$(dirname "$DELEGATE")')
+from delegate import extract_claude_summary
+result = extract_claude_summary('  Hello world  ')
+assert result == 'Hello world', repr(result)
+print('OK')
+"
+    [ "$status" -eq 0 ]
+    assert_output_contains "OK"
+}
+```
+
+### 6. `CHANGELOG.md`
+
+Add to the `[Unreleased]` section:
+
+```markdown
+### Added
+- feat(delegation): add `claude` as a third delegation provider target; update
+  AGENTS.md, AGY.md, and DELEGATION.md to document symmetrical delegation
+  (#420)
+```
+
+### 7. `.github/workflows/pr-tooling.yml`
+
+Add `tests/bats/delegation-claude.bats` to the bats test step. If there is
+already a glob pattern like `tests/bats/*.bats`, no change is needed — just
+verify the new file will be picked up automatically.
+
+## Privacy constraints
+
+- No Windows drive-letter absolute paths, Unix home/user paths in any file.
+- No API key patterns (sk-, ghp_, ghs_, glpat-).
+- No hardcoded secrets.
+
+## CHANGELOG note
+
+A `feat` commit must have a matching entry in the `[Unreleased]` section of
+`CHANGELOG.md` or CI will fail.
+
+## Definition of Done
+
+- [ ] `--provider claude` works end-to-end (fail-open when binary absent).
+- [ ] `delegate.py` is unchanged except for the three additions above.
+- [ ] `AGENTS.md` and `AGY.md` have a "Cross-agent delegation" section.
+- [ ] `DELEGATION.md` documents the symmetrical model and the Claude provider.
+- [ ] `tests/bats/delegation-claude.bats` passes (7 tests, all green).
+- [ ] `CHANGELOG.md` has a `[Unreleased]` entry.
+- [ ] No unrelated files modified.

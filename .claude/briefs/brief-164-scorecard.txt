@@ -1,0 +1,139 @@
+## Issue #164 — Add OpenSSF Scorecard workflow + badge
+
+**Task type:** ci + docs (new GitHub Actions workflow + README badge)
+**Branch to create:** agent/agy/claude-sonnet-4-6/ci/scorecard-164
+
+---
+
+### Start here — ALWAYS do this first before any file changes
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/ci/scorecard-164
+```
+
+---
+
+### Background
+
+OpenSSF Scorecard is a free, automated security health check that scores a
+project on criteria like branch protection, code review, CI, vulnerabilities,
+pinned dependencies, and more. Running it surfaces which controls can be improved
+and signals security posture to external users. SECURITY.md and LICENSE are both
+already present in this repo — all dependencies for this task are satisfied.
+
+---
+
+### Files to create / change
+
+#### 1. Create `.github/workflows/scorecard.yml`
+
+```yaml
+name: OpenSSF Scorecard
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: '30 1 * * 1'   # every Monday at 01:30 UTC
+  push:
+    branches: [master]
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@v2.4.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload to code-scanning dashboard
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+```
+
+**Important for the actions versions:** Use the SHA-pinned versions ONLY if
+there is already a precedent in another workflow file in this repo; otherwise
+use the tag versions shown above. Check other workflow files in `.github/workflows/`
+to match the existing convention.
+
+#### 2. README.md — Add Scorecard badge
+
+Find the badges block near the top of README.md (where shields.io or other badges
+are displayed). Add the Scorecard badge.
+
+The badge URL pattern for OpenSSF Scorecard is:
+- Image: `https://api.securityscorecards.dev/projects/<host>/<owner>/<repo>/badge`
+- Link: `https://securityscorecards.dev/viewer/?uri=<host>/<owner>/<repo>`
+
+Where `<host>` is the git hosting provider (e.g. `github.com`), `<owner>` is the
+org/user, and `<repo>` is the repository name.
+
+Read the top of README.md to find the owner and repo name from any existing badges
+or links, then construct the Scorecard badge accordingly.
+
+If there is no existing badge block, add it right after the `# ai-agent-kit`
+heading line, on its own line.
+
+#### 3. CHANGELOG.md
+
+Under `## [Unreleased]` → `### Added`, prepend:
+
+```
+- **`ci` — add OpenSSF Scorecard workflow + badge (#164).**
+  Adds `.github/workflows/scorecard.yml` (runs weekly + on push to master, uploads
+  SARIF to the code-scanning dashboard) and the Scorecard badge to README.
+```
+
+---
+
+### Constraints
+
+- Do not modify any `tooling/`, `scripts/`, `skills/`, or source files.
+- Do not add any new npm/pip/cargo dependencies.
+- The workflow must use `permissions: read-all` at the top level and grant only
+  the minimum needed permissions at the job level.
+- MIT-compatible licenses only (Scorecard action is Apache-2.0, which is fine).
+
+---
+
+### After making changes
+
+1. `git add .github/workflows/scorecard.yml README.md CHANGELOG.md`
+2. `git commit -m "ci: add OpenSSF Scorecard workflow + badge (#164)"`
+3. `git push origin agent/agy/claude-sonnet-4-6/ci/scorecard-164`
+4. `gh pr create --title "ci: add OpenSSF Scorecard workflow + badge (#164)" --body "Closes #164\n\nAdds the OpenSSF Scorecard weekly + push-to-master workflow and uploads results to the GitHub code-scanning dashboard. Adds the Scorecard badge to README." --base master`
+
+---
+
+### Acceptance criteria
+
+- [ ] `.github/workflows/scorecard.yml` exists and is syntactically valid YAML
+- [ ] Workflow triggers on: schedule (weekly), push to master, branch_protection_rule
+- [ ] README badge added
+- [ ] CHANGELOG entry added under [Unreleased] > Added

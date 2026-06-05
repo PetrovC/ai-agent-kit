@@ -1,0 +1,111 @@
+## Issue #405 — ci(scorecard): pin GitHub Actions to full commit SHAs
+
+**Task type:** ci
+**Branch:** agent/agy/claude-sonnet-4-6/ci/sha-pins-405
+
+---
+
+### Start here
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/ci/sha-pins-405
+```
+
+---
+
+### Goal
+
+Replace every mutable version tag reference (`@v6`, `@v7`, `@v2.4.0`, etc.) in
+all workflow files with its full 40-character commit SHA, keeping a short comment
+with the human-readable tag. Do NOT change anything else (triggers, permissions,
+job logic).
+
+---
+
+### STEP 1 — Replace action refs in `.github/workflows/`
+
+Apply these exact replacements everywhere they appear in `.github/workflows/*.yml`:
+
+| Old reference | New reference |
+|---|---|
+| `actions/checkout@v6` | `actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6` |
+| `actions/checkout@v4` | `actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # actions/checkout@v4` |
+| `actions/upload-artifact@v7` | `actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # actions/upload-artifact@v7` |
+| `actions/download-artifact@v8` | `actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # actions/download-artifact@v8` |
+| `github/codeql-action/upload-sarif@v4` | `github/codeql-action/upload-sarif@411bbbe57033eedfc1a82d68c01345aa96c737d7 # github/codeql-action/upload-sarif@v4` |
+| `ossf/scorecard-action@v2.4.0` | `ossf/scorecard-action@ff5dd8929f96a8a4dc67d13f32b8c75057829621 # ossf/scorecard-action@v2.4.0` |
+| `anthropics/claude-code-action@v1` | `anthropics/claude-code-action@0170fdd543ea09e8d47e76eeb1f3f2b1c2d66173 # anthropics/claude-code-action@v1` |
+| `sigstore/cosign-installer@v3` | `sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # sigstore/cosign-installer@v3` |
+| `softprops/action-gh-release@v3` | `softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # softprops/action-gh-release@v3` |
+
+Use sed, Python, or direct file edits — whatever you prefer. Every `uses:` line
+must end up with a 40-char SHA and a `# action@tag` comment.
+
+---
+
+### STEP 2 — Replace action refs in `prompts/github-actions/`
+
+Apply these exact replacements everywhere they appear in `prompts/github-actions/*.yml`:
+
+| Old reference | New reference |
+|---|---|
+| `actions/checkout@v4` | `actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # actions/checkout@v4` |
+| `actions/checkout@v6` | `actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6` |
+| `anthropics/claude-code-action@v1` | `anthropics/claude-code-action@0170fdd543ea09e8d47e76eeb1f3f2b1c2d66173 # anthropics/claude-code-action@v1` |
+| `openai/codex-action@v1` | `openai/codex-action@a26d2d4d8b78a694338b8e3715c3630254340b2c # openai/codex-action@v1` |
+| `actions/github-script@v7` | `actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # actions/github-script@v7` |
+
+---
+
+### STEP 3 — Verify
+
+Run:
+```bash
+grep -rn "uses:.*@v[0-9]" .github/workflows prompts/github-actions || echo "All pinned"
+```
+
+The output should be empty (no remaining `@v` references).
+
+---
+
+### STEP 4 — Update CHANGELOG.md
+
+Under `## [Unreleased]` → `### Changed`, prepend:
+
+```
+- **`ci(scorecard)` — pin all GitHub Actions to full commit SHAs (#405).**
+  Replaces mutable version tags in `.github/workflows/` and `prompts/github-actions/`
+  with 40-char commit SHAs. Human-readable tag preserved as a comment.
+  Improves OpenSSF Scorecard Pinned-Dependencies check. Dependabot can still
+  propose updates for GitHub Actions.
+```
+
+---
+
+### Acceptance criteria
+
+- No `@v` tags remain in `.github/workflows/*.yml`
+- No `@v` tags remain in `prompts/github-actions/*.yml`
+- Every pinned ref has a `# action@tag` comment
+- CHANGELOG entry added under Changed
+
+---
+
+### Commit and PR
+
+```bash
+git add .github/workflows/ prompts/github-actions/ CHANGELOG.md
+git commit -m "ci(scorecard): pin all GitHub Actions to full commit SHAs (#405)"
+git push origin agent/agy/claude-sonnet-4-6/ci/sha-pins-405
+gh pr create \
+  --title "ci(scorecard): pin all GitHub Actions to full commit SHAs (#405)" \
+  --body "Closes #405
+
+Replaces all mutable @vN action tags with 40-char commit SHAs in
+.github/workflows/ and prompts/github-actions/. Human-readable tag kept as
+a comment. Dependabot can still propose updates.
+Improves OpenSSF Scorecard Pinned-Dependencies check." \
+  --base master
+```

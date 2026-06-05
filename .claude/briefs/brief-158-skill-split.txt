@@ -1,0 +1,269 @@
+## Issue #158 — Split skills > 200 lines into SKILL.md + SKILL.deep.md
+
+**Task type:** refactor
+**Branch to create:** agent/agy/claude-sonnet-4-6/refactor/skill-split-158
+
+---
+
+### Start here — ALWAYS do this first before any file changes
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/refactor/skill-split-158
+```
+
+---
+
+### Background
+
+Skills with long SKILL.md files load their entire content every time they match
+a file path. 22 skills currently exceed 200 lines. Heavy skill loading inflates
+context cost. The fix: keep SKILL.md ≤ 80 lines (fast, always loaded) and move
+detailed how-to content into a SKILL.deep.md file (opt-in, only read when needed).
+
+---
+
+### Which skills to split
+
+Run this to confirm the list:
+```bash
+wc -l .agents/skills/*/SKILL.md | sort -rn | awk '$1 > 200 && $2 != "total"'
+```
+
+You should see (approximately) 22 skills over 200 lines:
+ai-dev, angular, java-kotlin, vue, graphql, react, testing, architecture,
+security, svelte, monorepo, performance, infrastructure, accessibility,
+api-design, database, observability, node, code-review, error-handling,
+i18n, messaging
+
+**Scope of this PR**: split ALL of them (same mechanical pattern for each).
+
+---
+
+### SKILL.md structure after split (target: ≤ 80 lines)
+
+Keep in SKILL.md:
+1. YAML frontmatter (unchanged — do NOT touch name/description/paths/allowed-tools/version)
+2. `# <Skill Name>` heading
+3. `## Goal` — 2–4 sentence summary of what the skill does (keep existing text, trim to essentials)
+4. `## Quick reference` — a table or short bullet list of the 5–8 most common commands/patterns
+5. `## Full guidance` — one-liner pointing to SKILL.deep.md:
+   ```markdown
+   ## Full guidance
+   Extended how-to, patterns, anti-patterns, and checklists: [`SKILL.deep.md`](SKILL.deep.md)
+   ```
+
+Everything else (detailed sections, long checklists, code examples, anti-patterns,
+extended explanations) goes into SKILL.deep.md.
+
+---
+
+### SKILL.deep.md structure
+
+```markdown
+# <Skill Name> — Deep Reference
+
+> Loaded on demand. The slim [`SKILL.md`](SKILL.md) covers the quick reference.
+
+[all the detailed sections from the original SKILL.md, starting after ## Goal]
+```
+
+The deep file does NOT need YAML frontmatter — it's not auto-loaded by Claude Code.
+
+---
+
+### Where to create the files
+
+For each skill in `.agents/skills/<name>/`:
+- Edit `.agents/skills/<name>/SKILL.md` in-place (slim version)
+- Create `.agents/skills/<name>/SKILL.deep.md` (detailed version)
+
+Do NOT touch `.agy/skills/`, `.claude/skills/`, or `skills/` copies —
+those are installed copies synced by install.sh, not the sources. Only the
+`.agents/skills/` source files need the split.
+
+---
+
+### STEP-BY-STEP for each skill
+
+For each skill (repeat for all 22):
+
+1. Read the current `.agents/skills/<name>/SKILL.md`
+2. Identify the split point:
+   - Keep: frontmatter + heading + ## Goal + ## Quick reference (create one if it
+     doesn't exist; use the most important 5–8 items from the skill)
+   - Move: everything below that, starting from the first detailed section
+3. Write the slimmed `.agents/skills/<name>/SKILL.md` (≤ 80 lines, ending with
+   the `## Full guidance` pointer)
+4. Write `.agents/skills/<name>/SKILL.deep.md` with the deep content
+
+**Important for ## Quick reference**: if the skill doesn't currently have a
+section with that name, look for an equivalent (e.g., "## Key commands",
+"## Checklist", "## Common patterns") and use that content. If none exists,
+create a minimal table of the 5 most important commands/concepts for the skill.
+
+---
+
+### Example: `testing` skill
+
+Original testing/SKILL.md has ~321 lines. After split:
+
+**testing/SKILL.md (≤ 80 lines):**
+```markdown
+---
+name: testing
+description: >
+  [... unchanged ...]
+allowed-tools:
+  [... unchanged ...]
+version: "1.0.0"
+---
+
+# Testing Skill
+
+## Goal
+Ensure that changed behavior is verified by meaningful, maintainable tests.
+A test suite nobody trusts is worse than no test suite. Write tests that fail
+when the behavior breaks, and pass when it works.
+
+## Quick reference
+
+| Pattern | When to use |
+|---|---|
+| Unit test | Domain rules, pure logic, fast feedback |
+| Integration test | DB, external APIs, DI container boundaries |
+| E2E test | Critical user flows only — keep few, keep stable |
+| `--watch` mode | TDD inner loop |
+| `--coverage` | Before merging new features |
+
+Key commands:
+- `dotnet test` / `pytest -x` / `go test ./...` / `npm test`
+- `npx vitest run --coverage` — frontend coverage
+
+## Full guidance
+Extended patterns, anti-patterns, naming, and CI config: [`SKILL.deep.md`](SKILL.deep.md)
+```
+
+**testing/SKILL.deep.md:**
+```markdown
+# Testing Skill — Deep Reference
+
+> Loaded on demand. The slim [`SKILL.md`](SKILL.md) covers the quick reference.
+
+## Test pyramid
+[original ## Test pyramid content]
+
+## Unit tests
+[...]
+
+## Integration tests
+[...]
+
+... (all remaining sections)
+```
+
+---
+
+### STEP-BY-STEP for validate.sh
+
+After splitting all skills, update `scripts/validate.sh` to add a check that:
+- If a SKILL.md file references `SKILL.deep.md`, verify that SKILL.deep.md exists.
+
+Find the existing skill validation block (around line 345-380). Add after the
+version check block:
+
+```bash
+echo ""
+echo "> Skill: SKILL.deep.md exists when referenced"
+if [[ -d "$TARGET/skills" ]] && compgen -G "$TARGET/skills/*/SKILL.md" > /dev/null; then
+    deep_missing=false
+    for f in "$TARGET"/skills/*/SKILL.md; do
+        [[ -f "$f" ]] || continue
+        if grep -qF "SKILL.deep.md" "$f"; then
+            deep_file="${f%SKILL.md}SKILL.deep.md"
+            if [[ ! -f "$deep_file" ]]; then
+                warn "${f#"$TARGET/"} references SKILL.deep.md but file is missing"
+                deep_missing=true
+            fi
+        fi
+    done
+    $deep_missing || ok "all SKILL.deep.md references resolved"
+else
+    ok "no shared skills/ directory to check"
+fi
+```
+
+Also apply this same block to `scripts/validate.ps1` (find the analogous
+PowerShell block and add it there too, same pattern in PS syntax).
+
+---
+
+### STEP-BY-STEP for CHANGELOG.md
+
+Under `## [Unreleased]` → `### Changed`, prepend:
+
+```
+- **`refactor(skills)` — split 22 long skills into SKILL.md + SKILL.deep.md (#158).**
+  Every skill that exceeded 200 lines now ships a slim `SKILL.md` (≤ 80 lines)
+  for always-on loading and a `SKILL.deep.md` for extended how-to reference.
+  Reduces per-match context cost for heavy skills (ai-dev, angular, testing, etc.).
+  `scripts/validate.sh` now checks that `SKILL.deep.md` exists when referenced.
+```
+
+---
+
+### Constraints
+
+- Only touch `.agents/skills/*/SKILL.md` (modify), `.agents/skills/*/SKILL.deep.md` (create), `scripts/validate.sh`, `scripts/validate.ps1`, and `CHANGELOG.md`
+- Do NOT touch `.agy/skills/`, `.claude/skills/`, `skills/` (those are installed copies)
+- Frontmatter must remain byte-for-byte identical (only the body changes)
+- SKILL.md must be ≤ 80 lines (including frontmatter) after the split
+- SKILL.deep.md must start with the header pattern shown above
+- shellcheck must pass on validate.sh after the change
+
+---
+
+### Verification after all changes
+
+```bash
+# Check no SKILL.md exceeds 80 lines
+wc -l .agents/skills/*/SKILL.md | awk '$1 > 80 && $2 != "total" {print "OVER 80:", $0}'
+# Should print nothing (or very few edge cases with heavy frontmatter)
+
+# Check all SKILL.deep.md files exist
+for f in .agents/skills/*/SKILL.md; do
+  if grep -qF "SKILL.deep.md" "$f"; then
+    deep="${f%SKILL.md}SKILL.deep.md"
+    [[ -f "$deep" ]] || echo "MISSING: $deep"
+  fi
+done
+# Should print nothing
+
+# shellcheck
+shellcheck --severity=warning -e SC1090,SC1091 scripts/validate.sh
+```
+
+---
+
+### After making changes
+
+1. Run the verification commands above
+2. `git add .agents/skills/ scripts/validate.sh scripts/validate.ps1 CHANGELOG.md`
+3. `git commit -m "refactor(skills): split 22 long skills into SKILL + SKILL.deep (#158)"`
+4. `git push origin agent/agy/claude-sonnet-4-6/refactor/skill-split-158`
+5. `gh pr create --title "refactor(skills): split 22 long skills into SKILL + SKILL.deep (#158)" --body "Closes #158
+
+Splits all 22 skills that exceeded 200 lines into a slim SKILL.md (≤ 80 lines, always loaded) and a SKILL.deep.md (extended reference, loaded on demand). Reduces context cost for heavy skills. validate.sh now checks that SKILL.deep.md exists when referenced." --base master`
+
+---
+
+### Acceptance criteria
+
+- [ ] All 22 skills in `.agents/skills/` that were > 200 lines now have SKILL.md ≤ 80 lines
+- [ ] Each split skill has a new SKILL.deep.md
+- [ ] SKILL.md ends with `## Full guidance` pointing to SKILL.deep.md
+- [ ] Frontmatter in SKILL.md is byte-for-byte unchanged
+- [ ] validate.sh has the SKILL.deep.md presence check
+- [ ] shellcheck passes
+- [ ] CHANGELOG entry added

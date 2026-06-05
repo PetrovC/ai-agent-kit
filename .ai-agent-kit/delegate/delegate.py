@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Cross-tool delegation adapter (issue #339, Phase 2).
+"""Cross-tool delegation adapter (issue #339, Phase 2; #420, Phase 5).
 
-A narrow, opt-in adapter that lets an orchestrator (Claude) delegate a single
-scoped task to another provider's CLI (Codex or Antigravity) and choose the
-model strength from the task type and risk. This is the narrow adapter
-ADR-018/ADR-020 explicitly leave room for — NOT a cross-tool orchestration
-platform.
+A narrow, opt-in adapter that lets any of the three supported agents (Claude
+Code, Codex, Antigravity) delegate a single scoped task to either of the other
+two, choosing the model strength from the task type and risk. This is the
+narrow adapter ADR-018/ADR-020 explicitly leave room for — NOT a cross-tool
+orchestration platform.
+
+Delegation is symmetrical: Claude can delegate to Codex or Antigravity, Codex
+can delegate to Claude or Antigravity, and Antigravity can delegate to Claude
+or Codex. Provider-specific behavior lives in thin adapter functions; shared
+policy (routing depth, privacy scan, fail-open contract) is never duplicated.
 
 Design constraints (all enforced here):
   - The provider CLI invocation via ``subprocess.run`` is the ONLY mockable
@@ -72,6 +77,17 @@ ANTIGRAVITY_FALLBACK_BY_DEPTH = {
     "deep": "claude-sonnet-4-6",
     "standard": "gemini-3.1-pro",
     "readonly": "gemini-3.1-pro",
+}
+
+# Claude Code CLI — per-call model flag is --model.
+# deep → Opus (architecture/security/review), standard → Sonnet (daily work),
+# readonly → Haiku (mechanical, exploration).
+# Verified against platform.claude.com/docs/en/about-claude/models/overview
+# (accessed 2026-06-05).
+CLAUDE_MODEL_BY_DEPTH = {
+    "deep": "claude-opus-4-8",
+    "standard": "claude-sonnet-4-6",
+    "readonly": "claude-haiku-4-5",
 }
 
 # Substrings (lowercased) in provider stderr/stdout that signal quota exhaustion
@@ -285,6 +301,48 @@ def build_antigravity_argv(brief: str, depth: str, write_mode: bool = False) -> 
     return argv
 
 
+def build_claude_argv(brief: str, depth: str, write_mode: bool = False) -> list[str]:
+    """Build the non-interactive Claude Code invocation.
+
+    claude --print "<brief>" --model <model> [--dangerously-skip-permissions]
+
+    ``--print`` runs a single prompt non-interactively and prints the response
+    as plain text.  ``--dangerously-skip-permissions`` auto-approves tool
+    prompts for unattended use and is added only for implementation tasks
+    (``write_mode=True``) to keep read-only delegations from writing files.
+    Verified against code.claude.com/docs (accessed 2026-06-05).
+    """
+    model = CLAUDE_MODEL_BY_DEPTH[depth]
+    argv = ["claude", "--print", brief, "--model", model]
+    if write_mode:
+        argv.append("--dangerously-skip-permissions")
+    return argv
+
+
+def extract_claude_summary(stdout: str) -> str:
+    """Extract the answer from Claude Code print-mode output.
+
+    ``claude --print`` emits plain text, so return the trimmed stdout.
+    The function is tolerant of an optional JSON wrapper in case a future
+    version adds one.  The result is privacy-scanned by the caller.
+    """
+    import json
+
+    text = stdout.strip()
+    if not text:
+        return ""
+    try:
+        obj = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+    if isinstance(obj, dict):
+        for key in ("response", "output", "text", "message", "result", "content"):
+            value = obj.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return text
+
+
 def extract_antigravity_summary(stdout: str) -> str:
     """Extract the answer from Antigravity print-mode output.
 
@@ -327,7 +385,7 @@ def provider_env(
     if provider == "antigravity":
         model = model_override if model_override else ANTIGRAVITY_MODEL_BY_DEPTH[depth]
         return {**os.environ, ANTIGRAVITY_MODEL_ENV: model}
-    return None
+    return None  # claude and codex inherit the environment as-is
 
 
 import re as _re
@@ -461,6 +519,8 @@ def delegate(args: argparse.Namespace) -> int:
         argv = build_codex_argv(brief, depth, write_mode)
     elif provider == "antigravity":
         argv = build_antigravity_argv(brief, depth, write_mode)
+    elif provider == "claude":
+        argv = build_claude_argv(brief, depth, write_mode)
     else:  # pragma: no cover - argparse restricts the choices
         raise DelegateError(f"unsupported provider: {provider}")
 
@@ -515,6 +575,8 @@ def delegate(args: argparse.Namespace) -> int:
         summary = extract_codex_summary(stdout)
     elif provider == "antigravity":
         summary = extract_antigravity_summary(stdout)
+    elif provider == "claude":
+        summary = extract_claude_summary(stdout)
     else:  # pragma: no cover - argparse restricts the choices
         summary = stdout.strip()
 
@@ -558,7 +620,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     # argparse rejects any provider outside the wired set with a clear message.
     parser.add_argument(
-        "--provider", required=True, choices=["codex", "antigravity"]
+        "--provider", required=True, choices=["claude", "codex", "antigravity"]
     )
     parser.add_argument("--task-type", dest="task_type", default="other")
     parser.add_argument("--risk", default="medium")

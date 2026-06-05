@@ -1,0 +1,47 @@
+Implement GitHub issue 149 in this repository.
+
+TASK: Add doctor.sh and doctor.ps1 diagnostic scripts.
+
+GOAL: Ship doctor.sh and doctor.ps1 that inspect a target project installation and report health.
+These are diagnostic only — no auto-fixing. They complement validate.sh which checks template fill.
+
+BRANCH: Create branch agent/agy/claude-sonnet-4-6/feat/doctor-scripts from master before making changes.
+
+WHAT TO CREATE:
+
+scripts/doctor.sh — Bash diagnostic script:
+- Add the AAK_DEBUG trace line at the very top (after the shebang), exactly as it appears in validate.sh
+- Accept --target argument (path to target project to inspect)
+- Exit codes: 0 healthy, 1 warnings found, 2 errors found
+- Output lines prefixed with [OK], [WARN], or [ERROR]
+- Checks to implement:
+  1. Manifest integrity: every line in target/.kit-manifest must be a file that exists at target
+  2. Hook executability: every .sh file under target/.claude/hooks and target/.codex/hooks must be executable
+  3. Docs presence: target/docs/ai/PROJECT.md and target/docs/ai/ARCHITECTURE.md must exist
+  4. MCP example file: target/.mcp.example.jsonc must exist
+  5. Version check: read VERSION file from the kit root (one directory up from scripts/); report if target has no .kit-manifest
+- Read scripts/validate.sh as the reference for script structure (set -euo pipefail, require_value helper, etc.)
+
+scripts/doctor.ps1 — PowerShell parity (same 5 checks, same exit codes, same output format):
+- Add the AAK_DEBUG trace line at the very top, exactly as in validate.ps1
+- Accept -Target parameter
+- Implement the same 5 checks
+
+tests/bats/doctor.bats — minimal BATS coverage:
+- Test: script runs on examples/filled-project and exits 0
+- Test: exits 2 when a required manifest file is missing
+
+tests/pester/Doctor.Tests.ps1 — minimal Pester coverage:
+- Same two test cases for the PowerShell version
+
+Update docs/ai/COMMANDS.md — add doctor.sh and doctor.ps1 to the scripts list.
+
+VERIFICATION: Run the script on the dogfood install and confirm it exits 0 or only with [WARN].
+  bash scripts/doctor.sh --target examples/filled-project
+
+COMMIT MESSAGE: feat(scripts): add doctor.sh + doctor.ps1 to diagnose target installs
+
+Add a CHANGELOG entry under the Unreleased Added section for this feat change.
+
+After committing, push the branch and create a pull request with base master.
+The PR body must include the text: Closes 149

@@ -1,0 +1,152 @@
+## Issue #140 — Release checklist + first signed tag + GitHub Release
+
+**Task type:** docs (new file + README update)
+**Branch to create:** agent/agy/claude-sonnet-4-6/docs/release-checklist-140
+**IMPORTANT:** This task covers only the DOCUMENTATION part (RELEASE_CHECKLIST.md
+and README pinning section). Tag creation and GitHub Release are NOT part of this
+PR — they require explicit human confirmation and will be done separately.
+
+---
+
+### Start here — ALWAYS do this first before any file changes
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/docs/release-checklist-140
+```
+
+---
+
+### Background
+
+Currently the repo has no single "how to cut a release" document for maintainers.
+The `release-management` skill covers the process in detail but is an agent skill,
+not a quick human checklist. Also, users who install via `git clone master` drift
+from pinned versions because there are no tags yet. The first tag and GitHub Release
+would let users pin to a stable snapshot.
+
+The repo already has:
+- `VERSION` file (current value: `1.21.0`)
+- `CHANGELOG.md` with `[Unreleased]` section
+- `docs/ai/RELEASE.md` (covers the maintainer workflow — do NOT duplicate it)
+- `skills/release-management/SKILL.md` (agent skill — do NOT duplicate it)
+
+---
+
+### Files to create / change
+
+#### 1. Create `docs/RELEASE_CHECKLIST.md`
+
+This is a SHORT, actionable checklist for a human maintainer cutting a release.
+It should reference `docs/ai/RELEASE.md` for detail and the `release-management`
+skill for automated checks, rather than duplicating content.
+
+Suggested structure:
+
+```markdown
+# Release checklist
+
+Quick checklist for maintainers cutting a release. For the full workflow,
+see `docs/ai/RELEASE.md`. For automated readiness checks, use the
+`/release-check` slash command with the `release-management` skill active.
+
+## Pre-flight
+
+- [ ] Working tree is clean (`git status` shows nothing staged or modified)
+- [ ] All CI checks green on `master`
+- [ ] `VERSION` file contains the correct semver (`cat VERSION`)
+- [ ] `CHANGELOG.md` has a populated `[Unreleased]` section (not empty)
+
+## Cut the release
+
+1. **Promote changelog**
+   - Rename `## [Unreleased]` → `## [X.Y.Z] - YYYY-MM-DD` (replace with actual
+     version from `VERSION` and today's date)
+   - Add a fresh empty `## [Unreleased]` section above it
+   - Commit: `git commit -am "chore(release): promote CHANGELOG for vX.Y.Z"`
+
+2. **Tag** _(requires explicit confirmation before running)_
+   ```bash
+   git tag -a vX.Y.Z -m "Release vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+
+3. **GitHub Release** _(requires explicit confirmation before running)_
+   ```bash
+   gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <(sed -n '/## \[X.Y.Z\]/,/## \[/p' CHANGELOG.md | head -n -1)
+   ```
+   Or use the GitHub web UI: Releases → Draft a new release → select the tag →
+   paste the CHANGELOG section for that version → Publish release.
+
+## Post-release
+
+- [ ] Tag visible: `git tag --list | grep vX.Y.Z`
+- [ ] GitHub Release page populated
+- [ ] `[Unreleased]` section is empty and ready for the next cycle
+```
+
+#### 2. README.md — Add version pinning section
+
+Find the `### Option A — install script (canonical, all 3 tools)` section.
+After the installation examples (before the `### Optional artifacts` section or
+the Windows troubleshooting block), add a short note:
+
+```markdown
+#### Pinning to a release
+
+To install from a specific tagged release rather than `master`:
+
+```bash
+# Clone at a specific tag
+git clone --branch v1.21.0 --depth 1 <repo-url> ai-agent-kit-kit
+cd ai-agent-kit-kit
+./scripts/install.sh --target /path/to/your-project --tools codex,claude,agy
+```
+
+Tagged releases are listed on the Releases page. Using a tag ensures your
+install is reproducible — `master` may include unreleased changes.
+
+For the plugin marketplace (Option B), pinning is not yet supported; the
+marketplace always installs from `master`.
+```
+
+#### 3. CHANGELOG.md
+
+Under `## [Unreleased]` → `### Added`, prepend:
+
+```
+- **`docs` — add `docs/RELEASE_CHECKLIST.md` and version-pinning guidance in README (#140).**
+  `docs/RELEASE_CHECKLIST.md` is a concise maintainer checklist covering pre-flight checks,
+  CHANGELOG promotion, tag creation (with confirmation note), and GitHub Release creation.
+  README gains a "Pinning to a release" sub-section explaining how to install from a
+  specific git tag for reproducible installs.
+```
+
+---
+
+### Constraints
+
+- Docs only. No new scripts, no new CI workflows, no changes to `tooling/` or `skills/`.
+- Do NOT create the tag or GitHub Release — that requires human confirmation and is
+  out of scope for this PR.
+- Do NOT modify `docs/ai/RELEASE.md` (it already covers the full workflow).
+- Keep `docs/RELEASE_CHECKLIST.md` short and actionable — under 80 lines.
+
+---
+
+### After making changes
+
+1. `git add docs/RELEASE_CHECKLIST.md README.md CHANGELOG.md`
+2. `git commit -m "docs: add RELEASE_CHECKLIST.md and version-pinning guidance in README (#140)"`
+3. `git push origin agent/agy/claude-sonnet-4-6/docs/release-checklist-140`
+4. `gh pr create --title "docs: add RELEASE_CHECKLIST.md and version-pinning guidance in README (#140)" --body "Closes #140 (docs portion — tag and GitHub Release require explicit confirmation and will be done separately after merge).\n\nAdds \`docs/RELEASE_CHECKLIST.md\` (concise maintainer checklist) and a README version-pinning section explaining how to install from a tagged release." --base master`
+
+---
+
+### Acceptance criteria
+
+- [ ] `docs/RELEASE_CHECKLIST.md` exists and is under 80 lines
+- [ ] README has a "Pinning to a release" sub-section
+- [ ] CHANGELOG entry added
+- [ ] No tag created, no GitHub Release created (those are manual steps after merge)

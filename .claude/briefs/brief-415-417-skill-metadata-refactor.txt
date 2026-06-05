@@ -1,0 +1,613 @@
+## Issues #415 + #417 — feat(skills): skill metadata schema and dotnet skill refactor
+
+**Task type:** feat
+**Branch:** agent/agy/gemini-3.1-pro/feat/skill-metadata-refactor-415-417
+
+---
+
+### Start here
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/gemini-3.1-pro/feat/skill-metadata-refactor-415-417
+```
+
+---
+
+### Context
+
+This is the ai-agent-kit. Skills live under `skills/<name>/SKILL.md`. The source
+of truth is `skills/`. The repo also has dogfood installs under:
+- `.agents/skills/<name>/SKILL.md`
+- `.claude/skills/<name>/SKILL.md`
+- `.agy/skills/<name>/SKILL.md`
+
+When you change a file in `skills/`, you MUST also apply the IDENTICAL change to
+the corresponding file in all three dogfood locations. CI validates parity.
+
+The current SKILL.md frontmatter schema has: `name`, `description`, `paths`,
+`allowed-tools`, `version`. Some skills use a two-file pattern: `SKILL.md` (short
+router) + `SKILL.deep.md` (full details).
+
+One skill already uses a `references/` pattern:
+`skills/release-management/references/edge-cases.md`
+
+This PR introduces:
+1. A documented metadata schema (`docs/ai/SKILL_METADATA.md`)
+2. New optional frontmatter fields for 3 skills: `keywords`, `task_intents`,
+   `delegation_hints`
+3. Refactoring the `dotnet` skill from a 177-line monolith into a short router
+   + 4 reference files (the reference model for other skills to follow)
+4. CI validation that referenced files in `references/` actually exist
+
+---
+
+### STEP 1 — Create the metadata schema document
+
+Create `docs/ai/SKILL_METADATA.md`.
+
+Content requirements:
+- Explain what the frontmatter fields mean
+- Document all CURRENT fields: `name`, `description`, `paths`, `allowed-tools`, `version`
+- Document the NEW optional fields:
+  - `keywords` — list of lowercase strings; matched against task text to select this skill
+  - `task_intents` — list of intent labels this skill is relevant for; valid values:
+    `review`, `implement`, `fix`, `refactor`, `docs`, `ci`, `security`,
+    `data-migration`, `small-change`
+  - `delegation_hints` — optional map with two keys:
+    - `can_delegate: true|false` — whether this skill's scope is delegatable
+    - `when` — freetext hint for when delegation makes sense (e.g., "when reviewing
+      both backend and frontend simultaneously")
+- Document the `references/` pattern:
+  - Purpose: lazy-load detailed guidance only when signals justify it
+  - Each reference file should start with a `## Load when` section documenting
+    the condition under which an agent should read this reference
+- Show a full annotated example (use the dotnet skill as the example)
+
+Length: 60–90 lines. Concrete, no fluff.
+
+---
+
+### STEP 2 — Add metadata to 3 skills
+
+For each skill below, add the new frontmatter fields. The change must be applied
+to ALL FOUR locations:
+- `skills/<name>/SKILL.md`
+- `.agents/skills/<name>/SKILL.md`
+- `.claude/skills/<name>/SKILL.md`
+- `.agy/skills/<name>/SKILL.md`
+
+**Skill: dotnet** (see Step 3 for the full refactor; add metadata as part of that step)
+
+**Skill: code-review** — add after `version: "1.0.0"`:
+```yaml
+keywords:
+  - review
+  - code review
+  - pr review
+  - pull request
+  - audit
+task_intents:
+  - review
+  - security
+  - refactor
+delegation_hints:
+  can_delegate: true
+  when: >
+    When the task involves reviewing both backend and frontend independently —
+    delegate each to a focused subagent, then synthesize findings.
+```
+
+**Skill: angular** — read the current angular SKILL.md frontmatter first, then
+add after `version: "1.0.0"`:
+```yaml
+keywords:
+  - angular
+  - typescript
+  - component
+  - ng
+  - ngrx
+  - angular material
+task_intents:
+  - implement
+  - review
+  - fix
+  - refactor
+delegation_hints:
+  can_delegate: true
+  when: >
+    When the task also involves backend (.NET, Node, etc.) — delegate frontend
+    to a focused subagent.
+```
+
+---
+
+### STEP 3 — Refactor the dotnet skill
+
+This is the main change. The current `skills/dotnet/SKILL.md` is 177 lines.
+Split it into a short router + 4 reference files.
+
+#### 3a. New `skills/dotnet/SKILL.md`
+
+Replace the current content entirely with the following (shorter router). Note: apply
+this IDENTICAL content to `.agents/skills/dotnet/SKILL.md`, `.claude/skills/dotnet/SKILL.md`,
+and `.agy/skills/dotnet/SKILL.md` as well.
+
+```markdown
+---
+name: dotnet
+description: >
+  Use when modifying C#, .NET, ASP.NET Core, Entity Framework Core, xUnit,
+  backend services, dependency injection, CQRS handlers, domain logic,
+  application layer, or any backend project structure.
+paths:
+  - "**/*.cs"
+  - "**/*.csproj"
+  - "**/*.sln"
+  - "**/global.json"
+allowed-tools:
+  - "Bash(dotnet:*)"
+version: "1.0.0"
+keywords:
+  - dotnet
+  - csharp
+  - c#
+  - asp.net
+  - aspnet
+  - entity framework
+  - ef core
+  - xunit
+  - mediatr
+  - ddd
+  - cqrs
+task_intents:
+  - implement
+  - review
+  - fix
+  - refactor
+  - data-migration
+delegation_hints:
+  can_delegate: true
+  when: >
+    When the task also involves a frontend (Angular, Vue, React) — delegate
+    backend to a focused subagent.
+---
+
+# .NET Skill
+
+## Goal
+
+Produce simple, explicit, maintainable .NET code that a junior developer can
+understand and that a senior developer would not need to refactor in 6 months.
+
+## Layering
+
+Respect this dependency direction at all times:
+
+```
+Domain
+  ↑
+Application  (commands, queries, handlers, ports, validation)
+  ↑
+Infrastructure  (EF Core, external APIs, file system, email, queues)
+  ↑
+Interfaces  (controllers, endpoints, workers, CLI, minimal APIs)
+```
+
+- Domain must not reference EF Core, ASP.NET, HTTP, or any infrastructure concern.
+- Application must not reference concrete infrastructure implementations.
+- Infrastructure implements ports defined in Application.
+- Interfaces call application use cases; they do not contain business logic.
+
+## References
+
+Load these only when signals justify it:
+
+| Reference | Load when |
+|---|---|
+| [`references/clean-architecture.md`](references/clean-architecture.md) | Task touches multiple layers, adds a new feature, or refactors cross-layer dependencies. Task text mentions DDD, CQRS, aggregate, value object, bounded context, or Clean Architecture. Files in `**/Domain/**`, `**/Application/**`, or `**/Infrastructure/**`. |
+| [`references/ef-core.md`](references/ef-core.md) | Task touches database queries, migrations, DbContext, repositories, or EF configuration. Files match `**/Infrastructure/**`, `**/Migrations/**`, or `**DbContext**`, `**Repository**`. |
+| [`references/testing.md`](references/testing.md) | Task adds or modifies tests, or the review must verify test coverage. Task text mentions xUnit, test, spec, mock, or fixture. Files in `**/Tests/**` or `**Test*.cs`. |
+| [`references/package-maintenance.md`](references/package-maintenance.md) | Task involves NuGet updates, runtime upgrades, or vulnerability remediation. Task text mentions package, NuGet, upgrade, or outdated. |
+
+## Verification commands
+
+```bash
+dotnet restore
+dotnet build --no-restore
+dotnet test --no-build
+dotnet format --verify-no-changes
+```
+
+## Final response requirements
+
+Always report:
+- Changed files with layer (Domain / Application / Infrastructure / Interfaces).
+- Tests added or updated.
+- Commands run and result.
+- Any architecture boundary that was touched or affected.
+- Risks or assumptions.
+```
+
+(End of SKILL.md content — note: the triple-backtick for the layering diagram should use actual backticks in the file, not escaped ones.)
+
+#### 3b. Create `skills/dotnet/references/clean-architecture.md`
+
+Also create the identical file at:
+- `.agents/skills/dotnet/references/clean-architecture.md`
+- `.claude/skills/dotnet/references/clean-architecture.md`
+- `.agy/skills/dotnet/references/clean-architecture.md`
+
+Content:
+```markdown
+# .NET — Clean Architecture, DDD, and CQRS Reference
+
+## Load when
+
+Load this reference when:
+- Task touches multiple layers, introduces a new feature, or refactors
+  cross-layer dependencies.
+- Task text mentions: DDD, domain-driven design, aggregate, value object,
+  bounded context, CQRS, command, query, handler, event, domain event,
+  Clean Architecture.
+- Changed files are in `**/Domain/**`, `**/Application/**`, or
+  `**/Infrastructure/**`.
+
+---
+
+## Layer rules
+
+**Domain layer** — zero external dependencies:
+- Contains: entities, aggregates, value objects, domain events, domain services,
+  repository interfaces (not implementations), domain exceptions.
+- Must not reference EF Core, ASP.NET, HTTP, file system, or any infrastructure
+  concern.
+- Business rules belong here — not in handlers, not in controllers.
+
+**Application layer** — orchestrates use cases:
+- Contains: commands, queries, command/query handlers, application services,
+  validation, port/interface definitions.
+- Must not reference concrete infrastructure implementations.
+- Handlers orchestrate — they do not contain business rules.
+- Business rules belong in the domain layer.
+
+**Infrastructure layer** — implements ports:
+- Contains: EF Core DbContext, migrations, repository implementations, external
+  API clients, file system adapters, email, queues.
+- Implements interfaces/ports defined in Application.
+- Only the composition root (DI configuration) knows about Infrastructure.
+
+**Interfaces layer** — entry points only:
+- Contains: controllers, minimal API endpoints, gRPC handlers, CLI entry points,
+  background workers.
+- Calls application use cases; never contains business logic.
+
+---
+
+## CQRS
+
+- Commands change state. Queries return data. Never mix both in one handler.
+- Handlers contain orchestration only — not business rules.
+- Business rules belong in domain entities or domain services.
+- Validation belongs in the application layer (FluentValidation or guard clauses).
+- Do not put EF Core queries directly in controllers or UI layers.
+
+---
+
+## Naming conventions
+
+| Type | Example |
+|---|---|
+| Commands | `CreateLeaveRequestCommand`, `ApproveLeaveRequestCommand` |
+| Queries | `GetLeaveRequestByIdQuery`, `GetLeaveRequestsForUserQuery` |
+| Handlers | `CreateLeaveRequestCommandHandler` |
+| Events | `LeaveRequestCreatedEvent` |
+| DTOs | `LeaveRequestDto`, `CreateLeaveRequestRequest` |
+| Repositories | `ILeaveRequestRepository`, `LeaveRequestRepository` |
+
+---
+
+## Code style
+
+- Prefer records for immutable DTOs and value objects.
+- Prefer primary constructors for simple classes (C# 12+).
+- Use `required` for mandatory properties.
+- Use `file` to scope types not used outside their file.
+- Use pattern matching and switch expressions over long if/else chains.
+- Configure `<Nullable>enable</Nullable>` and handle null explicitly.
+- Use `ArgumentNullException.ThrowIfNull()` and
+  `ArgumentException.ThrowIfNullOrWhiteSpace()`.
+```
+
+#### 3c. Create `skills/dotnet/references/ef-core.md`
+
+Also create the identical file at:
+- `.agents/skills/dotnet/references/ef-core.md`
+- `.claude/skills/dotnet/references/ef-core.md`
+- `.agy/skills/dotnet/references/ef-core.md`
+
+Content:
+```markdown
+# .NET — Entity Framework Core Reference
+
+## Load when
+
+Load this reference when:
+- Task touches database queries, migrations, DbContext, repository implementations,
+  or EF Core configuration.
+- Changed files match: `**/Infrastructure/**`, `**/Migrations/**`,
+  `**DbContext*.cs`, `**Repository*.cs`, `**EntityTypeConfiguration*.cs`.
+- Task text mentions: EF Core, Entity Framework, migration, DbContext, repository,
+  query, LINQ, AsNoTracking, Fluent API.
+
+---
+
+## Core rules
+
+- Use repositories or query services defined in Application, implemented in Infrastructure.
+- Do not leak `DbContext` into the domain or application layers.
+- Migrations belong in Infrastructure.
+- Use explicit configurations (`IEntityTypeConfiguration<T>`) over data annotations
+  where possible.
+- Avoid lazy loading unless explicitly justified and documented.
+- Prefer `AsNoTracking()` for read-only queries.
+
+## Dependency injection
+
+- Register services with the correct lifetime: Singleton / Scoped / Transient.
+- Do not capture Scoped services inside Singletons.
+- Use `IOptions<T>` for configuration binding.
+- Prefer constructor injection. Avoid service locator pattern.
+
+## Migration commands
+
+```bash
+# Add a migration
+dotnet ef migrations add <MigrationName> --project src/Infrastructure --startup-project src/Api
+
+# Apply to dev database
+dotnet ef database update --project src/Infrastructure --startup-project src/Api
+
+# Generate SQL script (for review before production apply)
+dotnet ef migrations script --project src/Infrastructure --startup-project src/Api
+```
+
+## Common pitfalls
+
+- N+1 queries: use `.Include()` or explicit joins, not lazy loading.
+- Missing `AsNoTracking()` on read queries causes unnecessary change tracking.
+- Nullable reference types: configure correctly so EF correctly maps optional columns.
+- Large migrations: always generate a SQL script and review before applying to production.
+```
+
+#### 3d. Create `skills/dotnet/references/testing.md`
+
+Also create the identical file at all three dogfood locations.
+
+Content:
+```markdown
+# .NET — Testing Reference
+
+## Load when
+
+Load this reference when:
+- Task adds, modifies, or reviews tests.
+- Task text mentions: xUnit, test, spec, mock, NSubstitute, Moq, FluentAssertions,
+  fixture, arrange/act/assert, integration test, unit test, regression test.
+- Changed files are in `**/Tests/**`, `**/Test/**`, or match `**Test*.cs`, `**Tests.cs`.
+
+---
+
+## Framework and tooling
+
+- Use **xUnit** for the test framework.
+- Use **FluentAssertions** or xUnit native assertions. Be consistent with the suite.
+- Use **NSubstitute** or **Moq** for mocking. Be consistent with the suite.
+
+## Test structure
+
+- Follow the **AAA pattern**: Arrange / Act / Assert.
+- Name tests: `MethodName_Scenario_ExpectedResult` or `GivenX_WhenY_ThenZ`.
+- Test behavior, not implementation details.
+- Never test only that a mock was called — test what actually happened as a result.
+- Add a regression test when fixing a bug.
+
+## Coverage rules
+
+- New business logic in the Domain or Application layer must have unit tests.
+- Infrastructure (EF Core) integration tests require a real or in-memory database.
+- Do not use `[Ignore]` or `Skip` without a comment explaining why and a ticket.
+
+## Verification
+
+```bash
+dotnet test --no-build
+dotnet test --no-build --collect:"XPlat Code Coverage"
+```
+```
+
+#### 3e. Create `skills/dotnet/references/package-maintenance.md`
+
+Also create the identical file at all three dogfood locations.
+
+Content:
+```markdown
+# .NET — Package and Runtime Maintenance Reference
+
+## Load when
+
+Load this reference when:
+- Task involves NuGet package updates, .NET runtime version upgrades, or
+  vulnerability remediation.
+- Task text mentions: package, NuGet, upgrade, outdated, CVE, vulnerability,
+  dotnet list package, global.json, TargetFramework.
+
+---
+
+## Protocol
+
+Never update packages silently. Always follow this protocol:
+
+1. **Surface explicitly** — list what can be updated and why (security patch,
+   bug fix, LTS upgrade, outdated minor).
+2. **Wait for approval** — do not touch anything until the user confirms.
+3. **Apply one package at a time** — run `dotnet restore && dotnet build &&
+   dotnet test` after each update.
+4. **Report** — which versions changed, whether tests pass, any breaking changes.
+
+## Detection commands
+
+```bash
+# Packages with available updates
+dotnet list package --outdated
+
+# Packages with known vulnerabilities
+dotnet list package --vulnerable --include-transitive
+
+# Installed .NET SDKs
+dotnet --list-sdks
+
+# Installed .NET runtimes
+dotnet --list-runtimes
+```
+
+## .NET runtime upgrade checklist
+
+- Bump `<TargetFramework>` in every `.csproj` (e.g., `net8.0` → `net9.0`).
+- Update `global.json` `sdk.version` if present.
+- Run `dotnet build` and fix compiler warnings from the new TFM.
+- Check [the official migration guide](https://learn.microsoft.com/en-us/dotnet/core/compatibility/).
+- Only propose upgrades to **stable LTS releases** unless explicitly asked.
+- Verify NuGet packages are compatible with the new TFM before proposing the upgrade.
+```
+
+---
+
+### STEP 4 — Extend CI validation
+
+Add a new step to `.github/workflows/pr-tooling.yml` in the `lint-codex` job (or
+add a new job called `lint-skills`) that validates:
+
+> For every `skills/*/SKILL.md` that contains a Markdown link to
+> `references/<filename>.md`, that reference file must exist at
+> `skills/<skill>/references/<filename>.md`.
+
+Add this step to the existing `lint-codex` job (after the last existing step) OR
+create a new `lint-skills` job:
+
+```yaml
+  lint-skills:
+    name: Skill reference integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+
+      - name: Every referenced skill file must exist
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          from pathlib import Path
+
+          errors = []
+          skills_root = Path("skills")
+          for skill_md in sorted(skills_root.glob("*/SKILL.md")):
+              skill_dir = skill_md.parent
+              content = skill_md.read_text(encoding="utf-8")
+              # Match Markdown links like [text](references/foo.md)
+              for m in re.finditer(r'\]\(references/([^)]+\.md)\)', content):
+                  ref = skill_dir / "references" / m.group(1)
+                  if not ref.exists():
+                      errors.append(f"{skill_md}: references {ref} but file does not exist")
+
+          if errors:
+              for e in errors:
+                  print(f"::error::{e}")
+              sys.exit(1)
+          print(f"OK: all skill references exist")
+          PY
+```
+
+---
+
+### STEP 5 — Update CHANGELOG.md
+
+Under `## [Unreleased]` → `### Added`, add (insert before existing Added items):
+
+```
+- **`feat(skills)` — add metadata schema and refactor dotnet skill (#415, #417).**
+  New `docs/ai/SKILL_METADATA.md` documents the skill frontmatter schema including
+  new optional fields: `keywords`, `task_intents`, `delegation_hints`. Three skills
+  (`dotnet`, `code-review`, `angular`) gain the new metadata. `dotnet/SKILL.md` is
+  refactored from a 177-line monolith into a short router + 4 reference files
+  (`clean-architecture.md`, `ef-core.md`, `testing.md`, `package-maintenance.md`),
+  each with explicit `## Load when` conditions. CI validation extended to check
+  that referenced files exist.
+```
+
+---
+
+### Acceptance criteria
+
+- `docs/ai/SKILL_METADATA.md` exists and documents all frontmatter fields
+- `skills/dotnet/SKILL.md` is ≤ 75 lines (router only)
+- `skills/dotnet/references/clean-architecture.md` exists
+- `skills/dotnet/references/ef-core.md` exists
+- `skills/dotnet/references/testing.md` exists
+- `skills/dotnet/references/package-maintenance.md` exists
+- Each reference file has a `## Load when` section
+- All 4 locations updated for dotnet (skills/, .agents/, .claude/, .agy/)
+- `code-review/SKILL.md` has `keywords:`, `task_intents:`, `delegation_hints:`
+- `angular/SKILL.md` has `keywords:`, `task_intents:`, `delegation_hints:`
+- All 4 locations updated for code-review and angular
+- CI lint-skills job validates reference file existence
+- `validate.sh` still passes (run `bash scripts/validate.sh` to check)
+- CHANGELOG entry added
+
+---
+
+### Commit and PR
+
+```bash
+git add docs/ai/SKILL_METADATA.md \
+        skills/ \
+        .agents/skills/dotnet/ .agents/skills/code-review/ .agents/skills/angular/ \
+        .claude/skills/dotnet/ .claude/skills/code-review/ .claude/skills/angular/ \
+        .agy/skills/dotnet/ .agy/skills/code-review/ .agy/skills/angular/ \
+        .github/workflows/pr-tooling.yml \
+        CHANGELOG.md
+git commit -m "feat(skills): add metadata schema and refactor dotnet skill (#415, #417)"
+git push origin agent/agy/gemini-3.1-pro/feat/skill-metadata-refactor-415-417
+gh pr create \
+  --title "feat(skills): add metadata schema and refactor dotnet skill (#415, #417)" \
+  --body "Closes #415
+Closes #417
+
+New \`docs/ai/SKILL_METADATA.md\` documents the frontmatter schema with new
+optional fields: \`keywords\`, \`task_intents\`, \`delegation_hints\`. Three
+skills gain the metadata. \`dotnet/SKILL.md\` is refactored from a 177-line
+monolith into a 70-line router + 4 reference files with explicit load-when
+conditions. CI validates reference file existence." \
+  --base master
+```
+
+---
+
+### Important notes
+
+1. When adding reference files, the install.sh `copy_dir` function handles
+   subdirectories, so the CI install parity tests will include the new reference
+   files automatically.
+
+2. The dogfood directories (`.agents/`, `.claude/`, `.agy/`) MUST be byte-identical
+   mirrors of the source `skills/` directory. CI's validate.sh checks this.
+   Update all four locations for every change.
+
+3. Do NOT run `scripts/install.sh` inside the brief — update the dogfood files
+   manually (copy file content). Running install.sh could overwrite repo files.
+
+4. The existing `SKILL.deep.md` files in `.agents/skills/dotnet/` do not exist
+   (dotnet had no deep file). No cleanup needed.
+
+5. Run `bash scripts/validate.sh --target . 2>&1 | tail -20` after making changes
+   to check for drift warnings. If you see drift warnings, fix them before pushing.

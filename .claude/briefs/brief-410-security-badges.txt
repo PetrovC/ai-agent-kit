@@ -1,0 +1,121 @@
+## Issue #410 — docs(security): add repository security posture badges and explanation
+
+**Task type:** docs
+**Branch to create:** agent/agy/claude-sonnet-4-6/docs/security-badges-410
+
+---
+
+### Start here — ALWAYS do this first
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/docs/security-badges-410
+```
+
+---
+
+### Goal
+
+Update README.md to clearly show the project security posture.
+Honest, accurate — no fake badges, no fluff.
+
+The repository is owned by PetrovC and named ai-agent-kit.
+
+Confirmed real workflow files in `.github/workflows/`:
+- `quality-gate.yml` exists — can add a workflow badge for it
+- `scorecard.yml` exists — can add a workflow badge for it
+- `codeql.yml` does NOT exist — mention CodeQL as text only, no badge
+
+---
+
+### STEP 1 — Expand the badge block at the top of README.md
+
+The README currently starts with exactly one OpenSSF Scorecard badge on its own line.
+
+Below that existing Scorecard badge line, add these five additional badges.
+Use the standard GitHub Actions badge format for the two workflow badges
+(quality-gate and scorecard). Use the standard shields.io format for the three
+static badges (license, release, last-commit). Keep the exact repo owner and name
+from the existing Scorecard badge that is already in README.md.
+
+The five new lines to insert immediately after the existing Scorecard badge line:
+
+```
+[![Quality gate](QUALITY_GATE_BADGE_SVG)](QUALITY_GATE_WORKFLOW_URL)
+[![OpenSSF Scorecard workflow](SCORECARD_WORKFLOW_BADGE_SVG)](SCORECARD_WORKFLOW_URL)
+![GitHub License](SHIELDS_LICENSE_BADGE)
+![GitHub release](SHIELDS_RELEASE_BADGE)
+![GitHub last commit](SHIELDS_LAST_COMMIT_BADGE)
+```
+
+Derive the actual URLs by looking at the existing Scorecard badge in README.md
+for the owner/repo pattern, then construct:
+- GitHub Actions badge SVG: standard actions/workflows badge URL pattern using
+  `quality-gate.yml` and `scorecard.yml` file names
+- shields.io badges: standard shields.io github endpoints for license,
+  v/release, and last-commit
+
+---
+
+### STEP 2 — Add a Security posture section at the end of README.md
+
+Find the very last `---` divider in README.md and add below it:
+
+```markdown
+---
+
+## Security posture
+
+This repository uses several automated guardrails and visibility signals:
+
+- **OpenSSF Scorecard** — supply-chain security posture, visible in the badge above.
+- **GitHub Actions quality gate** — pull request validation (scripts, hooks, install, parity, manifest).
+- **GitHub Dependabot** — automatic dependency and GitHub Actions updates.
+- **GitHub code scanning / CodeQL** — static analysis enabled through GitHub Advanced Security default setup.
+- **Published security policy** — [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+- **MIT license** — open, auditable source.
+
+These are guardrails and visibility signals. They reduce risk but do not replace
+code review, least-privilege workflow permissions, isolated agent execution, or
+responsible disclosure.
+```
+
+---
+
+### STEP 3 — Update CHANGELOG.md
+
+Under `## [Unreleased]` → `### Added`, prepend:
+
+```
+- **`docs(security)` — add security posture badges and section to README (#410).**
+  Expanded badge block: quality-gate, Scorecard workflow, license, release, last-commit badges.
+  Added `## Security posture` section listing active guardrails. CodeQL mentioned as
+  text only (no codeql.yml workflow file). Honest tone: badges are signals, not guarantees.
+```
+
+---
+
+### Acceptance criteria
+
+- README badge block has at least 5 badges
+- README has a `## Security posture` section with honest descriptions
+- No CodeQL workflow badge (the workflow file does not exist)
+- CHANGELOG entry added
+
+---
+
+### Commit and PR
+
+```bash
+git add README.md CHANGELOG.md
+git commit -m "docs(security): add security posture badges and explanation to README (#410)"
+git push origin agent/agy/claude-sonnet-4-6/docs/security-badges-410
+gh pr create \
+  --title "docs(security): add security posture badges and explanation to README (#410)" \
+  --body "Closes #410
+
+Expands README badge block (quality-gate, Scorecard workflow, license, release, last-commit)
+and adds a Security posture section. CodeQL mentioned as text only — no codeql.yml file." \
+  --base master
+```

@@ -1,0 +1,62 @@
+Implement GitHub issue 179 in this repository.
+
+TASK: Add native agent tables to the Codex config.
+
+GOAL: Codex CLI 2026 supports native per-agent configuration via [agents.name] tables in config.toml.
+Currently the kit uses skill files under tooling/codex/skills/ to define subagents. Migrate to native tables.
+
+BRANCH: Create branch agent/codex/gpt-5.5/feat/codex-native-agents from master before making changes.
+
+WHAT TO CHANGE:
+
+File tooling/codex/config.toml — add these sections after the [features] block:
+
+  [agents]
+  max_threads = 4
+  max_depth = 3
+
+  [agents.architect]
+  description = "Architecture analyst. Use for tasks affecting module boundaries or introducing new patterns."
+  profile = "deep"
+  model_reasoning_effort = "high"
+
+  [agents.code-reviewer]
+  description = "Code reviewer. Use before finalizing changes touching shared behavior or security."
+  profile = "deep"
+  model_reasoning_effort = "high"
+
+  [agents.security-reviewer]
+  description = "Security reviewer. Use when the task involves auth, input validation, or secrets."
+  profile = "deep"
+  model_reasoning_effort = "high"
+
+  [agents.codebase-investigator]
+  description = "Codebase investigator. Use to map usages or scan for a symbol across the codebase."
+  profile = "standard"
+  model_reasoning_effort = "medium"
+
+  [agents.test-runner]
+  description = "Test runner. Runs filtered tests and returns a concise pass/fail report."
+  profile = "readonly"
+  model_reasoning_effort = "low"
+
+File tooling/codex/AGENTS.md — add a paragraph noting that the 5 subagents are declared as native
+[agents.name] tables in config.toml (profiles: deep for architect/code-reviewer/security-reviewer,
+standard for codebase-investigator, readonly for test-runner).
+
+Each file under tooling/codex/skills/ — add one comment line at the top noting the file is kept as
+documentation for the system prompt; the native agent table is now in config.toml.
+
+File docs/ai/MODEL_ROUTING.md — in the Codex section, add one sentence after the profile table
+noting that these profiles are now declared as native [agents.name] tables in config.toml.
+
+Also check if examples/filled-project/.codex/config.toml exists and apply the same agent tables there.
+
+VERIFICATION: Run bash scripts/validate.sh --target examples/filled-project and fix any issues.
+
+COMMIT MESSAGE: feat(codex): migrate subagents to native [agents.name] tables in config.toml
+
+Add a CHANGELOG entry under the Unreleased Added section for this feat change.
+
+After committing, push the branch and create a pull request with base master.
+The PR body must include the text: Closes 179

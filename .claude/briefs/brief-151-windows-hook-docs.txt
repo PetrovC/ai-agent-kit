@@ -1,0 +1,59 @@
+## Task: docs(claude): improve Windows hook guidance for bash-installed setups
+
+### Context
+
+This repository is a versioned configuration kit for Claude Code, Codex CLI, and Antigravity (agy).
+Claude Code hooks (pre-bash-guard, agent-audit-event, etc.) are shell scripts designed to run
+under Git Bash / WSL on Windows. Multiple historical issues showed confusion when users installed
+with Git Bash but then opened Claude Code in a context where bash is resolved differently
+(native Windows bash alias, WSL, or VS Code terminal).
+
+The goal is purely documentation — no hook script changes, no new hooks. We need clear written
+guidance that removes this ambiguity.
+
+### Files to modify / create
+
+1. `tooling/claude/CLAUDE.md` — add a "Windows hook setup" section (kept short, 10-15 lines)
+2. `docs/ai/WINDOWS_HOOKS.md` — create a new file with the full guidance (linked from CLAUDE.md and README.md)
+3. `README.md` — add a one-line "Windows hook setup" link in the relevant section
+4. `CHANGELOG.md` — add a docs(claude) entry under [Unreleased] > Added
+
+Note: docs entries do NOT need a CHANGELOG entry per CI rules (only feat/fix/perf do), but adding one is encouraged for visibility.
+
+### Content guidelines
+
+**tooling/claude/CLAUDE.md — short section to add:**
+
+```
+## Windows hook setup
+
+Hooks run as bash scripts. On Windows, Claude Code must resolve `bash` to Git Bash or WSL bash,
+NOT the Microsoft Store app-execution alias.
+
+Quick check: `bash -c "echo ok"` must print `ok` in the terminal Claude Code uses.
+See `docs/ai/WINDOWS_HOOKS.md` for full guidance.
+```
+
+**docs/ai/WINDOWS_HOOKS.md — full guidance, covering:**
+- Why bash must be Git Bash or WSL bash (not Windows Store alias)
+- How to verify: `bash --version` should show GNU bash, not an alias error
+- How to set the default shell in Claude Code (VS Code → settings → terminal.integrated.defaultProfile.windows = "Git Bash")
+- WSL path: `bash.exe` may resolve to WSL bash (%windir%\system32\bash.exe) — that works too, but the user must confirm WSL is installed
+- ExecutionPolicy note: PowerShell hooks (`run-hook.ps1`) require Bypass policy; already set in `settings.windows.json` (`-ExecutionPolicy Bypass`)
+- Switching shells safely: do not change the terminal type while a session is active
+- If hooks silently do nothing: run `bash "${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-bash-guard.sh" test 2>&1` manually and check for errors
+
+### Branch and PR
+
+Create branch: `agent/agy/claude-sonnet-4-6/docs/windows-hook-guidance`
+Branch from: master
+Commit message: `docs(claude): improve Windows hook guidance for bash-installed setups (#151)`
+Push and open a pull request targeting master.
+PR title: `docs(claude): improve Windows hook guidance for bash-installed setups`
+
+### Validation
+
+Manual proofread — no script changes. Verify:
+- `docs/ai/WINDOWS_HOOKS.md` exists
+- `tooling/claude/CLAUDE.md` contains a "Windows hook setup" section linking to that file
+- `README.md` links to the new doc

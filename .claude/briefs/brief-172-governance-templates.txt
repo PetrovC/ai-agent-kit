@@ -1,0 +1,273 @@
+## Issue #172 — Turn governance policies into installable assets
+
+**Task type:** feat (add 5 new template files to project-template/ + docs update)
+**Branch to create:** agent/agy/claude-sonnet-4-6/feat/governance-templates-172
+
+---
+
+### Start here — ALWAYS do this first before any file changes
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/feat/governance-templates-172
+```
+
+---
+
+### Background
+
+Target projects that install the kit via `install.sh` get `docs/ai/` template files
+from `project-template/` (PROJECT.md, ARCHITECTURE.md, COMMANDS.md, etc.).
+The governance policy files (CONTEXT_GOVERNANCE, SUBAGENT_GOVERNANCE, MCP_POLICY,
+MODEL_ROUTING, CONTEXT_SANITIZATION) currently only exist in the source repo's
+`docs/ai/` and are NOT installed into target projects.
+
+This task adds generic template versions of these 5 files to `project-template/`
+so they get installed automatically on first install (skip-if-exists behavior is
+already handled by install.sh — no script changes needed).
+
+---
+
+### Critical reading before you start
+
+Read these files to understand their current content (they're in the source repo's
+`docs/ai/` directory):
+- `docs/ai/CONTEXT_GOVERNANCE.md`
+- `docs/ai/SUBAGENT_GOVERNANCE.md`
+- `docs/ai/MCP_POLICY.md`
+- `docs/ai/MODEL_ROUTING.md`
+- `docs/ai/CONTEXT_SANITIZATION.md`
+
+Then read one existing project-template file (e.g. `project-template/ARCHITECTURE.md`)
+to understand the template style — STOP notices, fillable sections, etc.
+
+---
+
+### Files to create
+
+Create 5 files in `project-template/`. Each file is a GENERIC template version
+of the corresponding governance doc. The rules:
+
+**Keep** (generic, applies to any project):
+- General policy principles and rules
+- Table structures with placeholder values
+- Conceptual guidance (e.g. "prefer read-only before write")
+
+**Replace with STOP markers** (project-specific content the user must fill in):
+- Specific AI model names (e.g. "claude-opus-4-8", "gpt-5.5")
+- Specific subagent names and their assignments
+- Specific reasoning effort values
+- Provider-specific tool names that are kit-specific
+- References to internal tooling files (e.g. "tooling/claude/CLAUDE.md")
+
+**STOP notice format** (use exactly this for sections needing customization):
+```
+> ⚠️ **STOP** — Fill in your project-specific model assignments here.
+```
+
+---
+
+#### 1. `project-template/CONTEXT_GOVERNANCE.md`
+
+Use `docs/ai/CONTEXT_GOVERNANCE.md` as the base.
+
+Replace the "Codex Router Budget" section (which references specific router file
+paths and line limits specific to ai-agent-kit) with a STOP-marked placeholder:
+
+```markdown
+## Router Budget
+
+> ⚠️ **STOP** — Document the context budget limits for your AI tool router files
+> (e.g. max lines, max bytes). Your validation script should enforce these limits.
+
+| File | Budget |
+|---|---|
+| `<router-file>` | `<max-lines>` lines / `<max-bytes>` bytes |
+```
+
+Remove the section "Provider settings that enforce these thresholds" (it
+references kit-specific tooling files). Replace with:
+
+```markdown
+## Provider settings that enforce these thresholds
+
+> ⚠️ **STOP** — Document where your AI provider settings configure these
+> context thresholds (e.g. `/compact` commands, auto-compact configuration).
+```
+
+Keep the rest of the file intact (context threshold table, compaction guidance,
+Command Mapping table — but generalize the tool names if they are kit-specific).
+
+---
+
+#### 2. `project-template/SUBAGENT_GOVERNANCE.md`
+
+Use `docs/ai/SUBAGENT_GOVERNANCE.md` as the base. This file is mostly generic.
+
+If there are references to specific ai-agent-kit internal subagent names or
+tooling, add a STOP marker for the "Subagent inventory" or similar section.
+
+Add at the top, after the title:
+
+```markdown
+> ⚠️ **STOP** — Review and update the subagent routing table below to reflect
+> the subagents available in your project.
+```
+
+Keep all the governance principles intact.
+
+---
+
+#### 3. `project-template/MCP_POLICY.md`
+
+Use `docs/ai/MCP_POLICY.md` as the base. This file is almost entirely generic.
+
+The "Provider Notes" section mentions tool-specific config file locations
+(`.mcp.json`, Codex `.codex/config.toml`, Antigravity `.agy/settings.json`).
+Update to generalize:
+
+```markdown
+## Provider Notes
+
+Configure MCP servers in your AI provider's config file:
+- Claude Code: `.mcp.json` in the project root
+- Codex CLI: `[mcp_servers.<name>]` tables in the Codex config file
+- Antigravity CLI: `mcpServers` in the Antigravity settings file
+
+`.mcp.json` is project-owned. Do not overwrite it in kit updates.
+```
+
+Keep everything else intact. No STOP markers needed here — the file is fully generic.
+
+---
+
+#### 4. `project-template/MODEL_ROUTING.md`
+
+Use `docs/ai/MODEL_ROUTING.md` as the base.
+
+The "Provider Mapping" section has project-specific subagent assignments, model
+names, and reasoning effort values. Replace with STOP-marked placeholder tables:
+
+```markdown
+## Provider Mapping
+
+### Claude Code
+
+> ⚠️ **STOP** — Fill in your project's per-subagent model assignments.
+
+| Subagent | Model | maxTurns | Justification |
+|---|---|---|---|
+| `architect` | `<model>` | `<n>` | Decision-bearing design assessment. |
+| `code-reviewer` | `<model>` | `<n>` | High-stakes review. |
+| `security-reviewer` | `<model>` | `<n>` | Security-sensitive changes. |
+| `codebase-investigator` | `<model>` | `<n>` | Targeted lookups. |
+| `test-runner` | `<model>` | `<n>` | Mechanical: run tests, summarize output. |
+
+### Codex CLI
+
+> ⚠️ **STOP** — Fill in your project's per-subagent reasoning effort mapping.
+
+| Subagent | Profile | reasoning_effort |
+|---|---|---|
+| Architecture/review | deep | high |
+| Daily development | standard | medium |
+| Exploration | readonly | low |
+
+### Antigravity CLI
+
+> ⚠️ **STOP** — Fill in your project's Antigravity model assignments.
+
+| Depth | Model |
+|---|---|
+| deep | `<model>` |
+| standard | `<model>` |
+| readonly | `<model>` |
+```
+
+Keep the introductory "Routing by Task" section and "Important Nuance" section
+intact — they're generic and valuable.
+
+---
+
+#### 5. `project-template/CONTEXT_SANITIZATION.md`
+
+Use `docs/ai/CONTEXT_SANITIZATION.md` as the base.
+
+The last paragraph "When reporting Windows hook issues, include whether `bash`
+resolves to Git Bash or WSL..." is ai-agent-kit specific. Replace with a generic
+note:
+
+```markdown
+## Project-Specific Sanitization Rules
+
+> ⚠️ **STOP** — Add any project-specific context sanitization rules here (e.g.
+> how to handle logs from your CI system, redacting secrets, handling Windows
+> vs Unix path differences).
+```
+
+Keep the rest of the file intact — it's generic.
+
+---
+
+### Files to change
+
+#### `CHANGELOG.md`
+
+Under `## [Unreleased]` → `### Added`, prepend:
+
+```
+- **`feat(shared)` — add 5 governance-policy templates to `project-template/` (#172).**
+  `CONTEXT_GOVERNANCE.md`, `SUBAGENT_GOVERNANCE.md`, `MCP_POLICY.md`,
+  `MODEL_ROUTING.md`, and `CONTEXT_SANITIZATION.md` are now installed into
+  `docs/ai/` on first `install.sh` / `install.ps1` run (skip-if-exists,
+  same behaviour as the existing project-template files). Target projects can
+  opt out by deleting the files after install.
+```
+
+#### `README.md`
+
+Find the section that lists what install.sh installs into `docs/ai/`. Add a note
+that 5 governance templates are now also installed:
+
+After the list of files installed by the install script (around the `docs/ai/`
+scaffolding section), add or update to mention:
+"Governance policy templates (CONTEXT_GOVERNANCE, SUBAGENT_GOVERNANCE, MCP_POLICY,
+MODEL_ROUTING, CONTEXT_SANITIZATION) are now also installed as editable project-owned
+templates."
+
+---
+
+### Constraints
+
+- Do NOT modify `install.sh`, `install.ps1`, `update.sh`, `update.ps1`,
+  `validate.sh`, `validate.ps1`, `.kit-manifest`, or any `.github/workflows/`.
+  The install script already handles project-template/ correctly.
+- Do NOT modify `docs/ai/` files — those are the filled-in versions for this
+  repo, not templates.
+- Template files should be under 120 lines each.
+- MIT license — no new dependencies.
+
+---
+
+### After making changes
+
+1. Verify the 5 new files exist under `project-template/`:
+   ```bash
+   ls project-template/
+   ```
+2. `git add project-template/ CHANGELOG.md README.md`
+3. `git commit -m "feat(shared): add governance-policy templates to project-template (#172)"`
+4. `git push origin agent/agy/claude-sonnet-4-6/feat/governance-templates-172`
+5. `gh pr create --title "feat(shared): add governance-policy templates to project-template (#172)" --body "Closes #172\n\nAdds 5 governance-policy templates (CONTEXT_GOVERNANCE, SUBAGENT_GOVERNANCE, MCP_POLICY, MODEL_ROUTING, CONTEXT_SANITIZATION) to project-template/ so they are installed into docs/ai/ on first install (skip-if-exists). No script changes needed — install.sh already handles all files in project-template/." --base master`
+
+---
+
+### Acceptance criteria
+
+- [ ] 5 new files in `project-template/` (each < 120 lines)
+- [ ] Template files have STOP markers for project-specific content
+- [ ] `docs/ai/` unchanged
+- [ ] CHANGELOG entry added
+- [ ] README mentions the 5 new templates
+- [ ] No changes to any scripts or CI files

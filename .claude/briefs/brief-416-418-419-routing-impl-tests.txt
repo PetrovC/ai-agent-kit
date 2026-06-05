@@ -1,0 +1,624 @@
+## Issues #416 + #418 + #419 — feat(routing): offline skill selector, delegation planner, eval fixtures and tests
+
+**Task type:** feat
+**Branch:** agent/agy/gemini-3.1-pro/feat/routing-impl-tests-416-418-419
+
+---
+
+### Start here
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/gemini-3.1-pro/feat/routing-impl-tests-416-418-419
+```
+
+---
+
+### Context
+
+This is the ai-agent-kit. Phase 4 of the adaptive routing work (issues #414–#419)
+has produced:
+- `docs/ai/ADAPTIVE_ROUTING.md` (design, from #414)
+- Skill metadata (`keywords`, `task_intents`, `delegation_hints`) in frontmatter
+  of `skills/dotnet/SKILL.md`, `skills/code-review/SKILL.md`,
+  `skills/angular/SKILL.md` (from #415)
+- Skill refactoring: `skills/dotnet/` split into router + references/ (from #417)
+
+This PR completes Phase 4 with:
+1. An offline skill selector script (#416)
+2. A delegation planner document (#418)
+3. Eval fixtures and regression tests (#419)
+
+**Prerequisites:** #414 and #415/#417 must be merged into master before this
+branch is created. Verify with `git log --oneline -3`.
+
+---
+
+### STEP 1 — Offline skill selector script (#416)
+
+Create `scripts/select-skills.py`.
+
+#### Requirements
+
+- Pure Python 3 (Python 3.8+, no third-party packages — only stdlib)
+- Reads YAML frontmatter from all `skills/*/SKILL.md` files
+- Takes: `--task "task description text"` (required)
+  and optionally: `--files "file1.cs,src/Domain/Trip.cs,apps/web/app.ts"` (comma-separated)
+- Scores each skill by counting how many signals match:
+  - +2 for each file glob match (skill's `paths:`)
+  - +2 for each `task_intents` match (requires `task_intents:` in frontmatter)
+  - +1 for each keyword match (requires `keywords:` in frontmatter)
+- Selects skills with a score >= 2 (strong-signal threshold)
+- Caps output at 5 skills maximum
+- Prints to stdout:
+  ```
+  Selected skills:
+    code-review (score=4, reasons: keyword:review, intent:review)
+    dotnet (score=3, reasons: file:src/Domain/Trip.cs matched **/*.cs, keyword:csharp)
+  ```
+- If nothing is selected, prints: `No skills selected (task classified as: small-change)`
+- With `--debug` flag: also prints scores for all skills (including those below threshold)
+- With `--json` flag: prints a JSON object instead of human-readable text
+
+#### Frontmatter parsing
+
+Parse the YAML frontmatter block between the first `---` and second `---` at the
+top of each SKILL.md. You can use a simple line-by-line parser (no pyyaml needed)
+since frontmatter is simple flat YAML with lists.
+
+Example SKILL.md frontmatter to parse:
+```yaml
+---
+name: dotnet
+description: >
+  Use when modifying C#, .NET...
+paths:
+  - "**/*.cs"
+  - "**/*.csproj"
+keywords:
+  - dotnet
+  - csharp
+task_intents:
+  - implement
+  - review
+---
+```
+
+For glob matching, implement simple glob pattern matching:
+- `**/*.cs` matches any .cs file in any subdirectory
+- `**/*.csproj` matches any .csproj file
+- `**/Domain/**` matches any path containing a `Domain` directory
+- Use `fnmatch.fnmatch` with some path preprocessing, or implement manually
+
+#### Delegation decision
+
+After skill selection, the script also prints a delegation recommendation:
+
+```
+Delegation recommendation:
+  should_delegate: true
+  reason: task spans 2 independent areas (dotnet + angular)
+  suggested_subagents: 2
+```
+
+Or: `Delegation recommendation: no delegation (single area or small task)`
+
+Delegation criteria (from ADAPTIVE_ROUTING.md):
+- Delegate if 2+ skills from different technical areas are selected
+  (backend: dotnet/java-kotlin/node/go/rust/python vs frontend: angular/vue/react/svelte/mobile-rn/mobile-flutter)
+- Do NOT delegate if only 1 skill is selected
+- Do NOT delegate if the task text contains "small", "typo", "quick fix", "rename",
+  "format", "lint"
+
+#### Usage
+
+```bash
+python3 scripts/select-skills.py --task "Review and fix my Planora project" \
+    --files "src/Api/Program.cs,src/Domain/Trip.cs,apps/web/src/app/app.component.ts"
+
+python3 scripts/select-skills.py --task "Fix typo in README"
+
+python3 scripts/select-skills.py --task "Add EF Core migration" \
+    --files "src/Infrastructure/Migrations/AddTripTable.cs" \
+    --debug
+```
+
+---
+
+### STEP 2 — Delegation planner addendum (#418)
+
+Append a `## Delegation planner` section to `docs/ai/ADAPTIVE_ROUTING.md`.
+
+The section should document:
+1. The delegation algorithm as a numbered decision list:
+   1. Count how many independent technical areas the selected skills cover
+      (backend group vs frontend group vs docs/CI group)
+   2. If count < 2: do not delegate
+   3. If task text signals small scope ("small", "quick fix", "typo", etc.): do not delegate
+   4. If user explicitly scoped to one area: do not delegate
+   5. Otherwise: delegate (cap at 2–3 subagents)
+
+2. The subagent assignment rules:
+   - Backend subagent: takes dotnet, java-kotlin, node, go, rust, python skills
+   - Frontend subagent: takes angular, vue, react, svelte, mobile-rn, mobile-flutter skills
+   - Docs/CI subagent: takes github-workflow, infrastructure, docs-related tasks
+   - Each subagent receives: scope definition, skill list, intent, brief summary
+
+3. Representative fixtures for the planner (5 cases):
+
+```yaml
+# no-delegation: small task
+task: "Fix typo in README"
+files: [README.md]
+expected:
+  should_delegate: false
+  reason: "small-change intent and no strong skill signal"
+
+# no-delegation: single area
+task: "Add the TripApproval aggregate to the Domain layer"
+files: [src/Domain/Trip.cs, src/Application/Commands/ApproveTripCommand.cs]
+expected:
+  should_delegate: false
+  reason: "single technical area (dotnet backend)"
+
+# delegation: backend + frontend
+task: "Review and fix my Planora project"
+files: [src/Api/Program.cs, src/Domain/Trip.cs, apps/web/src/app/app.component.ts]
+expected:
+  should_delegate: true
+  suggested_subagents: 2
+  reason: "backend (.cs) and frontend (.ts/Angular) are independent areas"
+
+# no-delegation: docs only
+task: "Update the README with the new installation steps"
+files: [README.md, docs/ai/COMMANDS.md]
+expected:
+  should_delegate: false
+  reason: "docs-only task"
+
+# no-delegation: CI only
+task: "Add a GitHub Actions workflow for release"
+files: [.github/workflows/release.yml]
+expected:
+  should_delegate: false
+  reason: "CI-only task (single area)"
+```
+
+---
+
+### STEP 3 — Eval fixtures and regression tests (#419)
+
+#### 3a. Create fixture directory
+
+Create `tests/routing/fixtures/` with 8 YAML fixture files.
+
+Each fixture has this shape:
+```yaml
+# tests/routing/fixtures/<name>.yaml
+description: "<human-readable description>"
+task: "<task description text>"
+files:
+  - "path/to/file1.ext"
+  - "path/to/file2.ext"
+expected:
+  min_skills: ["skill-name-1", "skill-name-2"]   # these skills MUST be selected
+  excluded_skills: ["skill-name-3"]               # these skills must NOT be selected
+  should_delegate: true|false
+```
+
+Create these 8 fixtures:
+
+**`tests/routing/fixtures/review-fullstack.yaml`**
+```yaml
+description: "Full-stack review — backend + frontend"
+task: "Review and fix my Planora project"
+files:
+  - "src/Api/Program.cs"
+  - "src/Domain/Trip.cs"
+  - "apps/web/src/app/app.component.ts"
+expected:
+  min_skills:
+    - code-review
+    - dotnet
+    - angular
+  excluded_skills: []
+  should_delegate: true
+```
+
+**`tests/routing/fixtures/dotnet-ddd.yaml`**
+```yaml
+description: ".NET DDD backend only"
+task: "Add the TripApproval aggregate to the Domain layer"
+files:
+  - "src/Domain/Trip.cs"
+  - "src/Application/Commands/ApproveTripCommand.cs"
+expected:
+  min_skills:
+    - dotnet
+  excluded_skills:
+    - angular
+    - vue
+    - react
+  should_delegate: false
+```
+
+**`tests/routing/fixtures/ef-core-migration.yaml`**
+```yaml
+description: "EF Core migration"
+task: "Add EF Core migration for TripApproval table"
+files:
+  - "src/Infrastructure/Migrations/AddTripApproval.cs"
+  - "src/Infrastructure/Persistence/TripDbContext.cs"
+expected:
+  min_skills:
+    - dotnet
+  excluded_skills:
+    - angular
+  should_delegate: false
+```
+
+**`tests/routing/fixtures/angular-frontend.yaml`**
+```yaml
+description: "Angular frontend only"
+task: "Fix the broken Angular component for the trip list"
+files:
+  - "apps/web/src/app/trips/trip-list.component.ts"
+  - "apps/web/src/app/trips/trip-list.component.html"
+expected:
+  min_skills:
+    - angular
+  excluded_skills:
+    - dotnet
+  should_delegate: false
+```
+
+**`tests/routing/fixtures/docs-only.yaml`**
+```yaml
+description: "Docs-only change"
+task: "Update the README with the new installation steps"
+files:
+  - "README.md"
+  - "docs/ai/COMMANDS.md"
+expected:
+  min_skills: []
+  excluded_skills:
+    - dotnet
+    - angular
+    - code-review
+  should_delegate: false
+```
+
+**`tests/routing/fixtures/ci-workflow.yaml`**
+```yaml
+description: "CI workflow change"
+task: "Add a GitHub Actions workflow for the release pipeline"
+files:
+  - ".github/workflows/release.yml"
+expected:
+  min_skills:
+    - github-workflow
+  excluded_skills:
+    - dotnet
+    - angular
+  should_delegate: false
+```
+
+**`tests/routing/fixtures/small-one-file.yaml`**
+```yaml
+description: "Small one-file fix"
+task: "Fix typo in README"
+files:
+  - "README.md"
+expected:
+  min_skills: []
+  excluded_skills:
+    - code-review
+    - architecture
+    - dotnet
+  should_delegate: false
+```
+
+**`tests/routing/fixtures/security-review.yaml`**
+```yaml
+description: "Security review task"
+task: "Security review of the authentication endpoints"
+files:
+  - "src/Api/Controllers/AuthController.cs"
+  - "src/Application/Commands/LoginCommand.cs"
+expected:
+  min_skills:
+    - code-review
+    - dotnet
+  excluded_skills:
+    - angular
+  should_delegate: false
+```
+
+#### 3b. Create `tests/bats/routing.bats`
+
+```bash
+#!/usr/bin/env bats
+#
+# Regression tests for the offline skill selector (scripts/select-skills.py).
+# These tests run the selector against known tasks and file lists and assert
+# that the output matches the expected fixture behavior.
+# No LLM calls. No network access. Pure offline.
+
+load 'bats_helper'
+
+SELECTOR="$KIT_ROOT/scripts/select-skills.py"
+
+# Helper: run the selector and capture output
+run_selector() {
+    run python3 "$SELECTOR" "$@"
+}
+
+@test "selector: full-stack review selects code-review, dotnet, and angular" {
+    run_selector \
+        --task "Review and fix my Planora project" \
+        --files "src/Api/Program.cs,src/Domain/Trip.cs,apps/web/src/app/app.component.ts"
+    assert_success
+    assert_output_contains "code-review"
+    assert_output_contains "dotnet"
+    assert_output_contains "angular"
+}
+
+@test "selector: full-stack review recommends delegation" {
+    run_selector \
+        --task "Review and fix my Planora project" \
+        --files "src/Api/Program.cs,apps/web/src/app/app.component.ts"
+    assert_success
+    assert_output_contains "should_delegate: true"
+}
+
+@test "selector: dotnet DDD backend does not select angular" {
+    run_selector \
+        --task "Add the TripApproval aggregate to the Domain layer" \
+        --files "src/Domain/Trip.cs,src/Application/Commands/ApproveTripCommand.cs"
+    assert_success
+    assert_output_contains "dotnet"
+    refute_output_contains "angular"
+}
+
+@test "selector: dotnet DDD backend does not delegate" {
+    run_selector \
+        --task "Add aggregate to Domain layer" \
+        --files "src/Domain/Trip.cs"
+    assert_success
+    assert_output_contains "no delegation"
+}
+
+@test "selector: typo fix selects no skills" {
+    run_selector \
+        --task "Fix typo in README" \
+        --files "README.md"
+    assert_success
+    assert_output_contains "No skills selected"
+}
+
+@test "selector: typo fix does not delegate" {
+    run_selector \
+        --task "Fix typo in README" \
+        --files "README.md"
+    assert_success
+    refute_output_contains "should_delegate: true"
+}
+
+@test "selector: CI workflow selects github-workflow" {
+    run_selector \
+        --task "Add GitHub Actions workflow for release pipeline" \
+        --files ".github/workflows/release.yml"
+    assert_success
+    assert_output_contains "github-workflow"
+}
+
+@test "selector: security review of auth endpoints selects code-review" {
+    run_selector \
+        --task "Security review of the authentication endpoints" \
+        --files "src/Api/Controllers/AuthController.cs"
+    assert_success
+    assert_output_contains "code-review"
+}
+
+@test "selector: angular-only task does not select dotnet" {
+    run_selector \
+        --task "Fix the broken Angular component for the trip list" \
+        --files "apps/web/src/app/trips/trip-list.component.ts"
+    assert_success
+    assert_output_contains "angular"
+    refute_output_contains "dotnet"
+}
+
+@test "selector: exits 0 even when no skills selected" {
+    run_selector --task "update whitespace in config file" --files "config.json"
+    assert_success
+}
+
+@test "selector: --json flag outputs valid JSON" {
+    run_selector \
+        --task "Review and fix my Planora project" \
+        --files "src/Api/Program.cs,apps/web/src/app/app.component.ts" \
+        --json
+    assert_success
+    # Output must be parseable as JSON
+    run python3 -c "import json,sys; json.loads(sys.stdin.read())" <<< "$output"
+    assert_success
+}
+
+@test "selector: --debug flag shows all skills with scores" {
+    run_selector \
+        --task "Review and fix my Planora project" \
+        --files "src/Api/Program.cs" \
+        --debug
+    assert_success
+    assert_output_contains "score="
+}
+
+@test "selector: skills root exists" {
+    [[ -d "$KIT_ROOT/skills" ]]
+}
+
+@test "selector: can find at least 5 skill SKILL.md files" {
+    count=$(find "$KIT_ROOT/skills" -name "SKILL.md" | wc -l | tr -d ' ')
+    [[ "$count" -ge 5 ]]
+}
+```
+
+Note: you will need to add `refute_output_contains` to `tests/bats/bats_helper.bash`
+if it doesn't exist. Check first with `grep -n "refute_output_contains" tests/bats/bats_helper.bash`.
+If missing, add:
+```bash
+refute_output_contains() {
+    local expected="$1"
+    if echo "$output" | grep -qF "$expected"; then
+        echo "Expected output to NOT contain: $expected"
+        echo "Actual output: $output"
+        return 1
+    fi
+}
+```
+
+#### 3c. Add CI workflow
+
+Create `.github/workflows/pr-routing.yml`:
+
+```yaml
+name: PR — routing eval
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'scripts/select-skills.py'
+      - 'skills/**'
+      - 'tests/routing/**'
+      - 'tests/bats/routing.bats'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  routing-eval:
+    name: Offline routing eval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+
+      - name: Run skill selector on all fixtures
+        run: |
+          set -euo pipefail
+          errors=0
+          for fixture in tests/routing/fixtures/*.yaml; do
+            name=$(basename "$fixture" .yaml)
+            echo "--- fixture: $name ---"
+
+            # Extract task and files from fixture using python
+            task=$(python3 -c "
+          import sys
+          lines = open('$fixture').read()
+          import re
+          m = re.search(r'^task: [\"\'](.*)[\"\']\$', lines, re.MULTILINE)
+          print(m.group(1) if m else '')
+          ")
+
+            files=$(python3 -c "
+          import sys, re
+          content = open('$fixture').read()
+          m = re.search(r'^files:\n((?:  - .*\n)*)', content, re.MULTILINE)
+          if m:
+              paths = re.findall(r'  - \"([^\"]+)\"', m.group(1))
+              print(','.join(paths))
+          else:
+              print('')
+          ")
+
+            if [[ -n "$files" ]]; then
+              python3 scripts/select-skills.py --task "$task" --files "$files" || {
+                echo "FAILED: $fixture"
+                errors=$((errors+1))
+              }
+            else
+              python3 scripts/select-skills.py --task "$task" || {
+                echo "FAILED: $fixture"
+                errors=$((errors+1))
+              }
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+          echo "All fixtures passed"
+
+      - name: Install bats
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats
+
+      - name: Run routing BATS tests
+        run: bats tests/bats/routing.bats
+```
+
+---
+
+### STEP 4 — Update CHANGELOG.md
+
+Under `## [Unreleased]` → `### Added`, add (insert before existing Added items):
+
+```
+- **`feat(routing)` — offline skill selector, delegation planner, and eval tests (#416, #418, #419).**
+  New `scripts/select-skills.py`: a pure-Python offline skill selector that reads
+  skill frontmatter metadata and selects candidate skills from task text and file
+  paths without LLM calls. Outputs reasons, delegation recommendation, and JSON
+  mode. New `tests/routing/fixtures/*.yaml`: 8 eval fixtures covering full-stack
+  review, .NET DDD, EF Core migration, Angular frontend, docs-only, CI, small
+  fix, and security review scenarios. New `tests/bats/routing.bats`: 14 regression
+  tests. New `pr-routing.yml` CI workflow runs evals on every skill or selector
+  change. `docs/ai/ADAPTIVE_ROUTING.md` extended with a Delegation planner section.
+```
+
+---
+
+### Acceptance criteria
+
+- `scripts/select-skills.py` exists and runs with Python 3.8+ stdlib only
+- `--task "..."` and `--files "..."` args work
+- `--debug`, `--json` flags work
+- Correct skill selection for all 8 fixture scenarios (verify manually with sample runs)
+- `tests/routing/fixtures/*.yaml` — all 8 fixtures exist
+- `tests/bats/routing.bats` — all tests pass (`bats tests/bats/routing.bats`)
+- `refute_output_contains` helper exists in `bats_helper.bash`
+- `.github/workflows/pr-routing.yml` exists
+- Delegation planner section added to `docs/ai/ADAPTIVE_ROUTING.md`
+- CHANGELOG entry added under Added
+- All CI checks pass
+
+---
+
+### Commit and PR
+
+```bash
+git add scripts/select-skills.py \
+        tests/routing/ \
+        tests/bats/routing.bats \
+        tests/bats/bats_helper.bash \
+        .github/workflows/pr-routing.yml \
+        docs/ai/ADAPTIVE_ROUTING.md \
+        CHANGELOG.md
+git commit -m "feat(routing): add offline skill selector, delegation planner, and eval tests (#416, #418, #419)"
+git push origin agent/agy/gemini-3.1-pro/feat/routing-impl-tests-416-418-419
+gh pr create \
+  --title "feat(routing): offline skill selector, delegation planner, and eval tests (#416, #418, #419)" \
+  --body "Closes #416
+Closes #418
+Closes #419
+
+New \`scripts/select-skills.py\`: pure-Python offline skill selector reading
+skill metadata and returning candidate skills with reasons — no LLM calls.
+8 eval fixtures + 14 regression tests in \`tests/bats/routing.bats\`.
+\`docs/ai/ADAPTIVE_ROUTING.md\` extended with delegation planner algorithm.
+New \`pr-routing.yml\` CI workflow." \
+  --base master
+```

@@ -1,0 +1,339 @@
+## Issue #408 — refactor(audit): remove unused agent audit subsystem completely
+
+**Task type:** refactor
+**Branch to create:** agent/agy/claude-sonnet-4-6/refactor/remove-audit-408
+
+---
+
+### Start here — ALWAYS do this first
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/refactor/remove-audit-408
+```
+
+---
+
+### Goal
+
+Remove the agent audit subsystem completely. This touches many files but has
+one concern: delete dead audit complexity. Do NOT mix in any feature work.
+
+### What to KEEP (do not touch)
+
+- `.claude/commands/security-audit.md` — generic review prompt, keep
+- `.claude/commands/performance-audit.md` — generic review prompt, keep
+- `.agy/commands/security-audit.toml` — generic review prompt, keep
+- `.agy/commands/performance-audit.toml` — generic review prompt, keep
+- All `/security-audit` and `/performance-audit` mentions in CLAUDE.md / AGENTS.md / AGY.md
+- `scripts/install.sh` `write_lifecycle_audit()` function and `RECORD_ACTIONS` / `install-audit.ndjson` — this is install-tracking (#313), NOT agent audit
+- `scripts/update.sh` `write_lifecycle_audit()` — same, keep it
+- Non-audit hooks: `format-on-save.sh`, `notify-done.sh`, `pre-bash-guard.sh`, `session-summary.sh`, `token-log.sh`, `permission-request-log.sh`, `run-hook.ps1`, `session-start-summary.sh`
+- `docs/ai/SUBAGENT_GOVERNANCE.md` — keep the file but remove audit-specific paragraphs (lines about `emit-event`, `AAK_AUDIT_RUN_ID`, "governance loop" as audit concept)
+- CHANGELOG.md historical entries that mention audit (do not rewrite history)
+
+---
+
+### STEP 1 — Delete audit-only files
+
+Run these git rm commands:
+
+```bash
+# Entire audit runtime directory (installed copy)
+git rm -r .ai-agent-kit/audit/
+
+# Entire source directory
+git rm -r tooling/shared/agent-audit/
+
+# Audit hook scripts (one per tool)
+git rm .claude/hooks/agent-audit-event.sh
+git rm .agy/hooks/agent-audit-event.sh
+git rm .codex/hooks/agent-audit-event.sh
+
+# Audit provisioning script
+git rm .github/scripts/provision-audit.sh
+
+# Audit documentation
+git rm docs/ai/AGENT_AUDIT_GOVERNANCE.md
+git rm docs/ai/AGENT_AUDIT_RUNTIME.md
+git rm docs/ai/AGENT_AUDIT_SCHEMA.md
+git rm docs/ai/AGENT_AUDIT_STORAGE.md
+git rm docs/ai/AUDIT_REPORT.md
+git rm docs/ai/references/audit-schema-fields.md
+git rm docs/ai/references/governance-scoring.md
+git rm docs/ai/references/storage-layout.md
+```
+
+---
+
+### STEP 2 — Update `.claude/settings.json`
+
+Remove all audit hook entries. The file currently has audit hooks in:
+- `PostToolUse` (first entry, matcher "")
+- `Stop` (first entry, matcher "")
+- `PreCompact` (first entry, matcher "")
+- `SessionStart` (single hook)
+- `SessionEnd` (single hook)
+- `SubagentStop` (single hook)
+
+After editing, the hooks should be:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{"type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-bash-guard.sh\""}]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [{"type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/format-on-save.sh\"", "async": true}]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [{"type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/notify-done.sh\"", "async": true}]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [{"type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-summary.sh\"", "async": false}]
+      }
+    ]
+  }
+}
+```
+
+Important: Keep ALL other existing keys in settings.json (permissions, allowedTools, etc.) intact. Only edit the `hooks` object.
+
+---
+
+### STEP 3 — Update `.agy/settings.json`
+
+Remove audit hooks from `AfterTool`, `SessionStart`, `SessionEnd` arrays.
+- `AfterTool`: remove the entry with `"name": "agent-audit"` (matcher "")
+- `SessionStart`: remove the entry with `"name": "agent-audit"`
+- `SessionEnd`: remove all entries (or the entire SessionEnd block if it only has audit hooks)
+- Keep all non-audit hooks intact
+
+---
+
+### STEP 4 — Update `.codex/hooks.json`
+
+In `PostToolUse` array, remove the entry whose command contains `agent-audit-event.sh`.
+Keep `format-on-save.sh` and any other non-audit hooks.
+
+---
+
+### STEP 5 — Update `.github/workflows/agent-on-mention.yml`
+
+This workflow has a "Provision audit (optional)" step (around line 52).
+Remove that entire step (from `- name: Provision audit (optional)` through its closing yaml block).
+Also remove comments at the top of the file that reference audit (lines 4-7 about "anonymized-audited" and `AAK_AUDIT_DEPLOY_KEY`).
+Do NOT remove any other steps.
+
+---
+
+### STEP 6 — Update `.github/workflows/agent-codex-agy-on-mention.yml`
+
+This workflow has TWO "Provision audit (optional)" steps (one for Codex job, one for Antigravity job).
+For EACH job:
+1. Remove the "Provision audit (optional)" step
+2. Remove the `emit()` shell function definition (the `emit() { bash tooling/shared/agent-audit/emit-event.sh ... }` line)
+3. Remove the `emit run.started ...` and similar emit() call lines
+4. Remove the `bash tooling/shared/agent-audit/finalize-run.sh ...` line
+5. Remove comments about `AAK_AUDIT_DEPLOY_KEY` and audit governance (lines 19-30 area)
+6. Do NOT remove any other steps
+
+---
+
+### STEP 7 — Update `scripts/install.sh`
+
+Remove the agent audit subsystem from install.sh. Be surgical — keep everything else.
+
+**Remove:**
+- The `--audit` and `--audit-config` flag parsing (around line 77-78)
+- The audit validation block (`case "$AUDIT"` around line 107)
+- The `audit_config_path()` function
+- The `init_audit_config()` function
+- Any call to `init_audit_config`
+
+**In the path-mapping section** (the `case` statement that maps source paths to install destinations), remove:
+```
+.ai-agent-kit/audit/*)
+    tail="${rel#.ai-agent-kit/audit/}"
+    printf '%s\n' "$TARGET/tooling/shared/agent-audit/$tail"
+```
+
+**Keep:**
+- The `write_lifecycle_audit()` function and all calls to it (this is install tracking #313, not agent audit)
+- The `RECORD_ACTIONS` array
+- Everything else
+
+---
+
+### STEP 8 — Update `scripts/update.sh`
+
+**Remove:**
+- Lines about `update_dir "$KIT_ROOT/tooling/shared/agent-audit" "$TARGET/.ai-agent-kit/audit"` (around line 332-335)
+- The heading `# -- Update shared audit runtime --` comment
+- The path mapping for `.ai-agent-kit/audit/*)` in the case statement (around line 196)
+
+**Keep:**
+- The `write_lifecycle_audit()` function and calls
+- Everything else
+
+---
+
+### STEP 9 — Update `scripts/uninstall.sh`
+
+**Remove:**
+- The block that discovers and removes audit runtime files (finds files from `tooling/shared/agent-audit`, around lines 202-296)
+- The `step "Removing shared audit runtime"` heading and the block it belongs to
+- The path mapping for `.ai-agent-kit/audit/*)` (around line 146)
+
+**Keep:**
+- Everything else
+
+---
+
+### STEP 10 — Update `scripts/validate.sh`
+
+**Remove:**
+- The path mapping for `.ai-agent-kit/audit/*)` (around line 417-419)
+
+**Keep:**
+- The "context audit (largest files)" section — this is an unrelated diagnostics feature
+- Everything else
+
+---
+
+### STEP 11 — Update `tooling/codex/AGENTS.md`
+
+Remove the two table rows that reference `agent-audit-event.sh`:
+- `| SessionStart | \`session-start-summary.sh\` + \`agent-audit-event.sh\` | ...`
+- `| Stop | \`notify-done.sh\` + \`agent-audit-event.sh\` | ...`
+- `| SubagentStart / SubagentStop | \`agent-audit-event.sh\` | ...`
+
+Replace them with versions that omit the audit hook reference:
+- `| SessionStart | \`session-start-summary.sh\` | Prints kit version and active profile on session start. |`
+- `| Stop | \`notify-done.sh\` | Desktop notification when a turn finishes. |`
+- Remove the SubagentStart/SubagentStop row entirely
+
+---
+
+### STEP 12 — Update `docs/ai/SUBAGENT_GOVERNANCE.md`
+
+Remove audit-specific paragraphs. Specifically, find and remove:
+
+The block around line 89-115 that describes the audit loop — it starts with something like
+"The audit answers 'did the agents do what they reported?'" and includes mentions of
+`emit-event`, `AAK_AUDIT_RUN_ID`, `agent_audit_run`, and the governance loop as audit infrastructure.
+
+Remove lines 89-170 (the "Governance loop" section that depends on the audit runtime).
+Keep the general subagent directives (the first ~85 lines) and the "fail-open" note only if it makes sense without audit context. If removing creates an abrupt transition, add a one-line note: "Governance is enforced through PR review and CI, not a runtime audit log."
+
+---
+
+### STEP 13 — Update `.kit-manifest`
+
+Remove all lines matching these patterns:
+```
+.agy/hooks/agent-audit-event.sh
+.ai-agent-kit/audit/README.md
+.ai-agent-kit/audit/audit_runtime.py
+.ai-agent-kit/audit/config.example.json
+.ai-agent-kit/audit/emit-event.ps1
+.ai-agent-kit/audit/emit-event.sh
+.ai-agent-kit/audit/finalize-run.ps1
+.ai-agent-kit/audit/finalize-run.sh
+.ai-agent-kit/audit/import-session-metrics.ps1
+.ai-agent-kit/audit/import-session-metrics.sh
+.ai-agent-kit/audit/record-event.ps1
+.ai-agent-kit/audit/record-event.sh
+.ai-agent-kit/audit/rollup.ps1
+.ai-agent-kit/audit/rollup.sh
+.claude/hooks/agent-audit-event.sh
+.codex/hooks/agent-audit-event.sh
+```
+
+Use: `grep -v "agent-audit\|audit/README\|audit/audit_runtime\|audit/config\|audit/emit\|audit/finalize\|audit/import\|audit/record\|audit/rollup" .kit-manifest > .kit-manifest.tmp && mv .kit-manifest.tmp .kit-manifest`
+
+---
+
+### STEP 14 — Update `CHANGELOG.md`
+
+Under `## [Unreleased]` → `### Removed`, add:
+
+```
+- **`refactor(audit)` — remove unused agent audit subsystem (#408).**
+  Deleted `.ai-agent-kit/audit/`, `tooling/shared/agent-audit/`, all three
+  `agent-audit-event.sh` hooks (Claude/Codex/Antigravity), `.github/scripts/provision-audit.sh`,
+  and five `docs/ai/AGENT_AUDIT_*.md` reference docs. Removed audit hook wiring
+  from all settings files and audit provisioning steps from CI workflows.
+  Updated install/update/uninstall/validate scripts. The `/security-audit` and
+  `/performance-audit` slash commands are retained (they are generic review prompts).
+```
+
+---
+
+### STEP 15 — Verification
+
+```bash
+# 1. No active audit references remain (except CHANGELOG historical entries)
+grep -R "agent-audit\|AGENT_AUDIT\|audit-runtime\|AAK_AUDIT\|audit_runtime" \
+  --include="*.sh" --include="*.ps1" --include="*.py" \
+  --include="*.json" --include="*.yml" --include="*.md" \
+  --exclude-dir=.git --exclude-dir=".claude/worktrees" . \
+  | grep -v CHANGELOG.md | grep -v ".pyc"
+
+# 2. Scripts still parse (no syntax errors)
+bash -n scripts/install.sh
+bash -n scripts/update.sh
+bash -n scripts/uninstall.sh
+bash -n scripts/validate.sh
+
+# 3. Manifest integrity — no orphan/missing entries
+# Every line in .kit-manifest must be a tracked file
+while IFS= read -r f; do
+  [[ -z "$f" ]] && continue
+  git ls-files --error-unmatch "$f" > /dev/null 2>&1 || echo "MISSING IN GIT: $f"
+done < .kit-manifest
+
+# Every audit-only file must be GONE from git
+git ls-files | grep "agent-audit\|audit/emit\|audit/record\|audit/finalize\|audit/rollup"
+
+# 4. shellcheck on modified scripts
+shellcheck --severity=warning scripts/install.sh scripts/update.sh scripts/uninstall.sh scripts/validate.sh 2>&1 | head -40
+```
+
+---
+
+### Commit and PR
+
+```bash
+git add -A
+git commit -m "refactor(audit): remove unused agent audit subsystem (#408)"
+git push origin agent/agy/claude-sonnet-4-6/refactor/remove-audit-408
+gh pr create \
+  --title "refactor(audit): remove unused agent audit subsystem (#408)" \
+  --body "Closes #408
+
+Removes the agent audit subsystem completely:
+- Deleted \`.ai-agent-kit/audit/\` and \`tooling/shared/agent-audit/\`
+- Removed all three \`agent-audit-event.sh\` hook files
+- Removed audit hook wiring from \`.claude/settings.json\`, \`.agy/settings.json\`, \`.codex/hooks.json\`
+- Removed audit provisioning from both CI mention workflows
+- Updated install/update/uninstall/validate scripts
+- Deleted five \`docs/ai/AGENT_AUDIT_*.md\` + three reference docs
+- Updated \`.kit-manifest\`, \`tooling/codex/AGENTS.md\`, \`docs/ai/SUBAGENT_GOVERNANCE.md\`
+
+Kept: \`/security-audit\` and \`/performance-audit\` slash commands (generic review prompts), install lifecycle audit (#313), all other hooks." \
+  --base master
+```

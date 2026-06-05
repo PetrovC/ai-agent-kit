@@ -1,0 +1,140 @@
+## Issue #411 — docs(audit): review and clean all human-facing documentation
+
+**Task type:** docs
+**Branch:** agent/agy/claude-sonnet-4-6/docs/docs-audit-411
+
+---
+
+### Start here
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/docs/docs-audit-411
+```
+
+---
+
+### Context
+
+The audit subsystem was recently removed (PR #425). Some documentation may still
+reference audit, have broken links, or have encoding artifacts.
+
+---
+
+### Goal
+
+Audit and clean all human-facing documentation. Fix encoding artifacts, typos,
+broken links, and stale references. Do NOT rewrite agent instruction files
+(CLAUDE.md, AGENTS.md, AGY.md) unless they have real problems.
+
+---
+
+### STEP 1 — Check for encoding artifacts
+
+Scan these files for encoding artifacts (for example `â€"` instead of `—`,
+`â€™` instead of `'`, `Ã©` instead of `é`):
+- README.md
+- CONTRIBUTING.md
+- SECURITY.md
+- CHANGELOG.md
+- docs/ai/ARCHITECTURE.md
+- docs/ai/COMMANDS.md
+- docs/ai/DELEGATION.md
+- docs/ai/GLOSSARY.md
+- docs/ai/MODEL_ROUTING.md
+- docs/ai/PROJECT.md
+- docs/ai/PROVIDER_PARITY.md
+- docs/ai/RELEASE.md
+- docs/ai/ROADMAP.md
+- docs/ai/SUBAGENT_GOVERNANCE.md
+- docs/ai/TESTING.md
+- docs/ai/THREAT_MODEL.md
+- docs/ai/WORKFLOW.md
+
+Fix any encoding artifacts found by replacing them with the correct UTF-8 character.
+
+---
+
+### STEP 2 — Check for stale audit references
+
+Search the following files for references to the removed audit subsystem:
+- README.md
+- CONTRIBUTING.md
+- CHANGELOG.md
+- docs/ai/ARCHITECTURE.md
+- docs/ai/GLOSSARY.md
+- docs/ai/PROJECT.md
+- docs/ai/ROADMAP.md
+- docs/ai/SUBAGENT_GOVERNANCE.md
+- docs/ai/WORKFLOW.md
+- docs/ai/THREAT_MODEL.md
+- docs/ai/DELEGATION.md
+
+Search for: `agent-audit`, `audit_runtime`, `AAK_AUDIT`, `record-event`, `emit-event`,
+`finalize-run`, `agent.selected`, `agent.invoked`, `agent.completed`.
+
+Remove or reword any sections that describe audit features that no longer exist.
+Do NOT add new sections — only remove or rewrite stale ones.
+
+---
+
+### STEP 3 — Check for broken intra-repo links
+
+Check all `[text](path)` links in README.md and docs/ai/*.md.
+Pay special attention to links to docs/ai/AGENT_AUDIT_*.md (those files were
+deleted in the audit removal). If any such links remain, remove them or update
+the link text.
+
+Also check docs/ai/SUBAGENT_GOVERNANCE.md — it was partially modified during
+audit removal and may have awkward wording.
+
+---
+
+### STEP 4 — Fix any typos or outdated wording found
+
+While reviewing the above files, fix:
+- Obvious typos or grammar mistakes
+- Repeated words ("the the")
+- Outdated provider names (if any references to "Gemini" that should be "Antigravity")
+- Inconsistent capitalization of product names
+
+Do NOT rewrite whole sections. Small targeted fixes only.
+
+---
+
+### STEP 5 — Update CHANGELOG.md
+
+Under `## [Unreleased]` → `### Fixed`, prepend:
+
+```
+- **`docs(audit)` — audit and clean human-facing documentation (#411).**
+  Fixed encoding artifacts, removed stale audit-system references, fixed broken
+  intra-repo links, minor typo and wording fixes in README.md and docs/ai/*.md.
+```
+
+---
+
+### Acceptance criteria
+
+- No encoding artifacts in reviewed files
+- No broken links to deleted audit docs
+- No stale audit-system descriptions in human-facing docs
+- CHANGELOG entry added under Fixed
+
+---
+
+### Commit and PR
+
+```bash
+git add README.md CONTRIBUTING.md SECURITY.md CHANGELOG.md docs/
+git commit -m "docs(audit): review and clean human-facing documentation (#411)"
+git push origin agent/agy/claude-sonnet-4-6/docs/docs-audit-411
+gh pr create \
+  --title "docs(audit): review and clean human-facing documentation (#411)" \
+  --body "Closes #411
+
+Documentation audit pass: encoding artifact fixes, removal of stale audit
+references, broken link fixes, minor typo corrections." \
+  --base master
+```

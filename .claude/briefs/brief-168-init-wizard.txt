@@ -1,0 +1,530 @@
+## Issue #168 — Init wizard + stack presets
+
+**Task type:** feat (new scripts/init.sh + scripts/init.ps1 with BATS/Pester tests)
+**Branch to create:** agent/agy/claude-sonnet-4-6/feat/init-wizard-168
+
+---
+
+### Start here — ALWAYS do this first before any file changes
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b agent/agy/claude-sonnet-4-6/feat/init-wizard-168
+```
+
+---
+
+### Background
+
+After running `install.sh`, a target project has `docs/ai/COMMANDS.md` but it
+still contains a STOP notice placeholder. The `init.sh`/`init.ps1` wizard fills
+it in with stack-specific commands so the project is immediately useful without
+the developer having to look up all the standard build/test commands.
+
+The wizard supports 6 presets: `dotnet`, `node`, `python`, `go`, `rust`, `generic`.
+It is also interactive: if `--preset` is not given, it prompts the user with a
+numbered menu (1–6) to choose a preset, then applies it.
+
+**The wizard ONLY writes `docs/ai/COMMANDS.md`** — it does not touch any other
+file. This keeps it focused and safe.
+
+**Prerequisite**: `docs/ai/` must exist (install.sh must have been run first).
+If `docs/ai/COMMANDS.md` already exists without a STOP notice (i.e. was already
+filled), the wizard prints a warning and exits 0 without overwriting.
+
+---
+
+### File: `scripts/init.sh`
+
+Create `scripts/init.sh`. Structure:
+
+```bash
+#!/usr/bin/env bash
+if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" ]]; then set -x; fi
+# init.sh — Seed stack-specific docs/ai/COMMANDS.md for the target project.
+#
+# Usage:
+#   ./init.sh [--target /path/to/project] [--preset <name>]
+#
+# Presets: dotnet | node | python | go | rust | generic
+# Default target is the current directory.
+#
+# If --preset is omitted, an interactive numbered menu is shown.
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET=""
+PRESET=""
+
+# --- arg parsing ---
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --target) TARGET="$2"; shift 2 ;;
+    --preset) PRESET="$2"; shift 2 ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+TARGET="${TARGET:-.}"
+
+DOCS_AI="$TARGET/docs/ai"
+COMMANDS_MD="$DOCS_AI/COMMANDS.md"
+
+if [[ ! -d "$DOCS_AI" ]]; then
+  echo "Error: $DOCS_AI does not exist. Run install.sh first." >&2
+  exit 1
+fi
+
+if [[ -f "$COMMANDS_MD" ]] && ! grep -qE 'STOP' "$COMMANDS_MD"; then
+  echo "  [ok] $COMMANDS_MD already filled — skipping (no STOP notice found)."
+  exit 0
+fi
+
+PRESETS=(dotnet node python go rust generic)
+
+if [[ -z "$PRESET" ]]; then
+  echo "Choose a stack preset for docs/ai/COMMANDS.md:"
+  for i in "${!PRESETS[@]}"; do
+    echo "  $((i+1))) ${PRESETS[$i]}"
+  done
+  read -rp "Enter number [1-6]: " choice
+  idx=$((choice - 1))
+  if [[ $idx -lt 0 || $idx -ge ${#PRESETS[@]} ]]; then
+    echo "Invalid choice." >&2; exit 1
+  fi
+  PRESET="${PRESETS[$idx]}"
+fi
+
+# Validate preset
+valid=false
+for p in "${PRESETS[@]}"; do [[ "$PRESET" == "$p" ]] && valid=true && break; done
+if ! $valid; then
+  echo "Error: Unknown preset '$PRESET'. Valid: ${PRESETS[*]}" >&2; exit 1
+fi
+
+# Write COMMANDS.md based on preset
+write_commands() {
+  local preset="$1"
+  local out="$2"
+  cat > "$out" << HEREDOC
+# Commands
+
+> The single source of truth for all build, test, lint, and run commands.
+> AI agents read this file to know which commands to use for verification.
+HEREDOC
+
+  case "$preset" in
+    dotnet)
+      cat >> "$out" << 'HEREDOC'
+
+## Setup
+\`\`\`bash
+dotnet restore
+\`\`\`
+
+## Build
+\`\`\`bash
+dotnet build
+\`\`\`
+
+## Run
+\`\`\`bash
+dotnet run --project src/<Project>
+\`\`\`
+
+## Tests
+\`\`\`bash
+dotnet test
+dotnet test --filter "FullyQualifiedName~<TestName>"
+\`\`\`
+
+## Lint / format
+\`\`\`bash
+dotnet format --verify-no-changes
+\`\`\`
+
+## CI equivalent
+\`\`\`bash
+dotnet restore
+dotnet build --no-restore
+dotnet test --no-build
+dotnet format --verify-no-changes
+\`\`\`
+HEREDOC
+      ;;
+    node)
+      cat >> "$out" << 'HEREDOC'
+
+## Setup
+\`\`\`bash
+npm install
+\`\`\`
+
+## Build
+\`\`\`bash
+npm run build
+\`\`\`
+
+## Run
+\`\`\`bash
+npm run dev
+\`\`\`
+
+## Tests
+\`\`\`bash
+npm test
+npm run test:watch
+\`\`\`
+
+## Lint / format
+\`\`\`bash
+npm run lint
+npm run type-check
+\`\`\`
+
+## CI equivalent
+\`\`\`bash
+npm ci
+npm run build
+npm test
+npm run lint
+\`\`\`
+HEREDOC
+      ;;
+    python)
+      cat >> "$out" << 'HEREDOC'
+
+## Setup
+\`\`\`bash
+pip install -r requirements.txt
+# or
+pip install -e ".[dev]"
+\`\`\`
+
+## Run
+\`\`\`bash
+python -m <module>
+\`\`\`
+
+## Tests
+\`\`\`bash
+pytest
+pytest -k <test_name>
+pytest --tb=short
+\`\`\`
+
+## Lint / format
+\`\`\`bash
+ruff check .
+ruff format --check .
+mypy .
+\`\`\`
+
+## CI equivalent
+\`\`\`bash
+pip install -e ".[dev]"
+ruff check .
+ruff format --check .
+pytest
+\`\`\`
+HEREDOC
+      ;;
+    go)
+      cat >> "$out" << 'HEREDOC'
+
+## Setup
+\`\`\`bash
+go mod download
+\`\`\`
+
+## Build
+\`\`\`bash
+go build ./...
+\`\`\`
+
+## Run
+\`\`\`bash
+go run ./cmd/<main>
+\`\`\`
+
+## Tests
+\`\`\`bash
+go test ./...
+go test -run <TestName> ./...
+go test -v ./...
+\`\`\`
+
+## Lint / format
+\`\`\`bash
+gofmt -l .
+go vet ./...
+golangci-lint run
+\`\`\`
+
+## CI equivalent
+\`\`\`bash
+go mod download
+go build ./...
+go test ./...
+go vet ./...
+\`\`\`
+HEREDOC
+      ;;
+    rust)
+      cat >> "$out" << 'HEREDOC'
+
+## Setup
+\`\`\`bash
+cargo fetch
+\`\`\`
+
+## Build
+\`\`\`bash
+cargo build
+cargo build --release
+\`\`\`
+
+## Run
+\`\`\`bash
+cargo run
+\`\`\`
+
+## Tests
+\`\`\`bash
+cargo test
+cargo test <test_name>
+cargo test -- --nocapture
+\`\`\`
+
+## Lint / format
+\`\`\`bash
+cargo fmt --check
+cargo clippy -- -D warnings
+\`\`\`
+
+## CI equivalent
+\`\`\`bash
+cargo fetch
+cargo build
+cargo test
+cargo fmt --check
+cargo clippy -- -D warnings
+\`\`\`
+HEREDOC
+      ;;
+    generic)
+      cat >> "$out" << 'HEREDOC'
+
+## Setup
+\`\`\`bash
+# TODO: add dependency install command
+\`\`\`
+
+## Build
+\`\`\`bash
+# TODO: add build command
+\`\`\`
+
+## Run
+\`\`\`bash
+# TODO: add run command
+\`\`\`
+
+## Tests
+\`\`\`bash
+# TODO: add test command
+\`\`\`
+
+## Lint / format
+\`\`\`bash
+# TODO: add lint command
+\`\`\`
+
+## CI equivalent
+\`\`\`bash
+# TODO: list commands that must pass before merge
+\`\`\`
+HEREDOC
+      ;;
+  esac
+}
+
+write_commands "$PRESET" "$COMMANDS_MD"
+echo "  [ok] $COMMANDS_MD seeded with '$PRESET' preset."
+echo "  Review and customize before committing."
+```
+
+**Important Bash notes**:
+- The heredocs with command code blocks contain backticks — use `'HEREDOC'` (single-quoted) for the outer heredoc to prevent expansion
+- Or escape backticks as `\``
+- The actual backtick markdown fences should appear unescaped in the output file
+
+The script must be `chmod +x`.
+
+Do NOT write the literal `\\`` in the script — use single-quoted heredoc so backticks pass through.
+
+---
+
+### File: `scripts/init.ps1`
+
+Create a PowerShell equivalent of `init.sh`. Same presets, same logic. Use
+`Write-Host "[ok] ..."` for output. Accept `-Target` and `-Preset` parameters.
+
+For interactive mode, use `Read-Host "Enter number [1-6]"`.
+
+Write the COMMANDS.md content using `Set-Content -Encoding utf8` or similar.
+
+Structure each preset's COMMANDS.md content as a PowerShell here-string `@'...'@`.
+
+---
+
+### Tests
+
+#### `tests/bats/init_wizard.bats`
+
+Create a BATS test file:
+
+```bats
+#!/usr/bin/env bats
+# tests/bats/init_wizard.bats - tests for scripts/init.sh
+
+setup() {
+  TMPDIR="$(mktemp -d)"
+  mkdir -p "$TMPDIR/docs/ai"
+  # Create a stub COMMANDS.md with STOP notice
+  echo "> ⚠️ STOP — Fill this file" > "$TMPDIR/docs/ai/COMMANDS.md"
+  SCRIPT="$BATS_TEST_DIRNAME/../../scripts/init.sh"
+}
+
+teardown() {
+  rm -rf "$TMPDIR"
+}
+
+@test "init --preset dotnet seeds COMMANDS.md" {
+  run bash "$SCRIPT" --target "$TMPDIR" --preset dotnet
+  [ "$status" -eq 0 ]
+  grep -q "dotnet build" "$TMPDIR/docs/ai/COMMANDS.md"
+  # STOP notice should be gone
+  ! grep -q "STOP" "$TMPDIR/docs/ai/COMMANDS.md"
+}
+
+@test "init --preset node seeds COMMANDS.md" {
+  run bash "$SCRIPT" --target "$TMPDIR" --preset node
+  [ "$status" -eq 0 ]
+  grep -q "npm install" "$TMPDIR/docs/ai/COMMANDS.md"
+}
+
+@test "init --preset python seeds COMMANDS.md" {
+  run bash "$SCRIPT" --target "$TMPDIR" --preset python
+  [ "$status" -eq 0 ]
+  grep -q "pytest" "$TMPDIR/docs/ai/COMMANDS.md"
+}
+
+@test "init skips if COMMANDS.md already filled" {
+  # Write a filled COMMANDS.md (no STOP notice)
+  echo "# Commands\n\nAlready filled." > "$TMPDIR/docs/ai/COMMANDS.md"
+  run bash "$SCRIPT" --target "$TMPDIR" --preset dotnet
+  [ "$status" -eq 0 ]
+  # Should NOT overwrite
+  ! grep -q "dotnet" "$TMPDIR/docs/ai/COMMANDS.md"
+}
+
+@test "init fails if docs/ai does not exist" {
+  run bash "$SCRIPT" --target "/tmp/nonexistent-$$" --preset dotnet
+  [ "$status" -ne 0 ]
+}
+
+@test "init --preset invalid-preset fails" {
+  run bash "$SCRIPT" --target "$TMPDIR" --preset invalid
+  [ "$status" -ne 0 ]
+}
+```
+
+#### `tests/pester/InitWizard.Tests.ps1`
+
+Create Pester equivalent:
+
+```powershell
+Describe "init.ps1 wizard" {
+    BeforeEach {
+        $tmp = New-TemporaryFile | ForEach-Object { Remove-Item $_; New-Item -Type Directory $_ }
+        New-Item -Path "$tmp/docs/ai" -ItemType Directory | Out-Null
+        Set-Content -Path "$tmp/docs/ai/COMMANDS.md" -Value "> STOP — Fill this file"
+        $Script = "$PSScriptRoot/../../scripts/init.ps1"
+    }
+    AfterEach { Remove-Item $tmp -Recurse -Force }
+
+    It "dotnet preset seeds COMMANDS.md" {
+        & $Script -Target $tmp -Preset dotnet
+        $LASTEXITCODE | Should -Be 0
+        Get-Content "$tmp/docs/ai/COMMANDS.md" | Should -Match "dotnet build"
+        Get-Content "$tmp/docs/ai/COMMANDS.md" | Should -Not -Match "STOP"
+    }
+
+    It "node preset seeds COMMANDS.md" {
+        & $Script -Target $tmp -Preset node
+        $LASTEXITCODE | Should -Be 0
+        Get-Content "$tmp/docs/ai/COMMANDS.md" | Should -Match "npm install"
+    }
+
+    It "skips if COMMANDS.md already filled" {
+        Set-Content "$tmp/docs/ai/COMMANDS.md" "# Commands`n`nAlready filled."
+        & $Script -Target $tmp -Preset dotnet
+        $LASTEXITCODE | Should -Be 0
+        Get-Content "$tmp/docs/ai/COMMANDS.md" | Should -Not -Match "dotnet"
+    }
+}
+```
+
+---
+
+### CHANGELOG.md
+
+Under `## [Unreleased]` → `### Added`, prepend:
+
+```
+- **`feat(scripts)` — add `scripts/init.sh` + `scripts/init.ps1` stack-preset wizard (#168).**
+  Seeds `docs/ai/COMMANDS.md` with stack-specific build/test commands for 6 presets:
+  `dotnet`, `node`, `python`, `go`, `rust`, `generic`. Supports non-interactive
+  `--preset <name>` flag. Skips if COMMANDS.md is already filled (no STOP notice).
+  BATS and Pester test coverage included.
+```
+
+---
+
+### Constraints
+
+- The init scripts ONLY write `docs/ai/COMMANDS.md`. No other files modified.
+- Scripts must be idempotent (skip if already filled).
+- BATS tests must not depend on the internet or require any external tools beyond bash.
+- PowerShell tests must work with Pester v5.
+- MIT license — no new dependencies.
+- init.sh must be executable (`chmod +x` or have correct shebang).
+
+---
+
+### After making changes
+
+1. `chmod +x scripts/init.sh` (bash)
+2. Check that init.sh and init.ps1 both exist
+3. Verify at least one preset manually: run `bash scripts/init.sh --target /tmp/test-init --preset dotnet` (after `mkdir -p /tmp/test-init/docs/ai && echo STOP > /tmp/test-init/docs/ai/COMMANDS.md`)
+4. `git add scripts/init.sh scripts/init.ps1 tests/bats/init_wizard.bats tests/pester/InitWizard.Tests.ps1 CHANGELOG.md`
+5. `git commit -m "feat(scripts): add init.sh + init.ps1 stack-preset wizard (#168)"`
+6. `git push origin agent/agy/claude-sonnet-4-6/feat/init-wizard-168`
+7. `gh pr create --title "feat(scripts): add init.sh + init.ps1 stack-preset wizard (#168)" --body "Closes #168\n\nAdds scripts/init.sh and scripts/init.ps1 with 6 stack presets (dotnet, node, python, go, rust, generic). Seeds docs/ai/COMMANDS.md with preset-specific build/test commands. BATS and Pester tests included." --base master`
+
+---
+
+### Acceptance criteria
+
+- [ ] `scripts/init.sh` exists and is executable
+- [ ] `scripts/init.ps1` exists
+- [ ] 6 presets work (dotnet, node, python, go, rust, generic)
+- [ ] `--preset` flag works (non-interactive)
+- [ ] Skip if already filled (no STOP notice)
+- [ ] Fails gracefully if docs/ai/ missing
+- [ ] BATS tests cover at least 5 cases
+- [ ] Pester tests cover at least 3 cases
+- [ ] CHANGELOG entry added

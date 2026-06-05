@@ -1,0 +1,44 @@
+Implement GitHub issue 148 in this repository.
+
+TASK: Add a CI workflow that checks heading parity across the three provider router files.
+
+GOAL: Detect when one router file gains a section heading the others lack. The three router files
+are tooling/claude/CLAUDE.md, tooling/codex/AGENTS.md, and tooling/agy/AGY.md.
+
+BRANCH: Create branch agent/agy/claude-sonnet-4-6/ci/router-parity from master before making changes.
+
+WHAT TO CREATE:
+
+File .github/workflows/pr-router-parity.yml — a GitHub Actions workflow.
+
+Trigger: pull_request event, with paths filter covering the three router files.
+
+Job name: router-parity
+Runner: ubuntu-latest
+Steps:
+1. Checkout the repository (use actions/checkout at version 4)
+2. Run an inline bash script that:
+   a. Extracts all level-2 headings (lines starting with "## ") from each of the three router files
+   b. Defines an exception list of headings that are allowed to differ between tools because
+      they are tool-specific. Document the exception list as a shell variable comment.
+      Suggested exceptions: headings containing "How to run", "Session hygiene",
+      "Personal overrides", "PR and commit settings", "Configuration cascade", "Lifecycle hooks"
+   c. For each heading found in one file but absent from the other two, check if it matches
+      any exception. If not, print it as a drift finding and set a failure flag.
+   d. After scanning all headings, exit 1 if any drift was found, exit 0 otherwise.
+
+Look at the existing file .github/workflows/pr-docs.yml for the standard job structure and
+checkout pattern used in this repo.
+
+Do NOT add router-parity to the file .github/required-checks.txt because this workflow is
+path-filtered (only runs when the router files change), and path-filtered jobs are excluded from
+the required checks list by convention in this repo.
+
+VERIFICATION: Validate the YAML with: python3 -c "import yaml; yaml.safe_load(open('.github/workflows/pr-router-parity.yml'))"
+
+COMMIT MESSAGE: ci: add router parity check across CLAUDE.md / AGENTS.md / AGY.md
+
+No CHANGELOG entry needed — type ci is exempt.
+
+After committing, push the branch and create a pull request with base master.
+The PR body must include the text: Closes 148

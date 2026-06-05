@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`feat(delegation)` — add `claude` provider; make cross-agent delegation symmetrical (#420).**
+  `delegate.py` now accepts `--provider claude` (Claude Code `--print` mode).
+  Added `CLAUDE_MODEL_BY_DEPTH`, `build_claude_argv`, and `extract_claude_summary`.
+  `AGENTS.md` and `AGY.md` each gain a "Cross-agent delegation" section so
+  Codex and Antigravity agents know how and when to call the adapter.
+  `docs/ai/DELEGATION.md` updated with symmetry diagram, Claude provider row in
+  the model-routing table, and verified invocation block.
+  9 new BATS tests in `tests/bats/delegation-claude.bats`.
+
 ### Fixed
 
 - **`fix(agents)` — add reverse-validation section to root CLAUDE.md (#423).**
