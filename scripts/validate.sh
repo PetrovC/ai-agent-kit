@@ -369,6 +369,28 @@ else
     ok "no shared skills/ directory to check"
 fi
 
+echo ""
+echo "> Skill frontmatter: version required"
+if [[ -d "$TARGET/skills" ]] && compgen -G "$TARGET/skills/*/SKILL.md" > /dev/null; then
+    skill_version_missing=false
+    for f in "$TARGET"/skills/*/SKILL.md; do
+        [[ -f "$f" ]] || continue
+        if ! awk '
+            /^---$/ { c++; if (c >= 2) { exit found ? 0 : 1 } ; next }
+            c == 1 && /^version:[[:space:]]*/ { found = 1 }
+            END { exit found ? 0 : 1 }
+        ' "$f"; then
+            rel="${f#"$TARGET/"}"
+            warn "$rel missing version in frontmatter"
+            skill_version_missing=true
+        fi
+    done
+    $skill_version_missing || ok "all shared skills declare version"
+else
+    ok "no shared skills/ directory to check"
+fi
+
+
 dogfood_source_candidates() {
     local rel="$1" tail=""
     case "$rel" in

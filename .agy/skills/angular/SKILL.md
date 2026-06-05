@@ -18,6 +18,7 @@ allowed-tools:
   - "Bash(npm:*)"
   - "Bash(npx:*)"
   - "Bash(pnpm:*)"
+version: "1.0.0"
 ---
 
 # Angular Skill

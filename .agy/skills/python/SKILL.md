@@ -16,6 +16,7 @@ allowed-tools:
   - "Bash(uv:*)"
   - "Bash(pytest:*)"
   - "Bash(ruff:*)"
+version: "1.0.0"
 ---
 
 # Python Skill

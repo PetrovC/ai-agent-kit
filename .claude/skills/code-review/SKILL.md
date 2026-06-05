@@ -9,6 +9,7 @@ allowed-tools:
   - "Bash(git:*)"
   - "Bash(gh:*)"
   - "Bash(rg:*)"
+version: "1.0.0"
 ---
 
 # Code Review Skill

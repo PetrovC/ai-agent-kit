@@ -7,6 +7,7 @@ description: >
 allowed-tools:
   - "Bash(npm:*)"
   - "Bash(npx:*)"
+version: "1.0.0"
 ---
 
 # Internationalization (i18n) Skill
