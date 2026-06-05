@@ -1,5 +1,6 @@
 #!/usr/bin/env bats
 # Regression tests for scripts/select-model.py model selection routing.
+# Updated: keyword-order fix for architecture_review intent test.
 
 load 'bats_helper.bash'
 
