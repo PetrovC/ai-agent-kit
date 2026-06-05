@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **`fix(agents)` — add reverse-validation section to root CLAUDE.md (#423).**
+  Follow-up to the feat(agents) PR: applies the same `## Reverse validation` block
+  to the root `CLAUDE.md` that was already added to AGENTS.md, AGY.md, and all
+  three tooling templates in the preceding commit.
+
 ### Removed
 
 - **`refactor(audit)` — remove unused agent audit subsystem (#408).**
