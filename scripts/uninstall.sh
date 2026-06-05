@@ -224,7 +224,7 @@ if [[ -f "$MANIFEST_FILE" ]]; then
         [[ -z "$p" ]] && continue
         otool="$(owning_tool "$p")"
         [[ -z "$otool" ]] && continue
-        if contains "$otool" || [[ "$otool" == "shared" && "$REMOVE_SHARED_AUDIT" == "true" ]]; then
+        if contains "$otool" || [[ "$otool" == "shared" ]]; then
             TO_REMOVE+=("$p")
         fi
     done < "$MANIFEST_FILE"
