@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Removed
+
+- **`refactor(audit)` — remove unused agent audit subsystem (#408).**
+  Deleted `.ai-agent-kit/audit/`, `tooling/shared/agent-audit/`, all three
+  `agent-audit-event.sh` hooks (Claude/Codex/Antigravity), `.github/scripts/provision-audit.sh`,
+  and five `docs/ai/AGENT_AUDIT_*.md` reference docs. Removed audit hook wiring
+  from all settings files and audit provisioning steps from CI workflows.
+  Updated install/update/uninstall/validate scripts. The `/security-audit` and
+  `/performance-audit` slash commands are retained (they are generic review prompts).
+
 ### Added
 
 - **`feat(skills)` — lightweight offline skill eval harness (#167).**

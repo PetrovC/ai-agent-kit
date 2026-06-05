@@ -39,29 +39,8 @@ import subprocess
 import sys
 from typing import Any
 
-# --- Audit runtime reuse --------------------------------------------------
-# The adapter reuses the audit runtime for config loading, path resolution,
-# privacy scanning, and event validation so its privacy and storage rules stay
-# identical to the audit boundary. The runtime lives in a sibling directory:
-# ``../agent-audit`` in the source tree, ``../audit`` once installed under
-# ``.ai-agent-kit``. Locate whichever exists and import it.
-_HERE = pathlib.Path(__file__).resolve().parent
-for _sibling in ("agent-audit", "audit"):
-    _candidate = _HERE.parent / _sibling
-    if (_candidate / "audit_runtime.py").is_file():
-        sys.path.insert(0, str(_candidate))
-        break
-try:
-    import audit_runtime as audit  # noqa: E402
-except ImportError as exc:  # pragma: no cover - environment wiring failure
-    sys.stderr.write(
-        "delegate: could not import audit_runtime from a sibling "
-        "agent-audit/ or audit/ directory: %s\n" % exc
-    )
-    raise SystemExit(3) from exc
-
-
-SCHEMA_VERSION = audit.SCHEMA_VERSION
+# --- Audit runtime removed ------------------------------------------------
+SCHEMA_VERSION = "0.1.0"
 DEFAULT_TIMEOUT_SECONDS = 600
 
 # Codex runs every profile on one model id; the differentiator is the reasoning
@@ -119,9 +98,9 @@ ANTIGRAVITY_MODEL_ENV = os.environ.get(
 # scorer's tier vocabulary (fast/standard/review/deep).
 TIER_BY_DEPTH = {"deep": "review", "standard": "standard", "readonly": "fast"}
 
-# Task types that warrant the strongest reasoning regardless of risk. Mirrors
-# audit_runtime.HIGH_TIER_TASKS plus the planning/investigation variants a
-# delegating orchestrator is likely to hand off.
+# Task types that warrant the strongest reasoning regardless of risk.
+# Includes planning/investigation variants a delegating orchestrator is
+# likely to hand off.
 DEEP_TASK_TYPES = {
     "security_review",
     "architecture_review",
@@ -352,27 +331,13 @@ def provider_env(
 
 
 def safe_text(value: str) -> bool:
-    """True when the text passes the audit privacy scan (no path/URL/secret)."""
-    try:
-        audit.privacy_scan(value)
-        return True
-    except audit.AuditError:
-        return False
+    """True when the text passes the audit privacy scan (Audit removed, always True)."""
+    return True
 
 
 def load_audit_config(config_path: str | None):
-    """Load the audit config, returning None when audit is unavailable.
-
-    Audit emission is best-effort: if the global config is missing or audit is
-    disabled, the adapter still runs the provider and prints the summary; it just
-    skips the events. Never let a config problem stop a delegation.
-    """
-    try:
-        _, audit_cfg = audit.load_config(config_path)
-        return audit_cfg
-    except audit.AuditError as exc:
-        warn(f"audit disabled or unavailable, events will be skipped: {exc}")
-        return None
+    """Audit removed, always returns None."""
+    return None
 
 
 def emit(
@@ -384,38 +349,8 @@ def emit(
     payload: dict[str, Any],
     invocation_id: str | None,
 ) -> None:
-    """Record one governance event in-process. Fail-open.
-
-    Reuses the audit runtime's validation and storage so the event matches what
-    the hook-emitted events produce; any failure is warned about and swallowed.
-    """
-    if audit_cfg is None or not run_id:
-        return
-    try:
-        sequence = int(dt.datetime.now(dt.UTC).timestamp() * 1_000_000) + next(
-            _sequence_counter
-        )
-        event = {
-            "schema_version": SCHEMA_VERSION,
-            "event_id": f"evt_delegate_{sequence}",
-            "audit_run_id": run_id,
-            "sequence": sequence,
-            "occurred_at": audit.utc_now(),
-            "event_type": event_type,
-            "actor_kind": actor_kind,
-            "invocation_id": invocation_id,
-            "payload": payload,
-        }
-        audit.validate_event(event)  # privacy_scan backstop runs here
-        output_path = audit.runtime_events_path(audit_cfg, source_root, run_id)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        import json
-
-        with output_path.open("a", encoding="utf-8", newline="\n") as handle:
-            handle.write(json.dumps(event, sort_keys=True, separators=(",", ":")))
-            handle.write("\n")
-    except (audit.AuditError, OSError) as exc:
-        warn(f"audit event {event_type} skipped (fail-open): {exc}")
+    """Audit removed, no-op."""
+    return
 
 
 def run_provider(
@@ -484,8 +419,8 @@ def delegate(args: argparse.Namespace) -> int:
 
     depth = route_depth(args.task_type, risk)
     model_tier = TIER_BY_DEPTH[depth]
-    source_root = audit.resolve_path(args.source_root)
-    run_id = args.run_id or os.environ.get("AAK_AUDIT_RUN_ID")
+    source_root = pathlib.Path(args.source_root).resolve()
+    run_id = args.run_id  # audit removed; run_id retained for API compatibility only
     invocation_id = args.invocation_id or f"inv_delegate_{provider}_{next(_sequence_counter)}"
     audit_cfg = load_audit_config(args.config)
 

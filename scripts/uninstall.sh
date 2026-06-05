@@ -132,9 +132,9 @@ remaining_scope=()
 for t in "${INSTALLED_SCOPE_LIST[@]}"; do
     contains "$t" || remaining_scope+=("$t")
 done
-REMOVE_SHARED_AUDIT=false
+REMOVE_SHARED=false
 if [[ ${#remaining_scope[@]} -eq 0 ]]; then
-    REMOVE_SHARED_AUDIT=true
+    REMOVE_SHARED=true
 fi
 
 # Map a kit-managed rel path to its owning tool, or "" if not a kit artifact.
@@ -143,7 +143,6 @@ fi
 owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
-        .ai-agent-kit/audit/*)                           echo shared ;;
         .ai-agent-kit/delegate/*)                        echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         AGY.md|.agyignore|.agy/*)               echo agy ;;
@@ -199,9 +198,6 @@ reconstruct_agy() {
 }
 
 reconstruct_shared() {
-    [[ -d "$KIT_ROOT/tooling/shared/agent-audit" ]] && \
-        find "$KIT_ROOT/tooling/shared/agent-audit" -type f \
-             -printf '.ai-agent-kit/audit/%P\n'
     [[ -d "$KIT_ROOT/tooling/shared/delegate" ]] && \
         find "$KIT_ROOT/tooling/shared/delegate" -type f \
              -printf '.ai-agent-kit/delegate/%P\n'
@@ -239,7 +235,7 @@ else
     contains "codex"  && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_codex)
     contains "claude" && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_claude)
     contains "agy" && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_agy)
-    [[ "$REMOVE_SHARED_AUDIT" == "true" ]] && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_shared)
+    [[ "$REMOVE_SHARED" == "true" ]] && while IFS= read -r p; do TO_REMOVE+=("$p"); done < <(reconstruct_shared)
 fi
 
 # Sort + dedupe (a path can be listed twice if two tools share a parent dir).
@@ -274,8 +270,8 @@ for tool in "${TOOL_LIST[@]}"; do
     [[ "$any" == "false" ]] && echo "  (no files to remove for $tool)"
 done
 
-if [[ "$REMOVE_SHARED_AUDIT" == "true" ]]; then
-    step "Removing shared audit runtime"
+if [[ "$REMOVE_SHARED" == "true" ]]; then
+    step "Removing shared delegation adapter"
     any=false
     for rel in "${TO_REMOVE[@]}"; do
         otool="$(owning_tool "$rel")"
@@ -293,7 +289,7 @@ if [[ "$REMOVE_SHARED_AUDIT" == "true" ]]; then
             absent "$rel"
         fi
     done
-    [[ "$any" == "false" ]] && echo "  (no files to remove for shared audit runtime)"
+    [[ "$any" == "false" ]] && echo "  (no files to remove for shared delegation adapter)"
 fi
 
 # ── Prune empty kit directories ───────────────────────────────────────────

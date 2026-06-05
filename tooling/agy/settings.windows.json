@@ -35,32 +35,6 @@
           }
         ]
       }
-    ],
-    "AfterTool": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".agy/hooks/run-hook.ps1\" agent-audit-event.sh",
-            "name": "agent-audit",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".agy/hooks/run-hook.ps1\" agent-audit-event.sh",
-            "name": "agent-audit",
-            "async": true
-          }
-        ]
-      }
     ]
   }
 }
