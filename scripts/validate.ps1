@@ -448,6 +448,34 @@ if (Test-Path -LiteralPath $skillsDir -PathType Container) {
     Ok "no shared skills/ directory to check"
 }
 
+Write-Host ""
+Write-Host "> Skill: SKILL.deep.md exists when referenced"
+if (Test-Path -LiteralPath $skillsDir -PathType Container) {
+    $skillFiles = @(Get-ChildItem -LiteralPath $skillsDir -Directory |
+        ForEach-Object { Join-Path $_.FullName "SKILL.md" } |
+        Where-Object { Test-Path -LiteralPath $_ -PathType Leaf })
+    if ($skillFiles.Count -eq 0) {
+        Ok "no shared skills/ directory to check"
+    } else {
+        $deepMissing = $false
+        foreach ($f in $skillFiles) {
+            $content = Get-Content -LiteralPath $f -Raw
+            if ($content -like "*SKILL.deep.md*") {
+                $parentDir = Split-Path -Parent $f
+                $deepFile = Join-Path $parentDir "SKILL.deep.md"
+                if (-not (Test-Path -LiteralPath $deepFile -PathType Leaf)) {
+                    $rel = Convert-ToTargetRelative $f
+                    Warn "$rel references SKILL.deep.md but file is missing"
+                    $deepMissing = $true
+                }
+            }
+        }
+        if (-not $deepMissing) { Ok "all SKILL.deep.md references resolved" }
+    }
+} else {
+    Ok "no shared skills/ directory to check"
+}
+
 function Get-DogfoodSourceCandidates([string]$rel) {
     switch -Regex ($rel) {
         "^AGENTS\.md$" { return @("tooling/codex/AGENTS.md") }
