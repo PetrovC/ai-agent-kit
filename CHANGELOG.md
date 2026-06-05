@@ -31,6 +31,15 @@
 
 ### Added
 
+- **`feat(skills)` — add metadata schema and refactor dotnet skill (#415, #417).**
+  New `docs/ai/SKILL_METADATA.md` documents the skill frontmatter schema including
+  new optional fields: `keywords`, `task_intents`, `delegation_hints`. Three skills
+  (`dotnet`, `code-review`, `angular`) gain the new metadata. `dotnet/SKILL.md` is
+  refactored from a 177-line monolith into a short router + 4 reference files
+  (`clean-architecture.md`, `ef-core.md`, `testing.md`, `package-maintenance.md`),
+  each with explicit `## Load when` conditions. CI validation extended to check
+  that referenced files exist.
+
 - **`feat(routing)` — define adaptive skill and subagent routing design (#414).**
   New `docs/ai/ADAPTIVE_ROUTING.md` documents the 5-stage adaptive routing
   pipeline: classify task intent → select skills → select references → decide

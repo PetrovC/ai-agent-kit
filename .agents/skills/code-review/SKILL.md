@@ -10,6 +10,21 @@ allowed-tools:
   - "Bash(gh:*)"
   - "Bash(rg:*)"
 version: "1.0.0"
+keywords:
+  - review
+  - code review
+  - pr review
+  - pull request
+  - audit
+task_intents:
+  - review
+  - security
+  - refactor
+delegation_hints:
+  can_delegate: true
+  when: >
+    When the task involves reviewing both backend and frontend independently —
+    delegate each to a focused subagent, then synthesize findings.
 ---
 
 # Code Review Skill
