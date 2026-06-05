@@ -1,6 +1,7 @@
 # ai-agent-kit
 
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/PetrovC/ai-agent-kit/badge)](https://securityscorecards.dev/viewer/?uri=github.com/PetrovC/ai-agent-kit)
+[![OpenSSF Scorecard workflow](https://github.com/PetrovC/ai-agent-kit/actions/workflows/scorecard.yml/badge.svg)](https://github.com/PetrovC/ai-agent-kit/actions/workflows/scorecard.yml)
 [![Quality gate](https://github.com/PetrovC/ai-agent-kit/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/PetrovC/ai-agent-kit/actions/workflows/quality-gate.yml)
 ![GitHub License](https://img.shields.io/github/license/PetrovC/ai-agent-kit)
 ![GitHub release](https://img.shields.io/github/v/release/PetrovC/ai-agent-kit)
