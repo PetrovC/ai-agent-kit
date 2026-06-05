@@ -330,9 +330,27 @@ def provider_env(
     return None
 
 
+import re as _re
+
+# Patterns that indicate a brief may contain sensitive material.
+# Blocks the most obvious secret/path leaks without requiring audit_runtime.
+_UNSAFE_PATTERNS = _re.compile(
+    r"""
+    sk-[A-Za-z0-9]{20,}       # OpenAI / Anthropic API key
+    | ghp_[A-Za-z0-9]{30,}    # GitHub personal token
+    | ghs_[A-Za-z0-9]{20,}    # GitHub Actions secret
+    | glpat-[A-Za-z0-9-]{20,} # GitLab PAT
+    | [A-Z]:[/\\\\]            # Windows absolute path  (C:\, D:\, etc.)
+    | /[Uu]sers/[^/\s]{2,}    # macOS / Unix user path (/Users/name, /users/name)
+    | /home/[^/\s]{2,}         # Linux home path
+    """,
+    _re.VERBOSE,
+)
+
+
 def safe_text(value: str) -> bool:
-    """True when the text passes the audit privacy scan (Audit removed, always True)."""
-    return True
+    """True when the text contains no obvious secrets or absolute paths."""
+    return _UNSAFE_PATTERNS.search(value) is None
 
 
 def load_audit_config(config_path: str | None):

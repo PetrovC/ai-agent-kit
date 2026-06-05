@@ -132,17 +132,7 @@ delegate() {
     assert_output_contains "model_reasoning_effort=low"
 }
 
-@test "delegate emits agent.selected/invoked/completed with a provider field" {
-    delegate --provider codex --task-type security_review --risk high \
-        --run-id run_deleg_events --invocation-id inv_deleg
-    assert_success
-    run cat "$(events_file)"
-    assert_output_contains '"event_type":"agent.selected"'
-    assert_output_contains '"event_type":"agent.invoked"'
-    assert_output_contains '"event_type":"agent.completed"'
-    assert_output_contains '"provider":"codex"'
-    assert_output_contains '"status":"success"'
-}
+# Audit event emission tests removed — emit() is now a no-op (audit subsystem removed, #408).
 
 @test "delegate routes investigation/medium to the Antigravity Opus model hint" {
     delegate --provider antigravity --task-type investigation --risk medium \
@@ -185,18 +175,9 @@ delegate() {
     assert_failure
 }
 
-@test "delegate emits Antigravity events with the provider field" {
-    delegate --provider antigravity --task-type investigation --risk medium \
-        --run-id run_agy_events --invocation-id inv_agy
-    assert_success
-    run cat "$(events_file)"
-    assert_output_contains '"event_type":"agent.completed"'
-    assert_output_contains '"provider":"antigravity"'
-    assert_output_contains '"status":"success"'
-}
-
-@test "delegate skips delegation when the brief fails the privacy scan" {
-    # A secret-like token must never reach the provider CLI.
+@test "delegate skips delegation when the brief contains a secret-like token" {
+    # Regression guard: safe_text() must catch obvious API-key patterns.
+    # Uses the built-in regex check (no audit_runtime needed).
     printf 'leaked secret sk-ABCDEFGHIJKLMNOPqrstuvwx here\n' > "$BRIEF"
     rm -f "$STUB_RECORD"
     delegate --provider codex --task-type other --risk low --run-id run_deleg_priv
@@ -216,9 +197,6 @@ delegate() {
     # must appear in the accumulated env file.
     run cat "$STUB_ENV"
     assert_output_contains "gemini-3.1-pro"
-    # The completed event must carry fallback_used:true.
-    run cat "$(events_file)"
-    assert_output_contains '"fallback_used":true'
 }
 
 @test "delegate does not retry fallback for Codex quota errors" {
@@ -233,8 +211,7 @@ STUB
     delegate --provider codex --task-type feat --risk medium \
         --run-id run_codex_quota
     assert_success
-    run cat "$(events_file)"
-    assert_output_contains '"status":"error"'
+    # Codex quota errors are fail-open: adapter returns 0 even on provider failure.
 }
 
 @test "delegate is fail-open when the provider CLI fails" {
@@ -249,6 +226,5 @@ STUB
     chmod +x "$BIN/codex"
     delegate --provider codex --task-type other --risk low --run-id run_deleg_fail
     assert_success
-    run cat "$(events_file)"
-    assert_output_contains '"status":"error"'
+    # Provider failure is fail-open: adapter returns 0 so the orchestrator is undisturbed.
 }
