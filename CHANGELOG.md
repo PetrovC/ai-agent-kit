@@ -135,6 +135,12 @@
 
 ### Changed
 
+- **`refactor(skills)` — split 22 long skills into SKILL.md + SKILL.deep.md (#158).**
+  Every skill that exceeded 200 lines now ships a slim `SKILL.md` (≤ 80 lines)
+  for always-on loading and a `SKILL.deep.md` for extended how-to reference.
+  Reduces per-match context cost for heavy skills (ai-dev, angular, testing, etc.).
+  `scripts/validate.sh` now checks that `SKILL.deep.md` exists when referenced.
+
 - **`docs` — expand README governance section and add CONTRIBUTING.md link (#175).**
   The install-script section now includes a table describing each of the five
   governance templates (`CONTEXT_GOVERNANCE`, `SUBAGENT_GOVERNANCE`, `MCP_POLICY`,

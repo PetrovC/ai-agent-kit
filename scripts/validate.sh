@@ -390,6 +390,25 @@ else
     ok "no shared skills/ directory to check"
 fi
 
+echo ""
+echo "> Skill: SKILL.deep.md exists when referenced"
+if [[ -d "$TARGET/skills" ]] && compgen -G "$TARGET/skills/*/SKILL.md" > /dev/null; then
+    deep_missing=false
+    for f in "$TARGET"/skills/*/SKILL.md; do
+        [[ -f "$f" ]] || continue
+        if grep -qF "SKILL.deep.md" "$f"; then
+            deep_file="${f%SKILL.md}SKILL.deep.md"
+            if [[ ! -f "$deep_file" ]]; then
+                warn "${f#"$TARGET/"} references SKILL.deep.md but file is missing"
+                deep_missing=true
+            fi
+        fi
+    done
+    $deep_missing || ok "all SKILL.deep.md references resolved"
+else
+    ok "no shared skills/ directory to check"
+fi
+
 
 dogfood_source_candidates() {
     local rel="$1" tail=""
