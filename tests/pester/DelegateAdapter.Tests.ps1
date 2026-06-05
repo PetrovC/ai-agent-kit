@@ -115,10 +115,6 @@ Describe "Cross-tool delegation adapter" {
             }
         }
 
-        function Get-DelegateEventsFile {
-            param([string]$RunId)
-            return (Join-Path $script:RuntimePath "runs\$RunId\events.ndjson")
-        }
     }
 
     It "requires a brief file" {
@@ -147,20 +143,6 @@ Describe "Cross-tool delegation adapter" {
         Assert-AakSuccess $result
         $argv = Get-Content -Raw $script:StubRecord
         if (-not $argv.Contains("model_reasoning_effort=low")) { throw "expected low effort in argv: $argv" }
-    }
-
-    It "emits agent.selected/invoked/completed with a provider field" {
-        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "security_review", "-Risk", "high", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_events", "-InvocationId", "inv_deleg")
-        Assert-AakSuccess $result
-        $eventsFile = Get-DelegateEventsFile "run_events"
-        Assert-AakFileExists $eventsFile
-        $types = @(Get-Content $eventsFile | Where-Object { $_.Trim() } | ForEach-Object { ($_ | ConvertFrom-Json).event_type })
-        foreach ($need in @("agent.selected", "agent.invoked", "agent.completed")) {
-            if ($types -notcontains $need) { throw "missing event $need; got $($types -join ',')" }
-        }
-        $completed = Get-Content $eventsFile | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.event_type -eq "agent.completed" } | Select-Object -First 1
-        if ($completed.payload.provider -ne "codex") { throw "expected provider codex, got $($completed.payload.provider)" }
-        if ($completed.payload.status -ne "success") { throw "expected status success, got $($completed.payload.status)" }
     }
 
     It "routes investigation/medium to the Antigravity Opus model hint" {
@@ -197,17 +179,7 @@ Describe "Cross-tool delegation adapter" {
         if ($argv.Contains("--sandbox")) { throw "expected no --sandbox in impl argv: $argv" }
     }
 
-    It "emits Antigravity events with the provider field" {
-        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "investigation", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_events", "-InvocationId", "inv_agy")
-        Assert-AakSuccess $result
-        $eventsFile = Get-DelegateEventsFile "run_agy_events"
-        Assert-AakFileExists $eventsFile
-        $completed = Get-Content $eventsFile | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.event_type -eq "agent.completed" } | Select-Object -First 1
-        if ($completed.payload.provider -ne "antigravity") { throw "expected provider antigravity, got $($completed.payload.provider)" }
-        if ($completed.payload.status -ne "success") { throw "expected status success, got $($completed.payload.status)" }
-    }
-
-    It "skips delegation when the brief fails the privacy scan" {
+    It "skips delegation when the brief contains a secret-like token" {
         # A secret-like token must never reach the provider CLI.
         [System.IO.File]::WriteAllText($script:BriefPath, "leaked secret sk-ABCDEFGHIJKLMNOPqrstuvwx here", (New-Object System.Text.UTF8Encoding($false)))
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "other", "-Risk", "low", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_priv")
@@ -224,10 +196,7 @@ Describe "Cross-tool delegation adapter" {
         Assert-AakOutputContains $result "fallback analysis"
         $model = Get-Content -Raw $script:StubEnv
         if (-not $model.Contains("gemini-3.1-pro")) { throw "expected gemini-3.1-pro in accumulated model hints, got: $model" }
-        $eventsFile = Get-DelegateEventsFile "run_agy_fallback"
-        Assert-AakFileExists $eventsFile
-        $completed = Get-Content $eventsFile | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.event_type -eq "agent.completed" } | Select-Object -First 1
-        if ($completed.payload.result_summary.fallback_used -ne $true) { throw "expected fallback_used=true in completed event" }
+        # Audit event emission removed (#408) — emit() is now a no-op.
     }
 
     It "does not retry fallback for Codex quota errors" {
@@ -236,10 +205,8 @@ Describe "Cross-tool delegation adapter" {
         Write-FailingCodexStub
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "feat", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_codex_quota")
         Assert-AakSuccess $result
-        $eventsFile = Get-DelegateEventsFile "run_codex_quota"
-        Assert-AakFileExists $eventsFile
-        $completed = Get-Content $eventsFile | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.event_type -eq "agent.completed" } | Select-Object -First 1
-        if ($completed.payload.status -ne "error") { throw "expected status error (no fallback for codex), got $($completed.payload.status)" }
+        # Codex quota errors are fail-open: adapter returns 0 so the orchestrator is undisturbed.
+        # Audit event emission removed (#408) — emit() is now a no-op.
     }
 
     It "is fail-open when the provider CLI fails" {
@@ -248,9 +215,7 @@ Describe "Cross-tool delegation adapter" {
         Write-FailingCodexStub
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "other", "-Risk", "low", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_missing")
         Assert-AakSuccess $result
-        $eventsFile = Get-DelegateEventsFile "run_missing"
-        Assert-AakFileExists $eventsFile
-        $completed = Get-Content $eventsFile | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.event_type -eq "agent.completed" } | Select-Object -First 1
-        if ($completed.payload.status -ne "error") { throw "expected status error, got $($completed.payload.status)" }
+        # Provider failure is fail-open: adapter returns 0 so the orchestrator is undisturbed.
+        # Audit event emission removed (#408) — emit() is now a no-op.
     }
 }
