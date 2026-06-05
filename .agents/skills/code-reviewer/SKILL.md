@@ -4,7 +4,10 @@ description: >
   Code reviewer. Use before finalizing changes that touch more than 2 files
   or shared behavior. Reviews for correctness, security, regressions, and
   missing tests.
+version: "1.0.0"
 ---
+
+<!-- NOTE: Retained as system-prompt documentation. Authoritative profile: [agents.code-reviewer] in .codex/config.toml (#179). -->
 
 # Code Reviewer
 

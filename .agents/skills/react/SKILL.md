@@ -12,6 +12,7 @@ allowed-tools:
   - "Bash(npm:*)"
   - "Bash(pnpm:*)"
   - "Bash(npx:*)"
+version: "1.0.0"
 ---
 
 # React Skill

@@ -16,6 +16,7 @@ allowed-tools:
   - "Bash(sqlite3:*)"
   - "Bash(redis-cli:*)"
   - "Bash(mongosh:*)"
+version: "1.0.0"
 ---
 
 # Database Skill

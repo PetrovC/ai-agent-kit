@@ -14,6 +14,7 @@ allowed-tools:
   - "Bash(dotnet:*)"
   - "Bash(mvn:*)"
   - "Bash(./gradlew:*)"
+version: "1.0.0"
 ---
 
 # Testing Skill

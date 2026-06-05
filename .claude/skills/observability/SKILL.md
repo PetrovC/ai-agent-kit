@@ -8,6 +8,7 @@ allowed-tools:
   - "Bash(otelcol:*)"
   - "Bash(curl:*)"
   - "Bash(jq:*)"
+version: "1.0.0"
 ---
 
 # Observability Skill

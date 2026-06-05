@@ -27,6 +27,7 @@ allowed-tools:
   - "Bash(./gradlew:*)"
   - "Bash(dotnet:*)"
   - "Bash(pip-audit:*)"
+version: "1.0.0"
 ---
 
 # Dependencies Skill

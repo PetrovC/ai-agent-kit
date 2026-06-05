@@ -3,6 +3,7 @@ name: test-runner
 description: >
   Test runner. Use when test output is large or when you need a clean
   summary of which tests pass or fail after a change.
+version: "1.0.0"
 ---
 
 <!-- NOTE: Retained as system-prompt documentation. Authoritative profile: [agents.test-runner] in .codex/config.toml (#179). -->

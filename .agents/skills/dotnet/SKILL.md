@@ -11,6 +11,7 @@ paths:
   - "**/global.json"
 allowed-tools:
   - "Bash(dotnet:*)"
+version: "1.0.0"
 ---
 
 # .NET Skill

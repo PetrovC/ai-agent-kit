@@ -4,6 +4,7 @@ description: >
   Architecture analyst. Use when a task may affect layer boundaries,
   dependency direction, or introduces a new pattern. Returns a concise
   design assessment.
+version: "1.0.0"
 ---
 
 <!-- NOTE: This file is retained as system-prompt documentation.

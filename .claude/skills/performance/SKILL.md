@@ -10,6 +10,7 @@ allowed-tools:
   - "Bash(ab:*)"
   - "Bash(npm:*)"
   - "Bash(npx:*)"
+version: "1.0.0"
 ---
 
 # Performance Skill

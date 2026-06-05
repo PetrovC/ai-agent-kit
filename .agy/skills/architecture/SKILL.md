@@ -7,6 +7,7 @@ description: >
 allowed-tools:
   - "Bash(git:*)"
   - "Bash(rg:*)"
+version: "1.0.0"
 ---
 
 # Architecture Skill

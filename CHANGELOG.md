@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`feat(skills)` — add version metadata to all skill frontmatters (#166).**
+  Every `SKILL.md` now declares `version: "1.0.0"` in its YAML frontmatter.
+  Applies to all 36 shared skills under `.agents/skills/` and the 5 Codex
+  subagent skills under `tooling/codex/skills/`. `scripts/validate.sh` now
+  checks that every skill declares a version field.
+
 - **`docs(claude)` — add teammateMode section to SUBAGENT_GOVERNANCE.md (#190).**
   Documents `teammateMode: auto|in-process|tmux` with a comparison table and
   usage guidelines for this kit. Links to worktree isolation settings.
