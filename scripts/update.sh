@@ -193,7 +193,6 @@ owner_in_manifest_scope() {
 owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
-        .ai-agent-kit/audit/*)                           echo shared ;;
         .ai-agent-kit/delegate/*)                        echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         AGY.md|.agyignore|.agy/*)               echo agy ;;
@@ -328,11 +327,6 @@ if contains "agy"; then
     update_dir         "$KIT_ROOT/tooling/agy/hooks"          "$TARGET/.agy/hooks"
     update_dir         "$KIT_ROOT/tooling/agy/policies"       "$TARGET/.agy/policies"
 fi
-
-# -- Update shared audit runtime ------------------------------------------
-update_dir "$KIT_ROOT/tooling/shared/agent-audit" "$TARGET/.ai-agent-kit/audit"
-[[ "$DRY_RUN" == "false" && -d "$TARGET/.ai-agent-kit/audit" ]] && \
-    find "$TARGET/.ai-agent-kit/audit" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 
 # -- Update shared delegation adapter -------------------------------------
 update_dir "$KIT_ROOT/tooling/shared/delegate" "$TARGET/.ai-agent-kit/delegate"

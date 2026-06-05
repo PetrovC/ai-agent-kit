@@ -30,8 +30,6 @@ if [[ ! "$KIT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 TARGET=""
 TOOLS="codex,claude,agy"
-AUDIT="disabled"
-AUDIT_CONFIG=""
 PROFILE="full"
 
 # Validate that a flag's value argument is present and is not another flag.
@@ -74,8 +72,6 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --target) require_value "$1" "${2-}" "$#"; TARGET="$2"; shift 2 ;;
         --tools)  require_value "$1" "${2-}" "$#"; TOOLS="$2";  shift 2 ;;
-        --audit)  require_value "$1" "${2-}" "$#"; AUDIT="$2";  shift 2 ;;
-        --audit-config) require_value "$1" "${2-}" "$#"; AUDIT_CONFIG="$2"; shift 2 ;;
         --profile) require_value "$1" "${2-}" "$#"; PROFILE="$2"; shift 2 ;;
         *) echo "Unknown argument: $1"; exit 1 ;;
     esac
@@ -102,10 +98,6 @@ if [[ ${#TOOL_LIST[@]} -eq 0 ]]; then
     exit 1
 fi
 
-case "$AUDIT" in
-    disabled|prompt|official) ;;
-    *) echo "Error: unknown audit mode '$AUDIT'. Valid options: disabled, prompt, official" >&2; exit 1 ;;
-esac
 
 VALID_TOOLS=("codex" "claude" "agy")
 for t in "${TOOL_LIST[@]}"; do
@@ -137,7 +129,6 @@ RECORD_ACTIONS=()  # "<added|updated|skipped> <rel>" per touched path, for the i
 owning_tool() {
     case "$1" in
         AGENTS.md|.codex/*|.agents/skills/*)             echo codex  ;;
-        .ai-agent-kit/audit/*)                           echo shared ;;
         .ai-agent-kit/delegate/*)                        echo shared ;;
         CLAUDE.md|.mcp.example.jsonc|.claude/*)          echo claude ;;
         AGY.md|.agyignore|.agy/*)               echo agy ;;
@@ -223,69 +214,7 @@ owner_in_manifest_scope() {
     contains "$owner"
 }
 
-audit_config_path() {
-    if [[ -n "$AUDIT_CONFIG" ]]; then
-        printf '%s\n' "$AUDIT_CONFIG"
-    else
-        printf '%s/.ai-agent-kit/config.json\n' "$HOME"
-    fi
-}
 
-init_audit_config() {
-    local mode="$1"
-    if [[ "$mode" == "disabled" ]]; then
-        echo "  [skip] anonymized audit remains disabled by default"
-        return 0
-    fi
-
-    if [[ "$mode" == "prompt" ]]; then
-        if [[ ! -t 0 ]]; then
-            echo "  [skip] anonymized audit prompt unavailable on non-interactive stdin"
-            return 0
-        fi
-        printf "Enable anonymized central audit metadata? This stores counters only, no prompts/responses/paths. Type 'yes' to enable: "
-        read -r answer
-        if [[ "$answer" != "yes" ]]; then
-            echo "  [skip] anonymized audit not enabled"
-            return 0
-        fi
-    fi
-
-    local config_path config_dir runtime_path central_repo_path
-    config_path="$(audit_config_path)"
-    config_dir="$(dirname "$config_path")"
-    runtime_path="$config_dir/audit-runtime"
-    central_repo_path="$config_dir/central-audit"
-    mkdir -p "$config_dir" "$runtime_path"
-    cat > "$config_path" <<JSON
-{
-  "schema_version": "0.1.0",
-  "audit": {
-    "enabled": true,
-    "mode": "official-central-repo",
-    "official_remote_url": "https://github.com/PetrovC/ai-agent-kit.git",
-    "branch": "agent-audit-data",
-    "runtime_path": "$runtime_path",
-    "central_repo_path": "$central_repo_path",
-    "source_project_write_policy": "never",
-    "anonymization": {
-      "salt_scope": "local-only",
-      "drop_raw_content": true,
-      "forbid_exact_paths": true,
-      "forbid_repository_urls": true,
-      "forbid_branch_names": true
-    },
-    "push": {
-      "mode": "disabled",
-      "commit": false,
-      "unauthorized_fallback": "local-outbox"
-    }
-  }
-}
-JSON
-    ok "global audit config -> $config_path"
-    echo "  Audit data/runtime paths are outside the target project."
-}
 
 # ── Header ─────────────────────────────────────────────────────────────────
 echo ""
@@ -297,7 +226,6 @@ echo "  Tools  : $TOOLS"
 echo "  Version: $KIT_VERSION"
 echo "  Mode   : OVERWRITE (kit files only; docs/ai/ preserved)"
 echo "  Profile: $PROFILE"
-echo "  Audit  : $AUDIT"
 
 # ── Skills ─────────────────────────────────────────────────────────────────
 if contains "codex"; then
@@ -371,20 +299,11 @@ if contains "agy"; then
     fi
 fi
 
-# -- Shared audit runtime --------------------------------------------------
+# -- Shared cross-tool delegation adapter ----------------------------------
 if is_full; then
-    step "Installing shared audit runtime -> .ai-agent-kit/audit/"
-    copy_dir "$KIT_ROOT/tooling/shared/agent-audit" "$TARGET/.ai-agent-kit/audit"
-    find "$TARGET/.ai-agent-kit/audit" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
-
-    # -- Shared cross-tool delegation adapter ----------------------------------
     step "Installing shared delegation adapter -> .ai-agent-kit/delegate/"
     copy_dir "$KIT_ROOT/tooling/shared/delegate" "$TARGET/.ai-agent-kit/delegate"
     find "$TARGET/.ai-agent-kit/delegate" -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
-
-    # -- Optional global audit config -----------------------------------------
-    step "Anonymized audit setup"
-    init_audit_config "$AUDIT"
 
     # ── Project template (docs/ai/) — preserved if it exists ───────────────────
     step "Installing project template -> docs/ai/"

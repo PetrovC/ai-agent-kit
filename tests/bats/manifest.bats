@@ -23,8 +23,6 @@ setup() {
     assert_success
     run grep -Fx ".claude/settings.json" "$TARGET/.kit-manifest"
     assert_success
-    run grep -Fx ".ai-agent-kit/audit/record-event.sh" "$TARGET/.kit-manifest"
-    assert_success
     # Manifest is sorted (LC_ALL=C sort -u) — verify no duplicate lines.
     run bash -c "sort -u '$TARGET/.kit-manifest' | diff -q - '$TARGET/.kit-manifest'"
     assert_success
@@ -88,41 +86,17 @@ setup() {
     assert_success
     run grep -Fx "CLAUDE.md" "$TARGET/.kit-manifest"
     assert_failure
-    run grep -Fx ".ai-agent-kit/audit/record-event.sh" "$TARGET/.kit-manifest"
-    assert_success
     # .kit-version updated to remaining tools only.
     run cat "$TARGET/.kit-version"
     assert_success
     assert_output_contains "tools: agy"
 }
 
-@test "full uninstall removes shared audit runtime with the last tool" {
+@test "full uninstall of the last tool removes kit manifest and version" {
+    # Audit runtime removal tests removed — agent audit subsystem removed (#408).
     aak_install --tools codex
-    assert_file_exists "$TARGET/.ai-agent-kit/audit/record-event.sh"
     run aak_uninstall --tools codex
     assert_success
-    assert_file_missing "$TARGET/.ai-agent-kit/audit/record-event.sh"
     assert_file_missing "$TARGET/.kit-manifest"
     assert_file_missing "$TARGET/.kit-version"
-}
-
-@test "official audit opt-in writes global config outside the target project" {
-    config_dir="$BATS_TEST_TMPDIR/audit-config"
-    config_path="$config_dir/config.json"
-    run aak_install --tools codex --audit official --audit-config "$config_path"
-    assert_success
-    assert_file_exists "$config_path"
-    assert_file_missing "$TARGET/.ai-agent-kit/config.json"
-    run python - "$config_path" "$TARGET" <<'PY'
-import json
-import pathlib
-import sys
-config = json.loads(pathlib.Path(sys.argv[1]).read_text())
-target = pathlib.Path(sys.argv[2]).resolve()
-runtime = pathlib.Path(config["audit"]["runtime_path"]).resolve()
-assert config["audit"]["enabled"] is True
-assert config["audit"]["source_project_write_policy"] == "never"
-assert target not in (runtime, *runtime.parents)
-PY
-    assert_success
 }

@@ -42,9 +42,8 @@ or sub-directory exceptions.
 | `PreToolUse` (Bash) | `pre-bash-guard.sh` | Blocks force/mirror/delete push, `git branch -D` / `update-ref -d`, `git reset --hard`/`--keep`, recursive `rm -rf` on dangerous targets, `${IFS}` obfuscation, and SQL `DROP` without an approval comment. Exit 2 = blocked. Best-effort denylist, not a sandbox. |
 | `PermissionRequest` | `permission-request-log.sh` | Logs the requested permission class and tool with a hashed reason, without echoing raw commands or prompts. |
 | `PostToolUse` (Edit/Write/Patch) | `format-on-save.sh` | Best-effort formatter (prettier/ruff/gofmt/rustfmt/dotnet) on the edited file. |
-| `SessionStart` | `session-start-summary.sh` + `agent-audit-event.sh` | Prints kit version / active profile context and records the run-start audit event. |
-| `Stop` | `notify-done.sh` + `agent-audit-event.sh` | Desktop notification when a turn finishes and records the run-completion audit event. |
-| `SubagentStart` / `SubagentStop` | `agent-audit-event.sh` | Records subagent lifecycle audit events. |
+| SessionStart | `session-start-summary.sh` | Prints kit version and active profile on session start. |
+| Stop | `notify-done.sh` | Desktop notification when a turn finishes. |
 
 The guard parses hook stdin via a `jq → python3 → sed` fallback, so a missing or
 broken interpreter falls through rather than failing open. Codex has no

@@ -52,7 +52,6 @@
 .agy/commands/run-tests.toml
 .agy/commands/security-audit.toml
 .agy/commands/tech-debt.toml
-.agy/hooks/agent-audit-event.sh
 .agy/hooks/pre-bash-guard.sh
 .agy/hooks/run-hook.ps1
 .agy/policies/destructive-git.toml
@@ -92,19 +91,6 @@
 .agy/skills/testing/SKILL.md
 .agy/skills/vue/SKILL.md
 .agyignore
-.ai-agent-kit/audit/README.md
-.ai-agent-kit/audit/audit_runtime.py
-.ai-agent-kit/audit/config.example.json
-.ai-agent-kit/audit/emit-event.ps1
-.ai-agent-kit/audit/emit-event.sh
-.ai-agent-kit/audit/finalize-run.ps1
-.ai-agent-kit/audit/finalize-run.sh
-.ai-agent-kit/audit/import-session-metrics.ps1
-.ai-agent-kit/audit/import-session-metrics.sh
-.ai-agent-kit/audit/record-event.ps1
-.ai-agent-kit/audit/record-event.sh
-.ai-agent-kit/audit/rollup.ps1
-.ai-agent-kit/audit/rollup.sh
 .ai-agent-kit/delegate/delegate.ps1
 .ai-agent-kit/delegate/delegate.py
 .ai-agent-kit/delegate/delegate.sh
@@ -127,7 +113,6 @@
 .claude/commands/run-tests.md
 .claude/commands/security-audit.md
 .claude/commands/tech-debt.md
-.claude/hooks/agent-audit-event.sh
 .claude/hooks/format-on-save.sh
 .claude/hooks/notify-done.sh
 .claude/hooks/pre-bash-guard.sh
@@ -173,7 +158,6 @@
 .claude/skills/vue/SKILL.md
 .codex/config.toml
 .codex/hooks.json
-.codex/hooks/agent-audit-event.sh
 .codex/hooks/format-on-save.sh
 .codex/hooks/notify-done.sh
 .codex/hooks/permission-request-log.sh

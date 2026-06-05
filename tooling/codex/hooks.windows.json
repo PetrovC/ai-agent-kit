@@ -14,15 +14,6 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh"
-          }
-        ]
-      },
-      {
         "matcher": "apply_patch",
         "hooks": [
           {
@@ -50,10 +41,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh"
-          },
-          {
-            "type": "command",
             "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" notify-done.sh"
           }
         ]
@@ -65,34 +52,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh"
-          },
-          {
-            "type": "command",
             "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" session-start-summary.sh",
             "statusMessage": "Printing session context"
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh"
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".codex/hooks/run-hook.ps1\" agent-audit-event.sh"
           }
         ]
       }

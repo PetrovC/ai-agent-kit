@@ -34,10 +34,6 @@ param(
 
     [string]$Tools = "codex,claude,agy",
 
-    [ValidateSet("disabled", "prompt", "official")]
-    [string]$Audit = "disabled",
-
-    [string]$AuditConfig = "",
 
     [ValidateSet("full", "minimal")]
     [string]$Profile = "full"
@@ -80,7 +76,6 @@ function Get-OwningTool([string]$rel) {
         "AGENTS.md"          { return "codex" }
         ".codex/*"           { return "codex" }
         ".agents/skills/*"   { return "codex" }
-        ".ai-agent-kit/audit/*" { return "shared" }
         ".ai-agent-kit/delegate/*" { return "shared" }
         "CLAUDE.md"          { return "claude" }
         ".mcp.example.jsonc" { return "claude" }
@@ -205,73 +200,7 @@ function Copy-KitDirectory([string]$srcDir, [string]$dstDir) {
     }
 }
 
-function Get-AuditConfigPath {
-    if (-not [string]::IsNullOrWhiteSpace($AuditConfig)) {
-        return $AuditConfig
-    }
-    $homeDir = [Environment]::GetFolderPath("UserProfile")
-    if ([string]::IsNullOrWhiteSpace($homeDir)) {
-        $homeDir = $env:USERPROFILE
-    }
-    if ([string]::IsNullOrWhiteSpace($homeDir)) {
-        $homeDir = $env:HOME
-    }
-    return (Join-Path $homeDir ".ai-agent-kit\config.json")
-}
 
-function Initialize-AuditConfig([string]$mode) {
-    if ($mode -eq "disabled") {
-        Write-Host "  [skip] anonymized audit remains disabled by default" -ForegroundColor Yellow
-        return
-    }
-
-    if ($mode -eq "prompt") {
-        $answer = Read-Host "Enable anonymized central audit metadata? This stores counters only, no prompts/responses/paths. Type 'yes' to enable"
-        if ($answer -ne "yes") {
-            Write-Host "  [skip] anonymized audit not enabled" -ForegroundColor Yellow
-            return
-        }
-    }
-
-    $configPath = Get-AuditConfigPath
-    $configDir = Split-Path -Parent $configPath
-    if (-not (Test-Path -LiteralPath $configDir)) {
-        [System.IO.Directory]::CreateDirectory($configDir) | Out-Null
-    }
-    $homeDir = Split-Path -Parent $configDir
-    $runtimePath = Join-Path $configDir "audit-runtime"
-    $centralRepoPath = Join-Path $configDir "central-audit"
-    [System.IO.Directory]::CreateDirectory($runtimePath) | Out-Null
-
-    $config = [ordered]@{
-        schema_version = "0.1.0"
-        audit = [ordered]@{
-            enabled = $true
-            mode = "official-central-repo"
-            official_remote_url = "https://github.com/PetrovC/ai-agent-kit.git"
-            branch = "agent-audit-data"
-            runtime_path = $runtimePath
-            central_repo_path = $centralRepoPath
-            source_project_write_policy = "never"
-            anonymization = [ordered]@{
-                salt_scope = "local-only"
-                drop_raw_content = $true
-                forbid_exact_paths = $true
-                forbid_repository_urls = $true
-                forbid_branch_names = $true
-            }
-            push = [ordered]@{
-                mode = "disabled"
-                commit = $false
-                unauthorized_fallback = "local-outbox"
-            }
-        }
-    }
-    $json = ($config | ConvertTo-Json -Depth 10)
-    Write-Utf8NoBom $configPath ($json + "`n")
-    Write-Ok "global audit config -> $configPath"
-    Write-Host "  Audit data/runtime paths are outside the target project." -ForegroundColor Cyan
-}
 
 # -- Validate target -------------------------------------------------------
 # -LiteralPath: treat $Target as a literal string, not a wildcard pattern
@@ -292,7 +221,6 @@ Write-Host "  Tools  : $($ToolList -join ', ')"
 Write-Host "  Version: $KitVersion"
 Write-Host "  Mode   : OVERWRITE (kit files only; docs/ai/ preserved)" -ForegroundColor Yellow
 Write-Host "  Profile: $Profile"
-Write-Host "  Audit  : $Audit"
 
 # -- Skills ----------------------------------------------------------------
 if ($ToolList -contains "codex") {
@@ -364,18 +292,10 @@ if ($ToolList -contains "agy") {
     }
 }
 
-# -- Shared audit runtime --------------------------------------------------
 if ($Profile -eq "full") {
-    Write-Step "Installing shared audit runtime -> .ai-agent-kit/audit/"
-    Copy-KitDirectory (Join-Path $KitRoot "tooling\shared\agent-audit") (Join-Path $Target ".ai-agent-kit\audit")
-
     # -- Shared cross-tool delegation adapter ----------------------------------
     Write-Step "Installing shared delegation adapter -> .ai-agent-kit/delegate/"
     Copy-KitDirectory (Join-Path $KitRoot "tooling\shared\delegate") (Join-Path $Target ".ai-agent-kit\delegate")
-
-    # -- Optional global audit config -----------------------------------------
-    Write-Step "Anonymized audit setup"
-    Initialize-AuditConfig $Audit
 
     # -- Project template (docs/ai/) - preserved if it exists ------------------
     Write-Step "Installing project template -> docs/ai/"
