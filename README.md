@@ -13,7 +13,7 @@ A reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and
 
 - One skill is written once and deployed to all tools.
 - Root instruction files (`AGENTS.md`, `CLAUDE.md`, `AGY.md`) are short routers, not encyclopedias.
-- Project context lives in `docs/ai/` inside each project â€” not in this kit.
+- Project context lives in `docs/ai/` inside each project — not in this kit.
 - Subagents handle noisy, exploratory, or parallel work to protect the main context window.
 
 This repository intentionally dogfoods the kit for Claude Code and Codex CLI:
@@ -72,47 +72,47 @@ The tools this kit targets, and their official documentation:
 
 ```
 ai-agent-kit/
-â”œâ”€â”€ .claude-plugin/       <- Claude plugin + marketplace manifests (opt-in, skills only)
-â”œâ”€â”€ skills/               <- Tool-agnostic rules per stack/language/concern
-â”œâ”€â”€ tooling/              <- Tool-specific wrappers (Codex / Claude / Antigravity)
-â”‚   â”œâ”€â”€ codex/skills/     <- Codex subagent skills (SKILL.md, installed into .agents/skills/)
-â”‚   â”œâ”€â”€ codex/hooks/      <- Codex lifecycle hooks (guard, format, notify) + hooks.json
-â”‚   â”œâ”€â”€ claude/agents/    <- Claude subagent definitions (.md)
-â”‚   â”œâ”€â”€ claude/commands/  <- Claude slash commands (.md, installed into .claude/commands/)
-â”‚   â”œâ”€â”€ claude/hooks/     <- Lifecycle hook scripts (format, guard, notify, summarize)
-â”‚   â”œâ”€â”€ claude/rules/     <- Path-scoped rules (commits, tests, migrations, env)
-â”‚   â”œâ”€â”€ agy/agents/       <- Antigravity subagent definitions (.md)
-â”‚   â””â”€â”€ agy/commands/     <- Antigravity slash commands (.toml, installed into .agy/commands/)
-â”œâ”€â”€ project-template/     <- docs/ai/ templates to fill per project
-â”œâ”€â”€ prompts/              <- Reference prompt templates (canonical source for slash commands)
-â”‚   â””â”€â”€ github-actions/   <- Copy-paste GitHub Actions workflow files
-â””â”€â”€ scripts/              <- Install / update / uninstall / validate scripts
+├── .claude-plugin/       <- Claude plugin + marketplace manifests (opt-in, skills only)
+├── skills/               <- Tool-agnostic rules per stack/language/concern
+├── tooling/              <- Tool-specific wrappers (Codex / Claude / Antigravity)
+│   ├── codex/skills/     <- Codex subagent skills (SKILL.md, installed into .agents/skills/)
+│   ├── codex/hooks/      <- Codex lifecycle hooks (guard, format, notify) + hooks.json
+│   ├── claude/agents/    <- Claude subagent definitions (.md)
+│   ├── claude/commands/  <- Claude slash commands (.md, installed into .claude/commands/)
+│   ├── claude/hooks/     <- Lifecycle hook scripts (format, guard, notify, summarize)
+│   ├── claude/rules/     <- Path-scoped rules (commits, tests, migrations, env)
+│   ├── agy/agents/       <- Antigravity subagent definitions (.md)
+│   └── agy/commands/     <- Antigravity slash commands (.toml, installed into .agy/commands/)
+├── project-template/     <- docs/ai/ templates to fill per project
+├── prompts/              <- Reference prompt templates (canonical source for slash commands)
+│   └── github-actions/   <- Copy-paste GitHub Actions workflow files
+└── scripts/              <- Install / update / uninstall / validate scripts
 ```
 
-**Key design principle:** `skills/` is tool-agnostic in **content** â€” the same `skills/dotnet/SKILL.md` is installed into `.agents/skills/` (Codex), `.claude/skills/` (Claude Code), and `.agy/skills/` (Antigravity CLI) by the install script, and its prose contains no Claude-specific / Codex-specific / Antigravity-specific instructions. Tool-specific *behaviour* (hooks, config syntax, agent format) lives exclusively in `tooling/`.
+**Key design principle:** `skills/` is tool-agnostic in **content** — the same `skills/dotnet/SKILL.md` is installed into `.agents/skills/` (Codex), `.claude/skills/` (Claude Code), and `.agy/skills/` (Antigravity CLI) by the install script, and its prose contains no Claude-specific / Codex-specific / Antigravity-specific instructions. Tool-specific *behaviour* (hooks, config syntax, agent format) lives exclusively in `tooling/`.
 
 The shared-skill **YAML frontmatter** may carry two Claude-recognized hints:
 
-- `paths:` â€” Claude Code uses this to auto-load the skill when a matching file is opened.
-- `allowed-tools:` â€” Claude Code uses this to pre-approve specific `Bash(...)` commands so the skill can run them without per-call confirmation.
+- `paths:` — Claude Code uses this to auto-load the skill when a matching file is opened.
+- `allowed-tools:` — Claude Code uses this to pre-approve specific `Bash(...)` commands so the skill can run them without per-call confirmation.
 
-These are deliberately treated as **shared metadata that other tools ignore**. Codex and Antigravity do not read either field; they route by the table in `AGENTS.md` / `AGY.md` and inherit the user's approval mode. Putting these fields here (instead of behind a Claude-only overlay) keeps every skill exactly one file across all three installs â€” the cost is that the kit's "tool-agnostic" property applies to skill *content*, not to skill frontmatter. See `skills/README.md` for the full contract.
+These are deliberately treated as **shared metadata that other tools ignore**. Codex and Antigravity do not read either field; they route by the table in `AGENTS.md` / `AGY.md` and inherit the user's approval mode. Putting these fields here (instead of behind a Claude-only overlay) keeps every skill exactly one file across all three installs — the cost is that the kit's "tool-agnostic" property applies to skill *content*, not to skill frontmatter. See `skills/README.md` for the full contract.
 
 ---
 
 ## Quick start (5 minutes)
 
-### Option A â€” install script (canonical, all 3 tools)
+### Option A — install script (canonical, all 3 tools)
 
 The script is the only path that configures all three tools (Codex, Claude and
-Antigravity), installs hooks/commands, and scaffolds `docs/ai/` â€” Codex in
+Antigravity), installs hooks/commands, and scaffolds `docs/ai/` — Codex in
 particular has no marketplace mechanism, so files must be placed in the repo.
 
 ```powershell
-# Windows â€” all 3 tools (omit -Tools to get the same default)
+# Windows — all 3 tools (omit -Tools to get the same default)
 .\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,agy
 
-# Linux / macOS â€” all 3 tools (omit --tools to get the same default)
+# Linux / macOS — all 3 tools (omit --tools to get the same default)
 ./scripts/install.sh --target /path/to/your-project --tools codex,claude,agy
 ```
 
@@ -175,9 +175,9 @@ For maintainer-side command references and hook diagnostics, see
 - **PowerShell ExecutionPolicy.** A default Windows install ships with
   `Restricted`, which refuses to run script files
   ([about_Execution_Policies](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies)).
-  Direct invocation (`.\scripts\install.ps1 â€¦`) fails with
-  *"Impossible de charger le fichier â€¦ car l'exÃ©cution de scripts est
-  dÃ©sactivÃ©e sur ce systÃ¨me"* / *"â€¦ cannot be loaded because running scripts
+  Direct invocation (`.\scripts\install.ps1 …`) fails with
+  *"Impossible de charger le fichier … car l'exécution de scripts est
+  désactivée sur ce système"* / *"… cannot be loaded because running scripts
   is disabled on this system."* Bypass it for the single run without
   changing the machine policy:
 
@@ -189,16 +189,16 @@ For maintainer-side command references and hook diagnostics, see
 
   The same form applies to `update.ps1`, `validate.ps1`, `uninstall.ps1`,
   and `new-skill.ps1`. If you'd rather change the policy persistently for
-  the current user, see Microsoft's guide above â€” `Set-ExecutionPolicy
+  the current user, see Microsoft's guide above — `Set-ExecutionPolicy
   RemoteSigned -Scope CurrentUser` is the usual relaxed setting.
 
 - **Hooks still need real Git Bash, but PowerShell installs no longer rely on
   ambiguous `bash` resolution.** The Bash hooks use Git Bash utilities such as
   `cat`, `grep`, `sed`, and optionally `jq`/`python3`. On Windows, raw `bash`
   commands can resolve to:
-  - `C:\Program Files\Git\bin\bash.exe` â€” Git Bash, ships
+  - `C:\Program Files\Git\bin\bash.exe` — Git Bash, ships
     `cat`/`grep`/`sed`/`jq`/`python3`-style utilities the hooks need. **Works.**
-  - `C:\Windows\System32\bash.exe` â€” the WSL launcher stub. If no WSL
+  - `C:\Windows\System32\bash.exe` — the WSL launcher stub. If no WSL
     distro is installed it prints a *"Windows Subsystem for Linux has
     no installed distributions"* error and exits non-zero. The
     `pre-bash-guard` PreToolUse hook then silently never runs, so destructive-
@@ -222,7 +222,7 @@ For maintainer-side command references and hook diagnostics, see
   but losing them removes the kit's mechanical block against common destructive
   shell mistakes.
 
-### Option B â€” Claude plugin marketplace (opt-in, skills only)
+### Option B — Claude plugin marketplace (opt-in, skills only)
 
 If you only use Claude Code and just want the **31 skills** (no Codex/Antigravity
 config, no `docs/ai/` scaffolding), install via the plugin marketplace:
@@ -232,17 +232,17 @@ config, no `docs/ai/` scaffolding), install via the plugin marketplace:
 /plugin install ai-agent-kit@ai-agent-kit
 ```
 
-Skills become available namespaced (`/ai-agent-kit:dotnet`, â€¦) and `paths:`
-auto-loading still works. This does **not** replace the script â€” it's the
+Skills become available namespaced (`/ai-agent-kit:dotnet`, …) and `paths:`
+auto-loading still works. This does **not** replace the script — it's the
 skills slice only, for the single-tool case. For hooks, slash commands, Codex,
 Antigravity, or `docs/ai/`, use Option A.
 
-> **Private repo:** this works even when the repo is private â€” Claude Code
+> **Private repo:** this works even when the repo is private — Claude Code
 > clones the marketplace with *your* git credentials. Anyone running
 > `/plugin marketplace add` must have read access to the repo (be a
 > collaborator, or authenticated `gh`/git). The plugin `source` is `"./"`
 > (same-repo relative path), so the plugin is served from that one
-> authenticated clone â€” no second fetch that could fail on a private repo.
+> authenticated clone — no second fetch that could fail on a private repo.
 
 #### Pinning and pre-enabling the plugin (team setup)
 
@@ -271,13 +271,13 @@ plugins should be installable, add these two keys to the project
 
 ### Optional artifacts (not auto-installed, by design)
 
-Two maintained files are intentionally **not** placed by the install script â€”
+Two maintained files are intentionally **not** placed by the install script —
 they target a *user home directory* or a *distribution channel*, not a project:
 
 | File | What it's for | How to use it |
 |---|---|---|
-| `tooling/codex/global-config-template.toml` | Personal Codex prefs (model, reasoning effort, `readonly`/`standard`/`deep`/`review` profiles, Windows sandbox) â€” the per-user `~/.codex/config.toml`, not a project file | `cp tooling/codex/global-config-template.toml ~/.codex/config.toml` then edit |
-| `tooling/agy/agy-extension.json` | Scaffold for teams who want to distribute the kit as an installable **Antigravity CLI extension** (`agy extensions install`) instead of via the script | Starting point â€” extend with your skills/commands, then publish per the [Antigravity extensions docs](https://antigravity.google/docs/extensions) |
+| `tooling/codex/global-config-template.toml` | Personal Codex prefs (model, reasoning effort, `readonly`/`standard`/`deep`/`review` profiles, Windows sandbox) — the per-user `~/.codex/config.toml`, not a project file | `cp tooling/codex/global-config-template.toml ~/.codex/config.toml` then edit |
+| `tooling/agy/agy-extension.json` | Scaffold for teams who want to distribute the kit as an installable **Antigravity CLI extension** (`agy extensions install`) instead of via the script | Starting point — extend with your skills/commands, then publish per the [Antigravity extensions docs](https://antigravity.google/docs/extensions) |
 
 `agy-extension.json`'s `version` is still pinned to root `VERSION` by CI so it
 never drifts, even though install/update/uninstall deliberately ignore both files.
@@ -287,7 +287,7 @@ never drifts, even though install/update/uninstall deliberately ignore both file
 > extension folder (`commands/`, `agents/`, the `contextFileName`) reach the
 > user's project. The routing table inside the installed `AGY.md` still
 > references project-relative paths like `.agy/skills/python/SKILL.md`, but
-> the extension doesn't copy `.agy/skills/` into the user's project â€” those
+> the extension doesn't copy `.agy/skills/` into the user's project — those
 > files live under `~/.agy/extensions/ai-agent-kit/skills/` instead.
 > Effect: in Extension mode the kit's commands and subagents work, but skill
 > activation via the routing table will fail with "File not found". For full
@@ -313,7 +313,7 @@ sessions to [context governance](docs/ai/CONTEXT_GOVERNANCE.md),
 
 1. Run the install script with all tools.
 2. Fill every file in `docs/ai/` of the target project (each file starts with a STOP notice).
-3. Run `validate.sh` / `validate.ps1` against the target â€” confirms templates were filled.
+3. Run `validate.sh` / `validate.ps1` against the target — confirms templates were filled.
 4. Customize skills for your project's stack.
 5. Write your first ticket using a prompt from `prompts/` (see "Prompts" below).
 
@@ -330,8 +330,8 @@ Skills are the core of the kit. Each skill is a Markdown file with actionable pa
 | Tool | How skills load |
 |---|---|
 | **Claude Code** | Skills with `paths:` frontmatter are **auto-loaded** when you open a matching file (e.g., opening `*.cs` triggers the `dotnet` skill). Cross-cutting skills are invoked via the routing table in `CLAUDE.md`. |
-| **Codex CLI** | Skills are loaded by **`$skill-name` activation** â€” the agent reads the routing table in `AGENTS.md`, decides which skill applies, and activates it. |
-| **Antigravity CLI** | Skills under `.agy/skills/<name>/SKILL.md` are **Native Agent Skills** â€” Antigravity auto-discovers them at session start and activates by `description:` frontmatter. The routing table in `AGY.md` is kit policy for deterministic activation (so the choice doesn't drift with description-matching heuristics). Verify discovery with `/skills` or `agy skills list`. |
+| **Codex CLI** | Skills are loaded by **`$skill-name` activation** — the agent reads the routing table in `AGENTS.md`, decides which skill applies, and activates it. |
+| **Antigravity CLI** | Skills under `.agy/skills/<name>/SKILL.md` are **Native Agent Skills** — Antigravity auto-discovers them at session start and activates by `description:` frontmatter. The routing table in `AGY.md` is kit policy for deterministic activation (so the choice doesn't drift with description-matching heuristics). Verify discovery with `/skills` or `agy skills list`. |
 
 All three approaches achieve the same result: the agent loads expert context for the current task without reading 30 skill files upfront.
 
@@ -343,13 +343,13 @@ Codex via `.codex/hooks.json` (installed into `.codex/hooks/`). Both use the
 same model: stdin JSON, exit code 2 = block.
 
 ```
-Claude  PreToolUse(Bash)        â†’ pre-bash-guard.sh   â†’ blocks force/mirror/delete push, ref deletion, destructive `git switch`, `git clean -f`, rm -rf, SQL DROP
-        PostToolUse(Edit|Write) â†’ format-on-save.sh   â†’ runs your formatter
-        Stop                    â†’ notify-done.sh      â†’ desktop notification
-        PreCompact              â†’ session-summary.sh  â†’ git diff snapshot before compaction
-Codex   PreToolUse(Bash)        â†’ pre-bash-guard.sh   â†’ same hardened guard
-        PostToolUse(edit)       â†’ format-on-save.sh   â†’ formats changed files
-        Stop                    â†’ notify-done.sh      â†’ desktop notification
+Claude  PreToolUse(Bash)        → pre-bash-guard.sh   → blocks force/mirror/delete push, ref deletion, destructive `git switch`, `git clean -f`, rm -rf, SQL DROP
+        PostToolUse(Edit|Write) → format-on-save.sh   → runs your formatter
+        Stop                    → notify-done.sh      → desktop notification
+        PreCompact              → session-summary.sh  → git diff snapshot before compaction
+Codex   PreToolUse(Bash)        → pre-bash-guard.sh   → same hardened guard
+        PostToolUse(edit)       → format-on-save.sh   → formats changed files
+        Stop                    → notify-done.sh      → desktop notification
 ```
 
 Codex has no `PreCompact` event, so `session-summary` is Claude-only. Antigravity
@@ -361,29 +361,29 @@ section further down for the exact behaviour.
 
 ### Rules *(Claude Code only)*
 
-Rules are path-scoped Markdown files in `.claude/rules/`. Claude Code **automatically loads the relevant rule** when you open a file whose path matches the rule's `paths:` frontmatter â€” before you even start typing a prompt.
+Rules are path-scoped Markdown files in `.claude/rules/`. Claude Code **automatically loads the relevant rule** when you open a file whose path matches the rule's `paths:` frontmatter — before you even start typing a prompt.
 
 ```
-test-naming.md      â†’ *.test.*, tests/            â†’ No .only, no skip without issue link
-migration-safety.md â†’ migrations/, *.sql          â†’ Reversible migrations, CONCURRENT indexes
-env-safety.md       â†’ .env*, config/, appsettings â†’ No hardcoded secrets, .env.example required
+test-naming.md      → *.test.*, tests/            → No .only, no skip without issue link
+migration-safety.md → migrations/, *.sql          → Reversible migrations, CONCURRENT indexes
+env-safety.md       → .env*, config/, appsettings → No hardcoded secrets, .env.example required
 ```
 
 Commit-message rules (Conventional Commits, one concern per commit, never-commit
 list) live directly in `CLAUDE.md`/`AGENTS.md`/`AGY.md` `## Git rules` so they
-apply to **every** commit â€” not only when editing files under `.github/`.
+apply to **every** commit — not only when editing files under `.github/`.
 
 Codex and Antigravity follow the same principles, but they're embedded directly in `AGENTS.md` / `AGY.md` rather than as auto-loaded files.
 
 ### MCP servers *(all three tools)*
 
-MCP (Model Context Protocol) is an open standard for giving agents access to external tools and data at runtime â€” databases, APIs, file systems, custom tools. All three CLIs support it, with different config locations:
+MCP (Model Context Protocol) is an open standard for giving agents access to external tools and data at runtime — databases, APIs, file systems, custom tools. All three CLIs support it, with different config locations:
 
-- **Claude Code** â€” `.mcp.json` at the project root (strict JSON, stdio + HTTP/SSE transports). On first install the kit bootstraps an empty `{"mcpServers":{}}`; afterwards `.mcp.json` is project-owned â€” install reruns skip it, update never overwrites it, and uninstall preserves it (same policy as `docs/ai/`). The kit ships `.mcp.example.jsonc` as the versioned reference with GitHub / filesystem / Postgres / Notion / Linear blocks to copy from. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
-- **Antigravity CLI** â€” `mcpServers` block in `.agy/settings.json`. See [the MCP server docs](https://antigravity.google/docs/tools/mcp-server.html).
-- **Codex CLI** â€” `[mcp_servers.<name>]` tables in `.codex/config.toml`. See [the Codex MCP docs](https://developers.openai.com/codex/mcp).
+- **Claude Code** — `.mcp.json` at the project root (strict JSON, stdio + HTTP/SSE transports). On first install the kit bootstraps an empty `{"mcpServers":{}}`; afterwards `.mcp.json` is project-owned — install reruns skip it, update never overwrites it, and uninstall preserves it (same policy as `docs/ai/`). The kit ships `.mcp.example.jsonc` as the versioned reference with GitHub / filesystem / Postgres / Notion / Linear blocks to copy from. See [code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp).
+- **Antigravity CLI** — `mcpServers` block in `.agy/settings.json`. See [the MCP server docs](https://antigravity.google/docs/tools/mcp-server.html).
+- **Codex CLI** — `[mcp_servers.<name>]` tables in `.codex/config.toml`. See [the Codex MCP docs](https://developers.openai.com/codex/mcp).
 
-> Note: `.mcp.json` must be **strict JSON** â€” Claude Code rejects comments. Edit `.mcp.example.jsonc` for reference, then paste comment-free blocks into `.mcp.json`.
+> Note: `.mcp.json` must be **strict JSON** — Claude Code rejects comments. Edit `.mcp.example.jsonc` for reference, then paste comment-free blocks into `.mcp.json`.
 
 ### Subagents / Agents
 
@@ -399,8 +399,8 @@ Subagents protect the main context window from noisy output (test logs, large di
 
 #### Model selection strategy
 
-All five agents run on the **most capable model** so every report â€”
-investigation, test summary, review, design â€” is high quality and directly
+All five agents run on the **most capable model** so every report —
+investigation, test summary, review, design — is high quality and directly
 actionable. Uniform tier, no exceptions:
 
 | Agent | Task | Claude | Antigravity |
@@ -411,13 +411,13 @@ actionable. Uniform tier, no exceptions:
 | `codebase-investigator` | Map usages / affected area | `claude-sonnet-4-6` | `gemini-3-flash` |
 | `test-runner` | Run tests + summarize | `claude-haiku-4-5` | `gemini-3-flash` |
 
-**Codex** does not pin a model per skill â€” the official Codex skill spec is
+**Codex** does not pin a model per skill — the official Codex skill spec is
 `SKILL.md` with `name` + `description` only, so the five Codex agent-skills run
 on the **session model** (set in `~/.codex/config.toml` or `--model`). The
 behavioural role is identical across all three tools.
 
 **Rationale:** decision-bearing agents (`architect`, `security-reviewer`,
-`code-reviewer`) use the strongest available model â€” report quality matters more
+`code-reviewer`) use the strongest available model — report quality matters more
 than token cost for high-stakes output. Mechanical agents (`codebase-investigator`,
 `test-runner`) use a balanced/fast model since their output is narrow and
 deterministic. Token efficiency still comes from **lazy-loaded skills** and
@@ -440,16 +440,16 @@ deterministic. Token efficiency still comes from **lazy-loaded skills** and
 | AI / LLM | `ai-dev` (RAG, tool use, agents, MCP, extended thinking, prompt caching, evals) |
 | Performance | `performance` (profiling, benchmarking, Core Web Vitals, query optimization) |
 
-Each skill lives in `skills/<name>/SKILL.md` and is lazy-loaded â€” only the relevant one is read for any given task.
+Each skill lives in `skills/<name>/SKILL.md` and is lazy-loaded — only the relevant one is read for any given task.
 
 Language / framework skills (`dotnet`, `go`, `rust`, `python`, `node`, `angular`, `vue`, `svelte`,
 `react`, `mobile-flutter`, `mobile-rn`, `database`, `infrastructure`, `github-workflow`, `monorepo`,
 `dependencies`, `graphql`) carry `paths:` frontmatter so Claude Code can auto-suggest the
-skill when you open a matching file â€” no manual routing step needed in the project's `CLAUDE.md`.
+skill when you open a matching file — no manual routing step needed in the project's `CLAUDE.md`.
 
 Cross-cutting skills (`architecture`, `security`, `testing`, `code-review`, `observability`,
 `messaging`, `error-handling`, `ai-dev`, `performance`, `accessibility`, `i18n`, `api-design`)
-have no `paths:` â€” they are invoked explicitly via the routing table or on demand.
+have no `paths:` — they are invoked explicitly via the routing table or on demand.
 
 ---
 
@@ -459,16 +459,16 @@ Lifecycle hook scripts run automatically at tool events. Claude Code wires them
 via `.claude/settings.json`; Codex via `.codex/hooks.json`. Both use the same
 model (stdin JSON, exit 2 = block).
 
-**Claude Code** â€” installed into `.claude/hooks/`:
+**Claude Code** — installed into `.claude/hooks/`:
 
 | Script | Event | What it does |
 |---|---|---|
 | `format-on-save.sh` | `PostToolUse(Edit\|Write)` | Runs your project's formatter (prettier / ruff / gofmt / rustfmt / dotnet format) on every file written |
-| `pre-bash-guard.sh` | `PreToolUse(Bash)` | Blocks force/mirror/delete push (incl. `+refspec`), `git branch -D` / `-d -f` / `-fd` / `update-ref -d`, `git reset --hard`/`--keep`, destructive `git switch` (`--discard-changes`/`--force`/`-f`/`-C`/`--force-create`), `git clean -f` (and `-fd`/`-fdx`/`--force` variants â€” `-n` / `--dry-run` stays allowed), recursive `rm -rf` on absolute/home/parent/cwd/glob/variable targets, and SQL `DROP` without an approval comment. Git global options (`git -C dir`, `-c key=val`, `--git-dir=`, `--work-tree=`) before the destructive subcommand are covered. **Best-effort denylist, not a sandbox** â€” see the script header for the honest limits |
+| `pre-bash-guard.sh` | `PreToolUse(Bash)` | Blocks force/mirror/delete push (incl. `+refspec`), `git branch -D` / `-d -f` / `-fd` / `update-ref -d`, `git reset --hard`/`--keep`, destructive `git switch` (`--discard-changes`/`--force`/`-f`/`-C`/`--force-create`), `git clean -f` (and `-fd`/`-fdx`/`--force` variants — `-n` / `--dry-run` stays allowed), recursive `rm -rf` on absolute/home/parent/cwd/glob/variable targets, and SQL `DROP` without an approval comment. Git global options (`git -C dir`, `-c key=val`, `--git-dir=`, `--work-tree=`) before the destructive subcommand are covered. **Best-effort denylist, not a sandbox** — see the script header for the honest limits |
 | `notify-done.sh` | `Stop` | Desktop notification when a session finishes (macOS, Linux, Windows) |
 | `session-summary.sh` | `PreCompact` | Saves a git status + diff snapshot to `.claude/session-log/` before context is compacted |
 
-**Codex CLI** â€” installed into `.codex/hooks/` (wired by `.codex/hooks.json`):
+**Codex CLI** — installed into `.codex/hooks/` (wired by `.codex/hooks.json`):
 
 | Script | Event | What it does |
 |---|---|---|
@@ -477,7 +477,7 @@ model (stdin JSON, exit 2 = block).
 | `notify-done.sh` | `Stop` | Desktop notification |
 
 Codex has no `PreCompact` event, so `session-summary` is Claude-only. The guard
-parses hook input via a `jq â†’ python3 â†’ sed` fallback chain: a missing or broken
+parses hook input via a `jq → python3 → sed` fallback chain: a missing or broken
 interpreter (e.g. the Windows python3 stub) yields empty output and falls through
 to the next parser. If all three return empty (unknown schema, missing
 `tool_input.command` field, malformed JSON), the guard refuses the call with
@@ -491,7 +491,7 @@ A `PreToolUse` hook returning **exit code 2** blocks the tool call and feeds its
 
 ## Rules *(Claude Code only)*
 
-Three path-scoped rule files are installed into `.claude/rules/` â€” Claude Code loads them automatically when you open a matching file:
+Three path-scoped rule files are installed into `.claude/rules/` — Claude Code loads them automatically when you open a matching file:
 
 | File | Triggers on | Enforces |
 |---|---|---|
@@ -505,7 +505,7 @@ Three path-scoped rule files are installed into `.claude/rules/` â€” Claude
 
 On first install an empty `.mcp.json` (strict JSON) is created at your project root, and the commented `.mcp.example.jsonc` reference is installed alongside it with examples for GitHub, filesystem, Postgres, Notion, and Linear MCP servers. Paste comment-free server blocks from `.mcp.example.jsonc` into `.mcp.json` and fill in the `${ENV_VAR}` placeholders. After that first install `.mcp.json` is yours: subsequent `install`, `update`, and `uninstall` runs leave it untouched.
 
-MCP servers extend the agent with live access to external resources at runtime â€” without hardcoding tool logic into the prompt. A filesystem MCP server lets the agent browse files outside the workspace; a Postgres server lets it query your database directly.
+MCP servers extend the agent with live access to external resources at runtime — without hardcoding tool logic into the prompt. A filesystem MCP server lets the agent browse files outside the workspace; a Postgres server lets it query your database directly.
 
 See the [MCP specification](https://modelcontextprotocol.io) and `skills/ai-dev/SKILL.md` for implementation guidance.
 
@@ -513,7 +513,7 @@ See the [MCP specification](https://modelcontextprotocol.io) and `skills/ai-dev/
 
 ## Prompts
 
-The `prompts/` folder holds copy-paste starting points for common tasks. They are **not** copied into your project by the install script â€” open them in the kit and paste into your agent session.
+The `prompts/` folder holds copy-paste starting points for common tasks. They are **not** copied into your project by the install script — open them in the kit and paste into your agent session.
 
 | Prompt | When to use |
 |---|---|
@@ -527,7 +527,7 @@ The `prompts/` folder holds copy-paste starting points for common tasks. They ar
 | `prompts/on-call.md` | Live incident investigation + post-mortem |
 | `prompts/dependency-update.md` | Safe single-package upgrade protocol |
 | `prompts/tech-debt.md` | Triage and prioritize technical debt |
-| `prompts/performance-audit.md` | Baseline â†’ bottleneck â†’ fix â†’ re-measure |
+| `prompts/performance-audit.md` | Baseline → bottleneck → fix → re-measure |
 
 ### GitHub Actions templates
 
@@ -537,13 +537,13 @@ The `prompts/github-actions/` folder has ready-to-copy workflow files for AI-ass
 |---|---|---|
 | `claude-code.yml` | `anthropics/claude-code-action@v1` | `@claude` in issues / PRs / reviews |
 | `codex-pr-review.yml` | `openai/codex-action@v1` | `@codex` in PR comments |
-| `ai-fallback-dispatch.yml` | both actions, chained | Label an issue `ai-fallback` â†’ Claudeâ†’Codex implement it; the chain advances only until one lands a PR |
+| `ai-fallback-dispatch.yml` | both actions, chained | Label an issue `ai-fallback` → Claude→Codex implement it; the chain advances only until one lands a PR |
 
 Copy these to `.github/workflows/` in your project (they are **not** installed automatically).
 
 > **Supply chain:** the templates reference each action by **major-version tag** (`@v1`,
-> `actions/checkout@v4`, â€¦). Tags are mutable refs that the action owner can
-> move, so this is "lightly pinned for maintainability" â€” *not* the immutable
+> `actions/checkout@v4`, …). Tags are mutable refs that the action owner can
+> move, so this is "lightly pinned for maintainability" — *not* the immutable
 > SHA-pinning GitHub's
 > [supply-chain hardening guide](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-third-party-actions)
 > recommends for jobs with write scopes. For stricter pinning, replace each
@@ -556,7 +556,7 @@ Copy these to `.github/workflows/` in your project (they are **not** installed a
 > agents *sequentially on the same branch* and only hands off when a provider
 > did **not** finish. "Finished" is an observable git fact (a non-draft PR
 > whose head is `ai/issue-<N>` and whose body says `Closes #<N>`), never an
-> exit code â€” so a provider running out of tokens/quota yields to the next
+> exit code — so a provider running out of tokens/quota yields to the next
 > instead of blocking the issue. Re-runs are idempotent (the gate short-
 > circuits once the PR exists). It needs both API-key secrets; drop a
 > provider's step if you only have one.
@@ -568,13 +568,13 @@ Copy these to `.github/workflows/` in your project (they are **not** installed a
 | Script | Semantics |
 |---|---|
 | `install.ps1` / `install.sh` | **Always overwrites kit files** (skills, tooling configs, subagents, root `.md`). Reinstall to reset everything to baseline. |
-| `update.ps1` / `update.sh` | **Content-diff based** â€” only files that are missing or whose content differs are touched. `update.sh` also **prunes** files the kit no longer ships, via a `.kit-manifest` diff (scoped to `--tools`, never `docs/ai/` or user files; PowerShell parity tracked separately). Warns on version drift. Supports `--dry-run` / `-DryRun` to preview. |
+| `update.ps1` / `update.sh` | **Content-diff based** — only files that are missing or whose content differs are touched. `update.sh` also **prunes** files the kit no longer ships, via a `.kit-manifest` diff (scoped to `--tools`, never `docs/ai/` or user files; PowerShell parity tracked separately). Warns on version drift. Supports `--dry-run` / `-DryRun` to preview. |
 | `uninstall.ps1` / `uninstall.sh` | Removes only kit-installed files for the chosen tools, using `.kit-manifest` as the source of truth. User files added inside managed dirs (e.g. `.claude/agents/team-agent.md`, `.claude/settings.local.json`) are preserved. Falls back to a reconstructed file list when no manifest is present. Preserves `docs/ai/`. |
 | `validate.ps1` / `validate.sh` | Verifies `docs/ai/` templates have been filled, guards Codex router context budget plus context/model/subagent link hygiene, prints a compact largest Codex-facing file summary, and in this source repo flags Claude/Codex dogfood drift from `tooling/` or `skills/`. |
-| `new-skill.ps1` / `new-skill.sh` | Scaffolds a new skill under `skills/<name>/` with the standard template â€” for kit contributors. |
+| `new-skill.ps1` / `new-skill.sh` | Scaffolds a new skill under `skills/<name>/` with the standard template — for kit contributors. |
 | `doctor.ps1` / `doctor.sh` | Diagnoses target project installation health (missing files, manifest drift, outdated version, non-executable hooks, docs/ai and MCP example presence). |
 
-**`docs/ai/` is never overwritten** by either install / update script â€” it holds your project-specific
+**`docs/ai/` is never overwritten** by either install / update script — it holds your project-specific
 content. To get fresh templates back, delete the folder manually before reinstalling.
 
 Each install stamps a `.kit-version` file in your project root. `update` reads it to:
@@ -583,7 +583,7 @@ Each install stamps a `.kit-version` file in your project root. `update` reads i
 
 Install also writes a `.kit-manifest` (the list of kit-managed paths). `update.sh`
 diffs the new shipped set against it and prunes anything the kit stopped shipping
-â€” so a renamed/removed skill or command no longer lingers as a stale file. The
+— so a renamed/removed skill or command no longer lingers as a stale file. The
 first update after upgrading to this version just establishes the baseline
 (nothing is pruned until there is a manifest to diff against).
 
@@ -604,8 +604,8 @@ first update after upgrading to this version just establishes the baseline
 
 ## Example: filled `docs/ai/`
 
-A complete reference of what filled templates look like â€” for a fictional
-SaaS â€” is in `examples/filled-project/docs/ai/`. Use it as a model when
+A complete reference of what filled templates look like — for a fictional
+SaaS — is in `examples/filled-project/docs/ai/`. Use it as a model when
 filling `docs/ai/` in your own project.
 
 ---

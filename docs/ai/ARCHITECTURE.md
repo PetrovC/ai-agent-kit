@@ -35,12 +35,11 @@ extension scaffolds must not become hidden core dependencies.
 | `tooling/claude/` | Claude-specific configuration, agents, commands, hooks, rules, and future output style or statusline assets. |
 | `tooling/codex/` | Codex-specific configuration, hooks, skills, profiles, and future context or telemetry assets. |
 | `tooling/agy/` | Antigravity-specific configuration, commands, agents, settings fragments, and extension scaffold. |
-| `tooling/shared/` | Shared installable assets used across providers, including the opt-in agent audit runtime. |
+| `tooling/shared/` | Shared installable assets used across providers, such as the delegation adapter. |
 | `project-template/` | `docs/ai` templates installed into target projects. |
 | `scripts/` | Install, update, uninstall, validate, and skill-scaffolding scripts for Windows and POSIX shells. |
 | `prompts/` | Copy-paste workflow prompts and GitHub Actions templates. |
 | `docs/ai/` | Repository-specific AI context for maintaining this kit itself. |
-| `agent-audit/` | Anonymized audit storage policy and fixtures on `master`; generated run data belongs on the future `agent-audit-data` branch. |
 | `AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, `.codex/` | Tracked Claude/Codex dogfood install for maintaining this repository with the kit itself. |
 | `examples/filled-project/` | Example filled `docs/ai` content for a fictional target project. |
 | `.claude-plugin/` | Claude plugin marketplace metadata for the skills-only distribution path. |
@@ -57,7 +56,6 @@ the canonical source for provider behavior.
 | `.agents/skills/` | Shared `skills/` plus Codex-only agent skills under `tooling/codex/skills/` |
 | `CLAUDE.md`, `.claude/settings.json`, `.claude/agents/`, `.claude/commands/`, `.claude/hooks/`, `.claude/rules/` | `tooling/claude/CLAUDE.md`, platform-specific `tooling/claude/settings*.json`, and matching `tooling/claude/*/` directories |
 | `.claude/skills/` | Shared `skills/` |
-| `.ai-agent-kit/audit/` | Shared `tooling/shared/agent-audit/` runtime |
 | Future root Antigravity dogfood files | Not tracked today. If that changes, update ADR-004, `.kit-manifest`, validation, and CI in the same scoped issue. Canonical Antigravity source remains `tooling/agy/`. |
 
 Edit the canonical source first, then refresh this repository's dogfood install
@@ -79,8 +77,6 @@ the POSIX or Windows source variant.
   target has no existing project context.
 - `prompts/` contains reference prompts and optional workflow templates; it is
   not auto-installed by default.
-- `agent-audit/` on `master` contains policy and anonymized fixtures only; real
-  generated audit run data belongs on the dedicated `agent-audit-data` branch.
 - `.mcp.json` is bootstrapped once in target projects and then becomes
   project-owned.
 - `.mcp.example.jsonc` remains kit-owned reference documentation.

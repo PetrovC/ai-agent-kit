@@ -56,8 +56,7 @@ install/update can be inspected after the fact. Each line records:
   `added`, `updated`, `pruned`, or `skipped`;
 - `summary`: per-action counts.
 
-The record is local-only and never pushed (central anonymized telemetry is the
-separate opt-in agent-audit system). It is recommended for `.gitignore` and is
+The record is local-only and never pushed. It is recommended for `.gitignore` and is
 not tracked in `.kit-manifest`. A `--dry-run` update writes no record. Set
 `AAK_DEBUG` to a non-empty, non-`0`/`false` value to also print the record path
 on stderr.

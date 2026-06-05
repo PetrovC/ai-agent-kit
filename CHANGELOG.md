@@ -176,6 +176,10 @@
 
 ### Fixed
 
+- **`docs(audit)` — audit and clean human-facing documentation (#411).**
+  Fixed encoding artifacts, removed stale audit-system references, fixed broken
+  intra-repo links, minor typo and wording fixes in README.md and docs/ai/*.md.
+
 - **`fix(adapter)` - correct the Antigravity (`agy`) delegation invocation to the real CLI flags.**
   A live test showed the assumed `agy -p "<brief>" --output-format json` errored
   (`flags provided but not defined: -output-format`) — the installed `agy` (v1.0.3)
