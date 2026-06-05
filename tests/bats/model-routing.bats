@@ -39,7 +39,7 @@ run_selector() {
 }
 
 @test "select-model: architecture review -> high_reasoning tier" {
-    run_selector --task "review the service layer architecture" --risk medium
+    run_selector --task "architecture review of the service layer" --risk medium
     [ "$status" -eq 0 ]
     assert_output_contains "high_reasoning"
 }
