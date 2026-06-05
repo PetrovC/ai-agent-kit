@@ -1,4 +1,4 @@
-﻿# CLAUDE.md
+# CLAUDE.md
 
 ## Role
 
@@ -46,12 +46,32 @@ Actions, not philosophy. Full detail: `docs/ai/CONTEXT_GOVERNANCE.md`.
 | 80%+ | Stop. Summarize state, then start a fresh session. |
 
 - `/compact` summarises conversation + tool output and preserves the working
-  summary; prefer it over `/clear`. You cannot invoke it â€” recommend it, then
+  summary; prefer it over `/clear`. You cannot invoke it — recommend it, then
   wait for the user.
 - Recommend `/compact` **before** a heavy step: 4+ sequential reads, a large
   log/diff/test dump just landed, ~20+ turns, or a broad multi-file refactor.
 - One PR per session; quit between PRs. Stay in-session only when the next PR
-  depends on the previous PR's uncommitted reasoning â€” once merged, it is in git.
+  depends on the previous PR's uncommitted reasoning — once merged, it is in git.
+
+## Token logger (opt-in)
+
+`tooling/claude/hooks/token-log.sh` appends per-tool-call approximate token
+estimates to `.claude/session-log/token-log.jsonl`. To enable, add it to
+`PostToolUse` in `.claude/settings.json`:
+
+```json
+{
+  "matcher": "",
+  "hooks": [{
+    "type": "command",
+    "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/token-log.sh\"",
+    "async": true
+  }]
+}
+```
+
+Token counts are estimated (chars / 4). Use them for session cost trends, not
+billing reconciliation.
 
 ## Slash commands
 
