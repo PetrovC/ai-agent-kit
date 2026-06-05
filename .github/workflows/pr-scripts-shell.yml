@@ -16,7 +16,7 @@ jobs:
     name: Validate filled example
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Validate examples/filled-project
         run: bash scripts/validate.sh --target examples/filled-project
@@ -78,7 +78,7 @@ jobs:
     name: Smoke install (bash)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install kit into temp project
         run: |
@@ -295,7 +295,7 @@ jobs:
     name: Shell scripts + hooks must be valid
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: bash -n (syntax) on every script and hook
         run: |
@@ -315,7 +315,7 @@ jobs:
     name: install -> update -> uninstall -> new-skill (no dry-run)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Real update is a no-op right after install
         run: |

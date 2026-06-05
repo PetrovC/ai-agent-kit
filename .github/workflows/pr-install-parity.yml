@@ -27,7 +27,7 @@ jobs:
     name: Install + capture file list (bash)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install kit and snapshot sorted relative file list
         run: |
@@ -50,7 +50,7 @@ jobs:
     name: Install + capture file list (PowerShell)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install kit via PowerShell
         shell: pwsh
