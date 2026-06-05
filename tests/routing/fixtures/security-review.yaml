@@ -1,0 +1,12 @@
+description: "Security review task"
+task: "Security review of the authentication endpoints"
+files:
+  - "src/Api/Controllers/AuthController.cs"
+  - "src/Application/Commands/LoginCommand.cs"
+expected:
+  min_skills:
+    - code-review
+    - dotnet
+  excluded_skills:
+    - angular
+  should_delegate: false

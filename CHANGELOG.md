@@ -31,6 +31,16 @@
 
 ### Added
 
+- **`feat(routing)` — offline skill selector, delegation planner, and eval tests (#416, #418, #419).**
+  New `scripts/select-skills.py`: a pure-Python offline skill selector that reads
+  skill frontmatter metadata and selects candidate skills from task text and file
+  paths without LLM calls. Outputs reasons, delegation recommendation, and JSON
+  mode. New `tests/routing/fixtures/*.yaml`: 8 eval fixtures covering full-stack
+  review, .NET DDD, EF Core migration, Angular frontend, docs-only, CI, small
+  fix, and security review scenarios. New `tests/bats/routing.bats`: 14 regression
+  tests. New `pr-routing.yml` CI workflow runs evals on every skill or selector
+  change. `docs/ai/ADAPTIVE_ROUTING.md` extended with a Delegation planner section.
+
 - **`feat(skills)` — add metadata schema and refactor dotnet skill (#415, #417).**
   New `docs/ai/SKILL_METADATA.md` documents the skill frontmatter schema including
   new optional fields: `keywords`, `task_intents`, `delegation_hints`. Three skills

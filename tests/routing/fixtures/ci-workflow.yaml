@@ -1,0 +1,11 @@
+description: "CI workflow change"
+task: "Add a GitHub Actions workflow for the release pipeline"
+files:
+  - ".github/workflows/release.yml"
+expected:
+  min_skills:
+    - github-workflow
+  excluded_skills:
+    - dotnet
+    - angular
+  should_delegate: false

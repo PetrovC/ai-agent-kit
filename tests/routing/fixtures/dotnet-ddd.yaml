@@ -1,0 +1,13 @@
+description: ".NET DDD backend only"
+task: "Add the TripApproval aggregate to the Domain layer"
+files:
+  - "src/Domain/Trip.cs"
+  - "src/Application/Commands/ApproveTripCommand.cs"
+expected:
+  min_skills:
+    - dotnet
+  excluded_skills:
+    - angular
+    - vue
+    - react
+  should_delegate: false

@@ -1,0 +1,11 @@
+description: "Angular frontend only"
+task: "Fix the broken Angular component for the trip list"
+files:
+  - "apps/web/src/app/trips/trip-list.component.ts"
+  - "apps/web/src/app/trips/trip-list.component.html"
+expected:
+  min_skills:
+    - angular
+  excluded_skills:
+    - dotnet
+  should_delegate: false

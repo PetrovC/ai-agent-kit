@@ -1,0 +1,75 @@
+name: PR — routing eval
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'scripts/select-skills.py'
+      - 'skills/**'
+      - 'tests/routing/**'
+      - 'tests/bats/routing.bats'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  routing-eval:
+    name: Offline routing eval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+
+      - name: Run skill selector on all fixtures
+        run: |
+          set -euo pipefail
+          errors=0
+          for fixture in tests/routing/fixtures/*.yaml; do
+            name=$(basename "$fixture" .yaml)
+            echo "--- fixture: $name ---"
+
+            # Extract task and files from fixture using python
+            task=$(python3 -c "
+          import sys
+          lines = open('$fixture').read()
+          import re
+          m = re.search(r'^task: [\"\'](.*)[\"\']$', lines, re.MULTILINE)
+          print(m.group(1) if m else '')
+          ")
+
+            files=$(python3 -c "
+          import sys, re
+          content = open('$fixture').read()
+          m = re.search(r'^files:\n((?:  - .*\n)*)', content, re.MULTILINE)
+          if m:
+              paths = re.findall(r'  - \"([^\"]+)\"', m.group(1))
+              print(','.join(paths))
+          else:
+              print('')
+          ")
+
+            if [[ -n "$files" ]]; then
+              python3 scripts/select-skills.py --task "$task" --files "$files" || {
+                echo "FAILED: $fixture"
+                errors=$((errors+1))
+              }
+            else
+              python3 scripts/select-skills.py --task "$task" || {
+                echo "FAILED: $fixture"
+                errors=$((errors+1))
+              }
+            fi
+          done
+          [[ "$errors" -eq 0 ]] || exit 1
+          echo "All fixtures passed"
+
+      - name: Install bats
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats
+
+      - name: Run routing BATS tests
+        run: bats tests/bats/routing.bats

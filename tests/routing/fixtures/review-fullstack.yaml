@@ -1,0 +1,13 @@
+description: "Full-stack review — backend + frontend"
+task: "Review and fix my Planora project"
+files:
+  - "src/Api/Program.cs"
+  - "src/Domain/Trip.cs"
+  - "apps/web/src/app/app.component.ts"
+expected:
+  min_skills:
+    - code-review
+    - dotnet
+    - angular
+  excluded_skills: []
+  should_delegate: true
