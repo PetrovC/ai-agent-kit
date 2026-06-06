@@ -4,6 +4,10 @@ Use model power where reasoning quality matters. The right model depends on the
 task, prompt quality, and scope. Weak models are not bad in general; they are
 inappropriate for decision-bearing reports.
 
+For the structured intent→tier policy and the `select-model.py` CLI that
+recommends a model automatically from task text and risk signals, see
+[MODEL_SELECTION.md](./MODEL_SELECTION.md).
+
 ## Routing by Task
 
 | Model tier | Use for |

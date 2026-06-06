@@ -1,0 +1,9 @@
+description: "Debugging bumped from balanced to high_reasoning by large context"
+task: "debug the login regression in the authentication service"
+risk: medium
+context_size: large
+expected:
+  intent: debugging
+  base_tier: balanced
+  final_tier: high_reasoning
+  requires_confirmation: true

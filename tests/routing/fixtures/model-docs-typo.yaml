@@ -1,0 +1,9 @@
+description: "Docs typo fix -> fast tier, no confirmation"
+task: "fix typo in README introduction paragraph"
+risk: low
+context_size: small
+expected:
+  intent: docs_typo
+  base_tier: fast
+  final_tier: fast
+  requires_confirmation: false

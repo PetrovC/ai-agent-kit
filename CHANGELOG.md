@@ -13,6 +13,18 @@
   the model-routing table, and verified invocation block.
   9 new BATS tests in `tests/bats/delegation-claude.bats`.
 
+- **`feat(models)` — model selection policy and `select-model.py` CLI (#421, #422).**
+  `config/model-policy.yaml` — machine-readable policy mapping task intents to
+  model tiers (fast / balanced / high_reasoning) per provider, with risk and
+  context-size bump rules and confirmation policy.
+  `docs/ai/MODEL_SELECTION.md` — human-readable policy reference.
+  `scripts/select-model.py` — pure Python 3 stdlib CLI: classifies intent by
+  keyword matching, applies risk/context bumps, outputs recommended model with
+  reasons, fallbacks, and a confirmation flag; supports `--json` output.
+  6 evaluation fixtures in `tests/routing/fixtures/model-*.yaml`.
+  14 regression tests in `tests/bats/model-routing.bats`.
+  `pr-routing.yml` extended to run model fixtures and `model-routing.bats`.
+
 ### Fixed
 
 - **`fix(agents)` — add reverse-validation section to root CLAUDE.md (#423).**
