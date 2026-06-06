@@ -100,6 +100,15 @@
 
 ### Changed
 
+- **`docs(readme)` — make the local install the primary path and clean the badge row.**
+  Restructured the "Quick install" section so the local `git clone` + `scripts/install.sh`
+  / `install.ps1` path is documented first — it succeeds on a fresh clone today. The
+  `releases/latest/download/...` bootstrap one-liners moved into a clearly gated
+  "Released install (available from v1.21.0)" subsection that notes they 404 until a
+  GitHub release is published. Removed the `GitHub release` shields badge (red with no
+  release) and the redundant second OpenSSF Scorecard *workflow* status badge; kept the
+  OpenSSF score badge (links to the report), license, and last-commit badges.
+
 - **`ci(release)` — produce clean release archives, exclude repo dogfood from dist (#412).**
   The release workflow now creates `ai-agent-kit-{tag}.tar.gz` and `.zip` archives containing
   only distributable kit content (`skills/`, `tooling/`, `project-template/`, `prompts/`,
