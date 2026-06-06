@@ -35,6 +35,18 @@
   relies on the `quality-gate` check on PR head commits — only the misleading
   README badge is gone.
 
+- **`fix(skills)` — finish the `SKILL.md` + `SKILL.deep.md` split everywhere (#158).**
+  The #158 split was applied only to the `.agents/skills/` dogfood copy; the
+  source `skills/`, the `.claude/skills/` and `.agy/skills/` installs, and a
+  fresh `install`/`update` all still produced monolithic skills, so the dogfood
+  tree had drifted from what the installer generates. The 22 split skills are
+  now split at the source (`skills/<name>/SKILL.md` core + `SKILL.deep.md`
+  companion); `copy_dir` / `Copy-KitDirectory` already recurse, so `install.sh`
+  and `install.ps1` propagate both files to all three roots unchanged.
+  `.kit-manifest` gains the 44 missing `.claude` / `.agy` deep entries and is
+  back in canonical sorted order. `validate --strict` no longer reports skill
+  dogfood drift; a fresh install reproduces the committed tree byte-for-byte.
+
 - **`fix(agents)` — add reverse-validation section to root CLAUDE.md (#423).**
   Follow-up to the feat(agents) PR: applies the same `## Reverse validation` block
   to the root `CLAUDE.md` that was already added to AGENTS.md, AGY.md, and all
