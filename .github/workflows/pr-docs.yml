@@ -31,10 +31,14 @@ jobs:
 
       - name: Every SKILL.md must have a Final response requirements section
         run: |
+          # Split skills (#158) keep this section in the SKILL.deep.md companion,
+          # so accept it in either the core SKILL.md or its SKILL.deep.md.
           errors=0
           for f in skills/*/SKILL.md; do
-            if ! grep -q "Final response requirements" "$f"; then
-              echo "MISSING 'Final response requirements' in: $f"
+            deep="${f%SKILL.md}SKILL.deep.md"
+            if ! grep -q "Final response requirements" "$f" \
+               && ! { [[ -f "$deep" ]] && grep -q "Final response requirements" "$deep"; }; then
+              echo "MISSING 'Final response requirements' in: $f (or its SKILL.deep.md)"
               errors=$((errors+1))
             fi
           done
