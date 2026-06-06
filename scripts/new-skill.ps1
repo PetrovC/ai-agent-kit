@@ -28,7 +28,10 @@ if ($env:AAK_DEBUG -and $env:AAK_DEBUG -ne "0" -and $env:AAK_DEBUG -ne "false") 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$KitRoot = Split-Path -Parent $PSScriptRoot
+# In the repo, lifecycle scripts live in scripts/ and the kit root is one level
+# up; in a release archive they sit at the archive root beside VERSION. Detect
+# the layout via the VERSION sentinel.
+$KitRoot = if (Test-Path -LiteralPath (Join-Path $PSScriptRoot "VERSION") -PathType Leaf) { $PSScriptRoot } else { Split-Path -Parent $PSScriptRoot }
 
 function Write-Utf8NoBom([string]$path, [string]$text) {
     # PowerShell 5.1 `Set-Content -Encoding utf8` writes a UTF-8 BOM, which

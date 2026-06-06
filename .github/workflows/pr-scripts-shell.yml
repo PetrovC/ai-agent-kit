@@ -291,6 +291,63 @@ jobs:
           rm -rf "$T" "$T2"
           echo "OK: arg parsers reject missing values and normalize --tools cross-shell"
 
+  release-archive-install:
+    name: Install from packaged release archive (flat layout)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+
+      - name: Assemble dist exactly as release-checksums.yml does
+        run: |
+          set -euo pipefail
+          # Mirror the "Collect distributable assets" step of
+          # release-checksums.yml: a FLAT layout where the lifecycle scripts
+          # sit beside VERSION/skills/tooling (no scripts/ subdir). This is the
+          # tree bootstrap.sh extracts and runs install.sh from.
+          mkdir -p dist
+          cp -r skills/           dist/skills
+          cp -r tooling/          dist/tooling
+          cp -r project-template/ dist/project-template
+          cp -r prompts/          dist/prompts
+          cp scripts/install.sh    scripts/install.ps1  \
+             scripts/update.sh     scripts/update.ps1   \
+             scripts/uninstall.sh  scripts/uninstall.ps1 \
+             scripts/validate.sh   scripts/validate.ps1 \
+             scripts/new-skill.sh  scripts/new-skill.ps1 \
+             scripts/doctor.sh     scripts/doctor.ps1   \
+             scripts/bootstrap.sh  scripts/bootstrap.ps1 \
+             dist/
+          cp VERSION README.md LICENSE SECURITY.md CHANGELOG.md dist/
+
+      - name: install.sh works from the flat archive (KIT_ROOT regression guard)
+        run: |
+          set -euo pipefail
+          # Regression guard: install.sh must resolve KIT_ROOT to the archive
+          # root when it sits beside VERSION (release layout), not assume a
+          # scripts/ parent. A wrong KIT_ROOT fails with "VERSION file not found".
+          T="$(mktemp -d)"
+          bash dist/install.sh --target "$T" --tools codex,claude,agy
+          grep -qF "ai-agent-kit@" "$T/.kit-version" \
+            || { echo "FAIL: install from flat archive did not stamp .kit-version"; exit 1; }
+          test -f "$T/CLAUDE.md" || { echo "FAIL: CLAUDE.md not installed"; exit 1; }
+          test -f "$T/.claude/skills/python/SKILL.md" || { echo "FAIL: skills not installed"; exit 1; }
+          rm -rf "$T"
+          echo "OK: install.sh works from the packaged release archive"
+
+      - name: doctor.sh reports healthy against the flat-archive install
+        run: |
+          set -euo pipefail
+          # doctor.sh reads the kit-root VERSION too; it must also be
+          # layout-aware so the documented post-install health check passes.
+          T="$(mktemp -d)"
+          bash dist/install.sh --target "$T" --tools codex,claude,agy >/dev/null
+          out="$(bash dist/doctor.sh --target "$T")"
+          echo "$out"
+          echo "$out" | grep -q "Target install is healthy" \
+            || { echo "FAIL: doctor.sh not healthy from flat archive"; exit 1; }
+          rm -rf "$T"
+          echo "OK: doctor.sh healthy from packaged release archive"
+
   lint-shell:
     name: Shell scripts + hooks must be valid
     runs-on: ubuntu-latest

@@ -66,8 +66,9 @@ Write-Host ""
 
 # a. Version check: read VERSION file from the kit root (one directory up from scripts/); report if target has no .kit-manifest
 $kitVersion = ""
-$kitRoot = Split-Path -Parent $PSScriptRoot
-$kitRootVersionPath = Join-Path $kitRoot "VERSION"
+# In the repo the kit root is one level up from scripts/; in a release archive
+# VERSION sits beside this script. Detect via the VERSION sentinel.
+$kitRootVersionPath = if (Test-Path -LiteralPath (Join-Path $PSScriptRoot "VERSION") -PathType Leaf) { Join-Path $PSScriptRoot "VERSION" } else { Join-Path (Split-Path -Parent $PSScriptRoot) "VERSION" }
 if (Test-Path -LiteralPath $kitRootVersionPath -PathType Leaf) {
     $kitVersion = (Get-Content -LiteralPath $kitRootVersionPath -Raw).Trim()
 }
