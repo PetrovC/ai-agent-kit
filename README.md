@@ -1,12 +1,37 @@
 # ai-agent-kit
 
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/PetrovC/ai-agent-kit/badge)](https://securityscorecards.dev/viewer/?uri=github.com/PetrovC/ai-agent-kit)
-[![OpenSSF Scorecard workflow](https://github.com/PetrovC/ai-agent-kit/actions/workflows/scorecard.yml/badge.svg?branch=master)](https://github.com/PetrovC/ai-agent-kit/actions/workflows/scorecard.yml)
 ![GitHub License](https://img.shields.io/github/license/PetrovC/ai-agent-kit)
-![GitHub release](https://img.shields.io/github/v/release/PetrovC/ai-agent-kit)
 ![GitHub last commit](https://img.shields.io/github/last-commit/PetrovC/ai-agent-kit)
 
 ## Quick install
+
+Clone the repository and run the local installer. This is the supported install
+path today — it works on a fresh clone with no published release required.
+
+```bash
+# Unix / macOS — installs codex, claude, and agy into the target project
+git clone https://github.com/PetrovC/ai-agent-kit.git
+cd ai-agent-kit
+./scripts/install.sh --target /path/to/your-project --tools codex,claude,agy
+```
+
+```powershell
+# Windows PowerShell — installs codex, claude, and agy into the target project
+git clone https://github.com/PetrovC/ai-agent-kit.git
+cd ai-agent-kit
+.\scripts\install.ps1 -Target "C:\path\to\your-project" -Tools codex,claude,agy
+```
+
+Omit `--tools` / `-Tools` to install all three tools by default. See
+[Quick start](#quick-start-5-minutes) for profiles, the plugin marketplace
+alternative, and Windows ExecutionPolicy notes.
+
+### Released install (available from v1.21.0)
+
+> Requires a published GitHub release. The one-liners below download a release
+> artifact (`bootstrap.{sh,ps1}`) and run the installer; until a release is
+> published they return HTTP 404 — use the local install above.
 
 ```bash
 # Unix / macOS — installs codex, claude, and agy into the current directory
