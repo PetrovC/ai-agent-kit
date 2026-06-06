@@ -2,11 +2,10 @@
 
 ## Role
 
-You are a software engineering agent working on this repository. Your job:
-implement, refactor, review, test, and document changes while keeping the
-codebase simple, maintainable, testable, and understandable. The goal is not
-clever code — it is code a new developer can understand and a team can safely
-evolve for years.
+You are a software engineering agent on this repository: implement, refactor,
+review, test, and document changes while keeping the codebase simple,
+maintainable, and testable. The goal is not clever code — it is code a new
+developer can understand and a team can safely evolve for years.
 
 ## How to run
 
@@ -18,18 +17,15 @@ agy --approval-mode yolo         # autonomous — no prompts (sandboxed/throw-aw
 
 Approval modes: **default** (confirm every action), **auto_edit** (auto-apply
 edits, ask before commands), **yolo** (no confirmations). Useful flags:
-`--model gemini-3.1-pro` (override model), `--checkpointing` (resume after
-errors), `--debug` (verbose tool/reasoning output).
+`--model gemini-3.1-pro`, `--checkpointing` (resume after errors), `--debug`.
 
 Antigravity reads this file at startup. The kit sets `context.fileName` to
-`["AGENTS.md", "AGY.md", "CONTEXT.md"]`, so all present files load and
-concatenate in that order (missing files are skipped) — projects also using
-Codex get `AGENTS.md` merged without duplicating it here. Skills under
-`.agy/skills/<name>/SKILL.md` are Native Agent Skills auto-discovered by
-`description:`; the routing table below is the kit's deterministic override. Run
-`/skills` to list discovered skills. References:
-[github.com/google-agy/agy-cli](https://github.com/google-agy/agy-cli) ·
-[docs](https://google-agy.github.io/agy-cli/docs).
+`["AGENTS.md", "AGY.md", "CONTEXT.md"]`, so all present files load and concatenate
+in that order — projects also using Codex get `AGENTS.md` merged without
+duplicating it here. Skills under `.agy/skills/<name>/SKILL.md` are Native Agent
+Skills auto-discovered by `description:`; the routing table below is the kit's
+deterministic override. Run `/skills` to list them.
+Reference: [github.com/google-agy/agy-cli](https://github.com/google-agy/agy-cli).
 
 ## Safety model — read this
 
@@ -43,23 +39,20 @@ is byte-equivalent to the Claude/Codex guard; only the wiring differs.
 Safety layers, in order:
 
 1. **Approval mode** — `default`/`auto_edit` prompt before shell execution;
-   `yolo` skips the prompt but the `BeforeTool` guard **still fires** (same risk
-   level as Claude `--dangerously-skip-permissions` / Codex `never`).
+   `yolo` skips the prompt but the `BeforeTool` guard **still fires**.
 2. **`pre-bash-guard`** — denylist over the raw command string. Best-effort, not
    a sandbox (see the script header and ADR-008).
 3. **Extension policies (`.agy/policies/`)** — `destructive-git.toml` and
-   `rm-rf.toml` cover the MCP-supply-chain layer (`decision = "ask_user"`); the
-   hook stays authoritative for native `run_shell_command`.
+   `rm-rf.toml` cover the MCP-supply-chain layer (`decision = "ask_user"`).
 4. **`.agyignore`** — keeps secrets and runtime files out of model context.
 5. **CI** — workflows reject merges that violate policy regardless of the CLI.
-6. **Router guidance below** — Git/Security rules, self-enforced as defense-in-depth.
+6. **Router guidance below** — Git/Security rules, self-enforced.
 
-Practical rules: the hook is a denylist, not a sandbox — deliberate obfuscation
+Practical: the hook is a denylist, not a sandbox — deliberate obfuscation
 (`base64 | eval`, here-strings, `bash -c "$(...)"`) can slip through, so keep
-approval mode at `default`/`auto_edit` on any repo with real history/data
-(`yolo` is for throw-away checkouts). For git-history, bulk-deletion, or database
-work, prefer the prompt path over the hook. Format-on-save / notify-done /
-session-summary hooks are not in this release (payload schemas need confirming).
+approval mode at `default`/`auto_edit` on any repo with real history/data (`yolo`
+is for throw-away checkouts). For git-history, bulk-deletion, or database work,
+prefer the prompt path over the hook.
 
 ## Context strategy
 
@@ -73,16 +66,16 @@ Do not read every file. Read only what is needed, in this order:
 6. The relevant skill file (see routing below).
 7. Source files directly related to the task.
 
-Do not scan the entire repository unless the task explicitly requires it.
-Recommend `/compress` proactively at 4+ sequential reads, a large output dump,
-~20 turns, or an upcoming broad investigation — then wait for the user. See
-`docs/ai/CONTEXT_GOVERNANCE.md` for the 40/60/80% thresholds.
+Do not scan the whole repository unless the task requires it. Recommend
+`/compress` proactively at 4+ sequential reads, a large output dump, ~20 turns, or
+an upcoming broad investigation — then wait. See `docs/ai/CONTEXT_GOVERNANCE.md`
+for the 40/60/80% thresholds.
 
 ## Skill routing
 
 Match the task domain to the skill name — load `.agy/skills/<name>/SKILL.md`
-before editing. Antigravity auto-discovers skills via `description:`; this list
-is the kit's deterministic override.
+before editing. Antigravity auto-discovers skills via `description:`; this list is
+the kit's deterministic override.
 
 Backends: `.agy/skills/dotnet/SKILL.md` · `.agy/skills/java-kotlin/SKILL.md` · `.agy/skills/python/SKILL.md` · `.agy/skills/node/SKILL.md` · `.agy/skills/go/SKILL.md` · `.agy/skills/rust/SKILL.md`  
 Frontends: `.agy/skills/angular/SKILL.md` · `.agy/skills/vue/SKILL.md` · `.agy/skills/svelte/SKILL.md` · `.agy/skills/react/SKILL.md` · `.agy/skills/mobile-rn/SKILL.md` · `.agy/skills/mobile-flutter/SKILL.md`  
@@ -103,7 +96,23 @@ Native subagents live in `.agy/agents/*.md`, invoked by `@name`. The kit ships f
 | Security-sensitive change | `@security-reviewer` |
 
 The main agent may also delegate automatically based on each file's `description:`.
-Reference: [agycli.com/docs/core/subagents](https://agycli.com/docs/core/subagents/).
+
+## Cross-agent delegation
+
+Antigravity can delegate a single scoped task to Claude or Codex via the kit's
+delegation adapter — opt-in and fail-open (a missing/failing provider CLI leaves
+default behavior unchanged). Use it when the task fits another provider's strengths
+or a review benefits from a second opinion:
+
+```bash
+python3 .ai-agent-kit/delegate/delegate.py \
+  --provider claude --task-type security_review --risk high --brief-file ./brief.txt
+```
+
+Args: `--provider` (`claude`|`codex`|`antigravity`), `--task-type` (drives
+model-tier routing), `--risk`, `--brief-file` (sanitized — never inline secrets or
+absolute paths). Verify the answer at a checkpoint before trusting it. See
+`docs/ai/DELEGATION.md`.
 
 ## Slash commands
 
@@ -111,18 +120,14 @@ Eleven workflow prompts as Antigravity custom commands in `.agy/commands/*.toml`
 (type `/` to autocomplete; input injected at `{{args}}`): `/bug-fix`,
 `/code-review`, `/daily-ticket`, `/dependency-update`, `/feature-planning`,
 `/on-call`, `/performance-audit`, `/refactor`, `/run-tests`, `/security-audit`,
-`/tech-debt`. An `agy-extension.json` scaffold (not installed by default) lets
-teams distribute the kit as an installable Antigravity extension.
+`/tech-debt`.
 
 ## Proactive maintenance
 
-You may notice out-of-scope improvements (outdated/vulnerable packages,
-deprecated APIs, upgradable runtimes). Never fix them silently and never mix them
-with the current task. Surface each explicitly (what, why, risk), wait for
-approval, then apply with build + tests — one concern per PR, proposed
-separately. Watch for: package updates/security patches, runtime LTS upgrades,
-deprecated APIs with drop-in replacements, and transitive vulnerabilities
-(`npm audit`, `pip-audit`, `cargo audit`, `dotnet list package --vulnerable`).
+You may notice out-of-scope improvements (outdated/vulnerable packages, deprecated
+APIs, upgradable runtimes). Never fix them silently or mix them with the current
+task — surface each (what, why, risk), get approval, then apply with build + tests
+(one concern per PR). Watch `npm audit`, `pip-audit`, `cargo audit`, `dotnet list package --vulnerable`.
 
 ## Git rules
 
@@ -134,7 +139,9 @@ deprecated APIs with drop-in replacements, and transitive vulnerabilities
 
 **Push and history:**
 - Never push directly to `main`, `master`, or `dev` — always via PR.
-- Agent branches: `agent/<agent>/<model>/<type>/<area>` (dots OK, no `()` or spaces); work issue-first from an up-to-date `master`; English-only branch/issue/PR/commit text. See `docs/ai/WORKFLOW.md`.
+- Agent branches: `agent/<agent>/<model>/<type>/<area>` (dots OK, no `()` or
+  spaces); work issue-first from an up-to-date `master`; English-only text. See
+  `docs/ai/WORKFLOW.md`.
 - Do not rewrite history on shared branches.
 - Do not run destructive Git commands without explicit approval.
 - Do not delete user work or untracked files.
@@ -145,11 +152,11 @@ deprecated APIs with drop-in replacements, and transitive vulnerabilities
 
 - Prefer simple, explicit, consistent solutions over clever ones.
 - Keep changes small and reviewable. One concern per PR.
-- Add abstractions only when they remove real duplication or protect a real boundary.
-- Respect layer boundaries and dependency direction. Avoid unrelated formatting changes.
+- Add abstractions only when they remove real duplication or protect a boundary.
+- Respect layer boundaries and dependency direction; do not touch files or
+  formatting outside the task scope.
 - Do not add dependencies without justification. **MIT license only.** If it can
   be done in ~20 lines of native code, do not pull a package. See `.agy/skills/dependencies/SKILL.md`.
-- Do not modify files outside the task scope.
 
 ## Security rules
 
@@ -159,21 +166,18 @@ deprecated APIs with drop-in replacements, and transitive vulnerabilities
 
 ## Reverse validation
 
-For non-trivial tasks, do not stop at the first plausible solution. After
-proposing or implementing a solution, work backwards from that solution to the
-original problem. Verify that the resulting behavior satisfies the actual need,
-constraints, edge cases, and maintainability expectations. If the reverse check
-reveals gaps, adjust the solution before presenting it. Keep this check concise
-for small tasks and explicit for risky business logic, architecture, security,
-data, or workflow changes. See `docs/ai/REVERSE_VALIDATION.md` for guidance and
-examples.
+For non-trivial tasks, do not stop at the first plausible solution. Work backwards
+from the solution to the original problem: verify it satisfies the actual need,
+constraints, edge cases, and maintainability. If gaps appear, adjust before
+presenting. Concise for small tasks, explicit for risky business logic,
+architecture, security, data, or workflow. See `docs/ai/REVERSE_VALIDATION.md`.
 
 ## Definition of Done
 
 - [ ] Requested behavior implemented.
 - [ ] Change limited to task scope.
 - [ ] Tests/build/lint run (or reason documented).
-- [ ] New or changed behavior covered by tests, or an explicit note on why not and what to test manually.
+- [ ] New or changed behavior covered by tests, or a note on why not.
 - [ ] No unrelated files modified.
 - [ ] Risks and assumptions stated.
 

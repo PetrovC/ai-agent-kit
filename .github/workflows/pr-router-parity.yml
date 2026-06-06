@@ -70,6 +70,12 @@ jobs:
             "Token logger"
             "Worktree settings"
             "Statusline"
+            # Claude router merges several tool-specific sections (#315 trim);
+            # prefixes below cover the merged headings.
+            "Optional hooks"
+            "MCP and plugin"
+            "Local config"
+            "Hardening and Windows"
           )
 
           is_exempt() {

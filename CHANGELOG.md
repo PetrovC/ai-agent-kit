@@ -27,6 +27,18 @@
 
 ### Fixed
 
+- **`refactor(routers)` — trim the three routers under budget and reconcile drift.**
+  `CLAUDE.md` (297→200), `AGENTS.md` (214→192), and `AGY.md` (186→192) are back
+  under the 200-line model-read budget (#315/#326): verbose opt-in/reference
+  sections were condensed to pointers (hook headers already document the exact
+  JSON) and a few Claude-only sections merged. Reconciled root↔`tooling/` drift:
+  the `#420` "Cross-agent delegation" section now lives in all three routers
+  (was only in the root `AGENTS.md`/`AGY.md`), the stale `#408` audit-hook rows
+  are gone, and the root copies match their `tooling/` sources byte-for-byte.
+  Also fixed `CLAUDE.md`'s pre-existing double-encoded em-dashes and added the
+  merged Claude headings to the `pr-router-parity` exception list.
+  `validate --strict` is now fully green (56→0 issues across this audit).
+
 - **`chore(validate)` — exempt on-demand routing specs from the model-read budget.**
   `docs/ai/ADAPTIVE_ROUTING.md`, `MODEL_ROUTING.md`, and `MODEL_SELECTION.md` are
   read only when a routing/model decision is in play (not always-on context), so
