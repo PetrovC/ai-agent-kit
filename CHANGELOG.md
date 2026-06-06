@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-06-06
+
 ### Added
 
 - **`feat(delegation)` — add `claude` provider; make cross-agent delegation symmetrical (#420).**
