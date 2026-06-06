@@ -170,6 +170,7 @@
 .claude/hooks/pre-bash-guard.sh
 .claude/hooks/run-hook.ps1
 .claude/hooks/session-summary.sh
+.claude/hooks/statusline.sh
 .claude/hooks/token-log.sh
 .claude/rules/env-safety.md
 .claude/rules/migration-safety.md

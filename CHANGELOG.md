@@ -27,6 +27,12 @@
 
 ### Fixed
 
+- **`chore(dogfood)` — re-sync drifted Claude hook install files.**
+  The committed dogfood was missing `.claude/hooks/statusline.sh` (a fresh
+  install produces it from `tooling/claude/hooks/`, and `.kit-manifest` now
+  lists it), and `.claude/hooks/token-log.sh` had lost its executable bit
+  (tracked `100644` vs source `100755`); restored to `100755`.
+
 - **`fix(delegation)` — propagate the symmetrical adapter to the kit source (#420).**
   #420 updated only the installed dogfood copy `.ai-agent-kit/delegate/delegate.py`;
   the kit source `tooling/shared/delegate/delegate.py` was left at the pre-#420
