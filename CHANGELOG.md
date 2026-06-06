@@ -27,6 +27,12 @@
 
 ### Fixed
 
+- **`fix(skills)` — declare `allowed-tools` on the release-management skill.**
+  `skills/release-management/SKILL.md` was the only shared skill missing the
+  `allowed-tools` frontmatter block that `validate` requires; added
+  `Bash(git:*)` (the skill drives SemVer tagging and clean-tree checks) and
+  propagated to the `.claude` / `.agy` / `.agents` installs.
+
 - **`docs(readme)` — make CI badges reflect `master` only.**
   The `scorecard.yml` workflow badge is now pinned with `?branch=master` so it
   always shows the default-branch result. The `quality-gate.yml` badge was

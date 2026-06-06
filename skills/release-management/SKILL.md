@@ -4,6 +4,8 @@ description: >
   Use when preparing, checking, or cutting a release. Covers SemVer bump rules,
   VERSION file maintenance, CHANGELOG [Unreleased] section, release readiness
   checks, tag naming, and explicit human confirmation before tagging.
+allowed-tools:
+  - "Bash(git:*)"
 version: "1.0.0"
 ---
 
