@@ -2,11 +2,10 @@
 
 ## Role
 
-You are a software engineering agent working on this repository. Your job:
-implement, refactor, review, test, and document changes while keeping the
-codebase simple, maintainable, testable, and understandable. The goal is not
-clever code — it is code a new developer can understand and a team can safely
-evolve for years.
+You are a software engineering agent on this repository: implement, refactor,
+review, test, and document changes while keeping the codebase simple,
+maintainable, and testable. The goal is not clever code — it is code a new
+developer can understand and a team can safely evolve for years.
 
 ## How to run Codex CLI
 
@@ -16,59 +15,49 @@ codex --approval-policy untrusted    # ask for anything not pre-allowlisted (mos
 codex --approval-policy never        # autonomous; no confirmations (CI / supervised only)
 ```
 
-`approval_policy`: `untrusted` | `on-request` | `never` (plus a `granular`
-table). `on-failure` is **deprecated**. Useful options: `--profile deep` (high
-effort), `--profile readonly` (read-only sandbox), `--model gpt-5.5` (override;
-falls back to gpt-5.4), `--no-project-doc` (skip project docs). Codex reads this
-file plus `.codex/config.toml` at startup; skills live in
-`.agents/skills/<name>/SKILL.md`, activated via `/skills` or `$<name>`.
-Reference: [github.com/openai/codex](https://github.com/openai/codex) ·
-[AGENTS.md guide](https://developers.openai.com/codex/guides/agents-md).
+`approval_policy`: `untrusted` | `on-request` | `never` (plus a `granular` table;
+`on-failure` is **deprecated**). Useful: `--profile deep` (high effort),
+`--profile readonly` (read-only sandbox), `--model gpt-5.5` (falls back to
+gpt-5.4). Codex reads this file plus `.codex/config.toml` at startup; skills live
+in `.agents/skills/<name>/SKILL.md`, activated via `/skills` or `$<name>`.
+Reference: [github.com/openai/codex](https://github.com/openai/codex).
 
 ## Configuration cascade
 
 Codex merges `AGENTS.md` broad → narrow: global (`~/.codex/AGENTS.override.md`
-then `~/.codex/AGENTS.md`), then each `AGENTS.override.md` / `AGENTS.md` from the
-repo root down to the working directory (closest wins; capped by
-`project_doc_max_bytes`, 32 KiB default). Use `AGENTS.override.md` for temporary
-or sub-directory exceptions.
+then `~/.codex/AGENTS.md`), then each `AGENTS.override.md` / `AGENTS.md` from repo
+root down to the working directory (closest wins; capped by `project_doc_max_bytes`,
+32 KiB). Use `AGENTS.override.md` for temporary or sub-directory exceptions.
 
 ## Lifecycle hooks
 
-`.codex/hooks.json` wires the kit's Codex lifecycle hooks:
+`.codex/hooks.json` wires the kit's Codex lifecycle hooks (parse via
+`jq → python3 → sed` fallback, so a broken interpreter falls through rather than
+failing open; closest-wins from `~/.codex/` then `<repo>/.codex/`):
 
 | Event | Hook | Purpose |
 |---|---|---|
-| `PreToolUse` (Bash) | `pre-bash-guard.sh` | Blocks force/mirror/delete push, `git branch -D` / `update-ref -d`, `git reset --hard`/`--keep`, recursive `rm -rf` on dangerous targets, `${IFS}` obfuscation, and SQL `DROP` without an approval comment. Exit 2 = blocked. Best-effort denylist, not a sandbox. |
-| `PermissionRequest` | `permission-request-log.sh` | Logs the requested permission class and tool with a hashed reason, without echoing raw commands or prompts. |
-| `PostToolUse` (Edit/Write/Patch) | `format-on-save.sh` | Best-effort formatter (prettier/ruff/gofmt/rustfmt/dotnet) on the edited file. |
-| `SessionStart` | `session-start-summary.sh` + `agent-audit-event.sh` | Prints kit version / active profile context and records the run-start audit event. |
-| `Stop` | `notify-done.sh` + `agent-audit-event.sh` | Desktop notification when a turn finishes and records the run-completion audit event. |
-| `SubagentStart` / `SubagentStop` | `agent-audit-event.sh` | Records subagent lifecycle audit events. |
+| `PreToolUse` (Bash) | `pre-bash-guard.sh` | Blocks force/mirror/delete push, `git branch -D` / `update-ref -d`, `git reset --hard`, recursive `rm -rf` on dangerous targets, `${IFS}` obfuscation, SQL `DROP` without approval. Exit 2 = blocked. Denylist, not a sandbox. |
+| `PermissionRequest` | `permission-request-log.sh` | Logs permission class + tool with a hashed reason; no raw commands/prompts. |
+| `PostToolUse` (Edit/Write) | `format-on-save.sh` | Best-effort formatter (prettier/ruff/gofmt/rustfmt/dotnet). |
+| SessionStart | `session-start-summary.sh` | Prints kit version and active profile. |
+| Stop | `notify-done.sh` | Desktop notification when a turn finishes. |
 
-The guard parses hook stdin via a `jq → python3 → sed` fallback, so a missing or
-broken interpreter falls through rather than failing open. Codex has no
-`PreCompact` event. Hooks resolve closest-wins from `~/.codex/` then
-`<repo>/.codex/` (`hooks.json` / `config.toml`).
-Reference: [Codex hooks docs](https://developers.openai.com/codex/hooks).
+Codex has no `PreCompact` event. Reference: [Codex hooks docs](https://developers.openai.com/codex/hooks).
 
 ## Project config (`.codex/config.toml`)
 
 Beyond approval/sandbox, the kit's `config.toml` sets:
-
 - **`[shell_environment_policy]`** — `inherit = "all"` but `exclude` scrubs
   `*_SECRET`/`*_TOKEN`/`*_KEY`/`*_PASSWORD`/`OPENAI_*`/`ANTHROPIC_*`/`AWS_*`/`GCP_*`/`GOOGLE_*`
-  plus connection strings (`*_URL`/`*_URI`/`*_DSN`, which embed credentials).
-- **`[history]`** — `persistence = "save-all"`, `max_bytes = 10 MiB`; set
-  `persistence = "none"` for repos that must not persist transcripts.
-- **`[mcp_servers.<name>]`** — commented stdio + HTTP examples. See
-  [Codex MCP docs](https://developers.openai.com/codex/mcp).
-- **`notify`** — commented; the kit prefers the `Stop` hook.
+  plus connection strings (`*_URL`/`*_URI`/`*_DSN`).
+- **`[history]`** — `persistence = "save-all"`, `max_bytes = 10 MiB`; set `none`
+  for repos that must not persist transcripts.
+- **`[mcp_servers.<name>]`** — commented stdio + HTTP examples.
 
-Personal preferences (model, effort, profiles, `file_opener`, Windows sandbox)
-belong in `~/.codex/config.toml` (never committed); copy the starting point with
-`cp tooling/codex/global-config-template.toml ~/.codex/config.toml`. It is not
-placed by the installer (home-directory file); `<repo>/.codex/config.toml` wins.
+Personal preferences (model, effort, profiles, Windows sandbox) belong in
+`~/.codex/config.toml` (never committed; `<repo>/.codex/config.toml` wins). Copy
+the starting point from `tooling/codex/global-config-template.toml`.
 
 ## Context strategy
 
@@ -82,24 +71,16 @@ Do not read every file. Read only what is needed, in this order:
 6. The relevant skill (see routing below).
 7. Source files directly related to the task.
 
-Do not scan the entire repository unless the task explicitly requires it. Keep
-this router small. Long-run context policy lives in
-[`docs/ai/CONTEXT_GOVERNANCE.md`](https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/CONTEXT_GOVERNANCE.md),
-model routing in
-[`docs/ai/MODEL_ROUTING.md`](https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/MODEL_ROUTING.md),
-and subagent cost rules in
-[`docs/ai/SUBAGENT_GOVERNANCE.md`](https://github.com/PetrovC/ai-agent-kit/blob/master/docs/ai/SUBAGENT_GOVERNANCE.md).
-Once context feels heavy: keep one issue per session, run `/compact` before broad
-reads/large logs/refactors (recommend it proactively at 4+ sequential reads, a
-big output dump, ~20 turns, or an upcoming broad investigation, then wait for the
-user), prefer targeted `rg` and narrow reads, and use `readonly`/`standard`/`deep`
-profiles by task risk.
+Do not scan the whole repository unless the task requires it. Long-run context
+policy lives in `docs/ai/CONTEXT_GOVERNANCE.md`, model routing in
+`docs/ai/MODEL_ROUTING.md`, subagent cost rules in `docs/ai/SUBAGENT_GOVERNANCE.md`.
+Keep one issue per session; run `/compact` before broad reads/large logs/refactors;
+prefer targeted `rg` and narrow reads; pick `readonly`/`standard`/`deep` by risk.
 
 ## Skill routing
 
 Match the task domain to the skill name — full descriptions live in each skill's
-`description:` frontmatter. Activate with `$<name>`; activate only what the task
-needs, never all skills.
+`description:` frontmatter. Activate with `$<name>`; only what the task needs.
 
 Backends: `$dotnet` · `$java-kotlin` · `$python` · `$node` · `$go` · `$rust`  
 Frontends: `$angular` · `$vue` · `$svelte` · `$react` · `$mobile-rn` · `$mobile-flutter`  
@@ -119,84 +100,46 @@ Use subagents only when the task is noisy, exploratory, or specialized:
 | Task affects architecture or boundaries | `architect` |
 | Change touches security-sensitive code | `security-reviewer` |
 
-Do not use subagents for simple one-file changes.
-
-### Agent → Codex profile mapping
-
-Profiles (`~/.codex/config.toml`) all run on `gpt-5.5`, differing by
-`model_reasoning_effort`. Mirror the per-agent risk tiering used by Claude and
-Antigravity (details + sources in `docs/ai/MODEL_ROUTING.md`):
-
-| Subagent | Codex profile | `model_reasoning_effort` |
-|---|---|---|
-| `architect` | `deep` | `high` |
-| `code-reviewer` | `deep` | `high` |
-| `security-reviewer` | `deep` | `high` |
-| `codebase-investigator` | `standard` | `medium` |
-| `test-runner` | `readonly` | `low` |
-
-Switch mid-session with `Alt+,` / `Alt+.` in the TUI, or `--profile <name>`.
-
-These 5 agents are also declared as native `[agents.<name>]` tables in
-`.codex/config.toml` (added in issue #179) so Codex sees them via its native
-multi-agent mechanism. The `tooling/codex/skills/<name>/SKILL.md` files are
-retained as system-prompt documentation; the authoritative profile mapping is
-now the `config.toml` table.
+Do not use subagents for simple one-file changes. The 5 agents are declared as
+native `[agents.<name>]` tables in `.codex/config.toml` (all on `gpt-5.5`,
+differing by `model_reasoning_effort`): `architect` / `code-reviewer` /
+`security-reviewer` = `deep`/`high`; `codebase-investigator` = `standard`/`medium`;
+`test-runner` = `readonly`/`low`. Switch with `--profile <name>` or `Alt+,`/`Alt+.`.
+Details in `docs/ai/MODEL_ROUTING.md`.
 
 ## Cross-agent delegation
 
-Codex can delegate a single scoped task to Claude or Antigravity using the
-kit's delegation adapter. This is **opt-in** and fail-open — a missing or
-failing provider CLI leaves default behavior unchanged.
+Codex can delegate a single scoped task to Claude or Antigravity via the kit's
+delegation adapter — opt-in and fail-open (a missing/failing provider CLI leaves
+default behavior unchanged). Use it when the task fits another provider's strengths
+or a review benefits from a second opinion:
 
-**When to delegate:**
-- The task fits a different provider's strengths (e.g., Claude for planning
-  and multi-step write workflows, Antigravity for Gemini-pool tasks).
-- A review, security check, or architecture assessment benefits from a second
-  provider opinion.
-
-**How to invoke (POSIX):**
 ```bash
 python3 .ai-agent-kit/delegate/delegate.py \
-  --provider claude \
-  --task-type security_review --risk high \
-  --brief-file ./brief.txt
-
-python3 .ai-agent-kit/delegate/delegate.py \
-  --provider antigravity \
-  --task-type implementation --risk medium \
-  --brief-file ./brief.txt
+  --provider claude --task-type security_review --risk high --brief-file ./brief.txt
 ```
 
-| Argument | Meaning |
-|---|---|
-| `--provider` | `claude` \| `codex` \| `antigravity` |
-| `--task-type` | drives model-tier routing (`security_review`, `implementation`, `exploration`, …) |
-| `--risk` | `low` \| `medium` \| `high` \| `critical` |
-| `--brief-file` | path to a sanitized plain-text brief (never inline secrets or absolute paths) |
-
-The sanitized provider answer is printed to stdout. Always verify it at a
-mandatory checkpoint before trusting it. See `docs/ai/DELEGATION.md`.
+Args: `--provider` (`claude`|`codex`|`antigravity`), `--task-type` (drives
+model-tier routing), `--risk`, `--brief-file` (sanitized — never inline secrets or
+absolute paths). Verify the answer at a checkpoint before trusting it. See
+`docs/ai/DELEGATION.md`.
 
 ## Engineering principles
 
 - Prefer simple, explicit, consistent solutions over clever ones.
 - Keep changes small and reviewable. One concern per PR.
-- Add abstractions only when they remove real duplication or protect a real boundary.
-- Respect layer boundaries and dependency direction. Avoid unrelated formatting changes.
+- Add abstractions only when they remove real duplication or protect a boundary.
+- Respect layer boundaries and dependency direction; do not touch files or
+  formatting outside the task scope.
 - Do not add dependencies without justification. **MIT license only.** If it can
   be done in ~20 lines of native code, do not pull a package. See `$dependencies`.
-- Do not modify files outside the task scope.
 
 ## Proactive maintenance
 
-You may notice out-of-scope improvements (outdated/vulnerable packages,
-deprecated APIs, upgradable runtimes). Never fix them silently and never mix them
-with the current task. Surface each explicitly (what, why, risk), wait for
-approval, then apply with build + tests — one concern per PR, proposed
-separately. Watch for: package updates/security patches, runtime LTS upgrades,
-deprecated APIs with drop-in replacements, and transitive vulnerabilities
-(`npm audit`, `pip-audit`, `cargo audit`, `dotnet list package --vulnerable`).
+You may notice out-of-scope improvements (outdated/vulnerable packages, deprecated
+APIs, upgradable runtimes). Never fix them silently or mix them with the current
+task — surface each (what, why, risk), get approval, then apply with build + tests
+(one concern per PR). Watch `npm audit`, `pip-audit`, `cargo audit`, `dotnet list package --vulnerable`.
 
 ## Git rules
 
@@ -208,7 +151,9 @@ deprecated APIs with drop-in replacements, and transitive vulnerabilities
 
 **Push and history:**
 - Never push directly to `main`, `master`, or `dev` — always via PR.
-- Agent branches: `agent/<agent>/<model>/<type>/<area>` (dots OK, no `()` or spaces); work issue-first from an up-to-date `master`; English-only branch/issue/PR/commit text. See `docs/ai/WORKFLOW.md`.
+- Agent branches: `agent/<agent>/<model>/<type>/<area>` (dots OK, no `()` or
+  spaces); work issue-first from an up-to-date `master`; English-only text. See
+  `docs/ai/WORKFLOW.md`.
 - Do not rewrite history on shared branches.
 - Do not run destructive Git commands without explicit approval.
 - Do not delete user work or untracked files.
@@ -223,28 +168,25 @@ deprecated APIs with drop-in replacements, and transitive vulnerabilities
 
 ## Reverse validation
 
-For non-trivial tasks, do not stop at the first plausible solution. After
-proposing or implementing a solution, work backwards from that solution to the
-original problem. Verify that the resulting behavior satisfies the actual need,
-constraints, edge cases, and maintainability expectations. If the reverse check
-reveals gaps, adjust the solution before presenting it. Keep this check concise
-for small tasks and explicit for risky business logic, architecture, security,
-data, or workflow changes. See `docs/ai/REVERSE_VALIDATION.md` for guidance and
-examples.
+For non-trivial tasks, do not stop at the first plausible solution. Work backwards
+from the solution to the original problem: verify it satisfies the actual need,
+constraints, edge cases, and maintainability. If gaps appear, adjust before
+presenting. Concise for small tasks, explicit for risky business logic,
+architecture, security, data, or workflow. See `docs/ai/REVERSE_VALIDATION.md`.
 
 ## Definition of Done
 
 - [ ] Requested behavior implemented.
-- [ ] Change limited to the task scope.
-- [ ] Tests/build/lint run (or the reason they could not be documented).
-- [ ] New or changed behavior covered by tests, or an explicit note on why not and what to test manually.
+- [ ] Change limited to task scope.
+- [ ] Tests/build/lint run (or reason documented).
+- [ ] New or changed behavior covered by tests, or a note on why not.
 - [ ] No unrelated files modified.
 - [ ] Risks and assumptions stated.
 
 ## Final response format
 
 1. **Summary** — what changed and why.
-2. **Files changed** — list with layer (Domain / Application / Infrastructure / Interfaces / UI).
-3. **Verification** — commands run and results.
-4. **Risks / assumptions** — what is uncertain or could break.
-5. **Next step** — only if genuinely useful.
+2. **Files changed** — with layer (Domain / Application / Infrastructure / Interfaces / UI).
+3. **Verification** — commands and results.
+4. **Risks / assumptions**.
+5. **Next step** — only if useful.

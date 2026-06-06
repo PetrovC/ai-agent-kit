@@ -27,6 +27,62 @@
 
 ### Fixed
 
+- **`refactor(routers)` — trim the three routers under budget and reconcile drift.**
+  `CLAUDE.md` (297→200), `AGENTS.md` (214→192), and `AGY.md` (186→192) are back
+  under the 200-line model-read budget (#315/#326): verbose opt-in/reference
+  sections were condensed to pointers (hook headers already document the exact
+  JSON) and a few Claude-only sections merged. Reconciled root↔`tooling/` drift:
+  the `#420` "Cross-agent delegation" section now lives in all three routers
+  (was only in the root `AGENTS.md`/`AGY.md`), the stale `#408` audit-hook rows
+  are gone, and the root copies match their `tooling/` sources byte-for-byte.
+  Also fixed `CLAUDE.md`'s pre-existing double-encoded em-dashes and added the
+  merged Claude headings to the `pr-router-parity` exception list.
+  `validate --strict` is now fully green (56→0 issues across this audit).
+
+- **`chore(validate)` — exempt on-demand routing specs from the model-read budget.**
+  `docs/ai/ADAPTIVE_ROUTING.md`, `MODEL_ROUTING.md`, and `MODEL_SELECTION.md` are
+  read only when a routing/model decision is in play (not always-on context), so
+  the 200-line per-call budget does not apply. Added them to
+  `DOC_BUDGET_EXCEPTIONS` in both `validate.sh` and `validate.ps1`.
+
+- **`chore(dogfood)` — re-sync drifted Claude hook install files.**
+  The committed dogfood was missing `.claude/hooks/statusline.sh` (a fresh
+  install produces it from `tooling/claude/hooks/`, and `.kit-manifest` now
+  lists it), and `.claude/hooks/token-log.sh` had lost its executable bit
+  (tracked `100644` vs source `100755`); restored to `100755`.
+
+- **`fix(delegation)` — propagate the symmetrical adapter to the kit source (#420).**
+  #420 updated only the installed dogfood copy `.ai-agent-kit/delegate/delegate.py`;
+  the kit source `tooling/shared/delegate/delegate.py` was left at the pre-#420
+  asymmetric version, so a fresh `install` shipped the old adapter. Synced the
+  source to the symmetrical version (Claude ⇄ Codex ⇄ Antigravity).
+
+- **`fix(skills)` — declare `allowed-tools` on the release-management skill.**
+  `skills/release-management/SKILL.md` was the only shared skill missing the
+  `allowed-tools` frontmatter block that `validate` requires; added
+  `Bash(git:*)` (the skill drives SemVer tagging and clean-tree checks) and
+  propagated to the `.claude` / `.agy` / `.agents` installs.
+
+- **`docs(readme)` — make CI badges reflect `master` only.**
+  The `scorecard.yml` workflow badge is now pinned with `?branch=master` so it
+  always shows the default-branch result. The `quality-gate.yml` badge was
+  removed: that workflow runs only on `pull_request`, never on `master`, so its
+  README badge could only ever render "no status". Branch protection still
+  relies on the `quality-gate` check on PR head commits — only the misleading
+  README badge is gone.
+
+- **`fix(skills)` — finish the `SKILL.md` + `SKILL.deep.md` split everywhere (#158).**
+  The #158 split was applied only to the `.agents/skills/` dogfood copy; the
+  source `skills/`, the `.claude/skills/` and `.agy/skills/` installs, and a
+  fresh `install`/`update` all still produced monolithic skills, so the dogfood
+  tree had drifted from what the installer generates. The 22 split skills are
+  now split at the source (`skills/<name>/SKILL.md` core + `SKILL.deep.md`
+  companion); `copy_dir` / `Copy-KitDirectory` already recurse, so `install.sh`
+  and `install.ps1` propagate both files to all three roots unchanged.
+  `.kit-manifest` gains the 44 missing `.claude` / `.agy` deep entries and is
+  back in canonical sorted order. `validate --strict` no longer reports skill
+  dogfood drift; a fresh install reproduces the committed tree byte-for-byte.
+
 - **`fix(agents)` — add reverse-validation section to root CLAUDE.md (#423).**
   Follow-up to the feat(agents) PR: applies the same `## Reverse validation` block
   to the root `CLAUDE.md` that was already added to AGENTS.md, AGY.md, and all
