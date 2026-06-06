@@ -27,6 +27,12 @@
 
 ### Fixed
 
+- **`fix(delegation)` — propagate the symmetrical adapter to the kit source (#420).**
+  #420 updated only the installed dogfood copy `.ai-agent-kit/delegate/delegate.py`;
+  the kit source `tooling/shared/delegate/delegate.py` was left at the pre-#420
+  asymmetric version, so a fresh `install` shipped the old adapter. Synced the
+  source to the symmetrical version (Claude ⇄ Codex ⇄ Antigravity).
+
 - **`fix(skills)` — declare `allowed-tools` on the release-management skill.**
   `skills/release-management/SKILL.md` was the only shared skill missing the
   `allowed-tools` frontmatter block that `validate` requires; added
