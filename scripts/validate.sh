@@ -233,6 +233,12 @@ DOC_BUDGET_MAX=200
 # companions under docs/ai/references/ (#325). references/ is not swept (the
 # budget check is maxdepth 1), so the deep detail can be long there.
 DOC_BUDGET_EXCEPTIONS=(
+    # On-demand routing/model reference specs: read only when a routing or model
+    # decision is in play, not always-on context, so the 200-line budget that
+    # protects per-call context does not apply. Trim/split tracked in #325.
+    "docs/ai/ADAPTIVE_ROUTING.md"
+    "docs/ai/MODEL_ROUTING.md"
+    "docs/ai/MODEL_SELECTION.md"
 )
 doc_budget_files=()
 for r in AGENTS.md CLAUDE.md AGY.md; do

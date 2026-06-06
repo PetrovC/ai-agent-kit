@@ -27,6 +27,12 @@
 
 ### Fixed
 
+- **`chore(validate)` — exempt on-demand routing specs from the model-read budget.**
+  `docs/ai/ADAPTIVE_ROUTING.md`, `MODEL_ROUTING.md`, and `MODEL_SELECTION.md` are
+  read only when a routing/model decision is in play (not always-on context), so
+  the 200-line per-call budget does not apply. Added them to
+  `DOC_BUDGET_EXCEPTIONS` in both `validate.sh` and `validate.ps1`.
+
 - **`chore(dogfood)` — re-sync drifted Claude hook install files.**
   The committed dogfood was missing `.claude/hooks/statusline.sh` (a fresh
   install produces it from `tooling/claude/hooks/`, and `.kit-manifest` now

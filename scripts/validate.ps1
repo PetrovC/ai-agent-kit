@@ -267,7 +267,14 @@ $DocBudgetMax = 200
 # The audit reference specs were split into <=200-line cores plus on-demand
 # companions under docs/ai/references/ (#325); references/ is not swept, so the
 # deep detail can be long there.
-$DocBudgetExceptions = @()
+$DocBudgetExceptions = @(
+    # On-demand routing/model reference specs: read only when a routing or model
+    # decision is in play, not always-on context, so the 200-line budget that
+    # protects per-call context does not apply. Trim/split tracked in #325.
+    "docs/ai/ADAPTIVE_ROUTING.md",
+    "docs/ai/MODEL_ROUTING.md",
+    "docs/ai/MODEL_SELECTION.md"
+)
 $docBudgetFiles = @()
 foreach ($r in @("AGENTS.md", "CLAUDE.md", "AGY.md")) {
     if (Test-Path -LiteralPath (Join-Path $Target $r)) { $docBudgetFiles += $r }
