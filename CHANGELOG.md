@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.22.1] - 2026-06-06
+
 ### Fixed
 
 - **`fix(scripts)` — make lifecycle scripts work from the flat release archive.**
