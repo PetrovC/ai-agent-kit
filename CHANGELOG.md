@@ -27,6 +27,14 @@
 
 ### Fixed
 
+- **`docs(readme)` — make CI badges reflect `master` only.**
+  The `scorecard.yml` workflow badge is now pinned with `?branch=master` so it
+  always shows the default-branch result. The `quality-gate.yml` badge was
+  removed: that workflow runs only on `pull_request`, never on `master`, so its
+  README badge could only ever render "no status". Branch protection still
+  relies on the `quality-gate` check on PR head commits — only the misleading
+  README badge is gone.
+
 - **`fix(agents)` — add reverse-validation section to root CLAUDE.md (#423).**
   Follow-up to the feat(agents) PR: applies the same `## Reverse validation` block
   to the root `CLAUDE.md` that was already added to AGENTS.md, AGY.md, and all
