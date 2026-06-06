@@ -54,7 +54,10 @@ if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
     exit 1
 }
 
-$KitRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+# In the repo, lifecycle scripts live in scripts/ and the kit root is one level
+# up; in a release archive they sit at the archive root beside VERSION. Detect
+# the layout via the VERSION sentinel.
+$KitRoot = if (Test-Path -LiteralPath (Join-Path $PSScriptRoot "VERSION") -PathType Leaf) { $PSScriptRoot } else { (Resolve-Path (Join-Path $PSScriptRoot "..")).Path }
 
 # If no -Tools given, read from .kit-version.
 if ([string]::IsNullOrWhiteSpace($Tools)) {

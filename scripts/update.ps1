@@ -42,7 +42,10 @@ if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
     exit 1
 }
 
-$KitRoot    = Split-Path -Parent $PSScriptRoot
+# In the repo, lifecycle scripts live in scripts/ and the kit root is one level
+# up; in a release archive they sit at the archive root beside VERSION. Detect
+# the layout via the VERSION sentinel.
+$KitRoot = if (Test-Path -LiteralPath (Join-Path $PSScriptRoot "VERSION") -PathType Leaf) { $PSScriptRoot } else { Split-Path -Parent $PSScriptRoot }
 $VersionFileRoot = Join-Path $KitRoot "VERSION"
 if (-not (Test-Path -LiteralPath $VersionFileRoot -PathType Leaf)) {
     Write-Error "VERSION file not found at $VersionFileRoot"

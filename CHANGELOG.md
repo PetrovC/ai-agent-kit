@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **`fix(scripts)` — make lifecycle scripts work from the flat release archive.**
+  `install.sh`, `update.sh`, `uninstall.sh`, `new-skill.sh`, and `doctor.sh`
+  (plus their `.ps1` twins) assumed they always live in `scripts/` and resolved
+  the kit root one level up (`$SCRIPT_DIR/..`). In a release archive (produced by
+  `release-checksums.yml`) the scripts sit at the archive root beside
+  `VERSION`/`skills/`/`tooling/`, so the documented
+  `curl … releases/latest/download/bootstrap.sh | bash` install aborted with
+  `Error: VERSION file not found`. The scripts now detect the layout via the
+  `VERSION` sentinel beside the script: present → flat archive root, absent →
+  repo `scripts/` (kit root one level up). A new `pr-scripts-shell.yml` job
+  assembles `dist/` exactly as the release workflow does and asserts a clean
+  install + healthy `doctor.sh` from the flat layout, closing the coverage gap
+  that let this ship (CI only ever installed from the repo checkout).
+
 ## [1.22.0] - 2026-06-06
 
 ### Added

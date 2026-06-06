@@ -75,9 +75,15 @@ echo "+--------------------------------------+"
 echo "  Target: $TARGET"
 echo ""
 
-# a. Version check: read VERSION file from the kit root (one directory up from scripts/); report if target has no .kit-manifest
+# a. Version check: read VERSION from the kit root. In the repo it is one level
+# up from scripts/; in a release archive it sits beside this script. Detect via
+# the VERSION sentinel.
 KIT_VERSION=""
-KIT_VERSION_FILE="$SCRIPT_DIR/../VERSION"
+if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
+    KIT_VERSION_FILE="$SCRIPT_DIR/VERSION"
+else
+    KIT_VERSION_FILE="$SCRIPT_DIR/../VERSION"
+fi
 if [[ -f "$KIT_VERSION_FILE" ]]; then
     KIT_VERSION=$(cat "$KIT_VERSION_FILE" | tr -d '[:space:]')
 fi

@@ -25,7 +25,15 @@ if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" 
 #
 set -euo pipefail
 
-KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve the kit root. In the repo, lifecycle scripts live in scripts/ and the
+# kit root is one level up; in a release archive they sit at the archive root
+# beside VERSION/skills/tooling. Detect the layout via the VERSION sentinel.
+_aak_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$_aak_script_dir/VERSION" ]]; then
+    KIT_ROOT="$_aak_script_dir"
+else
+    KIT_ROOT="$(cd "$_aak_script_dir/.." && pwd)"
+fi
 TARGET=""
 TOOLS=""
 DRY_RUN=false
