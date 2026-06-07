@@ -52,3 +52,7 @@ POSIX/Windows JSON variants must share the same key set
 Claude/Codex/Antigravity dogfood install policy
 Claude plugin + marketplace manifests valid
 CHANGELOG.md release metadata valid
+
+# pr-dogfood-parity.yml
+Dogfood content + mode parity (bash)
+Dogfood content + mode parity (PowerShell)
