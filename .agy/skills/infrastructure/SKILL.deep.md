@@ -124,6 +124,35 @@ terraform {
 
 ---
 
+## Cloud provider specifics
+
+No separate per-cloud skill: provider SDKs and consoles change too fast to pin in
+a skill, and the durable layer is **IaC-first** — express everything below in
+Terraform/OpenTofu (or the provider's native IaC), never by clicking in a console.
+These are the cross-provider concepts that recur; map them to your provider's name.
+
+- **Workload identity, not long-lived keys.** Prefer the provider's managed
+  identity so code gets short-lived credentials with no secret to rotate:
+  - AWS: IAM Roles for Service Accounts (IRSA) on EKS, instance profiles on EC2.
+  - Azure: Managed Identity (system- or user-assigned) + RBAC role assignments.
+  - GCP: Workload Identity Federation, service accounts bound to GKE workloads.
+  - For CI, use OIDC federation (GitHub Actions → cloud role) instead of stored keys.
+- **IAM least privilege.** One role per workload, scoped to the exact resources and
+  actions it needs. No wildcards (`Action: "*"`, `Resource: "*"`) outside bootstrap.
+  Separate roles for plan (read) vs apply (write). Review with the provider's policy
+  analyzer (AWS IAM Access Analyzer, Azure PIM, GCP Policy Analyzer).
+- **Regions and data residency.** Pick a primary region for latency and compliance;
+  keep state, backups, and resources in the same region unless DR requires otherwise.
+  Cross-region traffic adds latency and egress cost. Encode the region as a variable.
+- **Cost.** Tag every resource (`owner`, `env`, `cost-center`) so spend is
+  attributable; set budgets and alerts (AWS Budgets, Azure Cost Management, GCP
+  Budgets). Cross-AZ/region egress and idle managed services are the usual surprises.
+- **Managed over self-hosted.** Prefer the managed database/queue/cache (RDS,
+  Azure SQL, Cloud SQL; SQS, Service Bus, Pub/Sub) unless a documented reason says
+  otherwise — less patching, built-in backups, clearer SLAs.
+
+---
+
 ## CI/CD
 
 ### Common rules across runners
