@@ -1,0 +1,43 @@
+name: PR — dogfood parity
+
+# Enforce, in required CI, the dogfood content + git-mode parity that
+# `validate.sh --strict` already verifies but that ran nowhere in CI. This repo
+# dogfoods its own install (tracked .claude/.codex/.agents/.agy + AGENTS.md,
+# CLAUDE.md, AGY.md, docs/ai/), so the tracked copies can silently drift from
+# their canonical sources under tooling/ or skills/ — the exact class of bug
+# PR #447 fixed (a dropped statusline.sh and a stale .agents-only split). The
+# `> Dogfood install drift (repo only)` block only activates when the target is
+# this source tree (has .kit-manifest + tooling/), so it must be run against the
+# repo root itself; no other CI job does that. Runs on EVERY pull_request (no
+# path filter) so it qualifies as a mandatory `required-checks.txt` gate.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  dogfood-parity-bash:
+    name: Dogfood content + mode parity (bash)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+
+      - name: validate.sh --strict — tracked dogfood matches source (content + git mode)
+        run: bash scripts/validate.sh --target . --strict
+
+  dogfood-parity-powershell:
+    name: Dogfood content + mode parity (PowerShell)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+
+      - name: validate.ps1 -Strict — tracked dogfood matches source (content + git mode)
+        shell: pwsh
+        run: pwsh -File scripts/validate.ps1 -Target . -Strict
