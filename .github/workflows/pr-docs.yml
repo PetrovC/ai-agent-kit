@@ -588,6 +588,73 @@ jobs:
                                   "Codex/Antigravity ignore the field, and anything "
                                   "else is invalid for Claude too (issue #92)")
 
+          # 17. The consolidated agent-mention workflow must keep its shape:
+          #     ONE workflow holding the claude/codex/agy jobs, with the retired
+          #     duplicate (`agent-codex-agy-on-mention.yml`) staying deleted, and
+          #     the security model preserved. Both files once subscribed to
+          #     issue_comment, so every comment fired both and the non-targeted
+          #     one fully-skipped — emailing a "Run skipped" notification. A
+          #     regression here would resurrect that noise or quietly weaken the
+          #     comment-trigger security boundary (least-privilege permissions,
+          #     mention gate, maintainer gate, issue_comment restriction for
+          #     codex/agy).
+          import os, yaml
+          MENTION_WF = ".github/workflows/agent-on-mention.yml"
+          RETIRED_WF = ".github/workflows/agent-codex-agy-on-mention.yml"
+          if os.path.exists(RETIRED_WF):
+              errs.append(f"{RETIRED_WF}: the duplicate mention workflow must "
+                          "stay deleted — it re-introduces a second always-"
+                          "skipping run (and skip email) per comment")
+          if not os.path.exists(MENTION_WF):
+              errs.append(f"{MENTION_WF}: consolidated mention workflow is missing")
+          else:
+              wf = yaml.safe_load(read(MENTION_WF))
+              # PyYAML parses the unquoted `on:` key as the boolean True.
+              triggers = set(wf.get(True, wf.get("on")) or {})
+              if triggers != {"issue_comment", "pull_request_review_comment"}:
+                  errs.append(f"{MENTION_WF}: triggers must be exactly "
+                              "issue_comment + pull_request_review_comment, got "
+                              f"{sorted(triggers)}")
+              if wf.get("permissions") != {"contents": "read"}:
+                  errs.append(f"{MENTION_WF}: top-level permissions must be "
+                              "least-privilege {contents: read}, got "
+                              f"{wf.get('permissions')}")
+              jobs = wf.get("jobs", {})
+              if set(jobs) != {"claude", "codex", "agy"}:
+                  errs.append(f"{MENTION_WF}: jobs must be exactly "
+                              f"claude/codex/agy, got {sorted(jobs)}")
+              EXPECTED_PERMS = {
+                  "claude": {"contents": "write", "pull-requests": "write",
+                             "issues": "write"},
+                  "codex": {"contents": "read", "issues": "write",
+                            "pull-requests": "write"},
+                  "agy": {"contents": "read", "issues": "write",
+                          "pull-requests": "write"},
+              }
+              MENTION = {"claude": "@claude", "codex": "@codex", "agy": "@agy"}
+              MAINTAINER = ("OWNER", "MEMBER", "COLLABORATOR")
+              for name, perms in EXPECTED_PERMS.items():
+                  job = jobs.get(name, {})
+                  if job.get("permissions") != perms:
+                      errs.append(f"{MENTION_WF}: job '{name}' permissions must "
+                                  f"be {perms}, got {job.get('permissions')}")
+                  cond = job.get("if", "")
+                  if MENTION[name] not in cond:
+                      errs.append(f"{MENTION_WF}: job '{name}' must gate on a "
+                                  f"`{MENTION[name]}` mention")
+                  if not all(a in cond for a in MAINTAINER):
+                      errs.append(f"{MENTION_WF}: job '{name}' must gate on a "
+                                  "maintainer author_association "
+                                  "(OWNER/MEMBER/COLLABORATOR)")
+                  # codex/agy reply via `gh issue comment "$ISSUE_NUMBER"`, which
+                  # has no number on review-comment events — they must restrict
+                  # to issue_comment so the retained review-comment trigger only
+                  # reaches the claude job.
+                  if name in ("codex", "agy") and \
+                          "github.event_name == 'issue_comment'" not in cond:
+                      errs.append(f"{MENTION_WF}: job '{name}' must restrict to "
+                                  "`github.event_name == 'issue_comment'`")
+
           if errs:
               print("\n".join(errs)); sys.exit(1)
           print("OK: workflow semantics valid")

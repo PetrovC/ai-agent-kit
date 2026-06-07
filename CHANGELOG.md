@@ -33,7 +33,11 @@
   writes, the maintainer (`OWNER`/`MEMBER`/`COLLABORATOR`) gate, and the
   injection-safe handling of the untrusted comment body are all preserved. Note
   added that maintainers should set GitHub Actions notifications to "failures
-  only" to suppress any residual skip emails.
+  only" to suppress any residual skip emails. A new `pr-docs.yml` semantics
+  check guards the consolidation — it asserts the duplicate workflow stays
+  deleted and that the triggers, top-level + per-job least-privilege
+  permissions, mention gate, maintainer gate, and the `issue_comment`
+  restriction for codex/agy remain intact.
 
 ## [1.22.1] - 2026-06-06
 
