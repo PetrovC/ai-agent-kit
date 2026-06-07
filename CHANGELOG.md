@@ -4,6 +4,17 @@
 
 ### Added
 
+- **`chore(governance)` — add `.github/CODEOWNERS` and document the `master`
+  branch-protection posture.** OpenSSF Scorecard flagged Branch-Protection (no
+  CODEOWNERS, administrators not included, last-push approval off) and
+  Code-Review 0. A minimal CODEOWNERS now assigns the maintainer (`@PetrovC`) as
+  default owner, with explicit ownership of the highest-risk surfaces
+  (`/scripts/`, `/.github/workflows/`, `/skills/`). `docs/ai/WORKFLOW.md` gains a
+  "Branch Protection" section describing the intended `master` posture: require
+  PRs, require the `quality-gate` status check, require up-to-date branches,
+  require Code Owners review, require last-push approval, and include
+  administrators. Applying the toggles is a human-gated GitHub Settings step
+  (Settings -> Branches), not code.
 - **`ci(dogfood)` — require dogfood content + git-mode parity in CI.**
   `validate.sh --strict` already verifies that every tracked dogfood file
   (`.claude/`, `.codex/`, `.agents/`, `.agy/`, `AGENTS.md`, `CLAUDE.md`,

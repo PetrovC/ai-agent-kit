@@ -30,6 +30,28 @@ One concern belongs in one issue. Do not group unrelated implementation work.
 - Document risks and assumptions.
 - Do not open a PR unless explicitly asked.
 
+## Branch Protection
+
+The `master` branch is protected. The intended posture below is what the
+maintainer applies in **Settings -> Branches** (GitHub settings, not code — the
+repository can only document it). Ownership is declared in
+[`.github/CODEOWNERS`](../../.github/CODEOWNERS); the protection rules make that
+ownership and the quality gate enforceable.
+
+- **Require a pull request before merging.** No direct pushes to `master`.
+- **Require approvals** (at least one) and **require review from Code Owners**,
+  so changes need sign-off from the owner declared in `.github/CODEOWNERS`.
+- **Require status checks to pass before merging** — the `quality-gate` check
+  (see [TESTING.md](./TESTING.md), "Quality gate"). It aggregates every
+  mandatory CI check in [`.github/required-checks.txt`](../../.github/required-checks.txt),
+  so a single required check stays correct as jobs are added or renamed.
+- **Require branches to be up to date before merging**, so checks run against
+  the latest `master`.
+- **Require approval of the most recent reviewable push** ("require last-push
+  approval"), so a self-approved last-minute push cannot bypass review.
+- **Do not allow bypassing the above settings** — include administrators, so the
+  rules apply to maintainers too.
+
 ## Agent Branch, Preflight, and Language Rules
 
 These rules are canonical for agent-driven work. The `CLAUDE.md`, `AGENTS.md`,
