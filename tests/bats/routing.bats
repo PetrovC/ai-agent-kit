@@ -122,6 +122,21 @@ run_selector() {
     assert_output_contains "score="
 }
 
+@test "selector: SQL Server / T-SQL task selects database skill" {
+    run_selector \
+        --task "Tune SQL Server indexes and fix the deadlock in this T-SQL stored procedure" \
+        --files "src/Infrastructure/Sql/Orders.sql,src/Infrastructure/OrdersDbContext.cs"
+    assert_success
+    assert_output_contains "database"
+}
+
+@test "selector: keyword-only SQL Server task selects database without a .sql file" {
+    run_selector \
+        --task "Optimize this T-SQL stored procedure and fix the SQL Server deadlock"
+    assert_success
+    assert_output_contains "database"
+}
+
 @test "selector: skills root exists" {
     [[ -d "$KIT_ROOT/skills" ]]
 }

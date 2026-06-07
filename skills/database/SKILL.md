@@ -10,6 +10,12 @@ paths:
   - "**/migrations/**"
   - "**/schema.prisma"
   - "**/prisma/**"
+keywords:
+  - sql server
+  - t-sql
+  - mssql
+  - sqlcmd
+  - azure sql
 allowed-tools:
   - "Bash(psql:*)"
   - "Bash(mysql:*)"
@@ -37,3 +43,11 @@ versioned, reviewed, and reversible.
 
 ## Full guidance
 Extended how-to, patterns, anti-patterns, and checklists: [`SKILL.deep.md`](SKILL.deep.md)
+
+## References
+
+Load these only when signals justify it:
+
+| Reference | Load when |
+|---|---|
+| [`references/sql-server.md`](references/sql-server.md) | Task targets Microsoft SQL Server / Azure SQL specifically. Task text mentions SQL Server, T-SQL, MSSQL, `sqlcmd`, stored procedure, clustered index, deadlock, isolation level. `**/*.sql` changes carrying an EF Core / `dotnet` signal. |

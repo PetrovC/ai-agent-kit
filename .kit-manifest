@@ -16,6 +16,7 @@
 .agents/skills/codebase-investigator/SKILL.md
 .agents/skills/database/SKILL.deep.md
 .agents/skills/database/SKILL.md
+.agents/skills/database/references/sql-server.md
 .agents/skills/dependencies/SKILL.md
 .agents/skills/dotnet/SKILL.md
 .agents/skills/dotnet/references/clean-architecture.md
@@ -98,6 +99,7 @@
 .agy/skills/code-review/SKILL.md
 .agy/skills/database/SKILL.deep.md
 .agy/skills/database/SKILL.md
+.agy/skills/database/references/sql-server.md
 .agy/skills/dependencies/SKILL.md
 .agy/skills/dotnet/SKILL.md
 .agy/skills/dotnet/references/clean-architecture.md
@@ -191,6 +193,7 @@
 .claude/skills/code-review/SKILL.md
 .claude/skills/database/SKILL.deep.md
 .claude/skills/database/SKILL.md
+.claude/skills/database/references/sql-server.md
 .claude/skills/dependencies/SKILL.md
 .claude/skills/dotnet/SKILL.md
 .claude/skills/dotnet/references/clean-architecture.md
