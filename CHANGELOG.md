@@ -4,6 +4,18 @@
 
 ### Added
 
+- **`feat(database)` — add a SQL Server / T-SQL reference (F-1, #458).** New
+  lazy-loaded `skills/database/references/sql-server.md` (with a `## Load when`
+  header, mirrored to `.claude/`, `.agents/`, `.agy/`) closes the only genuine
+  *Missing* gap from the #424 coverage audit: SQL Server had no `database`
+  coverage despite first-class `dotnet`/EF Core support. It covers T-SQL
+  specifics, SQL Server indexing/locking (clustered index, RCSI, deadlocks),
+  EF Core ↔ SQL Server mapping, migration scripting, and common pitfalls
+  (parameter sniffing, implicit conversions, scalar UDFs). The `database` skill
+  gains `keywords:` (`sql server`, `t-sql`, `mssql`, `sqlcmd`, `azure sql`) so a
+  T-SQL task routes to it even without a `.sql` file, plus a `## References`
+  section. A routing fixture (`tests/routing/fixtures/sql-server-tsql.yaml`) and
+  two `routing.bats` assertions cover activation. No new broad skill or subagent.
 - **`docs(coverage)` — add the skill/technology coverage matrix (#424).** New
   `docs/ai/SKILL_COVERAGE_MATRIX.md` audits the full skill/subskill/subagent
   surface against the stacks and technologies enumerated in #424 (backend,

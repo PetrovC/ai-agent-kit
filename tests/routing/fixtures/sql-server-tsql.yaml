@@ -1,0 +1,13 @@
+description: "SQL Server / T-SQL task activates the database skill"
+task: "Tune SQL Server indexes and fix the deadlock in this T-SQL stored procedure"
+files:
+  - "src/Infrastructure/Sql/Orders.sql"
+  - "src/Infrastructure/OrdersDbContext.cs"
+expected:
+  min_skills:
+    - database
+    - dotnet
+  excluded_skills:
+    - angular
+    - react
+  should_delegate: false
