@@ -104,7 +104,9 @@ jobs:
           fetch-depth: 0
 
       - name: Install Codex CLI (best-effort)
-        run: npm install -g @openai/codex || true
+        # Pinned for Scorecard Pinned-Dependencies; bump deliberately. Stays
+        # best-effort: a failed install degrades to the graceful-skip below.
+        run: npm install -g @openai/codex@0.137.0 || true
 
       - name: Run Codex on the mention (governance-audited)
         env:
@@ -171,7 +173,11 @@ jobs:
           fetch-depth: 0
 
       - name: Install Antigravity CLI (best-effort)
-        # Expected package name; adjust to whatever distributes the `agy` CLI.
+        # TODO: pin a version once a public `agy` CLI package exists. As of
+        # 2026-06-07 `@antigravity/agy` is a placeholder — `npm view
+        # @antigravity/agy` returns 404, so there is no published version to pin.
+        # Adjust the package name and add `@<version>` when the real CLI ships.
+        # Stays best-effort: a failed install degrades to the graceful-skip below.
         run: npm install -g @antigravity/agy || true
 
       - name: Run Antigravity on the mention (governance-audited)

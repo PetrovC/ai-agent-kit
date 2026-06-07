@@ -31,6 +31,16 @@
 
 ### Changed
 
+- **`ci` — pin the provider-CLI installs in `agent-on-mention.yml`.** OpenSSF
+  Scorecard flagged Pinned-Dependencies because the `@codex`/`@agy` jobs ran
+  floating `npm install -g` commands. The Codex install is now pinned to
+  `@openai/codex@0.137.0` (verified published on npm before committing). The
+  Antigravity install keeps its floating form with a `TODO`: as of 2026-06-07
+  `@antigravity/agy` is a placeholder — `npm view @antigravity/agy` returns 404,
+  so there is no published version to pin; the comment records the reason and
+  what to change when the real CLI ships. Both steps keep their best-effort
+  `|| true` and the existing graceful-skip behavior, and the `if:` gates,
+  maintainer gate, and env-based untrusted-body handling are unchanged.
 - **`ci` — merge the @claude and @codex/@agy mention workflows into one.**
   `agent-on-mention.yml` now holds three gated jobs (`claude`, `codex`, `agy`)
   and `agent-codex-agy-on-mention.yml` is deleted. Both files previously
