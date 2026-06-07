@@ -137,7 +137,7 @@ need appears (per #424: "do not optimize for trendy technologies").
 Each item below has a reason and an expected routing trigger, per #424. None are
 implemented here — that is out of scope for the audit issue.
 
-### F-1 — SQL Server / T-SQL reference under `database` (recommended)
+### F-1 — SQL Server / T-SQL reference under `database` (recommended) — [#458](https://github.com/PetrovC/ai-agent-kit/issues/458)
 
 - **Type:** `references/` subskill, not a new skill.
 - **Reason:** `database` enumerates Postgres, MySQL, SQLite, MongoDB, Redis but
@@ -149,7 +149,7 @@ implemented here — that is out of scope for the audit issue.
   header, plus a routing fixture asserting the `database` skill activates on a
   SQL Server task. Metadata + fixture required (per `SKILL_METADATA.md`).
 
-### F-2 — Cloud provider notes in `infrastructure` deep (optional, doc-only)
+### F-2 — Cloud provider notes in `infrastructure` deep (optional, doc-only) — [#459](https://github.com/PetrovC/ai-agent-kit/issues/459)
 
 - **Type:** Documentation only — extend `infrastructure/SKILL.deep.md`.
 - **Reason:** Azure/AWS/GCP appear only lightly; no separate skills wanted (see
@@ -157,7 +157,7 @@ implemented here — that is out of scope for the audit issue.
   (managed identities, IAM least-privilege, regions/cost) anchored to IaC.
 - **Routing trigger:** no new trigger — rides existing `infrastructure` activation.
 
-### F-3 — Legacy / modernization guidance (optional, doc-only)
+### F-3 — Legacy / modernization guidance (optional, doc-only) — [#460](https://github.com/PetrovC/ai-agent-kit/issues/460)
 
 - **Type:** Documentation only — extend `architecture/SKILL.deep.md` or the
   `refactor` command notes.
@@ -182,7 +182,7 @@ the ingredients are largely complete. Resist adding skills ahead of real demand.
 
 - Coverage matrix listing current / missing / weak / intentionally unsupported — this document.
 - Each proposed addition has a reason and expected routing trigger — F-1..F-3.
-- Work split into follow-up issues by stack/domain — F-1..F-3 (open as issues before any implementation, per ROADMAP "Issue Requirement").
+- Work split into follow-up issues by stack/domain — [#458](https://github.com/PetrovC/ai-agent-kit/issues/458) (F-1), [#459](https://github.com/PetrovC/ai-agent-kit/issues/459) (F-2), [#460](https://github.com/PetrovC/ai-agent-kit/issues/460) (F-3).
 - No broad skill added without metadata and tests — none added here; F-1 specifies metadata + fixture.
 - Recommended implementation order — see above.
 - Docs checks pass — this is a docs-only addition.
