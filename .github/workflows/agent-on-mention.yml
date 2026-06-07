@@ -1,11 +1,43 @@
-name: Agent on mention (@claude)
+name: Agent on mention (@claude / @codex / @agy)
 
-# Lets a maintainer summon Claude on an issue or PR by commenting `@claude ...`.
-# Required secrets:
+# Lets a maintainer summon an AI agent on an issue or PR by commenting:
+#   @claude ...  -> runs anthropics/claude-code-action (Claude Pro/Max OAuth).
+#   @codex  ...  -> installs the Codex CLI and runs it non-interactively.
+#   @agy    ...  -> installs the Antigravity CLI and runs it non-interactively.
+#
+# All three live in ONE workflow so a single comment fires ONE workflow run: the
+# mentioned agent's job runs and the others skip silently inside that run (their
+# `if:` is false). Previously @claude and @codex/@agy were two separate workflows
+# both subscribed to issue_comment, so every comment triggered both and the
+# non-targeted workflow fully-skipped — and GitHub emails a "Run skipped"
+# notification for a fully-skipped run (attributed to master HEAD). Merging
+# removes that second, always-skipping run.
+#
+# Security model (do not loosen):
+#   - Maintainer-gated: each job's `if:` requires an explicit @mention AND an
+#     OWNER/MEMBER/COLLABORATOR author. On a public repo, comment-triggered jobs
+#     run with secrets, so this gate is the security boundary.
+#   - Least privilege: top-level permissions are read-only; each job widens only
+#     the scopes it needs (claude pushes branches/PRs/comments; codex/agy comment).
+#   - GitHub forbids the `secrets` context in `if:` ("workflow file issue"), so
+#     key presence is checked inside the script via env, not in the `if:`. Each
+#     codex/agy job degrades gracefully (posts a helpful comment and exits 0) when
+#     the key is missing or the CLI does not install, so a misconfigured secret
+#     never shows up as a red ✗ on the thread.
+#   - The untrusted comment body is passed via `env:` and only ever used as a
+#     single quoted CLI argument — never interpolated into a shell command (that
+#     would be a shell-injection sink).
+#
+# Required secrets (repo settings → Secrets and variables → Actions):
 #   CLAUDE_CODE_OAUTH_TOKEN - auth via your Claude Pro/Max subscription (NOT the
 #                             paid API). Generate locally with `claude setup-token`.
 #                             (Alternative: set ANTHROPIC_API_KEY for API billing
 #                             and swap the input below to anthropic_api_key.)
+#   OPENAI_API_KEY          - Codex CLI auth (for @codex).
+#   GEMINI_API_KEY          - Antigravity CLI auth (for @agy).
+#
+# The CLI install commands below are the expected package names; adjust them to
+# whatever your environment uses.
 
 on:
   issue_comment:
@@ -13,7 +45,7 @@ on:
   pull_request_review_comment:
     types: [created]
 
-# Least privilege for what the agent may need to do on the thing it was summoned on.
+# Least privilege by default; each job widens only what it needs.
 permissions:
   contents: read
 
@@ -48,3 +80,131 @@ jobs:
         with:
           # Uses your Claude Pro/Max subscription, not the paid API.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+  codex:
+    # Gate as for claude. Restricted to issue_comment events (issue and PR
+    # conversation comments) — codex/agy reply with `gh issue comment`, which
+    # needs an issue number; pull_request_review_comment events have none, so
+    # they are handled by the claude job only.
+    if: >-
+      github.event_name == 'issue_comment' &&
+      contains(github.event.comment.body, '@codex') &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'COLLABORATOR')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read       # checkout
+      issues: write        # post comments
+      pull-requests: write # comment on PR conversations
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Codex CLI (best-effort)
+        run: npm install -g @openai/codex || true
+
+      - name: Run Codex on the mention (governance-audited)
+        env:
+          # `codex exec` reads CODEX_API_KEY (NOT OPENAI_API_KEY) for API-key auth
+          # in non-interactive mode — with only OPENAI_API_KEY set it falls back to
+          # the ChatGPT login path and 401s in CI. Map the OPENAI_API_KEY secret
+          # onto CODEX_API_KEY. See https://developers.openai.com/codex/auth.
+          # Untrusted input and the secret are kept out of `if:` and out of the
+          # command line — referenced only as quoted shell variables below.
+          CODEX_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CODEX_API_KEY:-}" ]; then
+            gh issue comment "$ISSUE_NUMBER" --body \
+              "🤖 @codex run skipped: \`OPENAI_API_KEY\` is not configured in repo secrets."
+            exit 0
+          fi
+          if ! command -v codex >/dev/null 2>&1; then
+            gh issue comment "$ISSUE_NUMBER" --body \
+              "🤖 @codex run skipped: the Codex CLI did not install (adjust the install step's package name)."
+            exit 0
+          fi
+
+          # Strip everything up to and including the first @codex mention; the
+          # remainder is the prompt. COMMENT_BODY is untrusted, so it is only
+          # ever a quoted argument to `codex exec`, never eval'd by the shell.
+          prompt="${COMMENT_BODY#*@codex}"
+          prompt="$(printf '%s' "$prompt" | sed 's/^[[:space:]]*//')"
+          [ -n "$prompt" ] || prompt="Summarize this issue and suggest next steps."
+
+          # Non-interactive, read-only sandbox. Capture the real status without
+          # failing the job (the `if` swallows the exit under `set -e`).
+          if out="$(codex exec --json -s read-only "$prompt" 2>&1)"; then status=success; else status=error; fi
+
+          {
+            echo "### 🤖 Codex"
+            echo
+            echo '```'
+            printf '%s\n' "$out" | tail -c 60000
+            echo '```'
+          } > "$RUNNER_TEMP/codex-reply.md"
+          gh issue comment "$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/codex-reply.md"
+
+  agy:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      contains(github.event.comment.body, '@agy') &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'COLLABORATOR')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read       # checkout
+      issues: write        # post comments
+      pull-requests: write # comment on PR conversations
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Antigravity CLI (best-effort)
+        # Expected package name; adjust to whatever distributes the `agy` CLI.
+        run: npm install -g @antigravity/agy || true
+
+      - name: Run Antigravity on the mention (governance-audited)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GEMINI_API_KEY:-}" ]; then
+            gh issue comment "$ISSUE_NUMBER" --body \
+              "🤖 @agy run skipped: \`GEMINI_API_KEY\` is not configured in repo secrets."
+            exit 0
+          fi
+          if ! command -v agy >/dev/null 2>&1; then
+            gh issue comment "$ISSUE_NUMBER" --body \
+              "🤖 @agy run skipped: the Antigravity CLI did not install (adjust the install step's package name)."
+            exit 0
+          fi
+
+          prompt="${COMMENT_BODY#*@agy}"
+          prompt="$(printf '%s' "$prompt" | sed 's/^[[:space:]]*//')"
+          [ -n "$prompt" ] || prompt="Summarize this issue and suggest next steps."
+
+          if out="$(agy -p "$prompt" --sandbox --dangerously-skip-permissions 2>&1)"; then status=success; else status=error; fi
+
+          {
+            echo "### 🤖 Antigravity"
+            echo
+            echo '```'
+            printf '%s\n' "$out" | tail -c 60000
+            echo '```'
+          } > "$RUNNER_TEMP/agy-reply.md"
+          gh issue comment "$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/agy-reply.md"

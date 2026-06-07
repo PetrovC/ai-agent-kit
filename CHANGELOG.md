@@ -18,6 +18,27 @@
   `tests/bats/dogfood_parity.bats` proves the gate trips on a mutated dogfood
   file and stays green on a clean tree.
 
+### Changed
+
+- **`ci` — merge the @claude and @codex/@agy mention workflows into one.**
+  `agent-on-mention.yml` now holds three gated jobs (`claude`, `codex`, `agy`)
+  and `agent-codex-agy-on-mention.yml` is deleted. Both files previously
+  subscribed to `issue_comment`, so every comment fired both workflows and the
+  non-targeted one fully-skipped — which GitHub emails as a "Run skipped"
+  notification (attributed to `master` HEAD). With one workflow, a single
+  `@claude`/`@codex`/`@agy` comment produces one run where the matching job runs
+  and the others skip silently (run conclusion `success`, no email); an ordinary
+  comment produces one fully-skipped run instead of two. The security model is
+  unchanged: top-level `permissions: contents: read`, per-job least-privilege
+  writes, the maintainer (`OWNER`/`MEMBER`/`COLLABORATOR`) gate, and the
+  injection-safe handling of the untrusted comment body are all preserved. Note
+  added that maintainers should set GitHub Actions notifications to "failures
+  only" to suppress any residual skip emails. A new `pr-docs.yml` semantics
+  check guards the consolidation — it asserts the duplicate workflow stays
+  deleted and that the triggers, top-level + per-job least-privilege
+  permissions, mention gate, maintainer gate, and the `issue_comment`
+  restriction for codex/agy remain intact.
+
 ## [1.22.1] - 2026-06-06
 
 ### Fixed
