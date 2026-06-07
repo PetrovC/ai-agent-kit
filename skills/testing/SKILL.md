@@ -4,7 +4,15 @@ description: >
   Use when adding, modifying, fixing, or reviewing tests, test strategy,
   CI validation, regression coverage, test naming, or test infrastructure.
   Covers all backend languages (.NET, Python, Node, Go, Rust, Java) and
-  frontend stacks (Vue, Angular, React).
+  frontend stacks (Vue, Angular, React). Includes characterization tests as the
+  safety net for legacy / brownfield modernization.
+keywords:
+  - characterization
+  - legacy
+  - brownfield
+  - modernize
+  - modernization
+  - strangler
 allowed-tools:
   - "Bash(npm:*)"
   - "Bash(pnpm:*)"

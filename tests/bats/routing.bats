@@ -137,6 +137,13 @@ run_selector() {
     assert_output_contains "database"
 }
 
+@test "selector: legacy modernization task selects architecture and testing" {
+    run_selector --task "Modernize this legacy module with the strangler-fig pattern and characterization tests"
+    assert_success
+    assert_output_contains "architecture"
+    assert_output_contains "testing"
+}
+
 @test "selector: skills root exists" {
     [[ -d "$KIT_ROOT/skills" ]]
 }
