@@ -3,7 +3,15 @@ name: architecture
 description: >
   Use when a task affects module boundaries, layer dependencies, Clean Architecture,
   DDD, CQRS, Event Sourcing, service decomposition, bounded contexts, cross-cutting
-  concerns, or long-term maintainability decisions.
+  concerns, or long-term maintainability decisions. Also covers legacy /
+  brownfield modernization (strangler-fig, seam identification, incremental
+  decomposition).
+keywords:
+  - legacy
+  - brownfield
+  - modernize
+  - modernization
+  - strangler
 allowed-tools:
   - "Bash(git:*)"
   - "Bash(rg:*)"

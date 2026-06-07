@@ -1,0 +1,11 @@
+description: "Legacy / brownfield modernization task activates architecture + testing"
+task: "Modernize this legacy module with the strangler-fig pattern and characterization tests"
+files: []
+expected:
+  min_skills:
+    - architecture
+    - testing
+  excluded_skills:
+    - angular
+    - react
+  should_delegate: false

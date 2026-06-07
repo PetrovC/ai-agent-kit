@@ -4,6 +4,18 @@
 
 ### Added
 
+- **`docs(architecture)` — add legacy / modernization guidance (F-3, #460).**
+  Extends `skills/architecture/SKILL.deep.md` (mirrored to `.claude/`, `.agents/`,
+  `.agy/`) with a **Legacy / brownfield modernization** section: strangler-fig
+  (seam → reimplement → flip → repeat), characterization tests as the safety net
+  before refactoring, seam identification (Feathers), and incremental decomposition
+  by business capability / dependency direction (modular-monolith-first), plus an
+  anti-pattern list. To honor the audit's routing trigger the `architecture` and
+  `testing` skills gain `keywords:` (`legacy`, `brownfield`, `modernize`,
+  `modernization`, `strangler`; `testing` adds `characterization`) so a
+  modernization task routes to both. A routing fixture
+  (`tests/routing/fixtures/legacy-modernization.yaml`) and a `routing.bats`
+  assertion cover activation. No new broad skill or subagent.
 - **`docs(infrastructure)` — add cloud-provider specifics notes (F-2, #459).**
   Extends `skills/infrastructure/SKILL.deep.md` (mirrored to `.claude/`,
   `.agents/`, `.agy/`) with an IaC-first **Cloud provider specifics** section

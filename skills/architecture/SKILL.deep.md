@@ -252,6 +252,65 @@ When the project uses multiple bounded contexts:
 
 ---
 
+## Legacy / brownfield modernization
+
+Most real work is on systems that already exist. You rarely get to rewrite — and a
+big-bang rewrite is the highest-risk option, because it freezes feature work and
+bets everything on a single cut-over. Prefer **incremental, reversible** moves that
+keep the system shippable at every step.
+
+### Strangler fig
+
+Grow the new system around the old one and let it take over route by route, rather
+than replacing everything at once.
+
+1. Put a **seam** in front of the legacy system (a façade, a gateway, a router) so
+   callers go through one place you control.
+2. Reimplement **one capability** behind that seam in the new design.
+3. Flip that route to the new path (feature flag / routing rule). Keep the old path
+   warm so you can flip back instantly.
+4. Repeat until nothing routes to the legacy code, then delete it.
+
+Each step is small, shippable, and reversible. The old and new systems run side by
+side; you are never mid-rewrite with nothing working.
+
+### Characterization tests first
+
+Before changing legacy code you don't fully understand, pin its **current** behavior
+— bugs included — with tests. These are a safety net, not a spec: they assert "what
+it does today" so a refactor that changes behavior fails loudly. Add them around the
+seam you are about to cut, then refactor under their cover. See the
+[`testing`](../testing/SKILL.md) skill for how to write them per stack.
+
+### Seam identification
+
+A **seam** is a place where you can change behavior without editing the code in that
+place (Michael Feathers). Find them where the legacy code touches the outside world:
+an interface, a function boundary, a DI registration, an HTTP/queue edge, a database
+call. Introduce a seam by extracting an interface or wrapping a call; that seam is
+where the new implementation plugs in and where tests substitute a fake.
+
+### Incremental decomposition
+
+- Carve the monolith along **business capability**, not technical layer — extract a
+  whole vertical slice (e.g. *invoicing*), not "all the controllers."
+- Decompose **by dependency direction**: pull out leaf modules (few inbound deps)
+  first; they're the cheapest and safest to move.
+- Keep the extracted module's data **private** behind its public interface from day
+  one (see *Modular monolith*), so a later split to a separate service is mechanical.
+- Don't jump straight to microservices. **Modular monolith first**; split out a
+  service only when an extracted module has a demonstrated independent need.
+
+### What to avoid
+
+- Big-bang rewrites with no incremental cut-over and no rollback path.
+- Refactoring legacy code with no characterization tests as a net.
+- Splitting by technical layer instead of capability — you get a distributed
+  monolith, the worst of both worlds.
+- Modernizing code nobody calls. Confirm it's live (logs, traffic) before investing.
+
+---
+
 ## Decision rule for abstractions
 
 Add an abstraction only when one of these is true:
