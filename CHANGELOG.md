@@ -50,6 +50,20 @@
   permissions, mention gate, maintainer gate, and the `issue_comment`
   restriction for codex/agy remain intact.
 
+### Fixed
+
+- **`docs(readme)` — correct two inaccurate claims to match the repo.** The
+  dogfood paragraph omitted the tracked Antigravity files and wrongly stated that
+  "Antigravity root install output ... stay ignored"; in fact `AGY.md`, `.agy/`,
+  and `.agyignore` are tracked and the `dogfood-install-policy` job in
+  `pr-versioning.yml` *requires* them tracked. They are now listed and the stale
+  clause is gone, so the README agrees with CI. The "Security posture" CodeQL
+  bullet implied CodeQL covers this repo's code; there is no CodeQL workflow and
+  CodeQL does not analyze bash/PowerShell (the bulk of the kit). It now states
+  that static analysis is PSScriptAnalyzer (`powershell.yml`) plus shell
+  validation (`pr-scripts-shell.yml`), and that GitHub code scanning / CodeQL
+  default setup, if enabled, covers only the Python helper scripts.
+
 ## [1.22.1] - 2026-06-06
 
 ### Fixed

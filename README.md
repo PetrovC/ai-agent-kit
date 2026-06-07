@@ -65,11 +65,14 @@ A reusable, versioned AI agent configuration kit for Claude Code, Codex CLI, and
 - Project context lives in `docs/ai/` inside each project — not in this kit.
 - Subagents handle noisy, exploratory, or parallel work to protect the main context window.
 
-This repository intentionally dogfoods the kit for Claude Code and Codex CLI:
-`AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, `.codex/`, `.mcp.json`,
-`.mcp.example.jsonc`, `.kit-version`, `.kit-manifest`, and `docs/ai/` are
-tracked here as project-local configuration. Antigravity root install output and
-Claude local/runtime files stay ignored.
+This repository intentionally dogfoods the kit for Claude Code, Codex CLI, and
+Antigravity CLI: `AGENTS.md`, `CLAUDE.md`, `AGY.md`, `.agents/`, `.claude/`,
+`.codex/`, `.agy/`, `.agyignore`, `.mcp.json`, `.mcp.example.jsonc`,
+`.kit-version`, `.kit-manifest`, and `docs/ai/` are tracked here as project-local
+configuration (CI requires them — see the dogfood install policy in
+`.github/workflows/pr-versioning.yml`). Claude local/runtime files
+(`CLAUDE.local.md`, `.claude/settings.local.json`, `.claude/session-log/`,
+`.claude/worktrees/`) stay ignored.
 
 ---
 
@@ -677,7 +680,7 @@ This repository uses several automated guardrails and visibility signals:
 - **OpenSSF Scorecard** — supply-chain security posture, visible in the badge above.
 - **GitHub Actions quality gate** — pull request validation (scripts, hooks, install, parity, manifest).
 - **GitHub Dependabot** — automatic dependency and GitHub Actions updates.
-- **GitHub code scanning / CodeQL** — static analysis enabled through GitHub Advanced Security default setup.
+- **Static analysis** — PSScriptAnalyzer over the PowerShell scripts (`powershell.yml`) and shell validation via `bash -n` + ShellCheck (`pr-scripts-shell.yml`); together these cover the bash/PowerShell that make up the bulk of the kit. GitHub code scanning / CodeQL, if enabled via default setup, analyzes only the Python helper scripts — it does not cover shell or PowerShell.
 - **Published security policy** — [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 - **MIT license** — open, auditable source.
 
