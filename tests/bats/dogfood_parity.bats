@@ -13,6 +13,10 @@
 
 load 'bats_helper'
 
+setup() {
+    aak_setup
+}
+
 # Export the tracked repo tree (no .git, no worktrees, no untracked runtime
 # files) into $1 so the dogfood-drift block has a full source tree to compare.
 # The drift block also enforces git-tracked MODE parity via `git ls-files -s`,
