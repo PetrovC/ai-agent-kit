@@ -4,6 +4,15 @@
 
 ### Added
 
+- **`docs(infrastructure)` — add cloud-provider specifics notes (F-2, #459).**
+  Extends `skills/infrastructure/SKILL.deep.md` (mirrored to `.claude/`,
+  `.agents/`, `.agy/`) with an IaC-first **Cloud provider specifics** section
+  covering the cross-provider concepts that recur — workload identity over
+  long-lived keys (AWS IRSA, Azure Managed Identity, GCP Workload Identity, CI
+  OIDC), IAM least privilege, regions/data residency, cost tagging and budgets,
+  and managed-over-self-hosted. Per the #424 audit there is **no new per-cloud
+  skill** (provider SDKs/consoles change too fast); the durable layer is IaC, so
+  this rides the existing `infrastructure` activation with no new routing trigger.
 - **`feat(database)` — add a SQL Server / T-SQL reference (F-1, #458).** New
   lazy-loaded `skills/database/references/sql-server.md` (with a `## Load when`
   header, mirrored to `.claude/`, `.agents/`, `.agy/`) closes the only genuine
