@@ -117,6 +117,14 @@ explicitly expands the dogfood scope. Do not track local/runtime files such as
 `.claude/settings.local.json`, `.claude/session-log/`, `.claude/worktrees/`, or
 `CLAUDE.local.md`.
 
+## Comment-mention Agents
+
+`@claude`, `@codex`, and `@agy` comments on an issue or PR are handled by the
+single `agent-on-mention.yml` workflow (three gated jobs; the non-mentioned jobs
+skip silently within one run). Maintainers should set their GitHub Actions
+notification preference to "failures only" to suppress any residual "Run
+skipped" emails.
+
 ## Public-release Hygiene
 
 Public-release hygiene is documentation and metadata work that prepares the kit
