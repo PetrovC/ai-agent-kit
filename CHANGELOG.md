@@ -4,6 +4,19 @@
 
 ### Added
 
+- **`docs(coverage)` — add the skill/technology coverage matrix (#424).** New
+  `docs/ai/SKILL_COVERAGE_MATRIX.md` audits the full skill/subskill/subagent
+  surface against the stacks and technologies enumerated in #424 (backend,
+  frontend, data, architecture, infrastructure, quality, project types). Each
+  area is rated covered / covered-distributed / weak / missing / intentionally
+  unsupported. The audit finds coverage already broad: the only genuine *Missing*
+  gap is **SQL Server / T-SQL** (no `database` coverage despite first-class
+  `dotnet`/EF Core), proposed as a lazy-loaded `database/references/` subskill
+  (F-1) with metadata + routing fixture. Two doc-only follow-ups (cloud-provider
+  specifics in `infrastructure`, legacy/modernization notes in `architecture`)
+  are recorded with reasons and routing triggers. The audit recommends **no new
+  broad skills and no new subagents**. The matrix is the deliverable for #424;
+  proposed additions ship as their own issues/PRs per the ROADMAP issue rule.
 - **`chore(governance)` — add `.github/CODEOWNERS` and document the `master`
   branch-protection posture.** OpenSSF Scorecard flagged Branch-Protection (no
   CODEOWNERS, administrators not included, last-push approval off) and
