@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`ci(dogfood)` — require dogfood content + git-mode parity in CI.**
+  `validate.sh --strict` already verifies that every tracked dogfood file
+  (`.claude/`, `.codex/`, `.agents/`, `.agy/`, `AGENTS.md`, `CLAUDE.md`,
+  `AGY.md`) matches its canonical source under `tooling/` or `skills/` — in both
+  content and git-tracked mode — but that check ran nowhere in CI, so the
+  tracked install could silently drift from source again (the class of bug PR
+  #447 fixed: a dropped `statusline.sh`, a `token-log.sh` exec-bit downgrade).
+  New workflow `pr-dogfood-parity.yml` runs `validate.sh --target . --strict`
+  (bash, Ubuntu) and `validate.ps1 -Target . -Strict` (PowerShell, Windows) on
+  every pull request; both job names are registered in
+  `.github/required-checks.txt` so the quality gate blocks a drifting PR. New
+  `tests/bats/dogfood_parity.bats` proves the gate trips on a mutated dogfood
+  file and stays green on a clean tree.
+
 ## [1.22.1] - 2026-06-06
 
 ### Fixed
