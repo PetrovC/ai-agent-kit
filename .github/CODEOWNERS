@@ -1,0 +1,18 @@
+# Code owners for ai-agent-kit.
+# Syntax: https://docs.github.com/articles/about-code-owners
+#
+# These rules require review from the maintainer before a matching change can
+# merge, once "Require review from Code Owners" is enabled on the protected
+# `master` branch (see docs/ai/WORKFLOW.md, "Branch Protection").
+
+# Default: the maintainer owns the entire repository.
+*                   @PetrovC
+
+# Lifecycle and validation scripts (install / update / uninstall / validate).
+/scripts/           @PetrovC
+
+# CI/CD and repository automation.
+/.github/workflows/ @PetrovC
+
+# Canonical skills source.
+/skills/            @PetrovC
