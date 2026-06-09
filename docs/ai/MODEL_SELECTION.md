@@ -92,7 +92,7 @@ gate: never use the strongest tier by default.
 |---|---|---|---|
 | `fast` | `claude-haiku-4-5` | `gpt-5.5` / effort=`low` | `claude-sonnet-4-6` |
 | `balanced` | `claude-sonnet-4-6` | `gpt-5.5` / effort=`medium` | `claude-sonnet-4-6` |
-| `high_reasoning` | `claude-opus-4-8` | `gpt-5.5` / effort=`high` | `claude-opus-4-8` |
+| `high_reasoning` | `claude-opus-4-8` | `gpt-5.5` / effort=`high` | `claude-opus-4-6` |
 
 Model names are defined in `config/model-policy.yaml` — update them there when
 provider model names change. Scripts read them from the policy file; nothing
@@ -106,7 +106,7 @@ When the preferred provider is unavailable, fall back in this order:
 `claude → codex → antigravity`. Fallbacks use the **same tier**.
 
 Example: architecture review (high_reasoning) with claude unavailable →
-Codex `gpt-5.5 / effort=high` → Antigravity `claude-opus-4-8`.
+Codex `gpt-5.5 / effort=high` → Antigravity `claude-opus-4-6`.
 
 ---
 

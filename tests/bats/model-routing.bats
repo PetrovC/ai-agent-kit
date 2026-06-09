@@ -120,3 +120,88 @@ run_selector() {
     [ "$status" -eq 0 ]
     assert_output_contains '"intent"'
 }
+
+# No Pester twin: this pure static check has no platform dimension.
+@test "model policy provider tiers match delegate adapter depth maps" {
+    run python3 - "$KIT_ROOT/config/model-policy.yaml" \
+        "$KIT_ROOT/tooling/shared/delegate/delegate.py" <<'PY'
+import ast
+import re
+import sys
+
+policy_path, adapter_path = sys.argv[1:]
+
+with open(adapter_path, encoding="utf-8") as adapter_file:
+    adapter_tree = ast.parse(adapter_file.read(), filename=adapter_path)
+
+map_names = {
+    "claude": "CLAUDE_MODEL_BY_DEPTH",
+    "antigravity": "ANTIGRAVITY_MODEL_BY_DEPTH",
+}
+adapter_maps = {}
+for node in adapter_tree.body:
+    if isinstance(node, ast.Assign):
+        targets = node.targets
+    elif isinstance(node, ast.AnnAssign):
+        targets = [node.target]
+    else:
+        continue
+
+    for target in targets:
+        if not isinstance(target, ast.Name):
+            continue
+        for provider, map_name in map_names.items():
+            if target.id == map_name:
+                adapter_maps[provider] = ast.literal_eval(node.value)
+
+missing_maps = sorted(set(map_names) - set(adapter_maps))
+if missing_maps:
+    print("missing adapter model map(s): " + ", ".join(missing_maps))
+    sys.exit(1)
+
+provider_tiers = {}
+current_provider = None
+in_tiers = False
+with open(policy_path, encoding="utf-8") as policy_file:
+    for raw_line in policy_file:
+        line = raw_line.split("#", 1)[0].rstrip()
+        provider_match = re.match(r"^  ([A-Za-z0-9_-]+):\s*$", line)
+        if provider_match:
+            current_provider = provider_match.group(1)
+            in_tiers = False
+            continue
+        if current_provider and re.match(r"^    tiers:\s*$", line):
+            provider_tiers[current_provider] = {}
+            in_tiers = True
+            continue
+        tier_match = re.match(
+            r"""^      (high_reasoning|balanced|fast):\s*["']?([^"'\s]+)["']?\s*$""",
+            line,
+        )
+        if in_tiers and tier_match:
+            provider_tiers[current_provider][tier_match.group(1)] = tier_match.group(2)
+
+tier_to_depth = {
+    "high_reasoning": "deep",
+    "balanced": "standard",
+    "fast": "readonly",
+}
+failed = False
+for provider in ("claude", "antigravity"):
+    for tier, depth in tier_to_depth.items():
+        policy_value = provider_tiers.get(provider, {}).get(tier)
+        adapter_value = adapter_maps[provider].get(depth)
+        if policy_value != adapter_value:
+            print(
+                f"{provider}.{tier}: policy={policy_value!r}, "
+                f"adapter[{depth}]={adapter_value!r}"
+            )
+            failed = True
+
+sys.exit(1 if failed else 0)
+PY
+    if [ "$status" -ne 0 ]; then
+        printf '%s\n' "$output"
+        return 1
+    fi
+}
