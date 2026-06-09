@@ -108,6 +108,19 @@
 
 ### Fixed
 
+- **`fix(delegate)` — surface an explicit handoff status so the adapter is no
+  longer silently fail-open (#466).** The cross-tool delegation adapter
+  (`tooling/shared/delegate/delegate.py`) returned exit 0 for success, empty
+  results, an unavailable provider CLI, and a failed provider alike, so an
+  orchestrator could not tell a usable answer from a no-op. The adapter now
+  always writes one final machine-parseable line to **stderr** —
+  `delegate-status: status=<ok|empty|skipped|error> provider=… exit_code=… summary_chars=… fallback_used=…`
+  — while preserving the fail-open exit code (still `0` on every path, as
+  `docs/ai/DELEGATION.md` documents). `ok` = provider exited 0 with a non-empty
+  summary; `empty` = exited 0 but produced nothing; `skipped` = exit 127 (CLI
+  unavailable); `error` = any other non-zero exit (including timeout 124). The
+  contract is documented in `docs/ai/DELEGATION.md`, and the bats/Pester suites
+  gain a test per outcome.
 - **`fix(delegate)` — align the Antigravity high-reasoning model ID with the
   runtime adapter and guard against future drift (#467).** `config/model-policy.yaml`
   listed the Antigravity `high_reasoning` model as `claude-opus-4-8`, but

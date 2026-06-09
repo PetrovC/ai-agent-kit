@@ -22,7 +22,9 @@ Design constraints (all enforced here):
     rules never drift from the audit boundary.
   - Fail-open: a privacy rejection, a missing/failing provider CLI, or an audit
     emission failure never raises out of the adapter. Delegation is optional, so
-    a failure leaves the orchestrator's default behavior unchanged.
+    a failure leaves the orchestrator's default behavior unchanged. A final
+    status line is always emitted to stderr so outcomes remain distinguishable
+    while the fail-open exit code stays 0.
   - The orchestrator stays the verifier. This adapter only runs the provider and
     emits ``agent.selected``/``agent.invoked``/``agent.completed`` events with a
     ``provider`` field (feeding the #330 rollup and #331 findings). The mandatory
@@ -205,6 +207,20 @@ class DelegateError(Exception):
 
 def warn(message: str) -> None:
     sys.stderr.write(f"delegate: {message}\n")
+
+
+def emit_status(
+    provider: str,
+    status: str,
+    exit_code: int,
+    summary_chars: int,
+    fallback_used: bool,
+) -> None:
+    sys.stderr.write(
+        f"delegate-status: status={status} provider={provider} "
+        f"exit_code={exit_code} summary_chars={summary_chars} "
+        f"fallback_used={str(fallback_used).lower()}\n"
+    )
 
 
 def route_depth(task_type: str, risk: str) -> str:
@@ -569,6 +585,7 @@ def delegate(args: argparse.Namespace) -> int:
             f"provider '{provider}' exited {exit_code} (fail-open); "
             f"{stderr.strip()[:200]}"
         )
+        status = "skipped" if exit_code == 127 else "error"
         emit(
             audit_cfg, source_root, run_id, "agent.completed", "subagent",
             {
@@ -582,6 +599,7 @@ def delegate(args: argparse.Namespace) -> int:
             },
             invocation_id,
         )
+        emit_status(provider, status, exit_code, 0, fallback_used)
         return 0
 
     if provider == "codex":
@@ -619,6 +637,8 @@ def delegate(args: argparse.Namespace) -> int:
 
     # The (sanitized) provider answer goes to stdout for the orchestrator to
     # read and verify at its mandatory checkpoint.
+    status = "empty" if not emitted_summary.strip() else "ok"
+    emit_status(provider, status, 0, len(emitted_summary), fallback_used)
     print(emitted_summary)
     return 0
 
