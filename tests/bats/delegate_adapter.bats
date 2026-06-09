@@ -116,6 +116,7 @@ delegate() {
         --run-id run_deleg_high
     assert_success
     assert_output_contains "Stub review complete"
+    assert_output_contains "delegate-status: status=ok"
     run cat "$STUB_RECORD"
     assert_output_contains "exec"
     assert_output_contains "gpt-5.5"
@@ -219,6 +220,28 @@ STUB
     # Codex quota errors are fail-open: adapter returns 0 even on provider failure.
 }
 
+@test "delegate reports an empty provider summary" {
+    cat > "$BIN/codex" <<'STUB'
+#!/usr/bin/env bash
+exit 0
+STUB
+    chmod +x "$BIN/codex"
+    delegate --provider codex --task-type other --risk low --run-id run_deleg_empty
+    assert_success
+    assert_output_contains "delegate-status: status=empty"
+}
+
+@test "delegate reports a skipped provider" {
+    cat > "$BIN/codex" <<'STUB'
+#!/usr/bin/env bash
+exit 127
+STUB
+    chmod +x "$BIN/codex"
+    delegate --provider codex --task-type other --risk low --run-id run_deleg_skipped
+    assert_success
+    assert_output_contains "delegate-status: status=skipped"
+}
+
 @test "delegate is fail-open when the provider CLI fails" {
     # The provider exits non-zero: the adapter must not crash; it records an
     # error completion and returns 0 so the orchestrator is undisturbed. A
@@ -231,5 +254,6 @@ STUB
     chmod +x "$BIN/codex"
     delegate --provider codex --task-type other --risk low --run-id run_deleg_fail
     assert_success
+    assert_output_contains "delegate-status: status=error"
     # Provider failure is fail-open: adapter returns 0 so the orchestrator is undisturbed.
 }

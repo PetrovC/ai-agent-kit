@@ -65,6 +65,16 @@ Describe "Cross-tool delegation adapter" {
             [System.IO.File]::WriteAllText((Join-Path $script:Bin "codex.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
         }
 
+        function Write-EmptyCodexStub {
+            $cmd = @('@echo off', 'exit /b 0') -join "`r`n"
+            [System.IO.File]::WriteAllText((Join-Path $script:Bin "codex.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
+        }
+
+        function Write-SkippedCodexStub {
+            $cmd = @('@echo off', 'exit /b 127') -join "`r`n"
+            [System.IO.File]::WriteAllText((Join-Path $script:Bin "codex.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
+        }
+
         # An agy stub that simulates quota exhaustion on the primary (Sonnet) model:
         # exits non-zero with a 429-like error so the adapter's fallback path fires,
         # then succeeds when the fallback model (gemini-3.1-pro) is set.
@@ -132,6 +142,7 @@ Describe "Cross-tool delegation adapter" {
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "security_review", "-Risk", "high", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_high")
         Assert-AakSuccess $result
         Assert-AakOutputContains $result "Stub review complete"
+        Assert-AakOutputContains $result "delegate-status: status=ok"
         $argv = Get-Content -Raw $script:StubRecord
         if (-not $argv.Contains("model_reasoning_effort=high")) { throw "expected high effort in argv: $argv" }
         if (-not $argv.Contains("read-only")) { throw "expected read-only sandbox in argv: $argv" }
@@ -214,12 +225,27 @@ Describe "Cross-tool delegation adapter" {
         # Audit event emission removed (#408) — emit() is now a no-op.
     }
 
+    It "reports an empty provider summary" {
+        Write-EmptyCodexStub
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "other", "-Risk", "low", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_empty")
+        Assert-AakSuccess $result
+        Assert-AakOutputContains $result "delegate-status: status=empty"
+    }
+
+    It "reports a skipped provider" {
+        Write-SkippedCodexStub
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "other", "-Risk", "low", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_skipped")
+        Assert-AakSuccess $result
+        Assert-AakOutputContains $result "delegate-status: status=skipped"
+    }
+
     It "is fail-open when the provider CLI fails" {
         # The provider exits non-zero: the adapter must not crash; it records an
         # error completion and returns 0 so the orchestrator is undisturbed.
         Write-FailingCodexStub
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "other", "-Risk", "low", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_missing")
         Assert-AakSuccess $result
+        Assert-AakOutputContains $result "delegate-status: status=error"
         # Provider failure is fail-open: adapter returns 0 so the orchestrator is undisturbed.
         # Audit event emission removed (#408) — emit() is now a no-op.
     }

@@ -141,6 +141,22 @@ behavior:
 - a privacy rejection skips the call and returns 0;
 - a missing or failing provider CLI is logged/warned about and returns 0.
 
+The adapter always writes exactly one final machine-parseable status line to
+**stderr**, while preserving the fail-open exit code:
+
+```text
+delegate-status: status=<ok|empty|skipped|error> provider=<p> exit_code=<n> summary_chars=<n> fallback_used=<true|false>
+```
+
+- `ok`: the provider exited 0 and the extracted summary is non-empty.
+- `empty`: the provider exited 0 but the extracted summary is empty or whitespace.
+- `skipped`: the provider exited 127 because its CLI was unavailable or not executable.
+- `error`: any other non-zero provider exit, including timeout exit 124.
+
+An orchestrator should parse this line to distinguish a usable result from an
+empty, skipped, or failed handoff; it must not use the adapter exit code for
+that distinction.
+
 ## Rollback
 
 Every piece is opt-in. Remove `.ai-agent-kit/delegate/` (or simply never call
