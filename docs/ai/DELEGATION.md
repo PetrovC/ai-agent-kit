@@ -77,7 +77,7 @@ provider-specific model/effort. See [MODEL_ROUTING.md](./MODEL_ROUTING.md).
 
 | Depth | When | Codex (`gpt-5.5`) effort | Antigravity model hint | Claude model |
 |---|---|---|---|---|
-| `deep` | security/architecture/review/investigation, or `high`/`critical` risk | `model_reasoning_effort=high` | `claude-opus-4-8` | `claude-opus-4-8` |
+| `deep` | security/architecture/review/investigation, or `high`/`critical` risk | `model_reasoning_effort=high` | `claude-opus-4-6` | `claude-opus-4-8` |
 | `standard` | everyday implementation | `model_reasoning_effort=medium` | `claude-sonnet-4-6` | `claude-sonnet-4-6` |
 | `readonly` | mechanical / exploration / lookup | `model_reasoning_effort=low` | `claude-sonnet-4-6` | `claude-haiku-4-5` |
 

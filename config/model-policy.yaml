@@ -24,7 +24,7 @@ providers:
     tiers:
       fast: "claude-sonnet-4-6"
       balanced: "claude-sonnet-4-6"
-      high_reasoning: "claude-opus-4-8"
+      high_reasoning: "claude-opus-4-6"
 
 # Intent definitions.
 # The script matches keywords (case-insensitive substring) against --task text.

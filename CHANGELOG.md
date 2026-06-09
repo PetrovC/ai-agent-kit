@@ -108,6 +108,20 @@
 
 ### Fixed
 
+- **`fix(delegate)` — align the Antigravity high-reasoning model ID with the
+  runtime adapter and guard against future drift (#467).** `config/model-policy.yaml`
+  listed the Antigravity `high_reasoning` model as `claude-opus-4-8`, but
+  Antigravity only exposes Opus **4.6** — the runtime adapter
+  (`tooling/shared/delegate/delegate.py`, `ANTIGRAVITY_MODEL_BY_DEPTH["deep"]`)
+  correctly uses `claude-opus-4-6`. The policy entry is corrected (the Claude
+  provider stays `claude-opus-4-8`), and the same stale ID is fixed in the
+  human-companion docs (`docs/ai/MODEL_SELECTION.md`, `docs/ai/DELEGATION.md`). A
+  new static consistency guard in `tests/bats/model-routing.bats` parses both the
+  policy file and the adapter's model maps (via `ast`, without importing the
+  module) and fails if any provider's policy tier disagrees with the adapter depth
+  it maps to (`high_reasoning↔deep`, `balanced↔standard`, `fast↔readonly`), for
+  both Claude and Antigravity; `pr-routing.yml` now also runs on `delegate.py`
+  changes so adapter-side drift is caught too.
 - **`fix(delegate)` — delegation egress redacts secrets instead of blocking, and
   closes the AWS / fine-grained-GitHub gap (#464).** The cross-tool delegation
   privacy gate (`tooling/shared/delegate/delegate.py`) matched a weaker pattern

@@ -8,6 +8,7 @@ on:
       - 'scripts/select-model.py'
       - 'skills/**'
       - 'config/model-policy.yaml'
+      - 'tooling/shared/delegate/delegate.py'
       - 'tests/routing/**'
       - 'tests/bats/routing.bats'
       - 'tests/bats/model-routing.bats'
