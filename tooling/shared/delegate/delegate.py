@@ -44,6 +44,21 @@ import subprocess
 import sys
 from typing import Any
 
+_DELEGATE_DIR = pathlib.Path(__file__).resolve().parent
+if str(_DELEGATE_DIR) not in sys.path:
+    sys.path.insert(0, str(_DELEGATE_DIR))
+
+try:
+    from sanitize_patterns import is_safe, redact_text
+except ImportError:
+    def redact_text(value: str) -> tuple[str, int]:
+        """Fallback redaction when the canonical module is unavailable."""
+        return _UNSAFE_PATTERNS.subn("[REDACTED_SENSITIVE_VALUE]", value)
+
+    def is_safe(value: str) -> bool:
+        """Fallback check when the canonical module is unavailable."""
+        return _UNSAFE_PATTERNS.search(value) is None
+
 # --- Audit runtime removed ------------------------------------------------
 SCHEMA_VERSION = "0.1.0"
 DEFAULT_TIMEOUT_SECONDS = 600
@@ -408,7 +423,7 @@ _UNSAFE_PATTERNS = _re.compile(
 
 def safe_text(value: str) -> bool:
     """True when the text contains no obvious secrets or absolute paths."""
-    return _UNSAFE_PATTERNS.search(value) is None
+    return is_safe(value)
 
 
 def load_audit_config(config_path: str | None):
@@ -483,15 +498,13 @@ def delegate(args: argparse.Namespace) -> int:
     if not brief.strip():
         raise DelegateError("--brief-file is empty")
 
-    # Sanitize the brief BEFORE it ever reaches the external CLI. A failure here
-    # is fail-open: we refuse to send the brief but do not disturb the
-    # orchestrator (it can retry with a sanitized brief).
-    if not safe_text(brief):
+    # Sanitize the brief BEFORE it ever reaches the external CLI.
+    brief, brief_substitutions = redact_text(brief)
+    if brief_substitutions:
         warn(
-            "brief failed the privacy scan (path/URL/secret-like content); "
-            "delegation skipped, nothing was sent to the provider"
+            f"brief contained {brief_substitutions} sensitive value(s); "
+            "redacted before delegation"
         )
-        return 0
 
     depth = route_depth(args.task_type, risk)
     model_tier = TIER_BY_DEPTH[depth]
@@ -580,14 +593,14 @@ def delegate(args: argparse.Namespace) -> int:
     else:  # pragma: no cover - argparse restricts the choices
         summary = stdout.strip()
 
-    # Sanitize the summary BEFORE it is printed or recorded. If it carries
-    # path/URL/secret-like content, redact it rather than leak it.
-    redacted = not safe_text(summary)
+    # Sanitize the summary BEFORE it is printed or recorded.
+    emitted_summary, summary_substitutions = redact_text(summary)
+    redacted = summary_substitutions > 0
     if redacted:
-        warn("provider summary failed the privacy scan; redacting it")
-        emitted_summary = "[redacted: summary failed privacy scan]"
-    else:
-        emitted_summary = summary
+        warn(
+            f"provider summary contained {summary_substitutions} sensitive "
+            "value(s); redacted"
+        )
 
     emit(
         audit_cfg, source_root, run_id, "agent.completed", "subagent",

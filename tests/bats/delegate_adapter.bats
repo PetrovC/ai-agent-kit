@@ -175,14 +175,19 @@ delegate() {
     assert_failure
 }
 
-@test "delegate skips delegation when the brief contains a secret-like token" {
-    # Regression guard: safe_text() must catch obvious API-key patterns.
-    # Uses the built-in regex check (no audit_runtime needed).
-    printf 'leaked secret sk-ABCDEFGHIJKLMNOPqrstuvwx here\n' > "$BRIEF"
+@test "delegate redacts secret-like tokens in the brief and still delegates" {
+    secret="sk-ABCDEFGHIJKLMNOPqrstuvwx"
+    printf 'leaked secret %s here\n' "$secret" > "$BRIEF"
     rm -f "$STUB_RECORD"
     delegate --provider codex --task-type other --risk low --run-id run_deleg_priv
     assert_success
-    assert_file_missing "$STUB_RECORD"
+    run test -f "$STUB_RECORD"
+    assert_success
+    recorded="$(cat "$STUB_RECORD")"
+    run grep -Fq "[REDACTED_" <<< "$recorded"
+    assert_success
+    run grep -Fq "$secret" <<< "$recorded"
+    assert_failure
 }
 
 @test "delegate retries with Gemini fallback when Antigravity Sonnet quota is exhausted" {

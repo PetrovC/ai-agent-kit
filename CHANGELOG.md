@@ -108,6 +108,20 @@
 
 ### Fixed
 
+- **`fix(delegate)` — delegation egress redacts secrets instead of blocking, and
+  closes the AWS / fine-grained-GitHub gap (#464).** The cross-tool delegation
+  privacy gate (`tooling/shared/delegate/delegate.py`) matched a weaker pattern
+  set than `scripts/sanitize.sh`, so an AWS access key (`AKIA…`) or a fine-grained
+  GitHub token (`github_pat_…`) in a brief could reach a third-party CLI, and the
+  gate blocked-or-allowed the whole brief rather than redacting it. A new canonical
+  module `tooling/shared/delegate/sanitize_patterns.py` is now the single source of
+  truth for egress redaction — covering AWS keys, classic and fine-grained GitHub
+  tokens, bearer tokens, private RFC1918 IPs, internal hostnames, secret key/value
+  pairs, and OpenAI/GitLab keys — and the brief is **redacted** (not skipped)
+  before it is sent, with the provider summary redacted by the same function.
+  `scripts/sanitize.{sh,ps1}` gain the matching OpenAI/GitLab token rules, and a
+  new `tests/bats/sanitize_parity.bats` proves the standalone sanitizer and the
+  egress redact the same secret categories.
 - **`docs(readme)` — correct two inaccurate claims to match the repo.** The
   dogfood paragraph omitted the tracked Antigravity files and wrongly stated that
   "Antigravity root install output ... stay ignored"; in fact `AGY.md`, `.agy/`,
