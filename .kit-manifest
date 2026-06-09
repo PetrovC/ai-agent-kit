@@ -148,6 +148,7 @@
 .ai-agent-kit/delegate/delegate.ps1
 .ai-agent-kit/delegate/delegate.py
 .ai-agent-kit/delegate/delegate.sh
+.ai-agent-kit/delegate/sanitize_patterns.py
 .claude/agents/architect.md
 .claude/agents/code-reviewer.md
 .claude/agents/codebase-investigator.md

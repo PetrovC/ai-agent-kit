@@ -10,6 +10,7 @@ if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" 
 #   - email addresses
 #   - URL-embedded credentials
 #   - GitHub tokens
+#   - OpenAI / GitLab API tokens
 #   - bearer tokens
 #   - AWS access key IDs
 #   - private RFC1918 IPv4 addresses
@@ -63,6 +64,8 @@ sanitize_stream() {
         -e 's#(https?://)[^/@[:space:]]+:[^/@[:space:]]+@#\1[REDACTED_CREDENTIALS]@#g' \
         -e 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/[REDACTED_EMAIL]/g' \
         -e 's/\b(gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/[REDACTED_GITHUB_TOKEN]/g' \
+        -e 's/\bsk-[A-Za-z0-9]{20,}/[REDACTED_API_KEY]/g' \
+        -e 's/\bglpat-[A-Za-z0-9-]{20,}/[REDACTED_GITLAB_TOKEN]/g' \
         -e 's/\b(Bearer[[:space:]]+)[A-Za-z0-9._-]{10,}/\1[REDACTED_BEARER_TOKEN]/g' \
         -e 's/\b(AKIA|ASIA)[A-Z0-9]{16}\b/[REDACTED_AWS_ACCESS_KEY]/g' \
         -e 's/\b(10(\.[0-9]{1,3}){3}|192\.168(\.[0-9]{1,3}){2}|172\.(1[6-9]|2[0-9]|3[0-1])(\.[0-9]{1,3}){2})\b/[REDACTED_PRIVATE_IP]/g' \
