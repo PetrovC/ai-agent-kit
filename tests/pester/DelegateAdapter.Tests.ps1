@@ -179,12 +179,17 @@ Describe "Cross-tool delegation adapter" {
         if ($argv.Contains("--sandbox")) { throw "expected no --sandbox in impl argv: $argv" }
     }
 
-    It "skips delegation when the brief contains a secret-like token" {
-        # A secret-like token must never reach the provider CLI.
-        [System.IO.File]::WriteAllText($script:BriefPath, "leaked secret sk-ABCDEFGHIJKLMNOPqrstuvwx here", (New-Object System.Text.UTF8Encoding($false)))
+    It "redacts secret-like tokens in the brief and still delegates" {
+        # A secret-like token must be redacted before it reaches the provider,
+        # but delegation still proceeds with the redacted brief.
+        $secret = "sk-ABCDEFGHIJKLMNOPqrstuvwx"
+        [System.IO.File]::WriteAllText($script:BriefPath, "leaked secret $secret here", (New-Object System.Text.UTF8Encoding($false)))
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "other", "-Risk", "low", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_priv")
         Assert-AakSuccess $result
-        Assert-AakFileMissing $script:StubRecord
+        if (-not (Test-Path -LiteralPath $script:StubRecord)) { throw "expected the provider to be invoked (StubRecord missing)" }
+        $argv = Get-Content -Raw $script:StubRecord
+        if (-not $argv.Contains("[REDACTED_")) { throw "expected a redaction marker in argv: $argv" }
+        if ($argv.Contains($secret)) { throw "raw secret leaked to provider argv: $argv" }
     }
 
     It "retries with Gemini fallback when Antigravity Sonnet quota is exhausted" {

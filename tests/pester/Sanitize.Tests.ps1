@@ -87,4 +87,20 @@ Describe "sanitize.ps1 redaction coverage" {
             throw "Expected uppercase secret assignment redaction marker. Output: $($run.Output)"
         }
     }
+
+    It "redacts OpenAI API keys" {
+        $run = Invoke-SanitizeFile -Content "key sk-ABCDEFGHIJKLMNOPQRSTUVWX here"
+        Assert-AakSuccess $run.Result
+        if ($run.Output -notmatch "\[REDACTED_API_KEY\]") {
+            throw "Expected OpenAI API key redaction marker. Output: $($run.Output)"
+        }
+    }
+
+    It "redacts GitLab tokens" {
+        $run = Invoke-SanitizeFile -Content "token glpat-ABCDEFGHIJKLMNOPQRST here"
+        Assert-AakSuccess $run.Result
+        if ($run.Output -notmatch "\[REDACTED_GITLAB_TOKEN\]") {
+            throw "Expected GitLab token redaction marker. Output: $($run.Output)"
+        }
+    }
 }

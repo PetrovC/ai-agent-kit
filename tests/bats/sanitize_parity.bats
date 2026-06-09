@@ -39,7 +39,7 @@ assert_fixture_redacted() {
 }
 
 @test "sanitize.sh redacts delegation secret categories" {
-    run bash -c 'printf "%s\n" "$1" | "$2"' \
+    run bash -c 'printf "%s\n" "$1" | bash "$2"' \
         _ "$FIXTURE" "$KIT_ROOT/scripts/sanitize.sh"
     assert_success
     assert_fixture_redacted "$output"
