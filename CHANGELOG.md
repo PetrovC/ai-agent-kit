@@ -151,6 +151,16 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`fix(ci)` — quality gate no longer fails on stale cancelled duplicates (#500).**
+  The check-runs API dedupes per check suite, not per name, so a re-triggered
+  batch (e.g. the "Update branch" button cancelling a superseded run) left
+  stale `cancelled` runs on the head SHA and `quality_gate.py` failed the
+  gate even though the latest run of every check was green. `fetch_checks()`
+  now keeps only the newest run per name (max `started_at`, tiebreak `id`) —
+  the "latest run counts" semantics branch protection applies. New
+  `tests/bats/quality_gate.bats` (6 pure-function tests, no `gh`/network);
+  `pr-bats.yml` now also triggers on the script itself.
+
 - **`fix(routing)` — route plain TypeScript files to the node skill (#498).**
   The node skill's `paths:` matched `**/*.js`/`**/*.mjs`/`**/*.cjs` and
   `tsconfig*.json` but no TypeScript sources, so a backend file like

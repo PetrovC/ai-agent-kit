@@ -16,6 +16,7 @@ Inputs (env): REPO (owner/name), SHA (head commit). Lists are read from
 present must still pass. Tunables: GATE_TIMEOUT (s, default 1800), GATE_INTERVAL
 (s, default 20), GATE_NAME (this check's own name, default ``quality-gate``).
 """
+
 from __future__ import annotations
 
 import json
@@ -42,17 +43,45 @@ def read_list(path: pathlib.Path) -> list[str]:
     return out
 
 
+def latest_by_name(checks: list[dict]) -> list[dict]:
+    """Keep only the newest run per check name (#500).
+
+    The check-runs API dedupes per check suite, not per name: a re-triggered
+    batch (e.g. "Update branch" cancelling a superseded run) leaves stale
+    cancelled runs from the old suite on the same SHA. Only the most recent
+    run of each name counts — the same semantics branch protection applies
+    to required status checks.
+    """
+    newest: dict[str, dict] = {}
+
+    def run_key(c: dict) -> tuple[str, int]:
+        return (c.get("started_at") or "", c.get("id") or 0)
+
+    for c in checks:
+        name = c.get("name")
+        prev = newest.get(name)
+        if prev is None or run_key(c) > run_key(prev):
+            newest[name] = c
+    return list(newest.values())
+
+
 def fetch_checks(repo: str, sha: str) -> list[dict]:
-    """Return the check-runs for a commit, excluding this gate itself."""
+    """Return the latest check-run per name for a commit, excluding this gate."""
     result = subprocess.run(
         [
-            "gh", "api", "-H", "Accept: application/vnd.github+json",
+            "gh",
+            "api",
+            "-H",
+            "Accept: application/vnd.github+json",
             f"repos/{repo}/commits/{sha}/check-runs?per_page=100",
         ],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     )
     data = json.loads(result.stdout or "{}")
-    return [c for c in data.get("check_runs", []) if c.get("name") != SELF]
+    runs = [c for c in data.get("check_runs", []) if c.get("name") != SELF]
+    return latest_by_name(runs)
 
 
 def all_settled(checks: list[dict], mandatory: list[str]) -> bool:
@@ -63,9 +92,7 @@ def all_settled(checks: list[dict], mandatory: list[str]) -> bool:
     return all(c.get("status") == "completed" for c in checks)
 
 
-def evaluate(
-    checks: list[dict], mandatory: list[str], ignore: list[str]
-) -> list[str]:
+def evaluate(checks: list[dict], mandatory: list[str], ignore: list[str]) -> list[str]:
     """Return a list of failure reasons; empty means the gate passes."""
     names = {c.get("name") for c in checks}
     ignore_set = set(ignore)
