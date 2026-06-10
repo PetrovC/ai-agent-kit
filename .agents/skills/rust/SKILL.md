@@ -11,6 +11,21 @@ paths:
 allowed-tools:
   - "Bash(cargo:*)"
 version: "1.0.0"
+keywords:
+  - rust
+  - cargo
+  - tokio
+  - lifetime
+  - borrow checker
+  - crate
+  - clippy
+  - axum
+  - sqlx
+task_intents:
+  - implement
+  - fix
+  - refactor
+  - review
 ---
 
 # Rust Skill

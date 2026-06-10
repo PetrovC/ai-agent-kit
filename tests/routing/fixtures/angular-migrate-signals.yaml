@@ -1,0 +1,10 @@
+description: "Angular signals migration must not pull dotnet via bare 'migrate' (#484)"
+task: "Migrate Angular component to signals and standalone"
+files:
+  - "src/app/user.component.ts"
+expected:
+  min_skills:
+    - angular
+  excluded_skills:
+    - dotnet
+  should_delegate: false

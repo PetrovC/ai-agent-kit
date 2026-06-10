@@ -174,6 +174,30 @@ run_selector() {
     assert_output_contains "godot"
 }
 
+@test "selector: keyword-only rust task selects rust (#484)" {
+    run_selector --task "Fix lifetime error in async tokio handler"
+    assert_success
+    assert_output_contains "rust"
+    refute_output_contains "dotnet"
+}
+
+@test "selector: angular signals migration does not pull dotnet (#484)" {
+    run_selector \
+        --task "Migrate Angular component to signals and standalone" \
+        --files "src/app/user.component.ts"
+    assert_success
+    assert_output_contains "angular"
+    refute_output_contains "dotnet"
+}
+
+@test "selector: ef schema migration still routes data-migration to dotnet (#484)" {
+    run_selector \
+        --task "Add an EF Core migration for the orders schema" \
+        --files "src/Orders/Data/AppDbContext.cs"
+    assert_success
+    assert_output_contains "dotnet"
+}
+
 @test "selector: rust gdext task selects godot and rust" {
     run_selector \
         --task "Expose a Rust gdext pathfinding node to GDScript via GDExtension" \
