@@ -108,6 +108,22 @@
 
 ### Fixed
 
+- **`fix(routing)` — stop the `architecture` skill under-routing deep greenfield
+  prompts (#468).** A textbook Clean-Architecture / DDD prompt ("clean
+  architecture boundaries, aggregate consistency, bounded context") scored the
+  `architecture` skill at 0 and was never selected, because the offline selector
+  (`scripts/select-skills.py`) scores `keywords` but not `description`, and the
+  skill's `keywords` only held the legacy/brownfield terms. The `architecture`
+  skill (`skills/architecture/SKILL.md`, mirrored to `.claude/`, `.agents/`,
+  `.agy/`) gains the greenfield vocabulary as keywords (`clean architecture`,
+  `ddd`, `domain-driven design`, `cqrs`, `aggregate`, `value object`,
+  `bounded context`, `event sourcing`, `hexagonal`, `ports and adapters`), so the
+  prompt now selects `architecture` (score 3). Because the skill has no
+  `task_intents`/`paths`, a lone incidental keyword (e.g. "aggregate" in a .NET
+  task) stays at score 1, below the selection threshold, so backend routing is
+  unchanged. A routing fixture
+  (`tests/routing/fixtures/clean-architecture-greenfield.yaml`) and a
+  `routing.bats` assertion cover activation.
 - **`fix(delegate)` — make the Antigravity (`agy`) handoff functional: select the
   model per call and parse JSON output (#465).** A live test showed Antigravity
   delegation returning empty stdout and silently running the wrong model: the

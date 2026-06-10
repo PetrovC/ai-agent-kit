@@ -12,6 +12,16 @@ keywords:
   - modernize
   - modernization
   - strangler
+  - clean architecture
+  - ddd
+  - domain-driven design
+  - cqrs
+  - aggregate
+  - value object
+  - bounded context
+  - event sourcing
+  - hexagonal
+  - ports and adapters
 allowed-tools:
   - "Bash(git:*)"
   - "Bash(rg:*)"
