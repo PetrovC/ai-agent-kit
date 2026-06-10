@@ -84,6 +84,7 @@ Match the task domain to the skill name — full descriptions live in each skill
 
 Backends: `$dotnet` · `$java-kotlin` · `$python` · `$node` · `$go` · `$rust`  
 Frontends: `$angular` · `$vue` · `$svelte` · `$react` · `$mobile-rn` · `$mobile-flutter`  
+Game: `$godot`  
 Data/Infra: `$database` · `$infrastructure` · `$api-design` · `$graphql`  
 Quality: `$architecture` · `$testing` · `$code-review` · `$security` · `$dependencies` · `$github-workflow`  
 Ops/X-cut: `$observability` · `$messaging` · `$error-handling` · `$monorepo` · `$accessibility` · `$i18n` · `$ai-dev` · `$performance` · `$release-management`
