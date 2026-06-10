@@ -124,6 +124,14 @@
 
 ### Fixed
 
+- **`fix(delegate)` — gate `--dangerously-skip-permissions` on `write_mode` for
+  Antigravity (#476).** `build_antigravity_argv` appended the flag
+  unconditionally — even for read-only depth — while `build_claude_argv` gates
+  it on `write_mode`. Read-only Antigravity delegations now run with
+  `--sandbox` only; implementation tasks keep the flag. The read-only routing
+  tests now assert the flag is absent, and a regression test was added to both
+  suites (bats + Pester).
+
 - **`fix(routing)` — stop the `architecture` skill under-routing deep greenfield
   prompts (#468).** A textbook Clean-Architecture / DDD prompt ("clean
   architecture boundaries, aggregate consistency, bounded context") scored the
