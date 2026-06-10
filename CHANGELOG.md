@@ -4,6 +4,13 @@
 
 ### Added
 
+- **`feat(delegate)` — `AAK_DEBUG` surfaces the resolved depth & model (#477).**
+  With `AAK_DEBUG` set (per the #305 convention, `0`/`false` mean off),
+  `delegate.py` now prints one stderr line before invoking the provider:
+  `AAK_DEBUG provider=… task_type=… risk=… depth=… tier=… model=…
+  write_mode=…` (plus `effort=…` for Codex). Covered by three bats tests and
+  two Pester twins; documented in `docs/ai/PROVIDER_PARITY.md`.
+
 - **`feat(godot)` — add a Godot 4.x skill with a Rust GDExtension reference (#483).**
   New `skills/godot/SKILL.md` (typed GDScript, scene composition and
   "call down, signal up", autoloads, physics callbacks, GUT/gdUnit4 testing,

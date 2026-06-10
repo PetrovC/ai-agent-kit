@@ -27,7 +27,7 @@ after any provider's major release** — whichever comes first.
 | **Permissions / approval** | ✅ `allow`/`deny`(/`ask`) | ✅ `approval_policy` (`on-request`) | ✅ `--approval-mode` (`default`/`auto_edit`/`yolo`) | ✅ all three |
 | **Web search** | ✅ `WebSearch` + `WebFetch` allowlist | ✅ `web_search` (`cached`) | ✅ built-in (Gemini grounding) | ⚠️ Claude domain allowlist; Codex `cached` |
 | **Cross-tool delegation** | orchestrator (`delegate.*`) | ✅ target (`codex exec`) | ✅ target (`agy -p`) | ✅ opt-in adapter (ADR-020) |
-| **Debug trace** | ✅ `AAK_DEBUG` (hooks) | ✅ `AAK_DEBUG` (hooks) | ✅ `AAK_DEBUG` (hooks) | ✅ all three (#305) |
+| **Debug trace** | ✅ `AAK_DEBUG` (hooks) | ✅ `AAK_DEBUG` (hooks) | ✅ `AAK_DEBUG` (hooks) | ✅ all three (#305); `delegate.py` prints the resolved provider/depth/model (and Codex effort) before exec (#477) |
 | **Plugins / extensions** | ✅ plugin marketplace (`.claude-plugin/`) | ❌ no marketplace | ✅ `agy plugin …` | ⚠️ Claude-only marketplace (skills slice) |
 | **Output styles** | ✅ supported | ❌ | ❌ | ❌ not used (invalid `outputStyle:"default"` — omit) |
 | **Statusline** | ✅ `statusLine` | ❌ | ❌ | ❌ not used |

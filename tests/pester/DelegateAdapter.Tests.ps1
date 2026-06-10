@@ -183,6 +183,30 @@ Describe "Cross-tool delegation adapter" {
         if (-not $argv.Contains("claude-sonnet-4-6")) { throw "expected Sonnet model in argv: $argv" }
     }
 
+    It "AAK_DEBUG=1 prints resolved provider/depth/model before exec (#477)" {
+        $env:AAK_DEBUG = "1"
+        try {
+            $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "investigation", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_dbg1")
+            Assert-AakSuccess $result
+            Assert-AakOutputContains $result "AAK_DEBUG provider=antigravity"
+            Assert-AakOutputContains $result "depth=deep"
+            Assert-AakOutputContains $result "model=claude-opus-4-6"
+        } finally {
+            Remove-Item Env:AAK_DEBUG -ErrorAction SilentlyContinue
+        }
+    }
+
+    It "AAK_DEBUG=0 keeps the delegate debug line off (#477)" {
+        $env:AAK_DEBUG = "0"
+        try {
+            $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "investigation", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_dbg0")
+            Assert-AakSuccess $result
+            if ($result.Output.Contains("AAK_DEBUG provider=")) { throw "expected no AAK_DEBUG line: $($result.Output)" }
+        } finally {
+            Remove-Item Env:AAK_DEBUG -ErrorAction SilentlyContinue
+        }
+    }
+
     It "uses workspace-write sandbox for Codex implementation tasks" {
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "codex", "-TaskType", "feat", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_codex_impl")
         Assert-AakSuccess $result
