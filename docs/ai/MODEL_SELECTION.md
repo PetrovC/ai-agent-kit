@@ -27,10 +27,11 @@ and is consumed by [`scripts/select-model.py`](#using-select-modelpy).
 | `refactor` | **balanced** | Extract a function, reorganize a module, clean up code |
 | `architecture_review` | **high_reasoning** | Review service layer boundaries, broad cross-module refactor |
 | `security_review` | **high_reasoning** | Auth/authz audit, threat model, vulnerability scan |
+| `pr_review` | **high_reasoning** | Review a pull request / diff for regressions and correctness |
 | `investigation` | **high_reasoning** | Root-cause a production incident, plan a cross-repo migration |
 | `planning` | **high_reasoning** | Release planning, ADR, tech-debt triage, technical decision |
 
-If no intent keyword matches, `implementation` (balanced) is the fallback.
+Keywords are tokenized: every token must appear in the task, in any order — "Review the proposed architecture" routes to `architecture_review` (#469). If no intent keyword matches, `implementation` (balanced) is the fallback. If classification still under-routes a task, pass `--risk high` as the manual escape hatch — it bumps the tier one step regardless of intent.
 
 ---
 

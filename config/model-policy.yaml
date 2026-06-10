@@ -27,7 +27,9 @@ providers:
       high_reasoning: "claude-opus-4-6"
 
 # Intent definitions.
-# The script matches keywords (case-insensitive substring) against --task text.
+# The script tokenizes each keyword: every token must appear in --task text,
+# in any order (word-prefix for tokens of 3+ chars, exact word for shorter
+# ones like "pr"/"ci").
 # First match wins; fallback intent is "implementation" (balanced tier).
 intents:
   - name: docs_typo
@@ -141,6 +143,15 @@ intents:
       - "cve"
       - "pentest"
     description: "Security-sensitive changes or audit."
+
+  - name: pr_review
+    tier: high_reasoning
+    keywords:
+      - "pr review"
+      - "code review"
+      - "pull request review"
+      - "review the diff"
+    description: "PR / code review — regression and correctness reasoning."
 
   - name: investigation
     tier: high_reasoning

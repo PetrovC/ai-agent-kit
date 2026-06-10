@@ -27,8 +27,10 @@ Searched in order:
 
 Algorithm
 ---------
-  1. Classify intent: iterate intents in policy order; first intent whose
-     keyword list has any case-insensitive substring match in --task wins.
+  1. Classify intent: iterate intents in policy order; first intent with a
+     matching keyword wins.  Keywords are tokenized: every token must appear
+     in the task text, in any order (word-prefix for tokens of 3+ chars,
+     exact word for shorter ones like "pr"/"ci").
      Fallback: ``implementation`` (balanced tier).
   2. Apply risk bump: look up ``risk_bumps[risk]`` (0 if absent), add to
      tier index, clamp to last tier.
@@ -266,17 +268,36 @@ def load_policy() -> dict[str, Any]:
 # Intent classification
 # ---------------------------------------------------------------------------
 
+def _keyword_matches(keyword: str, task_words: list[str]) -> bool:
+    """True when every keyword token occurs in the task, in any order.
+
+    Tokens of 3+ characters match on word prefix ("review" covers
+    "reviews"/"reviewing"); shorter tokens ("pr", "ci") require an exact
+    word so they cannot hide inside unrelated words (#469).
+    """
+    for token in keyword.lower().split():
+        if len(token) >= 3:
+            if not any(word.startswith(token) for word in task_words):
+                return False
+        elif token not in task_words:
+            return False
+    return True
+
+
 def classify_intent(task: str, policy: dict[str, Any]) -> dict[str, Any]:
     """Return the first intent whose keywords match the task text.
 
-    Matching is case-insensitive substring.  Returns the intent dict from the
-    policy (with ``name``, ``tier``, ``keywords``, ``description`` keys).
-    Falls back to a synthetic ``implementation`` intent at ``balanced`` tier.
+    Keywords are tokenized: every token must appear in the task text, in
+    any order — "architecture review" matches "Review the proposed
+    architecture" (#469).  First intent in policy order wins.  Returns the
+    intent dict from the policy (with ``name``, ``tier``, ``keywords``,
+    ``description`` keys).  Falls back to a synthetic ``implementation``
+    intent at ``balanced`` tier.
     """
-    task_lower = task.lower()
+    task_words = re.findall(r"[a-z0-9_#+.-]+", task.lower())
     for intent in policy.get("intents", []):
         for kw in intent.get("keywords", []):
-            if kw.lower() in task_lower:
+            if _keyword_matches(kw, task_words):
                 return intent
     # Fallback
     return {"name": "implementation", "tier": "balanced", "keywords": [], "description": "Default fallback."}
