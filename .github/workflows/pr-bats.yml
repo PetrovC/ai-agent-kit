@@ -7,6 +7,7 @@ on:
       - 'scripts/*.sh'
       - 'tooling/**/*.sh'
       - 'tests/bats/**'
+      - '.github/scripts/quality_gate.py'
       - '.github/workflows/pr-bats.yml'
 
 permissions:
