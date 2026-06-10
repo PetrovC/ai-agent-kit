@@ -7,6 +7,14 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Added
 
+- **`test(skills)` — eval fixtures for 6 more skills, now gated in CI (#488).**
+  `run-evals.sh` asserted real behavior for only 3 of 32 skills and ran in no
+  workflow. Added fixtures for rust, angular, database, godot (glob routing +
+  content terms) and the two path-less cross-cutting skills, architecture and
+  security (content terms + a no-paths guard against overly broad globs):
+  37 → 95 assertions. The `Offline routing eval` job now runs the suite and
+  triggers on `tests/skills/**`.
+
 - **`feat(dotnet)` — ASP.NET Core HTTP-layer reference (#485).** New
   lazy-loaded `skills/dotnet/references/aspnet-core-http.md` (`## Load when`):
   minimal APIs vs controllers with route groups and `TypedResults`,
@@ -113,6 +121,13 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Changed
 
+- **`docs(routing)` — stages 1/2/4 marked deterministic, 3/5 agent-driven (#470).**
+  `ADAPTIVE_ROUTING.md` gains a determinism callout plus an Enforcement bullet
+  per stage: intent classification, skill selection, and the delegation
+  recommendation are code (`select-skills.py`); reference loading
+  (`## Load when`) and synthesis are agent-followed prose with no code path.
+  Same clarification in `skills/README.md` (and its dogfood mirrors).
+
 - **`chore(changelog)` — archive released history older than 1.22.1 (#486).**
   `CHANGELOG.md` had grown to 261 KB (~65k tokens), a context hazard for any
   agent or release skill that opens it wholesale. It now keeps `[Unreleased]`
@@ -150,6 +165,16 @@ Older releases (1.22.0 and earlier) are archived in
   restriction for codex/agy remain intact.
 
 ### Fixed
+
+- **`ci(release)` — release assets attach loudly and get per-archive signatures (#472).**
+  v1.22.0/v1.22.1 published with zero assets while `release-checksums.yml`
+  reported success, so the README one-liner
+  (`releases/latest/download/bootstrap.sh`) 404s. The upload step now sets
+  `fail_on_unmatched_files: true` (an empty release fails the run), and cosign
+  also emits one keyless `.sigstore.json` bundle per archive next to the
+  existing `SHA256SUMS.bundle`. `docs/ai/RELEASE.md` documents the asset list
+  and the `cosign verify-blob` recipe. Closing the issue still needs a new
+  release cut by the maintainer.
 
 - **`fix(ci)` — quality gate no longer fails on stale cancelled duplicates (#500).**
   The check-runs API dedupes per check suite, not per name, so a re-triggered

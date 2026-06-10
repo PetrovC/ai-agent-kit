@@ -58,17 +58,29 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # sigstore/cosign-installer@v3
 
-      - name: Sign SHA256SUMS with cosign (keyless)
+      - name: Sign artifacts with cosign (keyless)
         run: |
+          TAG="${{ github.event.release.tag_name }}"
           cosign sign-blob --yes SHA256SUMS \
             --bundle SHA256SUMS.bundle
+          # Per-archive sigstore bundles so each download is independently
+          # verifiable (and Scorecard Signed-Releases sees signatures) (#472)
+          cosign sign-blob --yes "ai-agent-kit-${TAG}.tar.gz" \
+            --bundle "ai-agent-kit-${TAG}.tar.gz.sigstore.json"
+          cosign sign-blob --yes "ai-agent-kit-${TAG}.zip" \
+            --bundle "ai-agent-kit-${TAG}.zip.sigstore.json"
 
       - name: Upload release artifacts
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # softprops/action-gh-release@v3
         with:
+          # v1.22.0/v1.22.1 ended up with zero assets while this step reported
+          # success; fail loudly if any listed file is missing (#472)
+          fail_on_unmatched_files: true
           files: |
             ai-agent-kit-${{ github.event.release.tag_name }}.tar.gz
             ai-agent-kit-${{ github.event.release.tag_name }}.zip
+            ai-agent-kit-${{ github.event.release.tag_name }}.tar.gz.sigstore.json
+            ai-agent-kit-${{ github.event.release.tag_name }}.zip.sigstore.json
             dist/bootstrap.sh
             dist/bootstrap.ps1
             SHA256SUMS

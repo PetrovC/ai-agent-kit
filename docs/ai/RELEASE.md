@@ -84,3 +84,24 @@ Tags use the form `vA.B.C` where `A.B.C` matches the content of `VERSION` at tim
 - [WORKFLOW.md](./WORKFLOW.md) — issue-first, PR-first workflow contract.
 - [COMMANDS.md](./COMMANDS.md) — local validation commands.
 - Release-related work is tracked as GitHub issues (labels `kind:release`, `roadmap:*`); see the audit tracking epic [#308](https://github.com/PetrovC/ai-agent-kit/issues/308).
+
+## Release assets and verification
+
+Publishing a GitHub Release fires `release-checksums.yml`, which packages
+`dist/` into `ai-agent-kit-vX.Y.Z.tar.gz` / `.zip` and attaches: both
+archives, `bootstrap.sh` / `bootstrap.ps1` (so the README one-liner
+`releases/latest/download/bootstrap.sh` resolves), `SHA256SUMS`, and
+cosign keyless signatures (`SHA256SUMS.bundle` plus one `.sigstore.json`
+bundle per archive). The upload step runs with
+`fail_on_unmatched_files: true` — a release with missing assets fails the
+workflow instead of reporting an empty success (#472).
+
+Verify a downloaded archive:
+
+```bash
+sha256sum --check --ignore-missing SHA256SUMS
+cosign verify-blob "ai-agent-kit-vX.Y.Z.tar.gz" \
+  --bundle "ai-agent-kit-vX.Y.Z.tar.gz.sigstore.json" \
+  --certificate-identity-regexp "github.com/PetrovC/ai-agent-kit" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
