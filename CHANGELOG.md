@@ -4,6 +4,22 @@
 
 ### Added
 
+- **`feat(godot)` — add a Godot 4.x skill with a Rust GDExtension reference (#483).**
+  New `skills/godot/SKILL.md` (typed GDScript, scene composition and
+  "call down, signal up", autoloads, physics callbacks, GUT/gdUnit4 testing,
+  GDScript-vs-Rust boundary table) plus a lazy-loaded
+  `references/rust-gdextension.md` (`## Load when`): gdext crate setup
+  (`godot = "0.5"`, `cdylib`), class registration (`#[derive(GodotClass)]`,
+  `#[godot_api]`, interface traits), `.gdextension` descriptors, batching
+  across the FFI boundary, panic safety, and per-platform build pitfalls.
+  Mirrored to `.claude/`, `.agents/`, `.agy/` and registered in
+  `.kit-manifest`. Scope notes added: `dotnet` (Godot C# is engine code, not
+  ASP.NET Core) and `rust` (pointer to the godot skill for gdext work).
+  Routing: `**/*.gd`, `**/*.tscn`, `**/*.tres`, `**/project.godot`,
+  `**/*.gdextension` globs + engine-scoped keywords (no bare `node`/`signal`
+  to avoid colliding with node/angular). Two routing fixtures
+  (`godot-gdscript.yaml`, `godot-rust-gdext.yaml`) and three `routing.bats`
+  assertions cover activation.
 - **`docs(architecture)` — add legacy / modernization guidance (F-3, #460).**
   Extends `skills/architecture/SKILL.deep.md` (mirrored to `.claude/`, `.agents/`,
   `.agy/`) with a **Legacy / brownfield modernization** section: strangler-fig

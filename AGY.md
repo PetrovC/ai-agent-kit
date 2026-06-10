@@ -78,7 +78,7 @@ before editing. Antigravity auto-discovers skills via `description:`; this list 
 the kit's deterministic override.
 
 Backends: `.agy/skills/dotnet/SKILL.md` · `.agy/skills/java-kotlin/SKILL.md` · `.agy/skills/python/SKILL.md` · `.agy/skills/node/SKILL.md` · `.agy/skills/go/SKILL.md` · `.agy/skills/rust/SKILL.md`  
-Frontends: `.agy/skills/angular/SKILL.md` · `.agy/skills/vue/SKILL.md` · `.agy/skills/svelte/SKILL.md` · `.agy/skills/react/SKILL.md` · `.agy/skills/mobile-rn/SKILL.md` · `.agy/skills/mobile-flutter/SKILL.md`  
+Frontends/Game: `.agy/skills/angular/SKILL.md` · `.agy/skills/vue/SKILL.md` · `.agy/skills/svelte/SKILL.md` · `.agy/skills/react/SKILL.md` · `.agy/skills/mobile-rn/SKILL.md` · `.agy/skills/mobile-flutter/SKILL.md` · `.agy/skills/godot/SKILL.md`  
 Data/Infra: `.agy/skills/database/SKILL.md` · `.agy/skills/infrastructure/SKILL.md` · `.agy/skills/api-design/SKILL.md` · `.agy/skills/graphql/SKILL.md`  
 Quality: `.agy/skills/architecture/SKILL.md` · `.agy/skills/testing/SKILL.md` · `.agy/skills/code-review/SKILL.md` · `.agy/skills/security/SKILL.md` · `.agy/skills/dependencies/SKILL.md` · `.agy/skills/github-workflow/SKILL.md`  
 Ops/X-cut: `.agy/skills/observability/SKILL.md` · `.agy/skills/messaging/SKILL.md` · `.agy/skills/error-handling/SKILL.md` · `.agy/skills/monorepo/SKILL.md` · `.agy/skills/accessibility/SKILL.md` · `.agy/skills/i18n/SKILL.md` · `.agy/skills/ai-dev/SKILL.md` · `.agy/skills/performance/SKILL.md` · `.agy/skills/release-management/SKILL.md`

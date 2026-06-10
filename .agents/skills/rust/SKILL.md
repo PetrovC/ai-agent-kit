@@ -164,6 +164,16 @@ cargo audit                     # CVE check
 
 ---
 
+## Godot (gdext)
+
+For Rust inside a Godot project — GDExtension via the `godot` crate (gdext) —
+use the `godot` skill: its `references/rust-gdextension.md` covers class
+registration, `.gdextension` descriptors, per-platform builds, and the
+GDScript ↔ Rust boundary. The crate-layout and error-handling rules in this
+skill still apply to the Rust side.
+
+---
+
 ## Final response requirements
 
 Always report:
