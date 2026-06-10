@@ -11,6 +11,8 @@ Delegation is symmetrical: Claude can delegate to Codex or Antigravity, Codex
 can delegate to Claude or Antigravity, and Antigravity can delegate to Claude
 or Codex. Provider-specific behavior lives in thin adapter functions; shared
 policy (routing depth, privacy scan, fail-open contract) is never duplicated.
+Antigravity model selection is passed per call with ``-m``, and its
+``--output-format json`` response is parsed into the forwarded summary.
 
 Design constraints (all enforced here):
   - The provider CLI invocation via ``subprocess.run`` is the ONLY mockable
@@ -74,9 +76,8 @@ CODEX_MODEL = os.environ.get("AAK_DELEGATE_CODEX_MODEL", "gpt-5.5")
 # deep→high, standard→medium, readonly→low.
 CODEX_EFFORT_BY_DEPTH = {"deep": "high", "standard": "medium", "readonly": "low"}
 
-# Antigravity (agy) has a fixed picker model set, not a verified per-call model
-# flag, so the adapter passes a non-secret model HINT via the environment rather
-# than invent a `--model` flag. See docs/ai/MODEL_ROUTING.md (Antigravity CLI).
+# Antigravity (agy) accepts a per-call model via `-m` and emits structured output
+# via `--output-format json`. See docs/ai/MODEL_ROUTING.md (Antigravity CLI).
 # Available models (agy 1.0.4): Gemini 3.5 Flash (Medium/High/Low),
 # Gemini 3.1 Pro (Low/High), Claude Sonnet 4.6 (Thinking),
 # Claude Opus 4.6 (Thinking), GPT-OSS 120B (Medium).
@@ -87,11 +88,11 @@ ANTIGRAVITY_MODEL_BY_DEPTH = {
     "readonly": "claude-sonnet-4-6",
 }
 # Fallback models for Antigravity when the primary model's quota is exhausted.
-# deep:     Opus exhausted → Sonnet (still Anthropic quota, one tier down).
+# deep:     Opus exhausted → Gemini 3.1 Pro — separate Gemini quota.
 # standard: Sonnet exhausted → Gemini 3.1 Pro (High) — separate Gemini quota.
 # readonly: same as standard.
 ANTIGRAVITY_FALLBACK_BY_DEPTH = {
-    "deep": "claude-sonnet-4-6",
+    "deep": "gemini-3.1-pro",
     "standard": "gemini-3.1-pro",
     "readonly": "gemini-3.1-pro",
 }
@@ -119,12 +120,6 @@ QUOTA_EXHAUSTED_PATTERNS = (
     "too many requests",
     "429",
     "limit exceeded",
-)
-
-# The non-secret env var the hint is exported under. Configurable so a future
-# agy that reads a specific variable (or none) does not require a code change.
-ANTIGRAVITY_MODEL_ENV = os.environ.get(
-    "AAK_DELEGATE_AGY_MODEL_ENV", "ANTIGRAVITY_MODEL"
 )
 
 # Routing depth → audit model tier, so emitted events line up with the audit
@@ -311,21 +306,22 @@ def _collect_message_text(obj: dict[str, Any]) -> list[str]:
     return found
 
 
-def build_antigravity_argv(brief: str, depth: str, write_mode: bool = False) -> list[str]:
+def build_antigravity_argv(
+    brief: str, model: str, write_mode: bool = False
+) -> list[str]:
     """Build the non-interactive Antigravity invocation.
 
-    agy -p "<brief>" [--sandbox] --dangerously-skip-permissions
+    agy -m <model> -p "<brief>" --output-format json
+        [--sandbox] --dangerously-skip-permissions
 
     ``-p`` (``--print``) runs a single prompt non-interactively and prints the
-    response; ``--dangerously-skip-permissions`` auto-approves tool prompts for
-    unattended use. ``--sandbox`` restricts terminal access — it is included for
+    response as JSON; ``-m`` selects the model for this call.
+    ``--dangerously-skip-permissions`` auto-approves tool prompts for unattended
+    use. ``--sandbox`` restricts terminal access — it is included for
     analysis/review tasks but dropped when ``write_mode=True`` so the provider
-    can write files, run git, and create pull-requests. Verified against the
-    installed CLI (``agy --help``, v1.0.4): there is no per-call model flag; the
-    model is selected via Antigravity settings and passed as a non-secret env
-    hint by ``provider_env``.
+    can write files, run git, and create pull-requests.
     """
-    argv = ["agy", "-p", brief]
+    argv = ["agy", "-m", model, "-p", brief, "--output-format", "json"]
     if not write_mode:
         argv.append("--sandbox")
     argv.append("--dangerously-skip-permissions")
@@ -377,10 +373,9 @@ def extract_claude_summary(stdout: str) -> str:
 def extract_antigravity_summary(stdout: str) -> str:
     """Extract the answer from Antigravity print-mode output.
 
-    ``agy -p`` prints the response as plain text, so the common path is to return
-    the trimmed stdout. The function stays tolerant of a JSON object (pulling the
-    first string answer field) in case a future version emits one. The result is
-    privacy-scanned by the caller before it is used.
+    ``agy --output-format json`` emits a JSON object. Pull the first string
+    answer field, falling back to trimmed raw output for compatibility. The
+    result is privacy-scanned by the caller before it is used.
     """
     import json
 
@@ -397,26 +392,6 @@ def extract_antigravity_summary(stdout: str) -> str:
             if isinstance(value, str) and value.strip():
                 return value.strip()
     return text
-
-
-def provider_env(
-    provider: str,
-    depth: str,
-    model_override: str | None = None,
-) -> dict[str, str] | None:
-    """Extra process environment for the provider call, or None to inherit.
-
-    For Antigravity, export a non-secret model hint (Pro for deep work, Flash
-    otherwise). ``model_override`` replaces the depth-derived primary model —
-    used by the quota-fallback retry path to switch to a cheaper model.
-    Returns a FULL environment copy because passing ``env`` to
-    ``subprocess.run`` replaces — not augments — the child's environment, and
-    the CLI still needs PATH and its own credentials from the inherited env.
-    """
-    if provider == "antigravity":
-        model = model_override if model_override else ANTIGRAVITY_MODEL_BY_DEPTH[depth]
-        return {**os.environ, ANTIGRAVITY_MODEL_ENV: model}
-    return None  # claude and codex inherit the environment as-is
 
 
 import re as _re
@@ -460,9 +435,7 @@ def emit(
     return
 
 
-def run_provider(
-    argv: list[str], timeout: int, env: dict[str, str] | None = None
-) -> tuple[int, str, str]:
+def run_provider(argv: list[str], timeout: int) -> tuple[int, str, str]:
     """Invoke the provider CLI — the single mockable boundary. Fail-open.
 
     Returns (exit_code, stdout, stderr). A missing CLI or a timeout is reported
@@ -472,8 +445,7 @@ def run_provider(
     Windows PATHEXT: the real Codex CLI installs as ``codex.cmd`` on Windows,
     which a bare ``subprocess.run(["codex", ...])`` would not find (and could
     hang on). Resolving to None means the CLI is absent — short-circuit to 127
-    instead of invoking anything. ``env`` (when given) fully replaces the child's
-    environment, so callers pass a complete copy (see ``provider_env``).
+    instead of invoking anything.
     """
     resolved = shutil.which(argv[0])
     if resolved is None:
@@ -482,11 +454,12 @@ def run_provider(
         result = subprocess.run(
             [resolved, *argv[1:]],
             text=True,
+            encoding="utf-8",
+            errors="replace",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             stdin=subprocess.DEVNULL,
             timeout=timeout,
-            env=env,
             check=False,
         )
         return result.returncode, result.stdout or "", result.stderr or ""
@@ -547,7 +520,9 @@ def delegate(args: argparse.Namespace) -> int:
     if provider == "codex":
         argv = build_codex_argv(brief, depth, write_mode)
     elif provider == "antigravity":
-        argv = build_antigravity_argv(brief, depth, write_mode)
+        selected = ANTIGRAVITY_MODEL_BY_DEPTH[depth]
+        warn(f"antigravity invoking model '{selected}' (depth={depth})")
+        argv = build_antigravity_argv(brief, selected, write_mode)
     elif provider == "claude":
         argv = build_claude_argv(brief, depth, write_mode)
     else:  # pragma: no cover - argparse restricts the choices
@@ -558,13 +533,11 @@ def delegate(args: argparse.Namespace) -> int:
         {"provider": provider}, invocation_id,
     )
 
-    exit_code, stdout, stderr = run_provider(
-        argv, args.timeout, provider_env(provider, depth)
-    )
+    exit_code, stdout, stderr = run_provider(argv, args.timeout)
 
     # Quota fallback: when Antigravity's primary model quota is exhausted,
-    # retry once with the depth's fallback model (e.g. Sonnet → Gemini 3.1 Pro
-    # for standard tasks). Codex has no per-model quota to fall back from, so
+    # retry once with the depth's fallback model (Opus → Gemini 3.1 Pro for deep
+    # tasks). Codex has no per-model quota to fall back from, so
     # only the antigravity provider gets this retry path.
     fallback_used = False
     fallback_model: str | None = None
@@ -575,9 +548,8 @@ def delegate(args: argparse.Namespace) -> int:
                 f"primary model quota exhausted; retrying with fallback "
                 f"'{fallback_model}'"
             )
-            exit_code, stdout, stderr = run_provider(
-                argv, args.timeout, provider_env(provider, depth, model_override=fallback_model)
-            )
+            argv = build_antigravity_argv(brief, fallback_model, write_mode)
+            exit_code, stdout, stderr = run_provider(argv, args.timeout)
             fallback_used = True
 
     if exit_code != 0:

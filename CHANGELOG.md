@@ -108,6 +108,25 @@
 
 ### Fixed
 
+- **`fix(delegate)` — make the Antigravity (`agy`) handoff functional: select the
+  model per call and parse JSON output (#465).** A live test showed Antigravity
+  delegation returning empty stdout and silently running the wrong model: the
+  adapter passed the model as an environment hint (`ANTIGRAVITY_MODEL`) that
+  `agy` ignores, and `agy -p` produced no parseable answer. The adapter
+  (`tooling/shared/delegate/delegate.py`) now invokes
+  `agy -m <model> -p "<brief>" --output-format json` — selecting the model with
+  the supported `-m` flag (Opus for deep work, Sonnet for standard/readonly) and
+  parsing the JSON response into a non-empty summary. The selected model is shown
+  in a `delegate:` stderr debug line for verification. The dead env-hint
+  mechanism (`provider_env`, `ANTIGRAVITY_MODEL_ENV`) is removed. Because Opus and
+  Sonnet share the Anthropic quota, the **deep** quota-fallback now crosses pools
+  from `claude-opus-4-6` to `gemini-3.1-pro` (standard/readonly already fell back
+  to Gemini). The bats/Pester suites now assert the model via the recorded argv
+  (not the env var). Also folds in a latent decode bug: `run_provider` now decodes
+  provider output as UTF-8 (`encoding="utf-8", errors="replace"`) instead of the
+  Windows locale (cp1252), which raised `UnicodeDecodeError` on UTF-8 output. The
+  fail-open contract and the `delegate-status:` line (#466) are unchanged. Docs:
+  `docs/ai/DELEGATION.md`, `docs/ai/MODEL_ROUTING.md`.
 - **`fix(delegate)` — surface an explicit handoff status so the adapter is no
   longer silently fail-open (#466).** The cross-tool delegation adapter
   (`tooling/shared/delegate/delegate.py`) returned exit 0 for success, empty

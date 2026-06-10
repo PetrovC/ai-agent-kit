@@ -75,7 +75,7 @@ read and verify.
 The task type and risk map to a **routing depth**, and each depth maps to a
 provider-specific model/effort. See [MODEL_ROUTING.md](./MODEL_ROUTING.md).
 
-| Depth | When | Codex (`gpt-5.5`) effort | Antigravity model hint | Claude model |
+| Depth | When | Codex (`gpt-5.5`) effort | Antigravity model | Claude model |
 |---|---|---|---|---|
 | `deep` | security/architecture/review/investigation, or `high`/`critical` risk | `model_reasoning_effort=high` | `claude-opus-4-6` | `claude-opus-4-8` |
 | `standard` | everyday implementation | `model_reasoning_effort=medium` | `claude-sonnet-4-6` | `claude-sonnet-4-6` |
@@ -106,21 +106,22 @@ codex exec -m gpt-5.5 -c model_reasoning_effort=<low|medium|high> \
 - `-s read-only` sandboxes the delegated run.
 - `--json` yields JSON-Lines output the adapter parses into a summary.
 
-**Antigravity** (headless) — verified against the installed CLI (`agy --help`, v1.0.3):
+**Antigravity** (headless):
 
 ```
-agy -p "<sanitized brief>" --sandbox --dangerously-skip-permissions
+agy -m <model> -p "<sanitized brief>" --output-format json \
+  --sandbox --dangerously-skip-permissions
 ```
 
-- `-p` (`--print`) runs a single prompt non-interactively and prints the response
-  as **plain text** (there is no `--output-format` flag).
+- `-m` selects the model for this invocation; no environment hint is used.
+- `-p` (`--print`) runs a single prompt non-interactively.
+- `--output-format json` yields structured output the adapter parses into a
+  non-empty summary.
 - `--sandbox` restricts terminal access; `--dangerously-skip-permissions`
   auto-approves tool prompts for unattended use.
-- Antigravity has no per-call model flag, so the adapter passes a non-secret
-  model **hint** via the environment (`ANTIGRAVITY_MODEL` by default,
-  configurable via `AAK_DELEGATE_AGY_MODEL_ENV`) rather than invent a `--model`
-  flag. Binding that hint to the actual per-call model is the one part to confirm
-  end-to-end in your environment.
+- On quota exhaustion, deep delegation crosses quota pools from
+  `claude-opus-4-6` to `gemini-3.1-pro`; standard and readonly delegation also
+  fall back to `gemini-3.1-pro`.
 
 ## Privacy and safety
 
