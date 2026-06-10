@@ -131,6 +131,13 @@
 
 ### Fixed
 
+- **`ci(scorecard)` — drop the last top-level `contents: write` grant
+  (#473).** `release-checksums.yml` declared `contents: write` +
+  `id-token: write` at workflow level; both scopes now live on the single
+  `checksums` job (release-asset upload + cosign keyless OIDC), with
+  top-level `contents: read`. Every workflow is now read-only at top level,
+  which is what Scorecard's Token-Permissions probe checks.
+
 - **`fix(routing)` — thicker rust keywords; bare "migrate" no longer drags
   `dotnet` into frontend tasks (#484).** The `rust` skill now routes on
   `cargo`/`tokio`/`lifetime`/`borrow checker`/`crate`/`clippy`/`axum`/`sqlx`

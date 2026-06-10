@@ -4,14 +4,18 @@ on:
   release:
     types: [published]
 
+# Least privilege (#473): top-level read-only; the single job widens to the
+# two scopes it actually needs.
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   checksums:
     name: Generate SHA256SUMS and sign
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # softprops/action-gh-release uploads assets to the release
+      id-token: write   # cosign keyless signing (OIDC token)
     steps:
       - name: Checkout at tag
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
