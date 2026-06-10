@@ -1,7 +1,7 @@
 {
   "name": "ai-agent-kit",
   "description": "Tool-agnostic engineering skills (stacks + cross-cutting concerns) for Claude Code. The skills layer of ai-agent-kit, installable via the plugin marketplace. For full multi-tool setup (Codex + Antigravity + hooks + commands + docs scaffolding) use the install script instead.",
-  "version": "1.22.1",
+  "version": "1.23.0",
   "author": {
     "name": "Constantin Petrov"
   },
