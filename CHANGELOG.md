@@ -5,6 +5,8 @@ Older releases (1.22.0 and earlier) are archived in
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-06-10
+
 ### Added
 
 - **`test(skills)` — eval fixtures for 6 more skills, now gated in CI (#488).**
