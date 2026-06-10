@@ -312,19 +312,21 @@ def build_antigravity_argv(
     """Build the non-interactive Antigravity invocation.
 
     agy -m <model> -p "<brief>" --output-format json
-        [--sandbox] --dangerously-skip-permissions
+        [--sandbox | --dangerously-skip-permissions]
 
     ``-p`` (``--print``) runs a single prompt non-interactively and prints the
     response as JSON; ``-m`` selects the model for this call.
     ``--dangerously-skip-permissions`` auto-approves tool prompts for unattended
-    use. ``--sandbox`` restricts terminal access — it is included for
-    analysis/review tasks but dropped when ``write_mode=True`` so the provider
-    can write files, run git, and create pull-requests.
+    use and is added only for implementation tasks (``write_mode=True``),
+    mirroring ``build_claude_argv`` (#476). Read-only delegations get
+    ``--sandbox`` instead — it restricts terminal access — and keep the
+    provider's interactive permission semantics.
     """
     argv = ["agy", "-m", model, "-p", brief, "--output-format", "json"]
-    if not write_mode:
+    if write_mode:
+        argv.append("--dangerously-skip-permissions")
+    else:
         argv.append("--sandbox")
-    argv.append("--dangerously-skip-permissions")
     return argv
 
 
