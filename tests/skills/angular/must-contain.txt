@@ -1,0 +1,4 @@
+# Key terms that must appear in angular/SKILL.md
+standalone
+signals
+OnPush

@@ -1,0 +1,4 @@
+# SQL, migrations, and prisma files must route to database
+db/schema.sql
+src/migrations/001_init.sql
+prisma/schema.prisma

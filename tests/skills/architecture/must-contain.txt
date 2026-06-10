@@ -1,0 +1,5 @@
+# Key terms that must appear in architecture/SKILL.md
+clean architecture
+bounded context
+CQRS
+strangler

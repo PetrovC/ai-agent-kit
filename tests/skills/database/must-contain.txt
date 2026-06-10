@@ -1,0 +1,5 @@
+# Key terms that must appear in database/SKILL.md
+migration
+transaction
+index
+N+1

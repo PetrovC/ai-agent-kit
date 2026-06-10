@@ -7,23 +7,33 @@ Adaptive routing provides a dynamic mechanism to govern how the agent loads cont
 
 The adaptive routing workflow operates in five distinct sequential stages to process user requests, resolve context dependencies, and coordinate execution.
 
+> **Determinism (#470):** Stages 1, 2, and 4 are deterministic — implemented in
+> [`scripts/select-skills.py`](../../scripts/select-skills.py), reproducible
+> offline, and regression-tested. Stages 3 and 5 are **agent-driven**: they
+> depend on the agent following prose instructions and are not enforced by any
+> code path. Do not assume reference loading (Stage 3) is as guaranteed as
+> skill selection (Stage 2).
+
 ### Stage 1 — Classify task intent
 - **Description**: Evaluates the task prompt and path metadata using deterministic, zero-LLM heuristics to assign intent categories.
 - **Inputs**: Task description text (free text), optional list of changed/mentioned file paths.
 - **Outputs**: One or more intent labels from this fixed vocabulary: `review`, `implement`, `fix`, `refactor`, `docs`, `ci`, `security`, `data-migration`, `small-change`.
 - **Rule**: If no label matches with confidence, classify as `small-change` (fallback → do less).
+- **Enforcement**: Deterministic — `classify_task` in `scripts/select-skills.py`.
 
 ### Stage 2 — Select skills
 - **Description**: Filters the global skill catalog to select a minimal set of relevant skills based on intent and file path signals.
 - **Inputs**: Intent labels from Stage 1, file paths (globs), task keywords.
 - **Outputs**: A small candidate set of selected skills (default cap: 4 skills).
 - **Rule**: A skill is selected only when at least one strong signal matches (file glob OR exact keyword OR explicit task_intent match). Weak or speculative matches do not load a skill.
+- **Enforcement**: Deterministic — glob/keyword/intent scoring in `scripts/select-skills.py`.
 
 ### Stage 3 — Select references
 - **Description**: Evaluates conditional rules on sub-skills and reference documents associated with selected skills to conditionally load in-depth files.
 - **Inputs**: Selected skills from Stage 2, task description, file paths.
 - **Outputs**: List of reference files to load (may be empty).
 - **Rule**: If no `load_when` condition is met, do not load any reference beyond the base skill file (e.g., the dotnet [SKILL.md](../../skills/dotnet/SKILL.md)).
+- **Enforcement**: **Agent-driven** — `select-skills.py` contains no `load_when` logic; references load only if the agent follows the `## Load when` tables in each `SKILL.md`. Treat this stage as best-effort, not guaranteed.
 
 ### Stage 4 — Decide delegation
 - **Description**: Estimates task complexity and context constraints to decide whether to divide work among dedicated subagents.
@@ -40,12 +50,14 @@ The adaptive routing workflow operates in five distinct sequential stages to pro
     - User has explicitly scoped the task to one area
     - Only 1 skill is selected
   - **Default cap**: 2–3 subagents maximum (governed under [SUBAGENT_GOVERNANCE.md](SUBAGENT_GOVERNANCE.md))
+- **Enforcement**: Deterministic recommendation — emitted by `scripts/select-skills.py`; acting on the plan remains the agent's move.
 
 ### Stage 5 — Synthesize results
 - **Description**: Aggregates, cleans, and merges outputs from any active subagents into a unified, conflict-free final response.
 - **Inputs**: Subagent outputs (concise structured summaries).
 - **Outputs**: A single coherent answer with unified next actions presented to the user.
 - **Rule**: Subagents return summaries, never full transcripts (conforming to [DELEGATION.md](DELEGATION.md)).
+- **Enforcement**: **Agent-driven** — synthesis happens in the main agent's response; no code merges subagent outputs.
 
 ## Context protection rules
 To safeguard the context window and prevent token bloat, the following rules must be strictly enforced:

@@ -1,0 +1,4 @@
+# Key terms that must appear in godot/SKILL.md
+GDScript
+autoload
+GDExtension

@@ -1,0 +1,4 @@
+# Key terms that must appear in rust/SKILL.md
+clippy
+borrow checker
+cargo test

@@ -1,0 +1,5 @@
+# Key terms that must appear in security/SKILL.md
+injection
+input validation
+secrets
+rate limiting
