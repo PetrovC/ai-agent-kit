@@ -44,6 +44,13 @@ delegation_hints:
 Produce simple, explicit, maintainable .NET code that a junior developer can
 understand and that a senior developer would not need to refactor in 6 months.
 
+## Scope note — Godot C#
+
+This skill targets .NET backend services. C# scripts inside a Godot project
+(`partial class Player : CharacterBody2D`, `_Ready()`, `[Export]`,
+`GetNode<T>()`) are engine code — use the `godot` skill instead; the layering,
+EF Core, and DI guidance below does not apply to them.
+
 ## Layering
 
 Respect this dependency direction at all times:

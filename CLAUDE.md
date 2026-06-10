@@ -89,7 +89,7 @@ Match the task domain to the skill name — full descriptions live in each skill
 `description:` frontmatter.
 
 Backends: `dotnet` skill · `java-kotlin` skill · `python` skill · `node` skill · `go` skill · `rust` skill  
-Frontends: `angular` skill · `vue` skill · `svelte` skill · `react` skill · `mobile-rn` skill · `mobile-flutter` skill  
+Frontends/Game: `angular` skill · `vue` skill · `svelte` skill · `react` skill · `mobile-rn` skill · `mobile-flutter` skill · `godot` skill  
 Data/Infra: `database` skill · `infrastructure` skill · `api-design` skill · `graphql` skill  
 Quality: `architecture` skill · `testing` skill · `code-review` skill · `security` skill · `dependencies` skill · `github-workflow` skill  
 Ops/X-cut: `observability` skill · `messaging` skill · `error-handling` skill · `monorepo` skill · `accessibility` skill · `i18n` skill · `ai-dev` skill · `performance` skill · `release-management` skill

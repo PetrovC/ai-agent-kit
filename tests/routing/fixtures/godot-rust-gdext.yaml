@@ -1,0 +1,11 @@
+description: "Godot + Rust GDExtension mixed task"
+task: "Expose a Rust gdext pathfinding node to GDScript via GDExtension"
+files:
+  - "rust/src/pathfinding.rs"
+  - "godot/native.gdextension"
+expected:
+  min_skills:
+    - godot
+    - rust
+  excluded_skills:
+    - dotnet

@@ -158,3 +158,27 @@ run_selector() {
     count=$(find "$KIT_ROOT/skills" -name "SKILL.md" | wc -l | tr -d ' ')
     [[ "$count" -ge 5 ]]
 }
+
+@test "selector: godot gdscript files route to godot, not dotnet" {
+    run_selector \
+        --task "Implement player movement and jump physics in Godot GDScript" \
+        --files "scenes/player/player.gd,scenes/player/player.tscn"
+    assert_success
+    assert_output_contains "godot"
+    refute_output_contains "dotnet"
+}
+
+@test "selector: keyword-only godot task selects godot without files" {
+    run_selector --task "Refactor the Godot scene tree and autoload singletons for the inventory UI"
+    assert_success
+    assert_output_contains "godot"
+}
+
+@test "selector: rust gdext task selects godot and rust" {
+    run_selector \
+        --task "Expose a Rust gdext pathfinding node to GDScript via GDExtension" \
+        --files "rust/src/pathfinding.rs,godot/native.gdextension"
+    assert_success
+    assert_output_contains "godot"
+    assert_output_contains "rust"
+}
