@@ -206,3 +206,21 @@ run_selector() {
     assert_output_contains "godot"
     assert_output_contains "rust"
 }
+
+@test "selector: plain .ts backend file routes to node (#498)" {
+    run_selector \
+        --task "add express middleware for request logging" \
+        --files "src/server/app.ts"
+    assert_success
+    assert_output_contains "node"
+    refute_output_contains "dotnet"
+}
+
+@test "selector: .tsx component stays with react, not node (#498)" {
+    run_selector \
+        --task "tighten prop types on the profile card" \
+        --files "src/components/ProfileCard.tsx"
+    assert_success
+    assert_output_contains "react"
+    refute_output_contains "node ("
+}
