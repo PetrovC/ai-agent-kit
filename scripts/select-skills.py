@@ -147,7 +147,13 @@ def classify_task(task_text, files):
         intents.add("ci")
     if has_word("security") or has_word("auth") or has_word("login") or has_word("vulnerability"):
         intents.add("security")
-    if has_word("migration") or has_word("migrate") or has_word("database") or has_word("db"):
+    # "migrate"/"migration" alone is ambiguous (frameworks, APIs, components
+    # migrate too — #484); require a database signal before classifying.
+    has_db_context = (has_word("database") or has_word("db") or has_word("sql")
+                      or has_word("ef") or has_word("dbcontext") or has_word("schema"))
+    if has_word("database") or has_word("db"):
+        intents.add("data-migration")
+    elif (has_word("migration") or has_word("migrate")) and has_db_context:
         intents.add("data-migration")
     if has_word("small") or has_word("typo") or has_word("quick fix") or has_word("rename") or has_word("format") or has_word("lint"):
         intents.add("small-change")

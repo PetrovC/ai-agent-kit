@@ -131,6 +131,16 @@
 
 ### Fixed
 
+- **`fix(routing)` — thicker rust keywords; bare "migrate" no longer drags
+  `dotnet` into frontend tasks (#484).** The `rust` skill now routes on
+  `cargo`/`tokio`/`lifetime`/`borrow checker`/`crate`/`clippy`/`axum`/`sqlx`
+  keywords (plus standard task intents), so Rust prompts without a `.rs` path
+  select it. The data-migration intent requires a database signal
+  (`database`/`db`, or `migrate`/`migration` with `sql`/`ef`/`schema`/
+  `dbcontext` context) instead of bare "migrate" — "Migrate Angular component
+  to signals" no longer selects `dotnet`. Two routing fixtures and three bats
+  assertions added.
+
 - **`fix(routing)` — model router no longer under-routes abstract review
   prompts (#469).** Intent keywords are now tokenized — every token must
   appear in the task text, in any order (word-prefix for tokens of 3+ chars,

@@ -1,0 +1,9 @@
+description: "Rust task described without any file path (#484)"
+task: "Fix lifetime error in async tokio handler"
+files: []
+expected:
+  min_skills:
+    - rust
+  excluded_skills:
+    - dotnet
+  should_delegate: false
