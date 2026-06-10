@@ -173,7 +173,7 @@ Describe "Cross-tool delegation adapter" {
         if (-not $argv.Contains("--output-format")) { throw "expected --output-format in argv: $argv" }
         if (-not $argv.Contains("json")) { throw "expected json output format in argv: $argv" }
         if (-not $argv.Contains("--sandbox")) { throw "expected --sandbox in argv: $argv" }
-        if (-not $argv.Contains("--dangerously-skip-permissions")) { throw "expected skip-permissions in argv: $argv" }
+        if ($argv.Contains("--dangerously-skip-permissions")) { throw "expected no skip-permissions in read-only argv: $argv" }
     }
 
     It "routes daily/medium to the Antigravity Sonnet model" {
@@ -221,6 +221,14 @@ Describe "Cross-tool delegation adapter" {
         $argv = Get-Content -Raw $script:StubRecord
         if (-not $argv.Contains("--dangerously-skip-permissions")) { throw "expected skip-permissions in argv: $argv" }
         if ($argv.Contains("--sandbox")) { throw "expected no --sandbox in impl argv: $argv" }
+    }
+
+    It "omits --dangerously-skip-permissions for read-only Antigravity tasks (#476)" {
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "investigation", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_ro")
+        Assert-AakSuccess $result
+        $argv = Get-Content -Raw $script:StubRecord
+        if (-not $argv.Contains("--sandbox")) { throw "expected --sandbox in read-only argv: $argv" }
+        if ($argv.Contains("--dangerously-skip-permissions")) { throw "expected no skip-permissions in read-only argv: $argv" }
     }
 
     It "redacts secret-like tokens in the brief and still delegates" {

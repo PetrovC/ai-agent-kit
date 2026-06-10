@@ -153,7 +153,8 @@ delegate() {
     assert_output_contains "--output-format"
     assert_output_contains "json"
     assert_output_contains "--sandbox"
-    assert_output_contains "--dangerously-skip-permissions"
+    run grep -- "--dangerously-skip-permissions" "$STUB_RECORD"
+    assert_failure
 }
 
 @test "delegate routes daily/medium to the Antigravity Sonnet model" {
@@ -181,6 +182,16 @@ delegate() {
     run cat "$STUB_RECORD"
     assert_output_contains "--dangerously-skip-permissions"
     run grep -- "--sandbox" "$STUB_RECORD"
+    assert_failure
+}
+
+@test "delegate omits --dangerously-skip-permissions for read-only Antigravity tasks (#476)" {
+    delegate --provider antigravity --task-type investigation --risk medium \
+        --run-id run_agy_ro
+    assert_success
+    run cat "$STUB_RECORD"
+    assert_output_contains "--sandbox"
+    run grep -- "--dangerously-skip-permissions" "$STUB_RECORD"
     assert_failure
 }
 
