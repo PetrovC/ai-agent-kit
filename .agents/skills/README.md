@@ -46,6 +46,10 @@ allowed-tools:
 - **`paths:`** — Claude Code auto-loads the skill when an editor opens a matching file. Codex and Antigravity ignore the field; they route via the table in `AGENTS.md` / `AGY.md`.
 - **`allowed-tools:`** — Claude Code pre-approves the listed `Bash(<cmd>:*)` commands so the skill can run them without per-call confirmation. Codex and Antigravity ignore the field; they inherit the user's approval mode (`safety-strategy`, `--approval-mode`).
 
+- **`keywords:` / `task_intents:`** — consumed, together with `paths:`, by the deterministic selector `scripts/select-skills.py` (Stages 1-2-4 of `docs/ai/ADAPTIVE_ROUTING.md`): glob, keyword, and intent matches are scored offline, no LLM involved.
+
+> **Deterministic vs agent-driven (#470):** skill *selection* is enforced by code, but the `## Load when` reference tables inside each `SKILL.md` are prose — no script loads references automatically (Stage 3). References load only if the agent follows those tables; write them precisely and do not assume they fire.
+
 These fields stay here, in the shared file, on purpose:
 
 1. Splitting them into a Claude-only overlay would force a merge step at install time and double the failure surface of `install.sh`/`install.ps1`.
