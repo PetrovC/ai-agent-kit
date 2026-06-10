@@ -8,7 +8,6 @@ Describe "Cross-tool delegation adapter" {
         $script:Bin = Join-Path $script:AuditRoot "bin"
         $script:ConfigPath = Join-Path $script:AuditRoot "config.json"
         $script:StubRecord = Join-Path $script:AuditRoot "argv.txt"
-        $script:StubEnv = Join-Path $script:AuditRoot "model-env.txt"
         $script:BriefPath = Join-Path $script:AuditRoot "brief.txt"
         New-Item -ItemType Directory -Path $script:RuntimePath -Force | Out-Null
         New-Item -ItemType Directory -Path $script:CentralPath -Force | Out-Null
@@ -75,53 +74,60 @@ Describe "Cross-tool delegation adapter" {
             [System.IO.File]::WriteAllText((Join-Path $script:Bin "codex.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
         }
 
-        # An agy stub that simulates quota exhaustion on the primary (Sonnet) model:
+        # An agy stub that simulates quota exhaustion on the primary (Opus) model:
         # exits non-zero with a 429-like error so the adapter's fallback path fires,
-        # then succeeds when the fallback model (gemini-3.1-pro) is set.
+        # then succeeds when the fallback model (gemini-3.1-pro) is selected.
         function Write-QuotaAgyStub {
             $cmd = @(
                 '@echo off',
-                'echo %* >> "%STUB_RECORD%"',
-                'echo %ANTIGRAVITY_MODEL% >> "%STUB_ENV%"',
-                'if "%ANTIGRAVITY_MODEL%"=="claude-sonnet-4-6" (',
-                '    echo Error: quota exhausted 1>&2',
+                'set "model="',
+                ':record_args',
+                'if "%~1"=="" goto run',
+                'echo %~1>> "%STUB_RECORD%"',
+                'if "%~1"=="-m" set "model=%~2"',
+                'shift',
+                'goto record_args',
+                ':run',
+                'if "%model%"=="claude-opus-4-6" (',
+                '    echo Error: 429 quota exhausted for claude-opus-4-6 1>&2',
                 '    exit /b 1',
                 ')',
-                'echo Stub Antigravity fallback analysis: succeeded with fallback model.'
+                'echo {"response":"Stub Antigravity fallback analysis: succeeded with fallback model."}'
             ) -join "`r`n"
             [System.IO.File]::WriteAllText((Join-Path $script:Bin "agy.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
         }
 
-        # Antigravity stub: records the raw command line and the model hint the
-        # adapter passes via the ANTIGRAVITY_MODEL environment variable, then
-        # prints a plain-text answer like `agy -p` would.
+        # Antigravity stub: records argv one argument per line, then prints JSON
+        # like `agy --output-format json` would.
         function Write-AgyStub {
             $cmd = @(
                 '@echo off',
-                'echo %* > "%STUB_RECORD%"',
-                'echo %ANTIGRAVITY_MODEL% > "%STUB_ENV%"',
-                'echo Stub Antigravity analysis: no blocking issue.'
+                'type nul > "%STUB_RECORD%"',
+                ':record_args',
+                'if "%~1"=="" goto respond',
+                'echo %~1>> "%STUB_RECORD%"',
+                'shift',
+                'goto record_args',
+                ':respond',
+                'echo {"response":"Stub Antigravity analysis: no blocking issue."}'
             ) -join "`r`n"
             [System.IO.File]::WriteAllText((Join-Path $script:Bin "agy.cmd"), $cmd, (New-Object System.Text.ASCIIEncoding))
         }
 
-        # Invoke delegate.ps1 with the stub bin on PATH and STUB_RECORD/STUB_ENV
-        # in the environment.
+        # Invoke delegate.ps1 with the stub bin on PATH and STUB_RECORD in the
+        # environment.
         function Invoke-Delegate {
             param([string[]]$Arguments, [switch]$WithStub)
             $delegateScript = Join-Path $script:KitRoot "tooling\shared\delegate\delegate.ps1"
             $oldPath = $env:PATH
             $oldRecord = $env:STUB_RECORD
-            $oldEnv = $env:STUB_ENV
             try {
                 if ($WithStub) { $env:PATH = "$script:Bin;$oldPath" }
                 $env:STUB_RECORD = $script:StubRecord
-                $env:STUB_ENV = $script:StubEnv
                 return Invoke-AakPowerShellScript -Script $delegateScript -Arguments $Arguments
             } finally {
                 $env:PATH = $oldPath
                 if ($null -eq $oldRecord) { Remove-Item Env:\STUB_RECORD -ErrorAction SilentlyContinue } else { $env:STUB_RECORD = $oldRecord }
-                if ($null -eq $oldEnv) { Remove-Item Env:\STUB_ENV -ErrorAction SilentlyContinue } else { $env:STUB_ENV = $oldEnv }
             }
         }
 
@@ -156,22 +162,25 @@ Describe "Cross-tool delegation adapter" {
         if (-not $argv.Contains("model_reasoning_effort=low")) { throw "expected low effort in argv: $argv" }
     }
 
-    It "routes investigation/medium to the Antigravity Opus model hint" {
+    It "routes investigation/medium to the Antigravity Opus model" {
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "investigation", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_deep")
         Assert-AakSuccess $result
         Assert-AakOutputContains $result "Stub Antigravity analysis"
+        Assert-AakOutputContains $result "antigravity invoking model 'claude-opus-4-6'"
         $argv = Get-Content -Raw $script:StubRecord
+        if (-not $argv.Contains("-m")) { throw "expected -m in argv: $argv" }
+        if (-not $argv.Contains("claude-opus-4-6")) { throw "expected Opus model in argv: $argv" }
+        if (-not $argv.Contains("--output-format")) { throw "expected --output-format in argv: $argv" }
+        if (-not $argv.Contains("json")) { throw "expected json output format in argv: $argv" }
         if (-not $argv.Contains("--sandbox")) { throw "expected --sandbox in argv: $argv" }
         if (-not $argv.Contains("--dangerously-skip-permissions")) { throw "expected skip-permissions in argv: $argv" }
-        $model = Get-Content -Raw $script:StubEnv
-        if (-not $model.Contains("claude-opus-4-6")) { throw "expected Opus model hint, got: $model" }
     }
 
-    It "routes daily/medium to the Antigravity Sonnet model hint" {
+    It "routes daily/medium to the Antigravity Sonnet model" {
         $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "daily", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_std")
         Assert-AakSuccess $result
-        $model = Get-Content -Raw $script:StubEnv
-        if (-not $model.Contains("claude-sonnet-4-6")) { throw "expected Sonnet model hint, got: $model" }
+        $argv = Get-Content -Raw $script:StubRecord
+        if (-not $argv.Contains("claude-sonnet-4-6")) { throw "expected Sonnet model in argv: $argv" }
     }
 
     It "uses workspace-write sandbox for Codex implementation tasks" {
@@ -203,15 +212,15 @@ Describe "Cross-tool delegation adapter" {
         if ($argv.Contains($secret)) { throw "raw secret leaked to provider argv: $argv" }
     }
 
-    It "retries with Gemini fallback when Antigravity Sonnet quota is exhausted" {
+    It "retries with Gemini fallback when Antigravity Opus quota is exhausted" {
         Write-QuotaAgyStub
-        # Reset so both model hints are appended by the quota stub.
-        [System.IO.File]::WriteAllText($script:StubEnv, "", (New-Object System.Text.UTF8Encoding($false)))
-        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "feat", "-Risk", "medium", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_fallback")
+        [System.IO.File]::WriteAllText($script:StubRecord, "", (New-Object System.Text.UTF8Encoding($false)))
+        $result = Invoke-Delegate -WithStub -Arguments @("-Provider", "antigravity", "-TaskType", "investigation", "-Risk", "high", "-BriefFile", $script:BriefPath, "-Config", $script:ConfigPath, "-SourceRoot", $script:Target, "-RunId", "run_agy_fallback")
         Assert-AakSuccess $result
         Assert-AakOutputContains $result "fallback analysis"
-        $model = Get-Content -Raw $script:StubEnv
-        if (-not $model.Contains("gemini-3.1-pro")) { throw "expected gemini-3.1-pro in accumulated model hints, got: $model" }
+        $argv = Get-Content -Raw $script:StubRecord
+        if (-not $argv.Contains("claude-opus-4-6")) { throw "expected Opus primary model in accumulated argv: $argv" }
+        if (-not $argv.Contains("gemini-3.1-pro")) { throw "expected Gemini fallback model in accumulated argv: $argv" }
         # Audit event emission removed (#408) — emit() is now a no-op.
     }
 

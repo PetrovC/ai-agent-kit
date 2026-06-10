@@ -16,12 +16,11 @@ setup() {
     CONFIG_PATH="$AUDIT_ROOT/config.json"
     BIN="$AUDIT_ROOT/bin"
     STUB_RECORD="$AUDIT_ROOT/argv.txt"
-    STUB_ENV="$AUDIT_ROOT/model-env.txt"
     BRIEF="$AUDIT_ROOT/brief.txt"
     mkdir -p "$RUNTIME_PATH" "$CENTRAL_PATH" "$BIN"
     git -C "$CENTRAL_PATH" init >/dev/null
     git -C "$CENTRAL_PATH" checkout -b agent-audit-data >/dev/null
-    export AUDIT_ROOT RUNTIME_PATH CENTRAL_PATH CONFIG_PATH BIN STUB_RECORD STUB_ENV BRIEF
+    export AUDIT_ROOT RUNTIME_PATH CENTRAL_PATH CONFIG_PATH BIN STUB_RECORD BRIEF
     write_config
     write_codex_stub
     write_agy_stub
@@ -61,28 +60,34 @@ STUB
 write_agy_stub() {
     cat > "$BIN/agy" <<'STUB'
 #!/usr/bin/env bash
-# Record argv and the model hint passed via the environment, then print a
-# plain-text answer like `agy -p` would.
+# Record argv one argument per line, then print JSON like
+# `agy --output-format json` would.
 printf '%s\n' "$@" > "$STUB_RECORD"
-printf '%s\n' "${ANTIGRAVITY_MODEL:-}" > "$STUB_ENV"
-echo "Stub Antigravity analysis: no blocking issue."
+echo '{"response":"Stub Antigravity analysis: no blocking issue."}'
 STUB
     chmod +x "$BIN/agy"
 }
 
-# An agy stub that simulates quota exhaustion on the primary (Sonnet) model:
+# An agy stub that simulates quota exhaustion on the primary (Opus) model:
 # exits non-zero with a 429-like error so the adapter's fallback path fires,
-# then succeeds on the next call (fallback model != claude-sonnet-4-6).
+# then succeeds on the next call with the Gemini fallback model.
 write_quota_agy_stub() {
     cat > "$BIN/agy" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$@" >> "$STUB_RECORD"
-printf '%s\n' "${ANTIGRAVITY_MODEL:-}" >> "$STUB_ENV"
-if [ "${ANTIGRAVITY_MODEL:-}" = "claude-sonnet-4-6" ]; then
-    echo "Error: 429 quota exhausted for claude-sonnet-4-6" >&2
+model=""
+while [ "$#" -gt 0 ]; do
+    if [ "$1" = "-m" ] && [ "$#" -gt 1 ]; then
+        model="$2"
+        break
+    fi
+    shift
+done
+if [ "$model" = "claude-opus-4-6" ]; then
+    echo "Error: 429 quota exhausted for claude-opus-4-6" >&2
     exit 1
 fi
-echo "Stub Antigravity fallback analysis: succeeded with fallback model."
+echo '{"response":"Stub Antigravity fallback analysis: succeeded with fallback model."}'
 STUB
     chmod +x "$BIN/agy"
 }
@@ -93,7 +98,7 @@ events_file() {
 
 # Run the adapter with the stub CLIs on PATH.
 delegate() {
-    run env PATH="$BIN:$PATH" STUB_RECORD="$STUB_RECORD" STUB_ENV="$STUB_ENV" \
+    run env PATH="$BIN:$PATH" STUB_RECORD="$STUB_RECORD" \
         bash "$KIT_ROOT/tooling/shared/delegate/delegate.sh" \
         --config "$CONFIG_PATH" --source-root "$TARGET" --brief-file "$BRIEF" "$@"
 }
@@ -135,24 +140,27 @@ delegate() {
 
 # Audit event emission tests removed — emit() is now a no-op (audit subsystem removed, #408).
 
-@test "delegate routes investigation/medium to the Antigravity Opus model hint" {
+@test "delegate routes investigation/medium to the Antigravity Opus model" {
     delegate --provider antigravity --task-type investigation --risk medium \
         --run-id run_agy_deep
     assert_success
     assert_output_contains "Stub Antigravity analysis"
+    assert_output_contains "antigravity invoking model 'claude-opus-4-6'"
     run cat "$STUB_RECORD"
+    assert_output_contains "-m"
+    assert_output_contains "claude-opus-4-6"
     assert_output_contains "-p"
+    assert_output_contains "--output-format"
+    assert_output_contains "json"
     assert_output_contains "--sandbox"
     assert_output_contains "--dangerously-skip-permissions"
-    run cat "$STUB_ENV"
-    assert_output_contains "claude-opus-4-6"
 }
 
-@test "delegate routes daily/medium to the Antigravity Sonnet model hint" {
+@test "delegate routes daily/medium to the Antigravity Sonnet model" {
     delegate --provider antigravity --task-type daily --risk medium \
         --run-id run_agy_std
     assert_success
-    run cat "$STUB_ENV"
+    run cat "$STUB_RECORD"
     assert_output_contains "claude-sonnet-4-6"
 }
 
@@ -191,17 +199,18 @@ delegate() {
     assert_failure
 }
 
-@test "delegate retries with Gemini fallback when Antigravity Sonnet quota is exhausted" {
+@test "delegate retries with Gemini fallback when Antigravity Opus quota is exhausted" {
     write_quota_agy_stub
-    : > "$STUB_ENV"   # reset so both model hints are appended by the quota stub
-    delegate --provider antigravity --task-type feat --risk medium \
+    : > "$STUB_RECORD"
+    delegate --provider antigravity --task-type investigation --risk high \
         --run-id run_agy_fallback
     assert_success
     # The fallback agy call prints this to stdout; the adapter forwards it.
     assert_output_contains "fallback analysis"
-    # Both the primary (claude-sonnet-4-6) and fallback (gemini-3.1-pro) hints
-    # must appear in the accumulated env file.
-    run cat "$STUB_ENV"
+    # Both the primary (claude-opus-4-6) and fallback (gemini-3.1-pro) models
+    # must appear in the accumulated argv file.
+    run cat "$STUB_RECORD"
+    assert_output_contains "claude-opus-4-6"
     assert_output_contains "gemini-3.1-pro"
 }
 

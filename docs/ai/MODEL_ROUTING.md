@@ -94,14 +94,19 @@ Per-subagent model assignment used in this repository (see
 | `codebase-investigator` | `claude-sonnet-4-6` | 15 | Narrow lookups; Sonnet is sufficient. |
 | `test-runner` | `claude-sonnet-4-6` | 10 | Mechanical: run tests, summarize output. |
 
-Antigravity (agy) is a CLI with a fixed, user-selected model picker (no
-per-call model flag). As of 2026-06-04 the picker offered Gemini 3.5 Flash
+Antigravity (agy) supports per-call model selection. As of 2026-06-04 the
+available models included Gemini 3.5 Flash
 (Medium/High/Low), Gemini 3.1 Pro (Low/High), **Claude Sonnet 4.6 (Thinking)**,
 **Claude Opus 4.6 (Thinking)**, and GPT-OSS 120B (Medium). The kit's delegate
-adapter now pins Claude models as the default hints: Opus for deep work (separate
-Anthropic quota from the linked Gemini pool), Sonnet for standard/readonly work.
-The model hint is passed via the `ANTIGRAVITY_MODEL` environment variable before
-the `agy -p` call. Confirmed from the live product (agy v1.0.4); see
+adapter selects Opus for deep work and Sonnet for standard/readonly work. Each
+call passes the selected model with `-m` and requests parseable output with
+`--output-format json`:
+
+```text
+agy -m <model> -p "<brief>" --output-format json
+```
+
+No environment model hint is used. Confirmed from the live product (agy v1.0.4); see
 <https://antigravity.google/docs/models>.
 
 **Quota fallback (automatic):** when the adapter detects a 429 / quota-exhausted
@@ -109,7 +114,7 @@ error from agy, it retries once with the depth's fallback model:
 
 | Depth | Primary model | Fallback model |
 |---|---|---|
-| `deep` | `claude-opus-4-6` | `claude-sonnet-4-6` (Anthropic quota, lower tier) |
+| `deep` | `claude-opus-4-6` | `gemini-3.1-pro` (Gemini quota — separate pool) |
 | `standard` | `claude-sonnet-4-6` | `gemini-3.1-pro` (Gemini quota — separate pool) |
 | `readonly` | `claude-sonnet-4-6` | `gemini-3.1-pro` |
 
