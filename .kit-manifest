@@ -19,6 +19,7 @@
 .agents/skills/database/references/sql-server.md
 .agents/skills/dependencies/SKILL.md
 .agents/skills/dotnet/SKILL.md
+.agents/skills/dotnet/references/aspnet-core-http.md
 .agents/skills/dotnet/references/clean-architecture.md
 .agents/skills/dotnet/references/ef-core.md
 .agents/skills/dotnet/references/package-maintenance.md
@@ -104,6 +105,7 @@
 .agy/skills/database/references/sql-server.md
 .agy/skills/dependencies/SKILL.md
 .agy/skills/dotnet/SKILL.md
+.agy/skills/dotnet/references/aspnet-core-http.md
 .agy/skills/dotnet/references/clean-architecture.md
 .agy/skills/dotnet/references/ef-core.md
 .agy/skills/dotnet/references/package-maintenance.md
@@ -201,6 +203,7 @@
 .claude/skills/database/references/sql-server.md
 .claude/skills/dependencies/SKILL.md
 .claude/skills/dotnet/SKILL.md
+.claude/skills/dotnet/references/aspnet-core-http.md
 .claude/skills/dotnet/references/clean-architecture.md
 .claude/skills/dotnet/references/ef-core.md
 .claude/skills/dotnet/references/package-maintenance.md

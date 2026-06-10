@@ -4,6 +4,16 @@
 
 ### Added
 
+- **`feat(dotnet)` — ASP.NET Core HTTP-layer reference (#485).** New
+  lazy-loaded `skills/dotnet/references/aspnet-core-http.md` (`## Load when`):
+  minimal APIs vs controllers with route groups and `TypedResults`,
+  middleware pipeline ordering, `IExceptionHandler` + RFC 9457
+  ProblemDetails, JWT + policy-based authorization, built-in OpenAPI
+  (.NET 9+), validated options binding (`ValidateOnStart`), and cancellation
+  tokens in handlers. Dotnet keywords extended (`minimal api`, `middleware`,
+  `openapi`, `swagger`) so HTTP tasks route without a `.cs` path; mirrored to
+  the three dogfood trees and the manifest.
+
 - **`feat(delegate)` — `AAK_DEBUG` surfaces the resolved depth & model (#477).**
   With `AAK_DEBUG` set (per the #305 convention, `0`/`false` mean off),
   `delegate.py` now prints one stderr line before invoking the provider:
