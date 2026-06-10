@@ -1,0 +1,6 @@
+# Angular-specific files must route to angular
+angular.json
+src/app/user.component.ts
+src/app/app.module.ts
+src/app/auth.service.ts
+src/app/user.component.html

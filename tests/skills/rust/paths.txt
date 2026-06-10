@@ -1,0 +1,5 @@
+# Rust sources and manifests must route to rust
+src/main.rs
+crates/api/src/lib.rs
+Cargo.toml
+Cargo.lock

@@ -10,6 +10,7 @@ on:
       - 'config/model-policy.yaml'
       - 'tooling/shared/delegate/delegate.py'
       - 'tests/routing/**'
+      - 'tests/skills/**'
       - 'tests/bats/routing.bats'
       - 'tests/bats/model-routing.bats'
 
@@ -110,6 +111,9 @@ jobs:
           done
           [[ "$errors" -eq 0 ]] || exit 1
           echo "All model fixtures passed"
+
+      - name: Run skill evals
+        run: bash tests/skills/run-evals.sh
 
       - name: Install bats
         run: |

@@ -1,7 +1,13 @@
 # Skill evals
 
 Lightweight, offline validation for skill routing and content.
-No LLM calls. No CI gate. Run manually when editing a skill.
+No LLM calls. CI runs the whole suite via the "Offline routing eval" job
+(`pr-routing.yml`) on PRs touching `skills/**` or `tests/skills/**` (#488);
+run it manually when editing a skill.
+
+Skills with no `paths:` frontmatter (cross-cutting, e.g. architecture,
+security) ship only `must-contain.txt` plus a `no-paths.txt` guard that
+fails if someone later adds overly broad globs.
 
 ## What is tested
 

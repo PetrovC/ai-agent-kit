@@ -1,0 +1,5 @@
+# Other stacks must not route to rust
+main.py
+src/Program.cs
+package.json
+go.mod

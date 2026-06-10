@@ -1,0 +1,4 @@
+# security is cross-cutting: it must never claim files by glob
+src/components/Button.tsx
+src/main.rs
+db/schema.sql

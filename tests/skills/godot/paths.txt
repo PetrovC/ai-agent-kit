@@ -1,0 +1,6 @@
+# Godot project files must route to godot
+player.gd
+scenes/main.tscn
+project.godot
+native.gdextension
+ui/theme.tres

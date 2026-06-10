@@ -1,0 +1,5 @@
+# React/Vue/backend files must not route to angular
+src/components/Button.tsx
+src/App.vue
+src/server/app.ts
+main.py

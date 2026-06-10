@@ -1,0 +1,4 @@
+# Application code must not route to database by glob
+src/app.ts
+README.md
+Cargo.toml

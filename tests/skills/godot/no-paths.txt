@@ -1,0 +1,4 @@
+# Rust gdext code routes to rust (not godot); other engines stay out
+src/main.rs
+Assets/Player.cs
+main.py
