@@ -1,0 +1,10 @@
+description: "Deep greenfield architecture prompt activates the architecture skill"
+task: "Design clean architecture boundaries, ensure aggregate consistency and define the bounded context for our new domain"
+files: []
+expected:
+  min_skills:
+    - architecture
+  excluded_skills:
+    - angular
+    - react
+  should_delegate: false

@@ -144,6 +144,12 @@ run_selector() {
     assert_output_contains "testing"
 }
 
+@test "selector: deep greenfield architecture prompt selects architecture" {
+    run_selector --task "Design clean architecture boundaries, ensure aggregate consistency and define the bounded context for our new domain"
+    assert_success
+    assert_output_contains "architecture"
+}
+
 @test "selector: skills root exists" {
     [[ -d "$KIT_ROOT/skills" ]]
 }
