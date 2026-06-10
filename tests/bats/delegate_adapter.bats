@@ -266,3 +266,27 @@ STUB
     assert_output_contains "delegate-status: status=error"
     # Provider failure is fail-open: adapter returns 0 so the orchestrator is undisturbed.
 }
+
+@test "AAK_DEBUG=1 prints resolved provider/depth/model before exec (#477)" {
+    AAK_DEBUG=1 delegate --provider antigravity --task-type investigation --risk medium \
+        --run-id run_agy_dbg1
+    assert_success
+    assert_output_contains "AAK_DEBUG provider=antigravity"
+    assert_output_contains "depth=deep"
+    assert_output_contains "model=claude-opus-4-6"
+}
+
+@test "AAK_DEBUG=0 keeps the delegate debug line off (#477)" {
+    AAK_DEBUG=0 delegate --provider antigravity --task-type investigation --risk medium \
+        --run-id run_agy_dbg0
+    assert_success
+    refute_output_contains "AAK_DEBUG provider="
+}
+
+@test "AAK_DEBUG includes the Codex reasoning effort (#477)" {
+    AAK_DEBUG=1 delegate --provider codex --task-type formatting --risk low \
+        --run-id run_codex_dbg
+    assert_success
+    assert_output_contains "AAK_DEBUG provider=codex"
+    assert_output_contains "effort=low"
+}

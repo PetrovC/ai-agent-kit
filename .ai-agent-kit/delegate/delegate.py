@@ -173,6 +173,21 @@ VALID_RISK = {"low", "medium", "high", "critical"}
 _sequence_counter = itertools.count()
 
 
+def aak_debug_enabled() -> bool:
+    """Opt-in debug trace toggle (#305 convention: unset/"0"/"false" are off)."""
+    return os.environ.get("AAK_DEBUG", "").strip().lower() not in ("", "0", "false")
+
+
+def resolved_model_from_argv(argv: list[str]) -> str:
+    """Best-effort: read the model the provider argv will actually invoke."""
+    for flag in ("-m", "--model"):
+        if flag in argv:
+            i = argv.index(flag)
+            if i + 1 < len(argv):
+                return argv[i + 1]
+    return "provider-default"
+
+
 def is_implementation(task_type: str) -> bool:
     """True for task types that require write access to the workspace."""
     return task_type.strip().lower() in IMPLEMENTATION_TASK_TYPES
@@ -527,6 +542,20 @@ def delegate(args: argparse.Namespace) -> int:
         argv = build_claude_argv(brief, depth, write_mode)
     else:  # pragma: no cover - argparse restricts the choices
         raise DelegateError(f"unsupported provider: {provider}")
+
+    if aak_debug_enabled():
+        detail = (
+            f"provider={provider} task_type={args.task_type} risk={risk} "
+            f"depth={depth} tier={model_tier} "
+            f"model={resolved_model_from_argv(argv)} write_mode={write_mode}"
+        )
+        effort = next(
+            (a.split("=", 1)[1] for a in argv if a.startswith("model_reasoning_effort=")),
+            "",
+        )
+        if effort:
+            detail += f" effort={effort}"
+        warn(f"AAK_DEBUG {detail}")
 
     emit(
         audit_cfg, source_root, run_id, "agent.invoked", "main_agent",
