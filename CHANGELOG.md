@@ -13,9 +13,9 @@ Older releases (1.22.0 and earlier) are archived in
   middleware pipeline ordering, `IExceptionHandler` + RFC 9457
   ProblemDetails, JWT + policy-based authorization, built-in OpenAPI
   (.NET 9+), validated options binding (`ValidateOnStart`), and cancellation
-  tokens in handlers. Dotnet keywords extended (`minimal api`, `middleware`,
-  `openapi`, `swagger`) so HTTP tasks route without a `.cs` path; mirrored to
-  the three dogfood trees and the manifest.
+  tokens in handlers. Dotnet keywords extended (`minimal api`, `openapi`,
+  `swagger`, `problemdetails`, `kestrel`) so HTTP tasks route without a `.cs`
+  path; mirrored to the three dogfood trees and the manifest.
 
 - **`feat(delegate)` — `AAK_DEBUG` surfaces the resolved depth & model (#477).**
   With `AAK_DEBUG` set (per the #305 convention, `0`/`false` mean off),
