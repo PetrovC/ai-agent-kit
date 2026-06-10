@@ -1,0 +1,12 @@
+description: "Godot GDScript gameplay task"
+task: "Implement player movement and jump physics in Godot GDScript"
+files:
+  - "scenes/player/player.gd"
+  - "scenes/player/player.tscn"
+expected:
+  min_skills:
+    - godot
+  excluded_skills:
+    - dotnet
+    - node
+  should_delegate: false

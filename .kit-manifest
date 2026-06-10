@@ -27,6 +27,8 @@
 .agents/skills/error-handling/SKILL.md
 .agents/skills/github-workflow/SKILL.md
 .agents/skills/go/SKILL.md
+.agents/skills/godot/SKILL.md
+.agents/skills/godot/references/rust-gdextension.md
 .agents/skills/graphql/SKILL.deep.md
 .agents/skills/graphql/SKILL.md
 .agents/skills/i18n/SKILL.deep.md
@@ -110,6 +112,8 @@
 .agy/skills/error-handling/SKILL.md
 .agy/skills/github-workflow/SKILL.md
 .agy/skills/go/SKILL.md
+.agy/skills/godot/SKILL.md
+.agy/skills/godot/references/rust-gdextension.md
 .agy/skills/graphql/SKILL.deep.md
 .agy/skills/graphql/SKILL.md
 .agy/skills/i18n/SKILL.deep.md
@@ -205,6 +209,8 @@
 .claude/skills/error-handling/SKILL.md
 .claude/skills/github-workflow/SKILL.md
 .claude/skills/go/SKILL.md
+.claude/skills/godot/SKILL.md
+.claude/skills/godot/references/rust-gdextension.md
 .claude/skills/graphql/SKILL.deep.md
 .claude/skills/graphql/SKILL.md
 .claude/skills/i18n/SKILL.deep.md
