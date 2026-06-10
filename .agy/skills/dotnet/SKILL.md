@@ -3,7 +3,8 @@ name: dotnet
 description: >
   Use when modifying C#, .NET, ASP.NET Core, Entity Framework Core, xUnit,
   backend services, dependency injection, CQRS handlers, domain logic,
-  application layer, or any backend project structure.
+  application layer, or any backend project structure — including the HTTP
+  boundary: minimal APIs, middleware, auth wiring, OpenAPI, configuration.
 paths:
   - "**/*.cs"
   - "**/*.csproj"
@@ -24,6 +25,11 @@ keywords:
   - mediatr
   - ddd
   - cqrs
+  - minimal api
+  - openapi
+  - swagger
+  - problemdetails
+  - kestrel
 task_intents:
   - implement
   - review
@@ -78,6 +84,7 @@ Load these only when signals justify it:
 |---|---|
 | [`references/clean-architecture.md`](references/clean-architecture.md) | Task touches multiple layers, adds a new feature, or refactors cross-layer dependencies. Task text mentions DDD, CQRS, aggregate, value object, bounded context, or Clean Architecture. Files in `**/Domain/**`, `**/Application/**`, or `**/Infrastructure/**`. |
 | [`references/ef-core.md`](references/ef-core.md) | Task touches database queries, migrations, DbContext, repositories, or EF configuration. Files match `**/Infrastructure/**`, `**/Migrations/**`, or `**DbContext**`, `**Repository**`. |
+| [`references/aspnet-core-http.md`](references/aspnet-core-http.md) | Task touches HTTP endpoints, routing, middleware, or `Program.cs` wiring. Task text mentions minimal API, controller, middleware, ProblemDetails, JWT, OpenAPI, Swagger, appsettings, or options binding. Files match `**/Program.cs`, `**/*Controller.cs`, `**/Endpoints/**`, `**/Middleware/**`, `**/appsettings*.json`. |
 | [`references/testing.md`](references/testing.md) | Task adds or modifies tests, or the review must verify test coverage. Task text mentions xUnit, test, spec, mock, or fixture. Files in `**/Tests/**` or `**Test*.cs`. |
 | [`references/package-maintenance.md`](references/package-maintenance.md) | Task involves NuGet updates, runtime upgrades, or vulnerability remediation. Task text mentions package, NuGet, upgrade, or outdated. |
 
