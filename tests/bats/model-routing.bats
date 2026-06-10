@@ -44,6 +44,31 @@ run_selector() {
     assert_output_contains "high_reasoning"
 }
 
+@test "select-model: word-order-free architecture review -> high_reasoning (#469)" {
+    run_selector --task "Review the proposed architecture" --risk medium
+    [ "$status" -eq 0 ]
+    assert_output_contains "high_reasoning"
+}
+
+@test "select-model: pull request review -> high_reasoning (#469)" {
+    run_selector --task "review this pull request for regressions" --risk medium
+    [ "$status" -eq 0 ]
+    assert_output_contains "high_reasoning"
+}
+
+@test "select-model: pr review shorthand -> high_reasoning (#469)" {
+    run_selector --task "pr review of the delegate change" --risk medium
+    [ "$status" -eq 0 ]
+    assert_output_contains "high_reasoning"
+}
+
+@test "select-model: short tokens stay word-bounded (#469)" {
+    run_selector --task "update the latest changes" --risk medium
+    [ "$status" -eq 0 ]
+    assert_output_contains "balanced"
+    refute_output_contains "high_reasoning"
+}
+
 @test "select-model: security audit -> high_reasoning tier" {
     run_selector --task "security review of authentication code" --risk high
     [ "$status" -eq 0 ]

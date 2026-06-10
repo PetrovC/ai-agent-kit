@@ -131,6 +131,15 @@
 
 ### Fixed
 
+- **`fix(routing)` — model router no longer under-routes abstract review
+  prompts (#469).** Intent keywords are now tokenized — every token must
+  appear in the task text, in any order (word-prefix for tokens of 3+ chars,
+  exact word for shorter ones), so "Review the proposed architecture" routes
+  to `architecture_review`/`high_reasoning` instead of falling through to
+  `implementation`/`balanced`. New `pr_review → high_reasoning` intent covers
+  PR / code reviews; the `--risk high` manual escape hatch is documented in
+  `docs/ai/MODEL_SELECTION.md`. Four routing tests added.
+
 - **`fix(delegate)` — gate `--dangerously-skip-permissions` on `write_mode` for
   Antigravity (#476).** `build_antigravity_argv` appended the flag
   unconditionally — even for read-only depth — while `build_claude_argv` gates
