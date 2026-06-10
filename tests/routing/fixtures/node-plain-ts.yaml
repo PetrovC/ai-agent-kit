@@ -1,0 +1,11 @@
+description: "Plain TypeScript backend file routes to the node skill (#498)"
+task: "add express middleware for request logging"
+files:
+  - "src/server/app.ts"
+expected:
+  min_skills:
+    - node
+  excluded_skills:
+    - dotnet
+    - react
+  should_delegate: false

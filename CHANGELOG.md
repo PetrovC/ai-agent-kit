@@ -151,6 +151,14 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`fix(routing)` — route plain TypeScript files to the node skill (#498).**
+  The node skill's `paths:` matched `**/*.js`/`**/*.mjs`/`**/*.cjs` and
+  `tsconfig*.json` but no TypeScript sources, so a backend file like
+  `src/server/app.ts` matched no skill at all. Added `**/*.ts`, `**/*.mts`,
+  `**/*.cts` (mirrored to the three dogfood trees); `**/*.tsx` deliberately
+  stays with react. New fixture + two bats regression tests (plain `.ts`
+  routes to node; `.tsx` does not).
+
 - **`ci(scorecard)` — drop the last top-level `contents: write` grant
   (#473).** `release-checksums.yml` declared `contents: write` +
   `id-token: write` at workflow level; both scopes now live on the single
