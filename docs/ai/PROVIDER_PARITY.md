@@ -18,7 +18,7 @@ after any provider's major release** — whichever comes first.
 | Feature | Claude Code | Codex CLI | Antigravity (`agy`) | Kit uses? |
 |---|---|---|---|---|
 | **Hooks** | ✅ `settings.json` `hooks` | ✅ `.codex/hooks.json` | ✅ `settings.json` `hooks` | ✅ all three |
-| **Session lifecycle events** | `SessionStart/End`, `Stop`, `PreCompact`, `SubagentStop` | `SessionStart`, `Stop`, `SubagentStart/Stop` | `Session{Start,End}`, `Before/AfterAgent` | ✅ (see [§ Hook events](#hook-events)) |
+| **Session lifecycle events** | `SessionStart/End`, `Stop`, `PreCompact`, `SubagentStop` | `SessionStart`, `Stop`, `PreCompact/PostCompact`, `UserPromptSubmit`, `SubagentStart/Stop` | `Session{Start,End}`, `Before/AfterAgent` | ✅ (see [§ Hook events](#hook-events)) |
 | **Tool events** | `Pre/PostToolUse` | `Pre/PostToolUse` | `Before/AfterTool` | ✅ all three |
 | **Subagents** | ✅ `Task` + `tooling/claude/agents/*` | ✅ `features.multi_agent` (ADR-019) | ✅ `tooling/agy/agents/*` + `Before/AfterAgent` | ✅ all three |
 | **Skills** | ✅ `.claude/skills/` | ✅ `.agents/skills/` | ✅ `.agy/skills/` | ✅ one source `skills/`, installed per tool |
@@ -49,7 +49,7 @@ against `tooling/<tool>/` (the dogfood copies are byte-identical):
 | Antigravity | `BeforeTool` only (`settings.json`) |
 
 The providers expose more events than the kit currently wires (e.g. Claude
-`SessionStart`/`SessionEnd`/`SubagentStop`, Codex `SubagentStart`/`SubagentStop`,
+`SessionStart`/`SessionEnd`/`SubagentStop`, Codex `PreCompact`/`PostCompact`/`UserPromptSubmit`/`SubagentStart`/`SubagentStop`,
 Antigravity `AfterTool`/`Before`/`AfterAgent`/`Session{Start,End}`); those are
 available to wire but not registered in this release. The Antigravity row
 matches README's "agy gets only `pre-bash-guard` on `BeforeTool`" wording.

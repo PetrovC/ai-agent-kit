@@ -7,6 +7,17 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`docs(codex)` — "Codex has no `PreCompact` event" was stale (#513).** The
+  official Codex hooks docs now list both `PreCompact` and `PostCompact` (plus
+  `UserPromptSubmit`/`SubagentStop`) among supported lifecycle events, so the
+  kit's claim that the event does not exist was wrong. Took the docs-only path:
+  reworded the three spots (root + `tooling/codex/AGENTS.md`, README Hooks
+  overview and detailed section) to say Codex *exposes* `PreCompact`/`PostCompact`
+  but the kit wires `session-summary` for Claude only in this release, and added
+  `PreCompact/PostCompact`/`UserPromptSubmit` to the Codex cells in
+  `PROVIDER_PARITY.md`. No hook wiring changed (that needs a live Codex session
+  to validate and stays a separate scoped change).
+
 - **`docs(testing)` — testing docs listed shipped suites as planned and didn't
   say where each runs (#515).** `docs/ai/TESTING.md` "Planned Testing
   Improvements" still listed BATS, Pester, bash/PowerShell parity, router
