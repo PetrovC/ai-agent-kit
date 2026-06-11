@@ -38,16 +38,21 @@ supported or not used.
 
 ## Hook events
 
-The exact hook events each provider exposes that the kit wires:
+The exact hook events the kit **wires** today — this lists what the shipped
+configs actually register, not the full set each provider supports. Verify
+against `tooling/<tool>/` (the dogfood copies are byte-identical):
 
 | Provider | Events wired (`tooling/<tool>/…`) |
 |---|---|
-| Claude | `PreToolUse`, `PostToolUse`, `PreCompact`, `SessionStart`, `SessionEnd`, `Stop`, `SubagentStop` |
-| Codex | `PreToolUse`, `PostToolUse`, `SessionStart`, `Stop`, `SubagentStart`, `SubagentStop` |
-| Antigravity | `BeforeTool`, `AfterTool`, `BeforeAgent`, `AfterAgent`, `SessionStart`, `SessionEnd` |
+| Claude | `PreToolUse`, `PostToolUse`, `PreCompact`, `Stop` (`settings.json` + `.windows` variant) |
+| Codex | `PreToolUse`, `PostToolUse`, `PermissionRequest`, `SessionStart`, `Stop` (`hooks.json`) |
+| Antigravity | `BeforeTool` only (`settings.json`) |
 
-Names differ but the coverage is equivalent: a pre/post tool guard, a session
-boundary, and a subagent/agent boundary.
+The providers expose more events than the kit currently wires (e.g. Claude
+`SessionStart`/`SessionEnd`/`SubagentStop`, Codex `SubagentStart`/`SubagentStop`,
+Antigravity `AfterTool`/`Before`/`AfterAgent`/`Session{Start,End}`); those are
+available to wire but not registered in this release. The Antigravity row
+matches README's "agy gets only `pre-bash-guard` on `BeforeTool`" wording.
 
 ## Notes per row
 

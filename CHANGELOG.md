@@ -7,6 +7,14 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`docs(parity)` — PROVIDER_PARITY hook-events table overstated wired events
+  (#510).** The table claimed events for all three providers that the shipped
+  configs do not register. Corrected it to the actual wired sets — Claude:
+  `PreToolUse`/`PostToolUse`/`PreCompact`/`Stop`; Codex: those plus
+  `PermissionRequest` and `SessionStart` (PermissionRequest was missing);
+  Antigravity: `BeforeTool` only — clarified that providers support more than
+  the kit wires, and reconciled the Antigravity row with README.
+
 - **`docs(security)` — README cosign verify example accepted any signer
   identity (#517).** The "Verifying a release" command used
   `--certificate-identity-regexp ".*"`, which accepts a signature from any
