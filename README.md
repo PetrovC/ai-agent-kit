@@ -309,23 +309,28 @@ Antigravity, or `docs/ai/`, use Option A.
 
 #### Pinning and pre-enabling the plugin (team setup)
 
-For teams where everyone should have the plugin active and no unapproved
-plugins should be installable, add these two keys to the project
-`settings.json` (or `CLAUDE.local.json` for personal overrides):
+For teams where everyone should have the plugin active, add `enabledPlugins` to
+the project `settings.json` committed to the repo (Claude Code's personal,
+gitignored override file is `.claude/settings.local.json` — not
+`CLAUDE.local.md`, which is the memory file):
 
 ```json
 {
-  "strictKnownMarketplaces": true,
   "enabledPlugins": ["PetrovC/ai-agent-kit@ai-agent-kit"]
 }
 ```
 
-- **`strictKnownMarketplaces: true`** — Claude Code will only allow installing
-  plugins from sources already listed in your `settings.json` marketplace
-  entries. Prevents accidental installs from unknown sources.
 - **`enabledPlugins`** — list of plugin IDs that are automatically active for
   every session. The format is `<org>/<repo>@<plugin-name>`, which matches the
   values you pass to `/plugin install`.
+
+> **Locking down plugin sources (managed settings only).** To forbid installing
+> plugins from unapproved marketplaces, set `strictKnownMarketplaces: true`. Per
+> the [Claude Code settings reference](https://code.claude.com/docs/en/settings)
+> this key takes effect **only in managed settings** (the IT-deployed
+> `managed-settings.json` scope), not in a project or user `settings.json` — so
+> an organization administrator must deploy it; a project-level entry has no
+> effect.
 
 > **Note:** `enabledPlugins` does not replace `/plugin marketplace add` on each
 > machine; it is a session-activation shortcut — the marketplace source must

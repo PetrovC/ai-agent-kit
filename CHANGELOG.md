@@ -7,6 +7,16 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`docs(plugin)` — team-setup section named a nonexistent config file and
+  mis-scoped `strictKnownMarketplaces` (#519).** The "Pinning and pre-enabling
+  the plugin" recipe told teams to add keys to `CLAUDE.local.json` (not a real
+  Claude Code file — personal overrides live in `.claude/settings.local.json`;
+  `CLAUDE.local.md` is the memory file) and recommended `strictKnownMarketplaces:
+  true` in project settings, but that key is documented as **managed-settings
+  only**, so a project-level entry has no effect. Corrected the filename, moved
+  `strictKnownMarketplaces` into a managed-settings note, and kept `enabledPlugins`
+  in project `settings.json` (verified valid at project scope).
+
 - **`docs(windows)` — tracked dogfood hooks are POSIX-flavored, leaving Windows
   contributors with silently dead hooks (#514).** The dogfood `.claude/settings.json`
   tracked here is the POSIX variant (`bash "…/hook.sh"`), so on a Windows clone
