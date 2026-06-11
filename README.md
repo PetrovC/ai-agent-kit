@@ -477,8 +477,8 @@ actionable. Uniform tier, no exceptions:
 | `architect` | Deep design reasoning | `claude-opus-4-8` | `gemini-3.1-pro` |
 | `security-reviewer` | Vulnerability analysis | `claude-opus-4-8` | `gemini-3.1-pro` |
 | `code-reviewer` | PR review | `claude-opus-4-8` | `gemini-3.1-pro` |
-| `codebase-investigator` | Map usages / affected area | `claude-sonnet-4-6` | `gemini-3-flash` |
-| `test-runner` | Run tests + summarize | `claude-haiku-4-5` | `gemini-3-flash` |
+| `codebase-investigator` | Map usages / affected area | `claude-sonnet-4-6` | `gemini-3.5-flash` |
+| `test-runner` | Run tests + summarize | `claude-haiku-4-5` | `gemini-3.5-flash` |
 
 **Codex** does not pin a model per skill — the official Codex skill spec is
 `SKILL.md` with `name` + `description` only, so the five Codex agent-skills run

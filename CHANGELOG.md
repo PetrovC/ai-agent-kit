@@ -7,6 +7,15 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`chore(agy)` — two agy agents pinned an invalid `gemini-3-flash` model ID
+  (#518).** `codebase-investigator` and `test-runner` (and their `.agy/` dogfood
+  mirrors, plus the README model-selection table) pinned `model: gemini-3-flash`,
+  which is not in the adapter's documented agy 1.0.4 model list — that list has
+  **Gemini 3.5 Flash**. Renamed all six occurrences to `gemini-3.5-flash`,
+  matching the runtime model and the existing dotted naming (`gemini-3.1-pro`)
+  so `delegate.py`'s model list, the agent frontmatter, and the README table
+  agree. Same class of drift as #467.
+
 - **`fix(ci)` — `@agy` mention job installed a nonexistent npm package (#512).**
   The `@agy` job in `agent-on-mention.yml` ran `npm install -g @antigravity/agy`,
   which 404s — the Antigravity CLI ships via an installer script, not npm.
