@@ -5,6 +5,8 @@ Older releases (1.22.0 and earlier) are archived in
 
 ## [Unreleased]
 
+## [1.23.1] - 2026-06-11
+
 ### Fixed
 
 - **`chore(agy)` — fast-tier agy agents now pin `gemini-3.5-flash` (#518).**
