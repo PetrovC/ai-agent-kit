@@ -223,7 +223,7 @@ Each release ships a `SHA256SUMS` file and a cosign signature bundle
 ```bash
 sha256sum --check --ignore-missing SHA256SUMS
 cosign verify-blob SHA256SUMS --bundle SHA256SUMS.bundle \
-  --certificate-identity-regexp ".*" \
+  --certificate-identity-regexp "github.com/PetrovC/ai-agent-kit" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 ```
 
