@@ -7,6 +7,17 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`docs(windows)` — tracked dogfood hooks are POSIX-flavored, leaving Windows
+  contributors with silently dead hooks (#514).** The dogfood `.claude/settings.json`
+  tracked here is the POSIX variant (`bash "…/hook.sh"`), so on a Windows clone
+  where `bash` resolves to the WSL launcher stub the repo's own `pre-bash-guard`
+  never runs — and CI cannot flag it. Added a "Contributing to ai-agent-kit from
+  Windows" section to `WINDOWS_HOOKS.md` with a `where bash` sanity check, a
+  copy-pasteable `.claude/settings.local.json` override that rewires the four
+  hooks through `run-hook.ps1` (gitignored, so no drift), and a guard-is-live
+  verification. Also corrected the stale "the WSL `System32\bash.exe` stub is a
+  valid configuration and works" claim to match README's "Does not work".
+
 - **`docs(governance)` — WORKFLOW/ARCHITECTURE/SCOPE still said the Antigravity
   dogfood was not tracked (#508).** Three governance docs described the
   pre-Antigravity state and contradicted both `git ls-files` (which tracks

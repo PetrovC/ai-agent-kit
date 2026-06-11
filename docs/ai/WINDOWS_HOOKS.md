@@ -25,9 +25,19 @@ It must print `ok`. If it fails or does nothing, you need to update your path or
 
 ## WSL Path and Configuration
 
-In some Windows setups, `bash.exe` may resolve to the WSL wrapper executable at `%windir%\system32\bash.exe`.
-- This is a valid configuration and works for running hooks.
-- **Requirement:** If this path is used, you must confirm that WSL is actually installed and configured with a default Linux distribution. If WSL is not installed, this wrapper will fail or prompt to install a distro.
+In some Windows setups, `bash.exe` resolves to the WSL launcher stub at
+`%windir%\System32\bash.exe`.
+
+- **This does not work for the kit's hooks.** The hooks invoke
+  `bash "C:\...\hook.sh"` with a Windows-style path argument, which a WSL distro
+  cannot read without `/mnt/c` translation. If no WSL distro is installed the
+  stub also prints *"Windows Subsystem for Linux has no installed distributions"*
+  and exits non-zero. Either way the `pre-bash-guard` PreToolUse hook silently
+  never runs, so destructive-command interception is lost without any visible
+  signal — matching the **"Does not work"** characterization in the README.
+- **Fix:** put real Git Bash (`%ProgramFiles%\Git\bin\bash.exe`) ahead of
+  `%SystemRoot%\System32` on `PATH`, or use the `run-hook.ps1` wiring described
+  under [Contributing to ai-agent-kit from Windows](#contributing-to-ai-agent-kit-from-windows).
 
 ## Setting the Default Shell in VS Code
 
@@ -53,6 +63,106 @@ Some hooks or tasks run PowerShell wrapper scripts (e.g., `run-hook.ps1`). These
 Do not change the terminal shell type or profile while a Claude Code session is active.
 - Changing the shell mid-session can cause environment variables to mismatch or disrupt child processes running hooks.
 - If you need to switch shells, exit the Claude Code session (`/exit` or `Ctrl + D`), change the shell in your terminal emulator, and start a new session.
+
+## Contributing to ai-agent-kit from Windows
+
+The guidance above is written for **target projects** that received a Windows
+install. If you are a **contributor cloning this repository itself**, note one
+extra wrinkle: the dogfood configs tracked here are the **POSIX variants**. The
+tracked `.claude/settings.json` is byte-identical to `tooling/claude/settings.json`,
+so its hook commands invoke bare `bash "${CLAUDE_PROJECT_DIR}/.claude/hooks/…"`
+(and `.codex/hooks.json` likewise uses `bash -c`). The Windows-safe wiring that
+routes through `run-hook.ps1` lives only in `settings.windows.json` /
+`hooks.windows.json` — which a PowerShell *install into a target* deploys, but
+which the tracked dogfood deliberately does not use (one tracked file cannot be
+both variants, and `validate --strict` accepts either).
+
+The consequence: on a Windows checkout where `bash` resolves to the WSL launcher
+stub, **this repository's own `pre-bash-guard` never runs** — the destructive-
+command block is silently dead, and CI cannot detect it.
+
+**Sanity check.** In the terminal where you launch Claude Code, confirm which
+`bash` wins:
+
+```powershell
+where bash
+```
+
+If the first line is `C:\Windows\System32\bash.exe` (the WSL stub) rather than
+`C:\Program Files\Git\bin\bash.exe`, your hooks are dead and you need the
+override below (or fix `PATH` so Git Bash precedes `System32`).
+
+**Override recipe.** Create `.claude/settings.local.json` at the repo root — it
+is gitignored, so it never lands in a commit and never trips the dogfood drift
+check. It rewires the four Claude hooks through `run-hook.ps1`, which resolves
+Git Bash from `%ProgramFiles%` before falling back to `PATH`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" pre-bash-guard.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" format-on-save.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" notify-done.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.ps1\" session-summary.sh",
+            "async": false
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`settings.local.json` keys are merged over `settings.json`, so only the `hooks`
+block needs to be present. (This snippet mirrors the tracked
+`tooling/claude/settings.windows.json` hook wiring.)
+
+**Verify the guard is live.** After adding the override, run the hook directly
+and confirm it blocks a destructive command with exit code 2:
+
+```powershell
+'{"tool_input":{"command":"git push --force"}}' |
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\.claude\hooks\run-hook.ps1" pre-bash-guard.sh
+echo $LASTEXITCODE   # expect 2
+```
 
 ## Troubleshooting: If Hooks Silently Do Nothing
 
