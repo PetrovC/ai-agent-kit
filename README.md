@@ -287,7 +287,7 @@ For maintainer-side command references and hook diagnostics, see
 
 ### Option B — Claude plugin marketplace (opt-in, skills only)
 
-If you only use Claude Code and just want the **31 skills** (no Codex/Antigravity
+If you only use Claude Code and just want the **skills** (no Codex/Antigravity
 config, no `docs/ai/` scaffolding), install via the plugin marketplace:
 
 ```text
@@ -495,9 +495,10 @@ deterministic. Token efficiency still comes from **lazy-loaded skills** and
 |---|---|
 | Backend languages | `dotnet`, `java-kotlin`, `python`, `node`, `go`, `rust` |
 | Frontend | `angular`, `vue`, `svelte`, `react` |
+| Game | `godot` (Godot 4.x, typed GDScript, GDExtension via Rust) |
 | Mobile | `mobile-rn` (React Native), `mobile-flutter` |
 | Data | `database` (Postgres, MySQL, SQLite, MongoDB, Redis, ORM-agnostic) |
-| Cross-cutting | `architecture`, `testing`, `code-review`, `security`, `dependencies`, `api-design`, `graphql`, `infrastructure`, `github-workflow` |
+| Cross-cutting | `architecture`, `testing`, `code-review`, `security`, `dependencies`, `api-design`, `graphql`, `infrastructure`, `github-workflow`, `release-management` |
 | Operational | `observability`, `messaging`, `error-handling`, `monorepo` |
 | User-facing | `accessibility`, `i18n` |
 | AI / LLM | `ai-dev` (RAG, tool use, agents, MCP, extended thinking, prompt caching, evals) |
@@ -506,13 +507,13 @@ deterministic. Token efficiency still comes from **lazy-loaded skills** and
 Each skill lives in `skills/<name>/SKILL.md` and is lazy-loaded — only the relevant one is read for any given task.
 
 Language / framework skills (`dotnet`, `go`, `rust`, `python`, `node`, `angular`, `vue`, `svelte`,
-`react`, `mobile-flutter`, `mobile-rn`, `database`, `infrastructure`, `github-workflow`, `monorepo`,
+`react`, `godot`, `mobile-flutter`, `mobile-rn`, `database`, `infrastructure`, `github-workflow`, `monorepo`,
 `dependencies`, `graphql`) carry `paths:` frontmatter so Claude Code can auto-suggest the
 skill when you open a matching file — no manual routing step needed in the project's `CLAUDE.md`.
 
 Cross-cutting skills (`architecture`, `security`, `testing`, `code-review`, `observability`,
-`messaging`, `error-handling`, `ai-dev`, `performance`, `accessibility`, `i18n`, `api-design`)
-have no `paths:` — they are invoked explicitly via the routing table or on demand.
+`messaging`, `error-handling`, `ai-dev`, `performance`, `accessibility`, `i18n`, `api-design`,
+`release-management`) have no `paths:` — they are invoked explicitly via the routing table or on demand.
 
 ---
 
@@ -631,7 +632,7 @@ Copy these to `.github/workflows/` in your project (they are **not** installed a
 | Script | Semantics |
 |---|---|
 | `install.ps1` / `install.sh` | **Always overwrites kit files** (skills, tooling configs, subagents, root `.md`). Reinstall to reset everything to baseline. |
-| `update.ps1` / `update.sh` | **Content-diff based** — only files that are missing or whose content differs are touched. `update.sh` also **prunes** files the kit no longer ships, via a `.kit-manifest` diff (scoped to `--tools`, never `docs/ai/` or user files; PowerShell parity tracked separately). Warns on version drift. Supports `--dry-run` / `-DryRun` to preview. |
+| `update.ps1` / `update.sh` | **Content-diff based** — only files that are missing or whose content differs are touched. Both shells also **prune** files the kit no longer ships, via a `.kit-manifest` diff (scoped to `--tools`, never `docs/ai/` or user files). Warns on version drift. Supports `--dry-run` / `-DryRun` to preview. |
 | `uninstall.ps1` / `uninstall.sh` | Removes only kit-installed files for the chosen tools, using `.kit-manifest` as the source of truth. User files added inside managed dirs (e.g. `.claude/agents/team-agent.md`, `.claude/settings.local.json`) are preserved. Falls back to a reconstructed file list when no manifest is present. Preserves `docs/ai/`. |
 | `validate.ps1` / `validate.sh` | Verifies `docs/ai/` templates have been filled, guards Codex router context budget plus context/model/subagent link hygiene, prints a compact largest Codex-facing file summary, and in this source repo flags Claude/Codex dogfood drift from `tooling/` or `skills/`. |
 | `new-skill.ps1` / `new-skill.sh` | Scaffolds a new skill under `skills/<name>/` with the standard template — for kit contributors. |

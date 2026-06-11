@@ -7,6 +7,14 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`docs(readme)` — stale skill count, missing coverage rows, and an outdated
+  PowerShell-prune caveat (#507).** Replaced the hard-coded "31 skills" with
+  non-numeric phrasing (the tree now has 32 since the godot skill landed); added
+  `godot` (new Game row) and `release-management` (Cross-cutting) to the Skill
+  coverage table and the paths/no-paths explanatory lists; and dropped the
+  "PowerShell parity tracked separately" note from the update semantics — both
+  `update.sh` and `update.ps1` prune via the `.kit-manifest` diff.
+
 - **`fix(bootstrap)` — `bootstrap.ps1` hard-required `pwsh`, breaking the
   Windows install on PowerShell 5.1-only machines (#505).** Stock Windows ships
   only Windows PowerShell 5.1; the installer invocation hard-coded `& pwsh ...`,
