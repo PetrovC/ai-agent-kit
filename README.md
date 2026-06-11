@@ -420,7 +420,8 @@ Codex   PreToolUse(Bash)        → pre-bash-guard.sh   → same hardened guard
         Stop                    → notify-done.sh      → desktop notification
 ```
 
-Codex has no `PreCompact` event, so `session-summary` is Claude-only. Antigravity
+`session-summary` is wired for Claude only; Codex exposes `PreCompact`/`PostCompact`
+but the kit does not wire it there in this release. Antigravity
 gets the `pre-bash-guard` `BeforeTool` hook (same denylist as Claude/Codex);
 `format-on-save`, `notify-done`, and `session-summary` for Antigravity are not in
 this release (the relevant `tool_input` / event payload schemas need to be
@@ -545,7 +546,8 @@ model (stdin JSON, exit 2 = block).
 | `format-on-save.sh` | `PostToolUse(Edit\|Write\|Patch)` | Same formatter dispatch |
 | `notify-done.sh` | `Stop` | Desktop notification |
 
-Codex has no `PreCompact` event, so `session-summary` is Claude-only. The guard
+Codex exposes `PreCompact`/`PostCompact`, but the kit wires `session-summary` for
+Claude only in this release. The guard
 parses hook input via a `jq → python3 → sed` fallback chain: a missing or broken
 interpreter (e.g. the Windows python3 stub) yields empty output and falls through
 to the next parser. If all three return empty (unknown schema, missing

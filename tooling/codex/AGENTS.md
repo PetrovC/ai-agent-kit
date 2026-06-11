@@ -43,7 +43,7 @@ failing open; closest-wins from `~/.codex/` then `<repo>/.codex/`):
 | SessionStart | `session-start-summary.sh` | Prints kit version and active profile. |
 | Stop | `notify-done.sh` | Desktop notification when a turn finishes. |
 
-Codex has no `PreCompact` event. Reference: [Codex hooks docs](https://developers.openai.com/codex/hooks).
+Codex exposes `PreCompact`/`PostCompact`, but this release wires `session-summary` for Claude only. Reference: [Codex hooks docs](https://developers.openai.com/codex/hooks).
 
 ## Project config (`.codex/config.toml`)
 
