@@ -8,10 +8,10 @@
 
     With explicit options (recommended — keeps your terminal history auditable):
       & ([scriptblock]::Create((irm 'https://github.com/PetrovC/ai-agent-kit/releases/latest/download/bootstrap.ps1'))) `
-          -Target '.\myapp' -Tools 'claude,codex,agy' -Version 'v1.21.0'
+          -Target '.\myapp' -Tools 'claude,codex,agy' -Version 'v1.23.0'
 
 .PARAMETER Version
-    Release tag, e.g. v1.21.0. Default: fetch latest from GitHub API.
+    Release tag, e.g. v1.23.0. Default: fetch latest from GitHub API.
 
 .PARAMETER Target
     Project directory to install into. Default: current directory.

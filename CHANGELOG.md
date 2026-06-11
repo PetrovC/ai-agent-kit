@@ -5,6 +5,16 @@ Older releases (1.22.0 and earlier) are archived in
 
 ## [Unreleased]
 
+### Fixed
+
+- **`docs(readme)` — pinned install examples referenced the nonexistent
+  `v1.21.0` release (#506).** Every pinned `bootstrap.{sh,ps1}` example and the
+  `git clone --branch` snippet in README pointed at `v1.21.0`, which 404s (the
+  first release with working assets is `v1.22.1`). Repointed the pinned
+  examples to `v1.23.0`, corrected the "available from" claim to `v1.22.1`, and
+  updated the matching `-Version`/`--version` examples in
+  `scripts/bootstrap.ps1` and `scripts/bootstrap.sh` help text.
+
 ## [1.23.0] - 2026-06-10
 
 ### Added
