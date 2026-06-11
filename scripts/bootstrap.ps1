@@ -43,6 +43,18 @@ param(
 $ErrorActionPreference = "Stop"
 $Repo = "PetrovC/ai-agent-kit"
 
+function Resolve-AakPowerShellEngine {
+    # Prefer pwsh (PowerShell 7+) when present, otherwise fall back to Windows
+    # PowerShell 5.1 (powershell.exe). install.ps1 is 5.1-compatible, so the
+    # fallback is safe on stock Windows where pwsh is not installed.
+    if (Get-Command pwsh -ErrorAction SilentlyContinue) { return "pwsh" }
+    return "powershell"
+}
+
+# When dot-sourced (e.g. by Pester) only define functions — skip the
+# download/install flow and its network calls.
+if ($MyInvocation.InvocationName -eq '.') { return }
+
 if (-not $Version) {
     Write-Host "Fetching latest release version..."
     $LatestRelease = Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest"
@@ -97,8 +109,9 @@ try {
         exit 1
     }
 
-    Write-Host "Running installer..."
-    & pwsh -NoProfile -ExecutionPolicy Bypass -File $InstallScript `
+    $Engine = Resolve-AakPowerShellEngine
+    Write-Host "Running installer with $Engine..."
+    & $Engine -NoProfile -ExecutionPolicy Bypass -File $InstallScript `
         -Target $Target -Tools $Tools -Profile $Profile
 } finally {
     Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
