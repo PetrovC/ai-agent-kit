@@ -204,13 +204,6 @@ function Get-ReconstructedFiles([string]$tool) {
             }
         }
         "shared" {
-            $auditDir = Join-Path $KitRoot "tooling/shared/agent-audit"
-            if (Test-Path -LiteralPath $auditDir) {
-                Get-ChildItem -LiteralPath $auditDir -Recurse -File | ForEach-Object {
-                    $rel = $_.FullName.Substring($auditDir.Length).TrimStart('\','/') -replace "\\", "/"
-                    $out.Add(".ai-agent-kit/audit/$rel")
-                }
-            }
             $delegateDir = Join-Path $KitRoot "tooling/shared/delegate"
             if (Test-Path -LiteralPath $delegateDir) {
                 Get-ChildItem -LiteralPath $delegateDir -Recurse -File | ForEach-Object {

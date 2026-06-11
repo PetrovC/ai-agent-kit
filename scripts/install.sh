@@ -13,7 +13,6 @@ if [[ -n "${AAK_DEBUG:-}" && "${AAK_DEBUG}" != "0" && "${AAK_DEBUG}" != "false" 
 # Usage:
 #   ./install.sh --target /path/to/project
 #   ./install.sh --target /path/to/project --tools codex,claude
-#   ./install.sh --target /path/to/project --audit official
 #
 set -euo pipefail
 
@@ -161,8 +160,8 @@ copy_file() {
 }
 
 # Append one NDJSON line describing what this lifecycle run changed (#313).
-# Local, parseable record under .ai-agent-kit/; never pushed (that is the
-# agent-audit system's job) and not tracked in .kit-manifest.
+# Local, parseable record under .ai-agent-kit/; never pushed and not tracked
+# in .kit-manifest.
 write_lifecycle_audit() {
     local lifecycle="$1"  # install | update
     local record_dir="$TARGET/.ai-agent-kit"

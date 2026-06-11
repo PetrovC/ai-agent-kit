@@ -16,26 +16,25 @@ Antigravity model selection is passed per call with ``-m``, and its
 
 Design constraints (all enforced here):
   - The provider CLI invocation via ``subprocess.run`` is the ONLY mockable
-    boundary. Model routing, brief/summary sanitization, and audit-event
-    emission all run in-process so they are unit-tested without a live CLI.
+    boundary. Model routing and brief/summary sanitization run in-process so
+    they are unit-tested without a live CLI.
   - The brief is privacy-scanned BEFORE it is sent to the provider, and the
-    returned summary is privacy-scanned BEFORE it enters any audit event or is
-    printed. Sanitization reuses the audit runtime's ``privacy_scan`` so the
-    rules never drift from the audit boundary.
-  - Fail-open: a privacy rejection, a missing/failing provider CLI, or an audit
-    emission failure never raises out of the adapter. Delegation is optional, so
-    a failure leaves the orchestrator's default behavior unchanged. A final
-    status line is always emitted to stderr so outcomes remain distinguishable
-    while the fail-open exit code stays 0.
-  - The orchestrator stays the verifier. This adapter only runs the provider and
-    emits ``agent.selected``/``agent.invoked``/``agent.completed`` events with a
-    ``provider`` field (feeding the #330 rollup and #331 findings). The mandatory
-    ``report.evaluated`` checkpoint is still the orchestrator's job before it
-    trusts the result.
+    returned summary is privacy-scanned BEFORE it is printed. Sanitization
+    reuses the shared ``sanitize_patterns`` module so the rules never drift.
+  - Fail-open: a privacy rejection or a missing/failing provider CLI never
+    raises out of the adapter. Delegation is optional, so a failure leaves the
+    orchestrator's default behavior unchanged. A final status line is always
+    written to stderr so outcomes remain distinguishable while the fail-open
+    exit code stays 0.
+  - The orchestrator stays the verifier. This adapter only runs the provider;
+    the mandatory ``report.evaluated`` checkpoint is still the orchestrator's
+    job before it trusts the result.
 
 The provider answer (sanitized) is printed to stdout for the orchestrator to
-consume; the audit events carry only numeric/enum metrics, never the raw answer.
+consume. The anonymized audit subsystem has been removed; ``load_audit_config``
+and ``emit`` are retained as no-ops only for backward compatibility.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -55,6 +54,7 @@ if str(_DELEGATE_DIR) not in sys.path:
 try:
     from sanitize_patterns import is_safe, redact_text
 except ImportError:
+
     def redact_text(value: str) -> tuple[str, int]:
         """Fallback redaction when the canonical module is unavailable."""
         return _UNSAFE_PATTERNS.subn("[REDACTED_SENSITIVE_VALUE]", value)
@@ -62,6 +62,7 @@ except ImportError:
     def is_safe(value: str) -> bool:
         """Fallback check when the canonical module is unavailable."""
         return _UNSAFE_PATTERNS.search(value) is None
+
 
 # --- Audit runtime removed ------------------------------------------------
 SCHEMA_VERSION = "0.1.0"
@@ -122,8 +123,8 @@ QUOTA_EXHAUSTED_PATTERNS = (
     "limit exceeded",
 )
 
-# Routing depth → audit model tier, so emitted events line up with the audit
-# scorer's tier vocabulary (fast/standard/review/deep).
+# Routing depth → model tier vocabulary (fast/standard/review) reported in the
+# final stderr status line.
 TIER_BY_DEPTH = {"deep": "review", "standard": "standard", "readonly": "fast"}
 
 # Task types that warrant the strongest reasoning regardless of risk.
@@ -494,9 +495,7 @@ def delegate(args: argparse.Namespace) -> int:
             f"--risk must be one of {sorted(VALID_RISK)}, got '{args.risk}'"
         )
 
-    brief_path = pathlib.Path(
-        os.path.expanduser(os.path.expandvars(args.brief_file))
-    )
+    brief_path = pathlib.Path(os.path.expanduser(os.path.expandvars(args.brief_file)))
     try:
         brief = brief_path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -516,7 +515,9 @@ def delegate(args: argparse.Namespace) -> int:
     model_tier = TIER_BY_DEPTH[depth]
     source_root = pathlib.Path(args.source_root).resolve()
     run_id = args.run_id  # audit removed; run_id retained for API compatibility only
-    invocation_id = args.invocation_id or f"inv_delegate_{provider}_{next(_sequence_counter)}"
+    invocation_id = (
+        args.invocation_id or f"inv_delegate_{provider}_{next(_sequence_counter)}"
+    )
     audit_cfg = load_audit_config(args.config)
 
     selection_payload = {
@@ -529,8 +530,13 @@ def delegate(args: argparse.Namespace) -> int:
         "selection_reason": f"routed {args.task_type}/{risk} to {depth} depth",
     }
     emit(
-        audit_cfg, source_root, run_id, "agent.selected", "main_agent",
-        selection_payload, invocation_id,
+        audit_cfg,
+        source_root,
+        run_id,
+        "agent.selected",
+        "main_agent",
+        selection_payload,
+        invocation_id,
     )
 
     write_mode = is_implementation(args.task_type)
@@ -552,7 +558,11 @@ def delegate(args: argparse.Namespace) -> int:
             f"model={resolved_model_from_argv(argv)} write_mode={write_mode}"
         )
         effort = next(
-            (a.split("=", 1)[1] for a in argv if a.startswith("model_reasoning_effort=")),
+            (
+                a.split("=", 1)[1]
+                for a in argv
+                if a.startswith("model_reasoning_effort=")
+            ),
             "",
         )
         if effort:
@@ -560,8 +570,13 @@ def delegate(args: argparse.Namespace) -> int:
         warn(f"AAK_DEBUG {detail}")
 
     emit(
-        audit_cfg, source_root, run_id, "agent.invoked", "main_agent",
-        {"provider": provider}, invocation_id,
+        audit_cfg,
+        source_root,
+        run_id,
+        "agent.invoked",
+        "main_agent",
+        {"provider": provider},
+        invocation_id,
     )
 
     exit_code, stdout, stderr = run_provider(argv, args.timeout)
@@ -590,7 +605,11 @@ def delegate(args: argparse.Namespace) -> int:
         )
         status = "skipped" if exit_code == 127 else "error"
         emit(
-            audit_cfg, source_root, run_id, "agent.completed", "subagent",
+            audit_cfg,
+            source_root,
+            run_id,
+            "agent.completed",
+            "subagent",
             {
                 "provider": provider,
                 "status": "error",
@@ -624,7 +643,11 @@ def delegate(args: argparse.Namespace) -> int:
         )
 
     emit(
-        audit_cfg, source_root, run_id, "agent.completed", "subagent",
+        audit_cfg,
+        source_root,
+        run_id,
+        "agent.completed",
+        "subagent",
         {
             "provider": provider,
             "status": "success",
@@ -666,7 +689,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-id", dest="run_id")
     parser.add_argument("--invocation-id", dest="invocation_id")
     parser.add_argument(
-        "--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS,
+        "--timeout",
+        type=int,
+        default=DEFAULT_TIMEOUT_SECONDS,
         help="provider CLI timeout in seconds (default: %(default)s)",
     )
     parser.set_defaults(func=delegate)
