@@ -7,6 +7,16 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`chore(scripts)` — purge removed audit-mode remnants (#511).** The deleted
+  audit/metrics subsystem left contradictory remnants. Removed the phantom
+  `--audit`/`-Audit` flag from the `install.sh` and `install.ps1` help text and
+  examples (the parsers reject it), deleted the dead `tooling/shared/agent-audit`
+  mappings from `validate.ps1` and `uninstall.ps1` (the directory does not
+  exist), rewrote the `delegate.py` module docstring to match `DELEGATION.md`
+  (status line on stderr; no audit events; `load_audit_config`/`emit` retained
+  as no-ops), and dropped a stale agent-audit reference from an `install.sh`
+  comment. Mirrored `delegate.py` to the dogfood copy.
+
 - **`docs(readme)` — stale skill count, missing coverage rows, and an outdated
   PowerShell-prune caveat (#507).** Replaced the hard-coded "31 skills" with
   non-numeric phrasing (the tree now has 32 since the godot skill landed); added

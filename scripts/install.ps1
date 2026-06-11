@@ -18,14 +18,9 @@
     Comma-separated list of tools to configure. Options: codex, claude, agy.
     Default: all three.
 
-.PARAMETER Audit
-    Optional anonymized audit setup mode. Options: disabled, prompt, official.
-    Default: disabled.
-
 .EXAMPLE
     .\install.ps1 -Target "C:\Projects\my-project"
     .\install.ps1 -Target "C:\Projects\my-project" -Tools "codex,claude"
-    .\install.ps1 -Target "C:\Projects\my-project" -Audit official
 #>
 
 param(
