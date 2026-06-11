@@ -7,6 +7,13 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`docs(security)` — README cosign verify example accepted any signer
+  identity (#517).** The "Verifying a release" command used
+  `--certificate-identity-regexp ".*"`, which accepts a signature from any
+  GitHub Actions workflow in any repository, defeating identity verification.
+  Pinned it to `"github.com/PetrovC/ai-agent-kit"`, matching the form in
+  `docs/ai/RELEASE.md` so the two docs stay consistent.
+
 - **`chore(scripts)` — purge removed audit-mode remnants (#511).** The deleted
   audit/metrics subsystem left contradictory remnants. Removed the phantom
   `--audit`/`-Audit` flag from the `install.sh` and `install.ps1` help text and
