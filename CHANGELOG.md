@@ -7,6 +7,17 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`docs(release)` — release-tag signing policy was unverified and v1.23.0
+  regressed to a lightweight tag (#516).** `RELEASE.md` mandates signed
+  annotated tags (`git tag -s`), but `v1.23.0` shipped as a lightweight tag
+  (no tagger/signature) while `v1.22.x` were annotated. Kept the signed-tag
+  policy (Option A): added a step-9 **`git tag -v` verification before pushing**
+  so a lightweight tag is caught before it is published, reinforced "signed
+  annotated" in step 8 and the Tag-naming section, and documented that the
+  already-pushed `v1.23.0` tag is not rewritten (its integrity comes from
+  `SHA256SUMS` + cosign). No tag was created or rewritten by this PR; signing
+  remains a human-gated step.
+
 - **`docs(workflow)` — documented branch protection diverged from the live
   ruleset (#509).** `WORKFLOW.md` "Branch Protection" described classic
   **Settings -> Branches** protection with last-push approval and no admin
