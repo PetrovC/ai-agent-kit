@@ -173,12 +173,15 @@ jobs:
           fetch-depth: 0
 
       - name: Install Antigravity CLI (best-effort)
-        # TODO: pin a version once a public `agy` CLI package exists. As of
-        # 2026-06-07 `@antigravity/agy` is a placeholder — `npm view
-        # @antigravity/agy` returns 404, so there is no published version to pin.
-        # Adjust the package name and add `@<version>` when the real CLI ships.
-        # Stays best-effort: a failed install degrades to the graceful-skip below.
-        run: npm install -g @antigravity/agy || true
+        # Official installer (https://antigravity.google/docs/cli-install). The
+        # `agy` CLI ships via this script, not npm — `@antigravity/agy` does not
+        # exist (npm view -> 404). No published checksum or version pin is
+        # available, so this stays best-effort: a failed or unavailable install
+        # degrades to the graceful-skip in the next step. Installs `agy` into
+        # ~/.local/bin, which we add to PATH for the run step.
+        run: |
+          curl -fsSL https://antigravity.google/cli/install.sh | bash || true
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Run Antigravity on the mention (governance-audited)
         env:
@@ -196,7 +199,7 @@ jobs:
           fi
           if ! command -v agy >/dev/null 2>&1; then
             gh issue comment "$ISSUE_NUMBER" --body \
-              "🤖 @agy run skipped: the Antigravity CLI did not install (adjust the install step's package name)."
+              "🤖 @agy run skipped: the Antigravity CLI did not install (the antigravity.google installer was unavailable)."
             exit 0
           fi
 

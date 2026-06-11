@@ -7,6 +7,17 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`fix(ci)` — `@agy` mention job installed a nonexistent npm package (#512).**
+  The `@agy` job in `agent-on-mention.yml` ran `npm install -g @antigravity/agy`,
+  which 404s — the Antigravity CLI ships via an installer script, not npm.
+  Switched the install step to the official installer
+  (`curl -fsSL https://antigravity.google/cli/install.sh | bash`,
+  https://antigravity.google/docs/cli-install), added `~/.local/bin` to
+  `GITHUB_PATH` so the subsequent `command -v agy` check resolves, and updated
+  the step comment and graceful-skip message accordingly. Kept best-effort
+  (`|| true`): no published checksum/version pin exists, so a failed or
+  unavailable install still degrades to the "@agy run skipped" comment.
+
 - **`docs(release)` — release-tag signing policy was unverified and v1.23.0
   regressed to a lightweight tag (#516).** `RELEASE.md` mandates signed
   annotated tags (`git tag -s`), but `v1.23.0` shipped as a lightweight tag
