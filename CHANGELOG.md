@@ -7,6 +7,17 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`docs(workflow)` — documented branch protection diverged from the live
+  ruleset (#509).** `WORKFLOW.md` "Branch Protection" described classic
+  **Settings -> Branches** protection with last-push approval and no admin
+  bypass, but enforcement is actually a repository **ruleset** ("Main") with
+  `require_last_push_approval: false` and an admin `pull_request`-mode bypass —
+  and recent merges used that bypass (Scorecard Code-Review = 0). Took the
+  honesty path (Option A): rewrote the section to describe the real ruleset and
+  documented the admin-bypass and last-push trade-offs as deliberate
+  solo-maintainer choices, with a note on what to tighten if a second reviewer
+  joins. No GitHub settings changed (that half is human-gated).
+
 - **`docs(codex)` — "Codex has no `PreCompact` event" was stale (#513).** The
   official Codex hooks docs now list both `PreCompact` and `PostCompact` (plus
   `UserPromptSubmit`/`SubagentStop`) among supported lifecycle events, so the
