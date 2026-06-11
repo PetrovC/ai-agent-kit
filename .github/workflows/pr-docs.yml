@@ -425,7 +425,8 @@ jobs:
           #     are Gemini-branded; the non-existent `agy-*` form (a migration
           #     find/replace artifact) is intentionally rejected (issue #302).
           APPROVED_MODELS = {
-              "gemini-3.1-pro", "gemini-3-flash", "gemini-3.1-flash-lite",
+              "gemini-3.1-pro", "gemini-3-flash", "gemini-3.5-flash",
+              "gemini-3.1-flash-lite",
               "gemini-3-pro", "gemini-2.5-pro", "gemini-2.5-flash",
           }
           # Each pattern captures `[a-z0-9.-]+` so trailing punctuation in
