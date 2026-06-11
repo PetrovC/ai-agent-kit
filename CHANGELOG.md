@@ -7,6 +7,16 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`fix(bootstrap)` — `bootstrap.ps1` hard-required `pwsh`, breaking the
+  Windows install on PowerShell 5.1-only machines (#505).** Stock Windows ships
+  only Windows PowerShell 5.1; the installer invocation hard-coded `& pwsh ...`,
+  so the released `irm .../bootstrap.ps1 | iex` path downloaded the archive then
+  failed with `CommandNotFoundException: pwsh`, installing nothing. Now resolves
+  the engine first (`Resolve-AakPowerShellEngine`): prefers `pwsh` when present,
+  otherwise falls back to `powershell`, and prints which engine runs the
+  installer. `install.ps1` is already 5.1-compatible. Covered by a new Pester
+  test mocking both branches.
+
 - **`docs(readme)` — pinned install examples referenced the nonexistent
   `v1.21.0` release (#506).** Every pinned `bootstrap.{sh,ps1}` example and the
   `git clone --branch` snippet in README pointed at `v1.21.0`, which 404s (the
