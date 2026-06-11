@@ -7,6 +7,17 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`docs(governance)` — WORKFLOW/ARCHITECTURE/SCOPE still said the Antigravity
+  dogfood was not tracked (#508).** Three governance docs described the
+  pre-Antigravity state and contradicted both `git ls-files` (which tracks
+  `.agy/`, `AGY.md`, `.agyignore`) and CI (`validate --strict` +
+  `pr-versioning.yml`/`pr-dogfood-parity.yml` enforce all three trees). Added the
+  agy artifacts to WORKFLOW.md's tracked list and removed the "do not track
+  Antigravity" paragraph; updated ARCHITECTURE.md's directory table, dogfood
+  vs source rows (with canonical `tooling/agy/` sources), update command, and
+  invariants; widened SCOPE.md's guarantee and ADR-004 to
+  Claude/Codex/Antigravity.
+
 - **`docs(parity)` — PROVIDER_PARITY hook-events table overstated wired events
   (#510).** The table claimed events for all three providers that the shipped
   configs do not register. Corrected it to the actual wired sets — Claude:

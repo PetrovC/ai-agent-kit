@@ -121,23 +121,28 @@ For this docs completion task:
 - do not open a PR unless explicitly asked.
 
 In this repository, `docs/ai/` is official project-owned context and may be
-tracked. The repository also intentionally tracks its own Claude/Codex dogfood
-install so agents can use the kit while maintaining the kit:
+tracked. The repository also intentionally tracks its own
+Claude/Codex/Antigravity dogfood install so agents can use the kit while
+maintaining the kit:
 
 - `AGENTS.md`
 - `CLAUDE.md`
+- `AGY.md`
 - `.agents/`
 - `.claude/`
 - `.codex/`
+- `.agy/`
+- `.agyignore`
 - `.mcp.json`
 - `.mcp.example.jsonc`
 - `.kit-version`
 - `.kit-manifest`
 
-Do not track Antigravity root install output in this repository unless a future issue
-explicitly expands the dogfood scope. Do not track local/runtime files such as
-`.claude/settings.local.json`, `.claude/session-log/`, `.claude/worktrees/`, or
-`CLAUDE.local.md`.
+`validate --strict` byte-checks the tracked `.agy/` tree against `tooling/agy/`
+plus the shared `skills/` source, and the `pr-versioning.yml` /
+`pr-dogfood-parity.yml` CI jobs require all three dogfood trees to stay tracked.
+Do not track local/runtime files such as `.claude/settings.local.json`,
+`.claude/session-log/`, `.claude/worktrees/`, or `CLAUDE.local.md`.
 
 ## Comment-mention Agents
 

@@ -30,16 +30,17 @@ issue changes direction.
 - Consequences: Install and update must preserve existing target `docs/ai/`
   content unless a file is explicitly kit-managed.
 
-## ADR-004: Track repository-owned AI context and Claude/Codex dogfood config
+## ADR-004: Track repository-owned AI context and Claude/Codex/Antigravity dogfood config
 
 - Context: This repository needs agent-facing context and wants to use its own
-  Claude/Codex configuration while maintaining the kit.
+  Claude/Codex/Antigravity configuration while maintaining the kit.
 - Decision: `docs/ai/` is official project-owned documentation, and the root
-  Claude/Codex dogfood install (`AGENTS.md`, `CLAUDE.md`, `.agents/`,
-  `.claude/`, `.codex/`, `.mcp.json`, `.mcp.example.jsonc`, `.kit-version`, and
-  `.kit-manifest`) is tracked intentionally.
-- Consequences: CI must require the Claude/Codex dogfood install to remain
-  tracked while rejecting Antigravity root install output and local/runtime files.
+  Claude/Codex/Antigravity dogfood install (`AGENTS.md`, `CLAUDE.md`, `AGY.md`,
+  `.agents/`, `.claude/`, `.codex/`, `.agy/`, `.agyignore`, `.mcp.json`,
+  `.mcp.example.jsonc`, `.kit-version`, and `.kit-manifest`) is tracked
+  intentionally.
+- Consequences: CI must require the Claude/Codex/Antigravity dogfood install to
+  remain tracked while rejecting local/runtime files.
 
 ## ADR-005: Provider behavior stays under tooling/<tool>
 
