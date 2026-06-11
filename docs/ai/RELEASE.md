@@ -29,8 +29,9 @@ Release metadata changes follow the same rules: scope them, make them reviewable
 5. **Run validation.** `bash scripts/validate.sh` (and `pwsh scripts/validate.ps1` if applicable).
 6. **Record `.verify-state`.** Write a short one-liner to `.verify-state` at the repo root (gitignored) noting the version, date, and result. This is a local signal only; CI is authoritative.
 7. **Commit release metadata.** One commit: `chore(release): prepare vX.Y.Z`. The commit must contain only `VERSION`, `CHANGELOG.md`, and `.verify-state`.
-8. **Create the tag with explicit human confirmation.** The maintainer runs `git tag -s vX.Y.Z -m "Release vX.Y.Z"` after the PR merges. Agents must not create tags without explicit confirmation.
-9. **Push the tag and create the GitHub Release with explicit human confirmation.** The maintainer runs `git push origin vX.Y.Z` and creates the GitHub Release using the changelog section as release notes. Agents must not push tags or create releases without explicit confirmation.
+8. **Create the tag with explicit human confirmation.** The maintainer runs `git tag -s vX.Y.Z -m "Release vX.Y.Z"` after the PR merges. This must be a **signed annotated** tag (`-s`), not a lightweight one. Agents must not create tags without explicit confirmation.
+9. **Verify the tag signature before pushing.** The maintainer runs `git tag -v vX.Y.Z` and confirms a good signature. A lightweight tag (no tagger, no signature) fails this check; re-create it as a signed annotated tag *before* it is pushed. Already-pushed tags are never rewritten — the `v1.23.0` tag predates this check and remains lightweight, so its integrity is provided by `SHA256SUMS` + cosign bundles (see *Release assets and verification*).
+10. **Push the tag and create the GitHub Release with explicit human confirmation.** The maintainer runs `git push origin vX.Y.Z` and creates the GitHub Release using the changelog section as release notes. Agents must not push tags or create releases without explicit confirmation.
 
 ## What agents may do automatically
 
@@ -77,7 +78,7 @@ These checks run in `pr-versioning.yml`. A release PR that fails them cannot mer
 
 ## Tag naming
 
-Tags use the form `vA.B.C` where `A.B.C` matches the content of `VERSION` at time of tagging.
+Tags use the form `vA.B.C` where `A.B.C` matches the content of `VERSION` at time of tagging. Release tags are **signed annotated** tags (`git tag -s`), verified with `git tag -v` before pushing (see step 9).
 
 ## Related
 
