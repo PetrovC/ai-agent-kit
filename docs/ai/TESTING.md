@@ -73,21 +73,48 @@ The Bash and PowerShell scripts already show meaningful care around manifests,
 dry-runs, preservation, and path handling. Future work should test that care in
 isolation instead of undervaluing or rewriting it without evidence.
 
-## Planned Testing Improvements
+## Testing tooling: current state
 
-Each improvement below requires its own scoped GitHub issue before
+The improvements once tracked here as future work have shipped and run in CI:
+
+- **BATS** suites for the Bash lifecycle scripts and hooks (`tests/bats/`,
+  `PR — BATS`).
+- **Pester** suites for the PowerShell lifecycle scripts (`tests/pester/`,
+  `PR scripts PowerShell`).
+- **Bash/PowerShell output parity** checks (`pr-parity`, `pr-install-parity`,
+  `pr-dogfood-parity`).
+- **Router parity** across `AGENTS.md`, `CLAUDE.md`, and `AGY.md`
+  (`pr-router-parity`).
+- **Stronger `validate` checks** for unresolved placeholders and stale template
+  content (`scripts/validate.{sh,ps1}`; see *Documentation Checks* above).
+- **Skill evals** — the offline routing eval, CI-gated since #488
+  (`PR — routing eval`).
+
+Still genuinely open — each needs its own scoped GitHub issue before
 implementation:
 
-- BATS tests for Bash helpers.
-- Pester tests for PowerShell helpers.
-- Bash/PowerShell output parity checks.
-- Router parity checks across `AGENTS.md`, `CLAUDE.md`, and `AGY.md`.
-- Stronger `validate` checks for unresolved placeholders and stale template
-  content.
 - Optional fuzzing for `pre-bash-guard`.
-- Future skill evals, probably outside required CI at first.
-- Public release checks for root `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`,
-  root `VERSION`, release tags, and release checklist.
+- A `python3 → python` fallback in `tests/bats/bats_helper.bash` so the bats
+  suite can also run on hosts where `python3` is unavailable (see
+  *Where tests run* below).
+- Public release checks for release tags and the release checklist (the root
+  `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, and `VERSION` files already
+  exist and `validate` checks CHANGELOG release metadata).
+
+## Where tests run
+
+The two unit suites are platform-split by design; pick the suite for your host:
+
+- **bats — Linux / CI.** The BATS suite is validated on Ubuntu (the `PR — BATS`
+  workflow). On Windows Git Bash many tests fail for environmental reasons that
+  are **not** product bugs: `python3` resolves to the Microsoft Store
+  `WindowsApps` stub, and NTFS does not emulate the POSIX exec bit that the
+  doctor-executability test asserts. A Windows contributor should expect these
+  failures and run Pester instead.
+- **Pester — Windows.** The PowerShell suite (`tests/pester/`) is the unit suite
+  to run on Windows; it is also exercised on the GitHub-hosted Windows runner.
+- **Skill evals — both.** The offline routing eval runs on Linux/CI and on
+  Windows via Git Bash.
 
 ## Quality gate (required status)
 
