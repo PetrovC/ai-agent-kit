@@ -7,6 +7,18 @@ Older releases (1.22.0 and earlier) are archived in
 
 ### Fixed
 
+- **`docs(testing)` — testing docs listed shipped suites as planned and didn't
+  say where each runs (#515).** `docs/ai/TESTING.md` "Planned Testing
+  Improvements" still listed BATS, Pester, bash/PowerShell parity, router
+  parity, stronger `validate` placeholder checks, and skill evals as future
+  work — all of which ship and run in CI today — and `docs/SCOPE.md` classified
+  the doctor command, init wizard, and skill evals as Future/experimental
+  despite being implemented and tested. Rewrote the section as current state
+  with a short genuinely-open list, fixed the SCOPE maturity rows, and added a
+  "Where tests run" note (bats = Linux/CI, Pester = Windows, evals = both) so a
+  Windows contributor knows bats failures there are environmental and which
+  suite to run instead.
+
 - **`docs(plugin)` — team-setup section named a nonexistent config file and
   mis-scoped `strictKnownMarketplaces` (#519).** The "Pinning and pre-enabling
   the plugin" recipe told teams to add keys to `CLAUDE.local.json` (not a real
