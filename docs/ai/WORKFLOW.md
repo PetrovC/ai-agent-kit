@@ -32,11 +32,12 @@ One concern belongs in one issue. Do not group unrelated implementation work.
 
 ## Branch Protection
 
-The `master` branch is protected. The intended posture below is what the
-maintainer applies in **Settings -> Branches** (GitHub settings, not code — the
-repository can only document it). Ownership is declared in
-[`.github/CODEOWNERS`](../../.github/CODEOWNERS); the protection rules make that
-ownership and the quality gate enforceable.
+The `master` branch is protected by a GitHub **repository ruleset** ("Main",
+id `16408159`) — not classic **Settings -> Branches** protection, which is not
+configured (the classic protection API returns 404 for `master`). Ownership is
+declared in [`.github/CODEOWNERS`](../../.github/CODEOWNERS); the ruleset makes
+that ownership and the quality gate enforceable. The ruleset can only be edited
+in GitHub settings — this file documents the applied posture.
 
 - **Require a pull request before merging.** No direct pushes to `master`.
 - **Require approvals** (at least one) and **require review from Code Owners**,
@@ -47,10 +48,24 @@ ownership and the quality gate enforceable.
   so a single required check stays correct as jobs are added or renamed.
 - **Require branches to be up to date before merging**, so checks run against
   the latest `master`.
-- **Require approval of the most recent reviewable push** ("require last-push
-  approval"), so a self-approved last-minute push cannot bypass review.
-- **Do not allow bypassing the above settings** — include administrators, so the
-  rules apply to maintainers too.
+
+Two deliberate trade-offs for a **solo-maintainer** repository — documented here
+so the gap between what is *configured* and what is *exercised* stays honest:
+
+- **Admin bypass is enabled** (`bypass_actors`: Repository admin, in
+  `pull_request` mode). The approval and Code-Owner rules above are configured,
+  but a repository admin can still merge a PR without an outside approval — a
+  solo maintainer cannot approve their own PR, so requiring an approval no one
+  else can give would block every change. Recent merges have used this bypass
+  (they show no recorded review), which is why OpenSSF Scorecard reports
+  Code-Review = 0 while Branch-Protection = 5.
+- **Last-push approval is not required** (`require_last_push_approval: false`),
+  for the same reason: with a single maintainer there is no second party to
+  re-approve the most recent reviewable push.
+
+If a second maintainer or an outside reviewer joins, tighten both — remove the
+admin bypass and enable last-push approval — so the configured approval rules
+become enforced rather than bypassed.
 
 ## Agent Branch, Preflight, and Language Rules
 
