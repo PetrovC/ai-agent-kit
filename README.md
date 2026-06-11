@@ -27,7 +27,7 @@ Omit `--tools` / `-Tools` to install all three tools by default. See
 [Quick start](#quick-start-5-minutes) for profiles, the plugin marketplace
 alternative, and Windows ExecutionPolicy notes.
 
-### Released install (available from v1.21.0)
+### Released install (available from v1.22.1)
 
 > Requires a published GitHub release. The one-liners below download a release
 > artifact (`bootstrap.{sh,ps1}`) and run the installer; until a release is
@@ -47,8 +47,8 @@ Both commands download the latest [release artifact](https://github.com/PetrovC/
 Pass explicit options to control what is installed (see [Quick start](#quick-start-5-minutes)):
 
 ```bash
-curl -fsSL https://github.com/PetrovC/ai-agent-kit/releases/download/v1.21.0/bootstrap.sh \
-  | bash -s -- --target /path/to/project --tools claude --version v1.21.0
+curl -fsSL https://github.com/PetrovC/ai-agent-kit/releases/download/v1.23.0/bootstrap.sh \
+  | bash -s -- --target /path/to/project --tools claude --version v1.23.0
 ```
 
 ```powershell
@@ -192,19 +192,19 @@ install. Edit them to match your team's standards. The templates contain
 To install from a specific tagged release, pass `--version` to the bootstrap script:
 
 ```bash
-curl -fsSL https://github.com/PetrovC/ai-agent-kit/releases/download/v1.21.0/bootstrap.sh \
-  | bash -s -- --target /path/to/your-project --tools codex,claude,agy --version v1.21.0
+curl -fsSL https://github.com/PetrovC/ai-agent-kit/releases/download/v1.23.0/bootstrap.sh \
+  | bash -s -- --target /path/to/your-project --tools codex,claude,agy --version v1.23.0
 ```
 
 ```powershell
-& ([scriptblock]::Create((irm 'https://github.com/PetrovC/ai-agent-kit/releases/download/v1.21.0/bootstrap.ps1'))) `
-    -Target '.\your-project' -Tools 'codex,claude,agy' -Version 'v1.21.0'
+& ([scriptblock]::Create((irm 'https://github.com/PetrovC/ai-agent-kit/releases/download/v1.23.0/bootstrap.ps1'))) `
+    -Target '.\your-project' -Tools 'codex,claude,agy' -Version 'v1.23.0'
 ```
 
 Alternatively, clone the tag and run the local scripts directly:
 
 ```bash
-git clone --branch v1.21.0 --depth 1 <repo-url> ai-agent-kit
+git clone --branch v1.23.0 --depth 1 <repo-url> ai-agent-kit
 cd ai-agent-kit
 ./scripts/install.sh --target /path/to/your-project --tools codex,claude,agy
 ```

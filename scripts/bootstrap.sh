@@ -5,11 +5,11 @@
 #   curl -fsSL https://github.com/PetrovC/ai-agent-kit/releases/latest/download/bootstrap.sh | bash
 #
 # Pinned version with explicit options:
-#   curl -fsSL https://github.com/PetrovC/ai-agent-kit/releases/download/v1.21.0/bootstrap.sh \
-#     | bash -s -- --target /path/to/project --tools claude --version v1.21.0
+#   curl -fsSL https://github.com/PetrovC/ai-agent-kit/releases/download/v1.23.0/bootstrap.sh \
+#     | bash -s -- --target /path/to/project --tools claude --version v1.23.0
 #
 # Options:
-#   --version   Release tag, e.g. v1.21.0 (default: latest)
+#   --version   Release tag, e.g. v1.23.0 (default: latest)
 #   --target    Project directory           (default: current directory)
 #   --tools     Comma-separated list        (default: codex,claude,agy)
 #   --profile   full | minimal              (default: full)
