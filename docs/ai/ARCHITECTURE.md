@@ -40,15 +40,15 @@ extension scaffolds must not become hidden core dependencies.
 | `scripts/` | Install, update, uninstall, validate, and skill-scaffolding scripts for Windows and POSIX shells. |
 | `prompts/` | Copy-paste workflow prompts and GitHub Actions templates. |
 | `docs/ai/` | Repository-specific AI context for maintaining this kit itself. |
-| `AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, `.codex/` | Tracked Claude/Codex dogfood install for maintaining this repository with the kit itself. |
+| `AGENTS.md`, `CLAUDE.md`, `AGY.md`, `.agents/`, `.claude/`, `.codex/`, `.agy/`, `.agyignore` | Tracked Claude/Codex/Antigravity dogfood install for maintaining this repository with the kit itself. |
 | `examples/filled-project/` | Example filled `docs/ai` content for a fictional target project. |
 | `.claude-plugin/` | Claude plugin marketplace metadata for the skills-only distribution path. |
 
 ## Dogfood vs source
 
-This repository tracks a Claude/Codex dogfood install at the root so the kit can
-be used while maintaining the kit. Those root files are installed outputs, not
-the canonical source for provider behavior.
+This repository tracks a Claude/Codex/Antigravity dogfood install at the root so
+the kit can be used while maintaining the kit. Those root files are installed
+outputs, not the canonical source for provider behavior.
 
 | Dogfood output in this repo | Canonical source |
 |---|---|
@@ -56,16 +56,17 @@ the canonical source for provider behavior.
 | `.agents/skills/` | Shared `skills/` plus Codex-only agent skills under `tooling/codex/skills/` |
 | `CLAUDE.md`, `.claude/settings.json`, `.claude/agents/`, `.claude/commands/`, `.claude/hooks/`, `.claude/rules/` | `tooling/claude/CLAUDE.md`, platform-specific `tooling/claude/settings*.json`, and matching `tooling/claude/*/` directories |
 | `.claude/skills/` | Shared `skills/` |
-| Future root Antigravity dogfood files | Not tracked today. If that changes, update ADR-004, `.kit-manifest`, validation, and CI in the same scoped issue. Canonical Antigravity source remains `tooling/agy/`. |
+| `AGY.md`, `.agyignore`, `.agy/agents/`, `.agy/commands/`, `.agy/hooks/`, `.agy/policies/` | `tooling/agy/AGY.md`, `tooling/agy/.agyignore`, and matching `tooling/agy/*/` directories |
+| `.agy/skills/` | Shared `skills/` |
 
 Edit the canonical source first, then refresh this repository's dogfood install
-with `scripts/update.* -Target "." -Tools codex,claude`. Commit the source
+with `scripts/update.* -Target "." -Tools codex,claude,agy`. Commit the source
 change and the refreshed dogfood output together when both are part of the same
 issue.
 
 `scripts/validate.* -Target "."` has a repo-only drift check: when it sees this
-source tree and `.kit-manifest`, it compares tracked Claude/Codex dogfood files
-against their canonical `tooling/` or `skills/` sources. Platform-specific
+source tree and `.kit-manifest`, it compares tracked Claude/Codex/Antigravity
+dogfood files against their canonical `tooling/` or `skills/` sources. Platform-specific
 outputs such as `.codex/hooks.json` and `.claude/settings.json` may match either
 the POSIX or Windows source variant.
 
@@ -83,9 +84,8 @@ the POSIX or Windows source variant.
 - `.kit-manifest` tracks kit-managed files in target projects.
 - `docs/ai/` in this repository is intentionally tracked project context for
   `ai-agent-kit` itself.
-- Root Claude/Codex install artifacts are intentionally tracked here as the
-  repository's dogfood configuration.
-- Root Antigravity install artifacts are not tracked in this repository.
+- Root Claude/Codex/Antigravity install artifacts are intentionally tracked here
+  as the repository's dogfood configuration.
 - Claude local/runtime files such as `.claude/settings.local.json`,
   `.claude/session-log/`, `.claude/worktrees/`, and `CLAUDE.local.md` are not
   tracked.

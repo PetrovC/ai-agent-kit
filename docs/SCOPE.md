@@ -16,7 +16,7 @@ context, and providing optional adapters where they help.
 - Root router files stay short and delegate to skills and `docs/ai/`.
 - Target project context belongs in `docs/ai/`.
 - Install and update distinguish kit-managed files from project-owned files.
-- This repository may track its own Claude/Codex dogfood install as
+- This repository may track its own Claude/Codex/Antigravity dogfood install as
   project-local configuration.
 - Optional adapters remain optional.
 - Human review, issue scope, and PR review stay part of the workflow.
