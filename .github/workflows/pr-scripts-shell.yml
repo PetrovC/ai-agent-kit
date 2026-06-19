@@ -16,7 +16,7 @@ jobs:
     name: Validate filled example
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: Validate examples/filled-project
         run: bash scripts/validate.sh --target examples/filled-project
@@ -78,7 +78,7 @@ jobs:
     name: Smoke install (bash)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: Install kit into temp project
         run: |
@@ -295,7 +295,7 @@ jobs:
     name: Install from packaged release archive (flat layout)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: Assemble dist exactly as release-checksums.yml does
         run: |
@@ -352,7 +352,7 @@ jobs:
     name: Shell scripts + hooks must be valid
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: bash -n (syntax) on every script and hook
         run: |
@@ -372,7 +372,7 @@ jobs:
     name: install -> update -> uninstall -> new-skill (no dry-run)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: Real update is a no-op right after install
         run: |

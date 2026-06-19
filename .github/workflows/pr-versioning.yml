@@ -16,7 +16,7 @@ jobs:
     name: Claude/Codex/Antigravity dogfood install policy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: Only intended root AI config may be tracked
         run: |
@@ -90,7 +90,7 @@ jobs:
     name: Claude plugin + marketplace manifests valid
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: plugin.json and marketplace.json must be valid and consistent
         run: |
@@ -203,7 +203,7 @@ jobs:
     name: CHANGELOG.md release metadata valid
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: CHANGELOG.md invariants (one [Unreleased], no duplicate versions, valid heading format)
         run: |
