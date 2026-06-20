@@ -16,7 +16,7 @@ jobs:
     name: Skill structure check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: Every skill must have a SKILL.md
         run: |
@@ -48,7 +48,7 @@ jobs:
     name: YAML syntax check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       # We use Python + PyYAML (preinstalled on ubuntu-latest) instead of
       # `snap install yq` so the YAML lint is deterministic: a future Snap
@@ -111,7 +111,7 @@ jobs:
     name: Skill routing consistency
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: Every skill must appear in all three routing tables
         run: |
@@ -207,7 +207,7 @@ jobs:
     name: CHANGELOG entry required for feat/fix/perf
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
         with:
           fetch-depth: 0
 
@@ -257,7 +257,7 @@ jobs:
     name: Intra-repo markdown links resolve
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       # Audit T8: catch broken intra-repo markdown links. Links to external
       # URLs (http/https/mailto) and pure anchors are skipped; links inside
@@ -323,7 +323,7 @@ jobs:
     name: GitHub Actions workflow semantics
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7.0.0
 
       - name: Workflow templates must be semantically correct
         run: |
