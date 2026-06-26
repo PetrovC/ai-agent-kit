@@ -71,7 +71,7 @@ jobs:
             --bundle "ai-agent-kit-${TAG}.zip.sigstore.json"
 
       - name: Upload release artifacts
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # softprops/action-gh-release@v3
         with:
           # v1.22.0/v1.22.1 ended up with zero assets while this step reported
           # success; fail loudly if any listed file is missing (#472)
