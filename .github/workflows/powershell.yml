@@ -48,6 +48,6 @@ jobs:
         # analyzer check to run. Keep analyzer failures fatal, but do not fail
         # the workflow solely because SARIF upload is unavailable.
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
