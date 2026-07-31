@@ -76,7 +76,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Claude
-        uses: anthropics/claude-code-action@536f2c32a39763739000b0e1ac69ca2647d97ce9 # anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # anthropics/claude-code-action@v1
         with:
           # Uses your Claude Pro/Max subscription, not the paid API.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
